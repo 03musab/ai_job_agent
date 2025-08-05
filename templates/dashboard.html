@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Dashboard - Super Job Agent</title>
+    <style>
+        /* Global styles from index.html (modern look) */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --dark-bg: #0f0f23;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --text-primary: #2d3748; /* For text on light backgrounds */
+            --text-secondary: #718096;
+            --border-color: rgba(255, 255, 255, 0.2);
+            --shadow-light: 0 8px 32px rgba(31, 38, 135, 0.37);
+            --shadow-heavy: 0 15px 35px rgba(31, 38, 135, 0.2);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--dark-bg);
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 200, 255, 0.2) 0%, transparent 50%);
+            min-height: 100vh;
+            color: white; /* Default text color for body, overridden in .container */
+            overflow-x: hidden;
+            padding: 0; /* Remove body padding to allow header to stick to top */
+            margin: 0;
+        }
+
+        /* Header Navigation */
+        .header-nav {
+            position: sticky; /* Changed to sticky for dashboard */
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(15, 15, 35, 0.95); /* Darker background for sticky header */
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5); /* Shadow for sticky header */
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .nav-links a, .nav-links span { /* Added span for welcome text */
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-links a:hover {
+            background: var(--glass-bg);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-light);
+        }
+
+        /* Main Content Container */
+        .main-content-area {
+            padding: 2rem;
+            max-width: 1200px; /* Wider for dashboard */
+            margin: 120px auto 2rem auto; /* Space from sticky header */
+            color: var(--text-primary); /* Default text color for light cards */
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: white; /* Section title color on dark background */
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            margin-left: 10px; /* Align with controls */
+        }
+
+        /* Flash Messages */
+        .message-container {
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .message {
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            font-weight: 500;
+            display: inline-block; /* To center align */
+        }
+        .message.success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .message.info {
+            background: linear-gradient(135deg, #cce5ff 0%, #b8daff 100%);
+            color: #004085;
+            border: 1px solid #b8daff;
+        }
+
+        /* Dashboard Controls */
+        .dashboard-controls {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: var(--shadow-light);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            color: var(--text-primary);
+        }
+        .dashboard-controls label {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            white-space: nowrap; /* Prevent label wrapping */
+        }
+        .dashboard-controls input[type="text"],
+        .dashboard-controls select {
+            flex-grow: 1; /* Allow inputs to take available space */
+            padding: 0.75rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background: white;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            max-width: 180px; /* Give a max-width to keep controls inline */
+        }
+        .dashboard-controls input[type="text"]:focus,
+        .dashboard-controls select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .dashboard-controls button {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+        }
+        .dashboard-controls button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.5);
+        }
+
+        /* Job Table */
+        .job-table-container {
+            overflow-x: auto;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: var(--shadow-heavy);
+            border: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            min-width: 900px; /* Ensure horizontal scroll on small screens */
+        }
+        th, td {
+            padding: 1rem 1.2rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            vertical-align: top;
+            color: var(--text-primary);
+        }
+        th {
+            background-color: #f8fafc;
+            font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap;
+            padding-top: 1.2rem;
+            padding-bottom: 1.2rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        th:hover {
+            background-color: #f0f3f6;
+        }
+        th a {
+            text-decoration: none;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        td.description-cell, td.notes-cell, td.tools-skills-cell {
+            max-width: 250px; /* Adjusted width */
+            white-space: normal;
+            word-wrap: break-word;
+        }
+        .job-link {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .job-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Interactive Status/Notes */
+        .status-select {
+            padding: 0.4rem;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 0.85rem;
+            width: 100%;
+            min-width: 80px;
+            background: white;
+            color: var(--text-primary);
+        }
+        .notes-textarea {
+            width: 100%;
+            min-height: 70px;
+            max-height: 150px;
+            padding: 0.5rem;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 0.85rem;
+            box-sizing: border-box;
+            resize: vertical;
+            background: white;
+            color: var(--text-primary);
+        }
+
+        /* Feedback Buttons */
+        .feedback-buttons {
+            text-align: center;
+            white-space: nowrap;
+        }
+        .feedback-buttons button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5em; /* Larger emoji */
+            padding: 0.3rem;
+            color: var(--text-secondary); /* Greyed out by default */
+            transition: color 0.2s ease, transform 0.2s ease;
+            margin: 0 2px;
+        }
+        .feedback-buttons button:hover {
+            transform: scale(1.1);
+        }
+        .feedback-buttons button.like:hover,
+        .feedback-buttons button.liked {
+            color: #4CAF50; /* Green */
+        }
+        .feedback-buttons button.dislike:hover,
+        .feedback-buttons button.disliked {
+            color: #dc3545; /* Red */
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .pagination a {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 0.75rem 1.25rem;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+        }
+        .pagination a.active {
+            background: var(--success-gradient); /* Different color for active page */
+            box-shadow: 0 4px 10px rgba(79, 172, 254, 0.5);
+            transform: translateY(-2px);
+        }
+        .pagination a:hover:not(.active) {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .no-jobs {
+            text-align: center;
+            padding: 3rem;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--shadow-light);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1024px) {
+            .dashboard-controls input[type="text"],
+            .dashboard-controls select {
+                max-width: none; /* Allow full width on smaller screens */
+            }
+        }
+        @media (max-width: 768px) {
+            .header-nav {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 1rem;
+            }
+            .nav-links {
+                flex-direction: column;
+                align-items: flex-start;
+                width: 100%;
+                gap: 0.5rem;
+                margin-top: 0.5rem;
+            }
+            .nav-links a, .nav-links span {
+                width: 100%;
+                text-align: center;
+                padding: 0.75rem 1rem;
+            }
+            .main-content-area {
+                margin-top: 180px; /* Adjust for larger header on mobile */
+                padding: 1rem;
+            }
+            .dashboard-controls {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+            .dashboard-controls > *, .dashboard-controls button {
+                width: 100%;
+                max-width: none;
+            }
+            table, thead, tbody, th, td, tr {
+                display: block; /* Make table responsive by stacking cells */
+            }
+            th {
+                text-align: right;
+                position: relative;
+                padding-right: 50%;
+                white-space: normal;
+                box-sizing: border-box;
+                cursor: default; /* Disable sorting interaction on stacked headers */
+                background-color: #f8fafc;
+            }
+            th:hover {
+                background-color: #f8fafc; /* No hover effect on mobile stacked header */
+            }
+            th a {
+                pointer-events: none; /* Disable click on sort arrows */
+            }
+            td {
+                text-align: right;
+                position: relative;
+                padding-left: 50%;
+                white-space: normal;
+                box-sizing: border-box;
+                border-bottom: none;
+            }
+            td::before { /* Add label as pseudo-element */
+                content: attr(data-label);
+                position: absolute;
+                left: 10px;
+                width: 45%;
+                padding-right: 10px;
+                white-space: nowrap;
+                text-align: left;
+                font-weight: bold;
+                color: var(--text-primary);
+            }
+            tr {
+                margin-bottom: 1rem;
+                border: 1px solid rgba(0,0,0,0.1);
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: var(--shadow-light);
+                background: var(--card-bg);
+                padding: 1rem;
+            }
+            tr:last-child {
+                border-bottom: 1px solid rgba(0,0,0,0.1);
+            }
+            /* Adjust specific cells for mobile */
+            td.description-cell, td.notes-cell, td.tools-skills-cell {
+                max-width: none;
+            }
+            .feedback-buttons {
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header-nav">
+        <div class="logo">🚀 Super Job Agent</div>
+        <div class="nav-links">
+            <span>Welcome, <strong>{{ current_user.username }}</strong>!</span>
+            <a href="{{ url_for('index') }}">🔍 Search Jobs</a>
+            <a href="{{ url_for('settings') }}">⚙️ Settings</a>
+            <a href="{{ url_for('dashboard') }}">📊 Dashboard</a> <a href="{{ url_for('logout') }}">🚪 Logout</a>
+        </div>
+    </div>
+
+    <div class="main-content-area"> <h1 class="section-title" style="color: white;">📊 Job Dashboard for {{ current_user.username }}</h1>
+
+        <div class="message-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <div class="dashboard-controls">
+            <label for="search_query">Search:</label>
+            <input type="text" id="search_query" name="search_query" value="{{ search_query }}" placeholder="Search title, company, notes, skills, tools...">
+
+            <label for="status_filter">Status:</label>
+            <select id="status_filter" name="status_filter">
+                <option value="all">All</option>
+                {% for status_option in job_statuses %}
+                    <option value="{{ status_option }}" {% if status_filter == status_option %}selected{% endif %}>{{ status_option|capitalize }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="sort_by">Sort by:</label>
+            <select id="sort_by" name="sort_by">
+                <option value="found_date" {% if sort_by == 'found_date' %}selected{% endif %}>Date Found</option>
+                <option value="relevance_score" {% if sort_by == 'relevance_score' %}selected{% endif %}>Relevance Score</option>
+                <option value="title" {% if sort_by == 'title' %}selected{% endif %}>Job Title</option>
+                <option value="company" {% if sort_by == 'company' %}selected{% endif %}>Company</option>
+                <option value="location" {% if sort_by == 'location' %}selected{% endif %}>Location</option>
+            </select>
+
+            <label for="sort_order">Order:</label>
+            <select id="sort_order" name="sort_order">
+                <option value="DESC" {% if sort_order == 'DESC' %}selected{% endif %}>Descending</option>
+                <option value="ASC" {% if sort_order == 'ASC' %}selected{% endif %}>Ascending</option>
+            </select>
+
+            <button onclick="applyFilters()">Apply Filters</button>
+        </div>
+
+        <div class="job-table-container">
+            {% if jobs %}
+            <table>
+                <thead>
+                    <tr>
+                        <th><a href="#" onclick="updateSort('title')">Title {% if sort_by == 'title' %}{% if sort_order == 'ASC' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
+                        <th><a href="#" onclick="updateSort('company')">Company {% if sort_by == 'company' %}{% if sort_order == 'ASC' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
+                        <th><a href="#" onclick="updateSort('location')">Location {% if sort_by == 'location' %}{% if sort_order == 'ASC' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
+                        <th>Salary</th>
+                        <th>Experience</th>
+                        <th>Job Type</th>
+                        <th><a href="#" onclick="updateSort('relevance_score')">Relevance {% if sort_by == 'relevance_score' %}{% if sort_order == 'ASC' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
+                        <th>Source</th>
+                        <th>Posted Date</th>
+                        <th><a href="#" onclick="updateSort('found_date')">Found Date {% if sort_by == 'found_date' %}{% if sort_order == 'ASC' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
+                        <th>Link</th>
+                        <th>Status</th>
+                        <th class="notes-cell">Notes</th>
+                        <th class="tools-skills-cell">Tools/Soft Skills</th>
+                        <th>Feedback</th>
+                        <th class="description-cell">Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in jobs %}
+                    <tr data-job-id="{{ job.id }}">
+                        <td data-label="Title">{{ job.title }}</td>
+                        <td data-label="Company">{{ job.company }}</td>
+                        <td data-label="Location">{{ job.location }}</td>
+                        <td data-label="Salary">{{ job.salary }}</td>
+                        <td data-label="Experience">
+                            {{ job.experience }}
+                            {% if job.min_experience_years is not none %}
+                                <br><small>({{ job.min_experience_years }}
+                                {% if job.max_experience_years is not none %}
+                                    - {{ job.max_experience_years }}
+                                {% else %}+{% endif %} yrs)</small>
+                            {% endif %}
+                        </td>
+                        <td data-label="Job Type">{{ job.job_type }}</td>
+                        <td data-label="Relevance">{{ "%.0f" | format(job.relevance_score) }}%</td>
+                        <td data-label="Source">{{ job.source }}</td>
+                        <td data-label="Posted Date">{{ job.posted_date }}</td>
+                        <td data-label="Found Date">{{ job.found_date[:10] }}</td>
+                        <td data-label="Link"><a href="{{ job.link }}" target="_blank" class="job-link">View Job</a></td>
+                        <td data-label="Status">
+                            <select class="status-select" onchange="updateJob(parseInt({{ job.id }}), this.value, this.closest('tr').querySelector('.notes-textarea').value)">
+                                {% for status_option in job_statuses %}
+                                    <option value="{{ status_option }}" {% if job.status == status_option %}selected{% endif %}>{{ status_option|capitalize }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td data-label="Notes" class="notes-cell">
+                            <textarea class="notes-textarea" onblur="updateJob(parseInt({{ job.id }}), this.closest('tr').querySelector('.status-select').value, this.value)">{{ job.notes or '' }}</textarea>
+                        </td>
+                        <td data-label="Tools/Soft Skills" class="tools-skills-cell">
+                            {% if job.extracted_tools %}
+                                <strong>Tools:</strong> {{ job.extracted_tools }}<br>
+                            {% endif %}
+                            {% if job.extracted_soft_skills %}
+                                <strong>Soft Skills:</strong> {{ job.extracted_soft_skills }}
+                            {% endif %}
+                        </td>
+                        <td data-label="Feedback" class="feedback-buttons">
+                            <button class="like-button {% if job.user_feedback == 'like' %}liked{% endif %}" onclick="sendFeedback(parseInt({{ job.id }}), 'like')" title="Like this job">👍</button>
+                            <button class="dislike-button {% if job.user_feedback == 'dislike' %}disliked{% endif %}" onclick="sendFeedback(parseInt({{ job.id }}), 'dislike')" title="Dislike this job">👎</button>
+                        </td>
+                        <td data-label="Description" class="description-cell">{{ job.description }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-jobs">
+                <p>No jobs found matching your criteria. Try a new search!</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="pagination">
+            {% if page > 1 %}
+                <a href="{{ url_for('dashboard', page=page-1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter) }}">Previous</a>
+            {% endif %}
+            {% for p in range(1, total_pages + 1) %}
+                <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter) }}" class="{{ 'active' if p == page else '' }}">{{ p }}</a>
+            {% endfor %}
+            {% if page < total_pages %}
+                <a href="{{ url_for('dashboard', page=page+1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter) }}">Next</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function applyFilters() {
+            const searchQuery = document.getElementById('search_query').value;
+            const sortBy = document.getElementById('sort_by').value;
+            const sortOrder = document.getElementById('sort_order').value;
+            const statusFilter = document.getElementById('status_filter').value;
+            
+            const params = new URLSearchParams(window.location.search);
+            params.set('page', 1);
+            params.set('search_query', searchQuery);
+            params.set('sort_by', sortBy);
+            params.set('sort_order', sortOrder);
+            params.set('status_filter', statusFilter);
+
+            window.location.href = "{{ url_for('dashboard') }}?" + params.toString();
+        }
+
+        function updateSort(column) {
+            const sortByElement = document.getElementById('sort_by');
+            let sortOrderElement = document.getElementById('sort_order');
+
+            let currentSortBy = sortByElement.value;
+            let currentSortOrder = sortOrderElement.value;
+
+            if (column === currentSortBy) {
+                sortOrderElement.value = (currentSortOrder === 'ASC') ? 'DESC' : 'ASC';
+            } else {
+                sortByElement.value = column;
+                sortOrderElement.value = 'DESC';
+            }
+            
+            applyFilters();
+        }
+
+        async function updateJob(jobId, status, notes) {
+            try {
+                const response = await fetch('/api/update_job_status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        job_id: jobId,
+                        status: status,
+                        notes: notes
+                    }),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // console.log('Job updated successfully:', result.message);
+                } else {
+                    console.error('Failed to update job:', result.message);
+                    alert('Error updating job: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Network or parsing error:', error);
+                alert('An unexpected error occurred while updating job status.');
+            }
+        }
+
+        async function sendFeedback(jobId, feedbackType) {
+            try {
+                const row = document.querySelector(`tr[data-job-id="${jobId}"]`);
+                const likeButton = row.querySelector('.like-button');
+                const dislikeButton = row.querySelector('.dislike-button');
+
+                // Visual feedback: Remove existing feedback classes
+                likeButton.classList.remove('liked');
+                dislikeButton.classList.remove('disliked');
+
+                // Add the class for the new feedback type
+                if (feedbackType === 'like') {
+                    likeButton.classList.add('liked');
+                } else if (feedbackType === 'dislike') {
+                    dislikeButton.classList.add('disliked');
+                }
+
+                const response = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        job_id: jobId,
+                        feedback_type: feedbackType
+                    }),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log('Feedback recorded:', result.message);
+                } else {
+                    console.error('Failed to record feedback:', result.message);
+                    alert('Error recording feedback: ' + result.message);
+                    // Revert visual feedback on error
+                    likeButton.classList.remove('liked');
+                    dislikeButton.classList.remove('disliked');
+                }
+            } catch (error) {
+                console.error('Network or parsing error:', error);
+                alert('An unexpected error occurred while sending feedback.');
+                const row = document.querySelector(`tr[data-job-id="${jobId}"]`);
+                const likeButton = row.querySelector('.like-button');
+                const dislikeButton = row.querySelector('.dislike-button');
+                likeButton.classList.remove('liked');
+                dislikeButton.classList.remove('disliked');
+            }
+        }
+    </script>
+</body>
+</html>
