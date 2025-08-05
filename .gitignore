@@ -16,6 +16,7 @@ __pycache__/
 token.pickle
 credentials.json
 .env
+token.json
 
 # Log files
 *.log
