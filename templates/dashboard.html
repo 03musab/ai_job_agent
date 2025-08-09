@@ -1,696 +1,632 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Job Dashboard - Super Job Agent</title>
-    <style>
-        /* Global styles from index.html (modern look) */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% extends "base.html" %}
 
-        :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            --dark-bg: #0f0f23;
-            --card-bg: rgba(255, 255, 255, 0.95);
-            --glass-bg: rgba(255, 255, 255, 0.1);
-            --text-primary: #2d3748; /* For text on light backgrounds */
-            --text-secondary: #718096;
-            --border-color: rgba(255, 255, 255, 0.2);
-            --shadow-light: 0 8px 32px rgba(31, 38, 135, 0.37);
-            --shadow-heavy: 0 15px 35px rgba(31, 38, 135, 0.2);
-        }
+{% block title %}Dashboard{% endblock %}
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--dark-bg);
-            background-image: 
-                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-                radial-gradient(circle at 40% 40%, rgba(120, 200, 255, 0.2) 0%, transparent 50%);
-            min-height: 100vh;
-            color: white; /* Default text color for body, overridden in .container */
-            overflow-x: hidden;
-            padding: 0; /* Remove body padding to allow header to stick to top */
-            margin: 0;
-        }
+{% block content %}
+<!-- Toast Container -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
+    <div id="toastContainer"></div>
+</div>
 
-        /* Header Navigation */
-        .header-nav {
-            position: sticky; /* Changed to sticky for dashboard */
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            background: rgba(15, 15, 35, 0.95); /* Darker background for sticky header */
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border-color);
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.5); /* Shadow for sticky header */
-        }
+<style>
+.card {
+  border-radius: 1rem;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+.badge-status {
+  font-size: 0.8rem;
+  padding: 0.4em 0.6em;
+  border-radius: 0.5rem;
+}
+.toast-body {
+  font-size: 0.9rem;
+}
+</style>
 
-        .logo {
-            font-size: 1.5rem;
-            font-weight: 800;
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 1.5rem;
-            align-items: center;
-        }
-
-        .nav-links a, .nav-links span { /* Added span for welcome text */
-            color: rgba(255, 255, 255, 0.9);
-            text-decoration: none;
-            font-weight: 500;
-            padding: 0.5rem 1rem;
-            border-radius: 25px;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .nav-links a:hover {
-            background: var(--glass-bg);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-light);
-        }
-
-        /* Main Content Container */
-        .main-content-area {
-            padding: 2rem;
-            max-width: 1200px; /* Wider for dashboard */
-            margin: 120px auto 2rem auto; /* Space from sticky header */
-            color: var(--text-primary); /* Default text color for light cards */
-        }
-
-        .section-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            color: white; /* Section title color on dark background */
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            text-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            margin-left: 10px; /* Align with controls */
-        }
-
-        /* Flash Messages */
-        .message-container {
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-        .message {
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            margin-bottom: 1rem;
-            font-weight: 500;
-            display: inline-block; /* To center align */
-        }
-        .message.success {
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .message.error {
-            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .message.info {
-            background: linear-gradient(135deg, #cce5ff 0%, #b8daff 100%);
-            color: #004085;
-            border: 1px solid #b8daff;
-        }
-
-        /* Dashboard Controls */
-        .dashboard-controls {
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            box-shadow: var(--shadow-light);
-            border: 1px solid var(--border-color);
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            align-items: center;
-            color: var(--text-primary);
-        }
-        .dashboard-controls label {
-            font-weight: 600;
-            font-size: 0.95rem;
-            color: var(--text-primary);
-            white-space: nowrap; /* Prevent label wrapping */
-        }
-        .dashboard-controls input[type="text"],
-        .dashboard-controls select {
-            flex-grow: 1; /* Allow inputs to take available space */
-            padding: 0.75rem 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            background: white;
-            color: var(--text-primary);
-            transition: all 0.3s ease;
-            max-width: 180px; /* Give a max-width to keep controls inline */
-        }
-        .dashboard-controls input[type="text"]:focus,
-        .dashboard-controls select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        .dashboard-controls button {
-            background: var(--primary-gradient);
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
-        }
-        .dashboard-controls button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.5);
-        }
-
-        /* Job Table */
-        .job-table-container {
-            overflow-x: auto;
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            box-shadow: var(--shadow-heavy);
-            border: 1px solid var(--border-color);
-            margin-bottom: 2rem;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-            min-width: 900px; /* Ensure horizontal scroll on small screens */
-        }
-        th, td {
-            padding: 1rem 1.2rem;
-            text-align: left;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
-            vertical-align: top;
-            color: var(--text-primary);
-        }
-        th {
-            background-color: #f8fafc;
-            font-weight: 700;
-            color: var(--text-primary);
-            white-space: nowrap;
-            padding-top: 1.2rem;
-            padding-bottom: 1.2rem;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-        th:hover {
-            background-color: #f0f3f6;
-        }
-        th a {
-            text-decoration: none;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-        td.description-cell, td.notes-cell, td.tools-skills-cell {
-            max-width: 250px; /* Adjusted width */
-            white-space: normal;
-            word-wrap: break-word;
-        }
-        .job-link {
-            color: #007bff;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .job-link:hover {
-            text-decoration: underline;
-        }
-
-        /* Interactive Status/Notes */
-        .status-select {
-            padding: 0.4rem;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            font-size: 0.85rem;
-            width: 100%;
-            min-width: 80px;
-            background: white;
-            color: var(--text-primary);
-        }
-        .notes-textarea {
-            width: 100%;
-            min-height: 70px;
-            max-height: 150px;
-            padding: 0.5rem;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            font-size: 0.85rem;
-            box-sizing: border-box;
-            resize: vertical;
-            background: white;
-            color: var(--text-primary);
-        }
-
-        /* Feedback Buttons */
-        .feedback-buttons {
-            text-align: center;
-            white-space: nowrap;
-        }
-        .feedback-buttons button {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1.5em; /* Larger emoji */
-            padding: 0.3rem;
-            color: var(--text-secondary); /* Greyed out by default */
-            transition: color 0.2s ease, transform 0.2s ease;
-            margin: 0 2px;
-        }
-        .feedback-buttons button:hover {
-            transform: scale(1.1);
-        }
-        .feedback-buttons button.like:hover,
-        .feedback-buttons button.liked {
-            color: #4CAF50; /* Green */
-        }
-        .feedback-buttons button.dislike:hover,
-        .feedback-buttons button.disliked {
-            color: #dc3545; /* Red */
-        }
-
-        /* Pagination */
-        .pagination {
-            display: flex;
-            justify-content: center;
-            margin-top: 1rem;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-        .pagination a {
-            background: var(--primary-gradient);
-            color: white;
-            padding: 0.75rem 1.25rem;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
-        }
-        .pagination a.active {
-            background: var(--success-gradient); /* Different color for active page */
-            box-shadow: 0 4px 10px rgba(79, 172, 254, 0.5);
-            transform: translateY(-2px);
-        }
-        .pagination a:hover:not(.active) {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-        .no-jobs {
-            text-align: center;
-            padding: 3rem;
-            background: var(--card-bg);
-            border-radius: 16px;
-            box-shadow: var(--shadow-light);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 1024px) {
-            .dashboard-controls input[type="text"],
-            .dashboard-controls select {
-                max-width: none; /* Allow full width on smaller screens */
-            }
-        }
-        @media (max-width: 768px) {
-            .header-nav {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 1rem;
-            }
-            .nav-links {
-                flex-direction: column;
-                align-items: flex-start;
-                width: 100%;
-                gap: 0.5rem;
-                margin-top: 0.5rem;
-            }
-            .nav-links a, .nav-links span {
-                width: 100%;
-                text-align: center;
-                padding: 0.75rem 1rem;
-            }
-            .main-content-area {
-                margin-top: 180px; /* Adjust for larger header on mobile */
-                padding: 1rem;
-            }
-            .dashboard-controls {
-                flex-direction: column;
-                gap: 0.75rem;
-            }
-            .dashboard-controls > *, .dashboard-controls button {
-                width: 100%;
-                max-width: none;
-            }
-            table, thead, tbody, th, td, tr {
-                display: block; /* Make table responsive by stacking cells */
-            }
-            th {
-                text-align: right;
-                position: relative;
-                padding-right: 50%;
-                white-space: normal;
-                box-sizing: border-box;
-                cursor: default; /* Disable sorting interaction on stacked headers */
-                background-color: #f8fafc;
-            }
-            th:hover {
-                background-color: #f8fafc; /* No hover effect on mobile stacked header */
-            }
-            th a {
-                pointer-events: none; /* Disable click on sort arrows */
-            }
-            td {
-                text-align: right;
-                position: relative;
-                padding-left: 50%;
-                white-space: normal;
-                box-sizing: border-box;
-                border-bottom: none;
-            }
-            td::before { /* Add label as pseudo-element */
-                content: attr(data-label);
-                position: absolute;
-                left: 10px;
-                width: 45%;
-                padding-right: 10px;
-                white-space: nowrap;
-                text-align: left;
-                font-weight: bold;
-                color: var(--text-primary);
-            }
-            tr {
-                margin-bottom: 1rem;
-                border: 1px solid rgba(0,0,0,0.1);
-                border-radius: 16px;
-                overflow: hidden;
-                box-shadow: var(--shadow-light);
-                background: var(--card-bg);
-                padding: 1rem;
-            }
-            tr:last-child {
-                border-bottom: 1px solid rgba(0,0,0,0.1);
-            }
-            /* Adjust specific cells for mobile */
-            td.description-cell, td.notes-cell, td.tools-skills-cell {
-                max-width: none;
-            }
-            .feedback-buttons {
-                text-align: left;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="header-nav">
-        <div class="logo">🚀 Super Job Agent</div>
-        <div class="nav-links">
-            <span>Welcome, <strong>{{ current_user.username }}</strong>!</span>
-            <a href="{{ url_for('index') }}">🔍 Search Jobs</a>
-            <a href="{{ url_for('settings') }}">⚙️ Settings</a>
-            <a href="{{ url_for('dashboard') }}">📊 Dashboard</a> <a href="{{ url_for('logout') }}">🚪 Logout</a>
-        </div>
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="text-center text-primary mb-4">
+            <i class="fas fa-user-circle me-2" aria-hidden="true"></i><span class="visually-hidden">Welcome,</span>Welcome, {{ current_user.username }}!
+        </h1>
     </div>
+</div>
 
-    <div class="main-content-area"> <h1 class="section-title" style="color: white;">📊 Job Dashboard for {{ current_user.username }}</h1>
-
-        <div class="message-container">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="message {{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-        </div>
-
-        <div class="dashboard-controls">
-            <label for="search_query">Search:</label>
-            <input type="text" id="search_query" name="search_query" value="{{ search_query }}" placeholder="Search title, company, notes, skills, tools...">
-
-            <label for="status_filter">Status:</label>
-            <select id="status_filter" name="status_filter">
-                <option value="all">All</option>
-                {% for status_option in job_statuses %}
-                    <option value="{{ status_option }}" {% if status_filter == status_option %}selected{% endif %}>{{ status_option|capitalize }}</option>
-                {% endfor %}
-            </select>
-
-            <label for="sort_by">Sort by:</label>
-            <select id="sort_by" name="sort_by">
-                <option value="found_date" {% if sort_by == 'found_date' %}selected{% endif %}>Date Found</option>
-                <option value="relevance_score" {% if sort_by == 'relevance_score' %}selected{% endif %}>Relevance Score</option>
-                <option value="title" {% if sort_by == 'title' %}selected{% endif %}>Job Title</option>
-                <option value="company" {% if sort_by == 'company' %}selected{% endif %}>Company</option>
-                <option value="location" {% if sort_by == 'location' %}selected{% endif %}>Location</option>
-            </select>
-
-            <label for="sort_order">Order:</label>
-            <select id="sort_order" name="sort_order">
-                <option value="DESC" {% if sort_order == 'DESC' %}selected{% endif %}>Descending</option>
-                <option value="ASC" {% if sort_order == 'ASC' %}selected{% endif %}>Ascending</option>
-            </select>
-
-            <button onclick="applyFilters()">Apply Filters</button>
-        </div>
-
-        <div class="job-table-container">
-            {% if jobs %}
-            <table>
-                <thead>
-                    <tr>
-                        <th><a href="#" onclick="updateSort('title')">Title {% if sort_by == 'title' %}{% if sort_order == 'ASC' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
-                        <th><a href="#" onclick="updateSort('company')">Company {% if sort_by == 'company' %}{% if sort_order == 'ASC' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
-                        <th><a href="#" onclick="updateSort('location')">Location {% if sort_by == 'location' %}{% if sort_order == 'ASC' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
-                        <th>Salary</th>
-                        <th>Experience</th>
-                        <th>Job Type</th>
-                        <th><a href="#" onclick="updateSort('relevance_score')">Relevance {% if sort_by == 'relevance_score' %}{% if sort_order == 'ASC' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
-                        <th>Source</th>
-                        <th>Posted Date</th>
-                        <th><a href="#" onclick="updateSort('found_date')">Found Date {% if sort_by == 'found_date' %}{% if sort_order == 'ASC' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
-                        <th>Link</th>
-                        <th>Status</th>
-                        <th class="notes-cell">Notes</th>
-                        <th class="tools-skills-cell">Tools/Soft Skills</th>
-                        <th>Feedback</th>
-                        <th class="description-cell">Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for job in jobs %}
-                    <tr data-job-id="{{ job.id }}">
-                        <td data-label="Title">{{ job.title }}</td>
-                        <td data-label="Company">{{ job.company }}</td>
-                        <td data-label="Location">{{ job.location }}</td>
-                        <td data-label="Salary">{{ job.salary }}</td>
-                        <td data-label="Experience">
-                            {{ job.experience }}
-                            {% if job.min_experience_years is not none %}
-                                <br><small>({{ job.min_experience_years }}
-                                {% if job.max_experience_years is not none %}
-                                    - {{ job.max_experience_years }}
-                                {% else %}+{% endif %} yrs)</small>
-                            {% endif %}
-                        </td>
-                        <td data-label="Job Type">{{ job.job_type }}</td>
-                        <td data-label="Relevance">{{ "%.0f" | format(job.relevance_score) }}%</td>
-                        <td data-label="Source">{{ job.source }}</td>
-                        <td data-label="Posted Date">{{ job.posted_date }}</td>
-                        <td data-label="Found Date">{{ job.found_date[:10] }}</td>
-                        <td data-label="Link"><a href="{{ job.link }}" target="_blank" class="job-link">View Job</a></td>
-                        <td data-label="Status">
-                            <select class="status-select" onchange="updateJob(parseInt({{ job.id }}), this.value, this.closest('tr').querySelector('.notes-textarea').value)">
-                                {% for status_option in job_statuses %}
-                                    <option value="{{ status_option }}" {% if job.status == status_option %}selected{% endif %}>{{ status_option|capitalize }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td data-label="Notes" class="notes-cell">
-                            <textarea class="notes-textarea" onblur="updateJob(parseInt({{ job.id }}), this.closest('tr').querySelector('.status-select').value, this.value)">{{ job.notes or '' }}</textarea>
-                        </td>
-                        <td data-label="Tools/Soft Skills" class="tools-skills-cell">
-                            {% if job.extracted_tools %}
-                                <strong>Tools:</strong> {{ job.extracted_tools }}<br>
-                            {% endif %}
-                            {% if job.extracted_soft_skills %}
-                                <strong>Soft Skills:</strong> {{ job.extracted_soft_skills }}
-                            {% endif %}
-                        </td>
-                        <td data-label="Feedback" class="feedback-buttons">
-                            <button class="like-button {% if job.user_feedback == 'like' %}liked{% endif %}" onclick="sendFeedback(parseInt({{ job.id }}), 'like')" title="Like this job">👍</button>
-                            <button class="dislike-button {% if job.user_feedback == 'dislike' %}disliked{% endif %}" onclick="sendFeedback(parseInt({{ job.id }}), 'dislike')" title="Dislike this job">👎</button>
-                        </td>
-                        <td data-label="Description" class="description-cell">{{ job.description }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <div class="no-jobs">
-                <p>No jobs found matching your criteria. Try a new search!</p>
+<div class="row">
+    <!-- Find Jobs with collapsible Save Profile -->
+    <div class="col-md-12 mb-4">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-search me-2"></i> Find New Jobs</span>
+                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#saveProfileForm">Save Search Profile</button>
             </div>
-            {% endif %}
-        </div>
+            <div class="card-body">
+                <!-- Search Form -->
+                <form method="POST" action="{{ url_for('search_jobs') }}" class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="search_terms" class="form-label">Search Terms (comma-separated)</label>
+                        <input type="text" class="form-control rounded-pill" id="search_terms" name="search_terms" placeholder="e.g., Python, Data Scientist, AI" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="location" class="form-label">Location</label>
+                        <input type="text" class="form-control rounded-pill" id="location" name="location" placeholder="e.g., New York, Remote">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="experience" class="form-label">Experience</label>
+                        <input type="text" class="form-control rounded-pill" id="experience" name="experience" placeholder="e.g., 2-5 years, Senior">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="job_type" class="form-label">Job Type</label>
+                        <input type="text" class="form-control rounded-pill" id="job_type" name="job_type" placeholder="e.g., Full-time, Internship">
+                    </div>
+                    <div class="col-md-1 d-grid">
+                        <button type="submit" class="btn btn-primary rounded-pill" aria-label="Search">
+                            <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </form>
 
-        <div class="pagination">
-            {% if page > 1 %}
-                <a href="{{ url_for('dashboard', page=page-1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter) }}">Previous</a>
-            {% endif %}
-            {% for p in range(1, total_pages + 1) %}
-                <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter) }}" class="{{ 'active' if p == page else '' }}">{{ p }}</a>
-            {% endfor %}
-            {% if page < total_pages %}
-                <a href="{{ url_for('dashboard', page=page+1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter) }}">Next</a>
-            {% endif %}
+                <!-- Collapsible Save Profile -->
+                <div id="saveProfileForm" class="collapse mt-4">
+                    <form method="POST" action="{{ url_for('save_profile') }}" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label for="profile_name" class="form-label">Profile Name</label>
+                            <input type="text" class="form-control rounded-pill" id="profile_name" name="profile_name" placeholder="e.g., My Python Jobs" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="search_terms_profile" class="form-label">Search Terms (comma-separated)</label>
+                            <input type="text" class="form-control rounded-pill" id="search_terms_profile" name="search_terms" placeholder="e.g., Python, Data Scientist, AI" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="location_profile" class="form-label">Location</label>
+                            <input type="text" class="form-control rounded-pill" id="location_profile" name="location" placeholder="e.g., New York, Remote" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="experience_profile" class="form-label">Experience</label>
+                            <input type="text" class="form-control rounded-pill" id="experience_profile" name="experience" placeholder="e.g., 2-5 years, Senior" required>
+                        </div>
+                        <div class="col-md-1">
+                            <label for="job_type_profile" class="form-label">Job Type</label>
+                            <input type="text" class="form-control rounded-pill" id="job_type_profile" name="job_type" placeholder="e.g., Full-time" required>
+                        </div>
+                        <div class="col-md-1 d-grid">
+                            <button type="submit" class="btn btn-outline-success rounded-pill">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script>
-        function applyFilters() {
-            const searchQuery = document.getElementById('search_query').value;
-            const sortBy = document.getElementById('sort_by').value;
-            const sortOrder = document.getElementById('sort_order').value;
-            const statusFilter = document.getElementById('status_filter').value;
-            
-            const params = new URLSearchParams(window.location.search);
-            params.set('page', 1);
-            params.set('search_query', searchQuery);
-            params.set('sort_by', sortBy);
-            params.set('sort_order', sortOrder);
-            params.set('status_filter', statusFilter);
+    <!-- Saved Search Profiles Section -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-bookmark me-2" aria-hidden="true"></i>Saved Search Profiles
+            </div>
+            <div class="card-body">
+                {% if saved_profiles %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Terms</th>
+                                <th>Keywords</th>
+                                <th>Location</th>
+                                <th>Experience</th>
+                                <th>Job Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for profile in saved_profiles %}
+                            <tr>
+                                <td>{{ profile.profile_name }}</td>
+                                <td>{{ profile.search_terms }}</td>
+                                <td>
+                                    {% set keywords = profile.search_terms.split(',') %}
+                                    {% for kw in keywords %}
+                                        <span class="badge bg-info text-dark me-1">{{ kw.strip() }}</span>
+                                    {% endfor %}
+                                </td>
+                                <td>{{ profile.location }}</td>
+                                <td>{{ profile.experience }}</td>
+                                <td>{{ profile.job_type }}</td>
+                                <td>
+                                    <form action="{{ url_for('apply_profile', profile_id=profile.id) }}" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-info me-2 rounded-pill" title="Apply this profile" data-bs-toggle="tooltip"><i class="fas fa-play" aria-hidden="true"></i> <span class="visually-hidden">Apply</span> Apply</button>
+                                    </form>
+                                    <form action="{{ url_for('delete_profile', profile_id=profile.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this profile?');">
+                                        <button type="submit" class="btn btn-sm btn-danger rounded-pill" title="Delete this profile" data-bs-toggle="tooltip"><i class="fas fa-trash" aria-hidden="true"></i> <span class="visually-hidden">Delete</span> Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center">No search profiles saved yet. Save one above!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
-            window.location.href = "{{ url_for('dashboard') }}?" + params.toString();
+    <!-- Email Settings Collapsed -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-envelope me-2" aria-hidden="true"></i> Email Notification Settings
+            </div>
+            <div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('update_settings') }}">
+                        <div class="mb-3">
+                            <label for="email_recipients" class="form-label">Recipient Email(s) (comma-separated)</label>
+                            <input type="text" class="form-control rounded-pill" id="email_recipients" name="email_recipients" value="{{ user_settings.email_recipients if user_settings else '' }}" placeholder="your_email@example.com, another@example.com">
+                            <div class="form-text">Emails where you want to receive job alerts.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email_frequency" class="form-label">Email Frequency</label>
+                            <select class="form-select rounded-pill" id="email_frequency" name="email_frequency">
+                                <option value="daily" {% if user_settings and user_settings.email_frequency == 'daily' %}selected{% endif %}>Daily</option>
+                                <option value="weekly" {% if user_settings and user_settings.email_frequency == 'weekly' %}selected{% endif %}>Weekly</option>
+                                <option value="never" {% if user_settings and user_settings.email_frequency == 'never' %}selected{% endif %}>Never</option>
+                            </select>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="send_excel_attachment" name="send_excel_attachment" {% if user_settings and user_settings.send_excel_attachment %}checked{% endif %}>
+                            <label class="form-check-label" for="send_excel_attachment">
+                                Attach Excel report to emails
+                            </label>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary rounded-pill">Update Settings</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Listings Section -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-briefcase me-2" aria-hidden="true"></i>Your Job Listings (Total: {{ total_jobs }})
+            </div>
+            <div class="card-body">
+                <div class="row mb-3 align-items-center">
+                    <div class="col-md-5">
+                        <form method="GET" action="{{ url_for('dashboard') }}" class="d-flex">
+                            <input type="hidden" name="sort_by" value="{{ sort_by }}">
+                            <input type="hidden" name="sort_order" value="{{ sort_order }}">
+                            <input type="hidden" name="status_filter" value="{{ status_filter }}">
+                            <input type="hidden" name="limit" value="{{ limit }}">
+                            <input type="search" class="form-control rounded-pill me-2" name="search_query" placeholder="Search jobs..." value="{{ search_query }}" aria-label="Search jobs">
+                            <button type="submit" class="btn btn-outline-secondary rounded-pill me-2" aria-label="Apply search">
+                                <i class="fas fa-search" aria-hidden="true"></i>
+                            </button>
+                            <a class="btn btn-outline-light text-secondary border rounded-pill" href="{{ url_for('dashboard', page=1, limit=limit, sort_by='found_date', sort_order='DESC', search_query='', status_filter='all') }}" title="Clear filters" data-bs-toggle="tooltip">
+                                <i class="fas fa-undo" aria-hidden="true"></i>
+                                <span class="d-none d-md-inline">Clear</span>
+                            </a>
+                        </form>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle rounded-pill w-100" type="button" id="dropdownSortBy" data-bs-toggle="dropdown" aria-expanded="false">
+                                Sort by: {{ sort_by.replace('_', ' ').title() }} <i class="fas fa-{{ 'arrow-up' if sort_order == 'ASC' else 'arrow-down' }}" aria-hidden="true"></i>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dropdownSortBy">
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by='found_date', sort_order='DESC', page=current_page, limit=limit, search_query=search_query, status_filter=status_filter) }}">Date Found (Newest)</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by='found_date', sort_order='ASC', page=current_page, limit=limit, search_query=search_query, status_filter=status_filter) }}">Date Found (Oldest)</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by='relevance_score', sort_order='DESC', page=current_page, limit=limit, search_query=search_query, status_filter=status_filter) }}">Relevance (High to Low)</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by='relevance_score', sort_order='ASC', page=current_page, limit=limit, search_query=search_query, status_filter=status_filter) }}">Relevance (Low to High)</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by='title', sort_order='ASC', page=current_page, limit=limit, search_query=search_query, status_filter=status_filter) }}">Title (A-Z)</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by='company', sort_order='ASC', page=current_page, limit=limit, search_query=search_query, status_filter=status_filter) }}">Company (A-Z)</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle rounded-pill w-100" type="button" id="dropdownStatusFilter" data-bs-toggle="dropdown" aria-expanded="false">
+                                Status: {{ status_filter.replace('_', ' ').title() }}
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dropdownStatusFilter">
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, page=current_page, limit=limit, search_query=search_query, status_filter='all') }}">All</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, page=current_page, limit=limit, search_query=search_query, status_filter='new') }}">New</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, page=current_page, limit=limit, search_query=search_query, status_filter='applied') }}">Applied</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, page=current_page, limit=limit, search_query=search_query, status_filter='interview') }}">Interview</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, page=current_page, limit=limit, search_query=search_query, status_filter='rejected') }}">Rejected</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, page=current_page, limit=limit, search_query=search_query, status_filter='offered') }}">Offered</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle rounded-pill w-100" type="button" id="dropdownLimit" data-bs-toggle="dropdown" aria-expanded="false">
+                                Per page: {{ limit }}
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dropdownLimit">
+                                {% for size in [10, 20, 50, 100] %}
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard', page=1, limit=size, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter) }}">{{ size }}</a></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                {% if jobs %}
+                <div class="table-responsive">
+                    <form id="jobsForm" method="POST">
+                        <div class="mb-3 d-flex align-items-center">
+                            <button id="deleteSelectedBtn" type="submit" formaction="{{ url_for('delete_selected') }}" class="btn btn-danger me-2" onclick="return confirm('Are you sure you want to delete the selected jobs?');">Delete Selected</button>
+                            <button type="submit" formaction="{{ url_for('delete_all_jobs') }}" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete ALL jobs? This cannot be undone.');">Delete All</button>
+                            <span class="ms-3 text-muted" id="selectedCount">0 selected</span>
+                        </div>
+                        <table class="table table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="selectAll" onclick="toggleAll(this)" aria-label="Select all on page"></th>
+                                    <th>Title</th>
+                                    <th>Company</th>
+                                    <th>Location</th>
+                                    <th>Relevance</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for job in jobs %}
+                                <tr data-job-id="{{ job.id }}">
+                                    <td><input type="checkbox" name="job_ids" value="{{ job.id }}" aria-label="Select job {{ job.title }} at {{ job.company }}"></td>
+                                    <td>
+                                        <a href="{{ job.link }}" target="_blank" class="text-decoration-none text-primary fw-bold" rel="noopener noreferrer">{{ job.title }}</a>
+                                    </td>
+                                    <td>{{ job.company }}</td>
+                                    <td>{{ job.location }}</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar {% if job.relevance_score >= 60 %}bg-success{% elif job.relevance_score >= 30 %}bg-warning text-dark{% else %}bg-danger{% endif %}"
+                                                 role="progressbar"
+                                                 style="width: {{ job.relevance_score | round(0) }}%;"
+                                                 aria-valuenow="{{ job.relevance_score | round(0) }}" aria-valuemin="0" aria-valuemax="100">
+                                                {{ job.relevance_score | round(0) }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="statusDropdown{{ job.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                                {{ job.status | title }}
+                                            </button>
+                                            <ul class="dropdown-menu" aria-labelledby="statusDropdown{{ job.id }}">
+                                                <li><a class="dropdown-item" href="#" onclick="updateJobStatus({{ job.id }}, 'new', {{ (job.notes | default('')) | tojson | safe }})">New</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="updateJobStatus({{ job.id }}, 'applied', {{ (job.notes | default('')) | tojson | safe }})">Applied</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="updateJobStatus({{ job.id }}, 'interview', {{ (job.notes | default('')) | tojson | safe }})">Interview</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="updateJobStatus({{ job.id }}, 'rejected', {{ (job.notes | default('')) | tojson | safe }})">Rejected</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="updateJobStatus({{ job.id }}, 'offered', {{ (job.notes | default('')) | tojson | safe }})">Offered</a></li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <!-- Job Table Actions Dropdown -->
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#jobDetailsModal" onclick="openJobModal(this)" data-job='{{ {
+                                                    "id": job.id,
+                                                    "title": job.title,
+                                                    "company": job.company,
+                                                    "location": job.location,
+                                                    "salary": job.salary,
+                                                    "experience": job.experience,
+                                                    "min_experience_years": job.min_experience_years,
+                                                    "max_experience_years": job.max_experience_years,
+                                                    "job_type": job.job_type,
+                                                    "posted_date": job.posted_date,
+                                                    "source": job.source,
+                                                    "relevance_score": job.relevance_score,
+                                                    "keywords": job.keywords,
+                                                    "skills": job.skills,
+                                                    "extracted_tools": job.extracted_tools,
+                                                    "extracted_soft_skills": job.extracted_soft_skills,
+                                                    "status": job.status,
+                                                    "user_feedback": job.user_feedback,
+                                                    "link": job.link,
+                                                    "description": job.description | clean_desc,
+                                                    "notes": job.notes
+                                                } | tojson | safe }}'>
+                                                <i class="fas fa-info-circle"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"></button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <form action="{{ url_for('feedback') }}" method="POST">
+                                                        <input type="hidden" name="job_id" value="{{ job.id }}">
+                                                        <button type="submit" name="feedback_type" value="like" class="dropdown-item"><i class="fas fa-thumbs-up text-success"></i> Like</button>
+                                                    </form>
+                                                </li>
+                                                <li>
+                                                    <form action="{{ url_for('feedback') }}" method="POST">
+                                                        <input type="hidden" name="job_id" value="{{ job.id }}">
+                                                        <button type="submit" name="feedback_type" value="dislike" class="dropdown-item"><i class="fas fa-thumbs-down text-danger"></i> Dislike</button>
+                                                    </form>
+                                                </li>
+                                                <li>
+                                                    <button type="button" class="dropdown-item" onclick="copyToClipboard({{ job.link | tojson | safe }}, this)"><i class="fas fa-link"></i> Copy Link</button>
+                                                </li>
+                                                <li>
+                                                    <form action="{{ url_for('delete_job', job_id=job.id) }}" method="POST" onsubmit="return confirm('Delete?');">
+                                                        <button type="submit" class="dropdown-item text-danger"><i class="fas fa-trash"></i> Delete</button>
+                                                    </form>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </form>
+                </div>
+
+                <!-- Single Reusable Job Details Modal -->
+                <div class="modal fade" id="jobDetailsModal" tabindex="-1" aria-labelledby="jobDetailsModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title" id="jobDetailsModalLabel">Job Details</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p><strong>Company:</strong> <span id="modalCompany"></span></p>
+                                <p><strong>Location:</strong> <span id="modalLocation"></span></p>
+                                <p><strong>Salary:</strong> <span id="modalSalary"></span></p>
+                                <p><strong>Experience:</strong> <span id="modalExperience"></span> (Min: <span id="modalMinExp"></span> yrs, Max: <span id="modalMaxExp"></span> yrs)</p>
+                                <p><strong>Job Type:</strong> <span id="modalJobType"></span></p>
+                                <p><strong>Posted Date:</strong> <span id="modalPostedDate"></span></p>
+                                <p><strong>Source:</strong> <span id="modalSource"></span></p>
+                                <p><strong>Relevance Score:</strong> <span id="modalRelevance"></span>%</p>
+                                <p><strong>Keywords:</strong> <span id="modalKeywords"></span></p>
+                                <p><strong>Skills:</strong> <span id="modalSkills"></span></p>
+                                <p><strong>Extracted Tools:</strong> <span id="modalTools"></span></p>
+                                <p><strong>Extracted Soft Skills:</strong> <span id="modalSoftSkills"></span></p>
+                                <p><strong>Current Status:</strong> <span id="modalStatus"></span></p>
+                                <p><strong>User Feedback:</strong> <span id="modalFeedback"></span></p>
+                                <hr>
+                                <h6>Description:</h6>
+                                <p id="modalDescription" style="white-space: pre-wrap;"></p>
+                                <hr>
+                                <h6>Your Notes:</h6>
+                                <form id="modalNotesForm" action="{{ url_for('update_job_status') }}" method="POST">
+                                    <input type="hidden" name="job_id" id="modalJobIdInput" value="">
+                                    <input type="hidden" name="status" id="modalStatusInput" value="">
+                                    <textarea class="form-control" name="notes" id="modalNotesTextarea" rows="3" placeholder="Add your notes here..."></textarea>
+                                    <button type="submit" class="btn btn-sm btn-secondary mt-2">Save Notes</button>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <a href="#" target="_blank" class="btn btn-success" id="modalApplyLink" rel="noopener noreferrer"><i class="fas fa-external-link-alt me-1" aria-hidden="true"></i> Apply Now</a>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    function toggleAll(source) {
+                        const checkboxes = document.querySelectorAll('input[name="job_ids"]');
+                        checkboxes.forEach(cb => cb.checked = source.checked);
+                        updateSelectionState();
+                    }
+
+                    function updateSelectionState() {
+                        const checkboxes = Array.from(document.querySelectorAll('input[name="job_ids"]'));
+                        const selectAll = document.getElementById('selectAll');
+                        const count = checkboxes.filter(cb => cb.checked).length;
+                        const total = checkboxes.length;
+                        const countEl = document.getElementById('selectedCount');
+                        const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+
+                        if (countEl) countEl.textContent = count + ' selected';
+                        if (deleteSelectedBtn) deleteSelectedBtn.disabled = count === 0;
+
+                        // Update select-all checkbox state
+                        if (selectAll) {
+                            selectAll.indeterminate = count > 0 && count < total;
+                            selectAll.checked = count > 0 && count === total;
+                        }
+                    }
+
+                    function openJobModal(triggerEl) {
+                        const dataRaw = triggerEl.getAttribute('data-job');
+                        if (!dataRaw) return;
+                        let job;
+                        try { job = JSON.parse(dataRaw); } catch (e) { return; }
+
+                        // Title
+                        const titleEl = document.getElementById('jobDetailsModalLabel');
+                        titleEl.textContent = job.title || 'Job Details';
+
+                        // Simple fields
+                        document.getElementById('modalCompany').textContent = job.company || 'N/A';
+                        document.getElementById('modalLocation').textContent = job.location || 'N/A';
+                        document.getElementById('modalSalary').textContent = job.salary || 'N/A';
+                        document.getElementById('modalExperience').textContent = job.experience || 'N/A';
+                        document.getElementById('modalMinExp').textContent = (job.min_experience_years ?? 'N/A');
+                        document.getElementById('modalMaxExp').textContent = (job.max_experience_years ?? 'N/A');
+                        document.getElementById('modalJobType').textContent = job.job_type || 'N/A';
+                        document.getElementById('modalPostedDate').textContent = job.posted_date || 'N/A';
+                        document.getElementById('modalSource').textContent = job.source || 'N/A';
+                        const rel = Number(job.relevance_score);
+                        document.getElementById('modalRelevance').textContent = isNaN(rel) ? 'N/A' : rel.toFixed(2);
+                        document.getElementById('modalKeywords').textContent = job.keywords || 'N/A';
+                        document.getElementById('modalSkills').textContent = job.skills || 'N/A';
+                        document.getElementById('modalTools').textContent = job.extracted_tools || 'N/A';
+                        document.getElementById('modalSoftSkills').textContent = job.extracted_soft_skills || 'N/A';
+                        document.getElementById('modalStatus').textContent = (job.status || 'N/A');
+                        document.getElementById('modalFeedback').textContent = job.user_feedback ? (job.user_feedback.charAt(0).toUpperCase() + job.user_feedback.slice(1)) : 'None';
+
+                        // Description
+                        document.getElementById('modalDescription').textContent = job.description || '';
+
+                        // Notes form
+                        document.getElementById('modalJobIdInput').value = job.id;
+                        document.getElementById('modalStatusInput').value = job.status || '';
+                        document.getElementById('modalNotesTextarea').value = job.notes || '';
+
+                        // Apply link
+                        const linkEl = document.getElementById('modalApplyLink');
+                        linkEl.href = job.link || '#';
+                    }
+                </script>
+
+                <!-- Pagination -->
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('dashboard', page=current_page - 1, limit=limit, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter) }}">Previous</a>
+                        </li>
+                        {% for page_num in range(1, total_pages + 1) %}
+                            <li class="page-item {% if page_num == current_page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('dashboard', page=page_num, limit=limit, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter) }}">{{ page_num }}</a>
+                            </li>
+                        {% endfor %}
+                        <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('dashboard', page=current_page + 1, limit=limit, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter) }}">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+
+                {% else %}
+                <p class="text-muted text-center">No jobs found matching your criteria. Try a new search or apply a saved profile!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showToast(message, type='success') {
+        const toastId = 'toast' + Date.now();
+        const toastHTML = `
+<div id="${toastId}" class="toast align-items-center text-bg-${type} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+  <div class="d-flex">
+    <div class="toast-body">${message}</div>
+    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+  </div>
+</div>`;
+        document.getElementById('toastContainer').insertAdjacentHTML('beforeend', toastHTML);
+        const toastEl = document.getElementById(toastId);
+        new bootstrap.Toast(toastEl, { delay: 3000 }).show();
+    }
+
+    function updateJobStatus(jobId, newStatus, currentNotes) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ url_for("update_job_status") }}';
+
+        const jobIdInput = document.createElement('input');
+        jobIdInput.type = 'hidden';
+        jobIdInput.name = 'job_id';
+        jobIdInput.value = jobId;
+        form.appendChild(jobIdInput);
+
+        const statusInput = document.createElement('input');
+        statusInput.type = 'hidden';
+        statusInput.name = 'status';
+        statusInput.value = newStatus;
+        form.appendChild(statusInput);
+
+        const notesInput = document.createElement('input');
+        notesInput.type = 'hidden';
+        notesInput.name = 'notes';
+        notesInput.value = (currentNotes == null) ? '' : currentNotes; // Preserve current notes safely
+        form.appendChild(notesInput);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function copyToClipboard(text, triggerEl) {
+        const fallback = () => {
+            const tempInput = document.createElement('input');
+            tempInput.style.position = 'absolute';
+            tempInput.style.left = '-9999px';
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).catch(fallback).then(() => showToast('Link copied', 'success'));
+        } else {
+            fallback();
+            showToast('Link copied', 'success');
+        }
+        // If there's a tooltip, show feedback
+        if (window.bootstrap && triggerEl) {
+            const tt = bootstrap.Tooltip.getInstance(triggerEl) || new bootstrap.Tooltip(triggerEl);
+            const prev = triggerEl.getAttribute('data-bs-original-title') || triggerEl.getAttribute('title') || '';
+            triggerEl.setAttribute('data-bs-original-title', 'Copied!');
+            tt.show();
+            setTimeout(() => {
+                triggerEl.setAttribute('data-bs-original-title', prev);
+                tt.hide();
+            }, 1000);
+        }
+    }
+
+    function highlightSearchTerms(query) {
+        if (!query) return;
+        const terms = query.split(/[\s,]+/).map(t => t.trim()).filter(t => t.length > 1);
+        if (!terms.length) return;
+        const anchors = document.querySelectorAll('table tbody a.text-primary.fw-bold');
+        anchors.forEach(a => {
+            const text = a.textContent;
+            let html = text;
+            terms.forEach(term => {
+                const esc = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const pattern = new RegExp('(' + esc + ')', 'ig');
+                html = html.replace(pattern, '<mark>$1</mark>');
+            });
+            a.innerHTML = html;
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Enable tooltips
+        if (window.bootstrap) {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
         }
 
-        function updateSort(column) {
-            const sortByElement = document.getElementById('sort_by');
-            let sortOrderElement = document.getElementById('sort_order');
+        // Bootstrap toasts container requires class 'toast' elements, they are added dynamically by showToast
 
-            let currentSortBy = sortByElement.value;
-            let currentSortOrder = sortOrderElement.value;
-
-            if (column === currentSortBy) {
-                sortOrderElement.value = (currentSortOrder === 'ASC') ? 'DESC' : 'ASC';
-            } else {
-                sortByElement.value = column;
-                sortOrderElement.value = 'DESC';
-            }
-            
-            applyFilters();
-        }
-
-        async function updateJob(jobId, status, notes) {
-            try {
-                const response = await fetch('/api/update_job_status', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        job_id: jobId,
-                        status: status,
-                        notes: notes
-                    }),
+        // Disable submit buttons on submit + show spinner icon
+        document.querySelectorAll('form').forEach(function (form) {
+            form.addEventListener('submit', function () {
+                this.querySelectorAll('button[type="submit"]').forEach(function (btn) {
+                    btn.disabled = true;
+                    const icon = btn.querySelector('i');
+                    if (icon) {
+                        icon.classList.add('fa-spinner', 'fa-spin');
+                    }
                 });
+            });
+        });
 
-                const result = await response.json();
+        // Highlight search terms in titles
+        highlightSearchTerms({{ (search_query or '') | tojson | safe }});
 
-                if (result.success) {
-                    // console.log('Job updated successfully:', result.message);
-                } else {
-                    console.error('Failed to update job:', result.message);
-                    alert('Error updating job: ' + result.message);
-                }
-            } catch (error) {
-                console.error('Network or parsing error:', error);
-                alert('An unexpected error occurred while updating job status.');
-            }
-        }
-
-        async function sendFeedback(jobId, feedbackType) {
-            try {
-                const row = document.querySelector(`tr[data-job-id="${jobId}"]`);
-                const likeButton = row.querySelector('.like-button');
-                const dislikeButton = row.querySelector('.dislike-button');
-
-                // Visual feedback: Remove existing feedback classes
-                likeButton.classList.remove('liked');
-                dislikeButton.classList.remove('disliked');
-
-                // Add the class for the new feedback type
-                if (feedbackType === 'like') {
-                    likeButton.classList.add('liked');
-                } else if (feedbackType === 'dislike') {
-                    dislikeButton.classList.add('disliked');
-                }
-
-                const response = await fetch('/api/feedback', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        job_id: jobId,
-                        feedback_type: feedbackType
-                    }),
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    console.log('Feedback recorded:', result.message);
-                } else {
-                    console.error('Failed to record feedback:', result.message);
-                    alert('Error recording feedback: ' + result.message);
-                    // Revert visual feedback on error
-                    likeButton.classList.remove('liked');
-                    dislikeButton.classList.remove('disliked');
-                }
-            } catch (error) {
-                console.error('Network or parsing error:', error);
-                alert('An unexpected error occurred while sending feedback.');
-                const row = document.querySelector(`tr[data-job-id="${jobId}"]`);
-                const likeButton = row.querySelector('.like-button');
-                const dislikeButton = row.querySelector('.dislike-button');
-                likeButton.classList.remove('liked');
-                dislikeButton.classList.remove('disliked');
-            }
-        }
-    </script>
-</body>
-</html>
+        // Initialize selection state listeners
+        const jobCheckboxes = document.querySelectorAll('input[name="job_ids"]');
+        jobCheckboxes.forEach(cb => cb.addEventListener('change', updateSelectionState));
+        // Initial computation
+        updateSelectionState();
+    });
+</script>
+{% endblock %}
