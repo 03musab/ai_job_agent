@@ -1,632 +1,552 @@
 {% extends "base.html" %}
-
-{% block title %}Dashboard{% endblock %}
-
 {% block content %}
-<!-- Toast Container -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
-    <div id="toastContainer"></div>
-</div>
-
-<style>
-.card {
-  border-radius: 1rem;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-}
-.badge-status {
-  font-size: 0.8rem;
-  padding: 0.4em 0.6em;
-  border-radius: 0.5rem;
-}
-.toast-body {
-  font-size: 0.9rem;
-}
-</style>
-
-<div class="row mb-4">
-    <div class="col-12">
-        <h1 class="text-center text-primary mb-4">
-            <i class="fas fa-user-circle me-2" aria-hidden="true"></i><span class="visually-hidden">Welcome,</span>Welcome, {{ current_user.username }}!
-        </h1>
-    </div>
-</div>
-
-<div class="row">
-    <!-- Find Jobs with collapsible Save Profile -->
-    <div class="col-md-12 mb-4">
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="fas fa-search me-2"></i> Find New Jobs</span>
-                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#saveProfileForm">Save Search Profile</button>
-            </div>
-            <div class="card-body">
-                <!-- Search Form -->
-                <form method="POST" action="{{ url_for('search_jobs') }}" class="row g-3 align-items-end">
-                    <div class="col-md-4">
-                        <label for="search_terms" class="form-label">Search Terms (comma-separated)</label>
-                        <input type="text" class="form-control rounded-pill" id="search_terms" name="search_terms" placeholder="e.g., Python, Data Scientist, AI" required>
+<div class="flex flex-col lg:flex-row gap-8">
+    <!-- Left Sidebar: Search & Profiles -->
+    <div class="w-full lg:w-1/3 p-6 bg-white rounded-xl shadow-md space-y-8">
+        <!-- Search & Scrape Section -->
+        <div>
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">New Job Search</h2>
+            <form id="search-form" class="space-y-4">
+                <div class="relative">
+                    <label for="search_terms" class="block text-sm font-medium text-gray-700">Keywords (e.g., Python, AI, Data Science)</label>
+                    <input type="text" name="search_terms" id="search_terms" placeholder="Keywords" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="location" class="block text-sm font-medium text-gray-700">Location (e.g., Bengaluru)</label>
+                        <input type="text" name="location" id="location" placeholder="City or 'Remote'"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
-                    <div class="col-md-3">
-                        <label for="location" class="form-label">Location</label>
-                        <input type="text" class="form-control rounded-pill" id="location" name="location" placeholder="e.g., New York, Remote">
+                    <div>
+                        <label for="experience" class="block text-sm font-medium text-gray-700">Experience (e.g., 2-5 years)</label>
+                        <input type="text" name="experience" id="experience" placeholder="e.g. '3 years', 'Senior', 'Entry Level'"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
-                    <div class="col-md-2">
-                        <label for="experience" class="form-label">Experience</label>
-                        <input type="text" class="form-control rounded-pill" id="experience" name="experience" placeholder="e.g., 2-5 years, Senior">
-                    </div>
-                    <div class="col-md-2">
-                        <label for="job_type" class="form-label">Job Type</label>
-                        <input type="text" class="form-control rounded-pill" id="job_type" name="job_type" placeholder="e.g., Full-time, Internship">
-                    </div>
-                    <div class="col-md-1 d-grid">
-                        <button type="submit" class="btn btn-primary rounded-pill" aria-label="Search">
-                            <i class="fas fa-paper-plane" aria-hidden="true"></i>
-                        </button>
-                    </div>
-                </form>
-
-                <!-- Collapsible Save Profile -->
-                <div id="saveProfileForm" class="collapse mt-4">
-                    <form method="POST" action="{{ url_for('save_profile') }}" class="row g-3 align-items-end">
-                        <div class="col-md-3">
-                            <label for="profile_name" class="form-label">Profile Name</label>
-                            <input type="text" class="form-control rounded-pill" id="profile_name" name="profile_name" placeholder="e.g., My Python Jobs" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="search_terms_profile" class="form-label">Search Terms (comma-separated)</label>
-                            <input type="text" class="form-control rounded-pill" id="search_terms_profile" name="search_terms" placeholder="e.g., Python, Data Scientist, AI" required>
-                        </div>
-                        <div class="col-md-2">
-                            <label for="location_profile" class="form-label">Location</label>
-                            <input type="text" class="form-control rounded-pill" id="location_profile" name="location" placeholder="e.g., New York, Remote" required>
-                        </div>
-                        <div class="col-md-2">
-                            <label for="experience_profile" class="form-label">Experience</label>
-                            <input type="text" class="form-control rounded-pill" id="experience_profile" name="experience" placeholder="e.g., 2-5 years, Senior" required>
-                        </div>
-                        <div class="col-md-1">
-                            <label for="job_type_profile" class="form-label">Job Type</label>
-                            <input type="text" class="form-control rounded-pill" id="job_type_profile" name="job_type" placeholder="e.g., Full-time" required>
-                        </div>
-                        <div class="col-md-1 d-grid">
-                            <button type="submit" class="btn btn-outline-success rounded-pill">Save</button>
-                        </div>
-                    </form>
+                </div>
+                <div>
+                    <label for="job_type" class="block text-sm font-medium text-gray-700">Job Type</label>
+                    <select id="job_type" name="job_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="">Any</option>
+                        <option value="Full-time">Full-time</option>
+                        <option value="Part-time">Part-time</option>
+                        <option value="Contract">Contract</option>
+                        <option value="Internship">Internship</option>
+                    </select>
+                </div>
+                <div class="flex gap-4">
+                    <button type="submit" id="scrape-btn"
+                            class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Start Search
+                    </button>
+                    <button type="button" id="save-profile-btn"
+                            class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Save Profile
+                    </button>
+                </div>
+            </form>
+            <div id="progress-container" class="mt-4 hidden">
+                <div class="text-sm font-medium text-gray-700">Progress: <span id="task-status"></span></div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5 mt-1">
+                    <div id="progress-bar" class="bg-indigo-600 h-2.5 rounded-full" style="width: 0%;"></div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Saved Search Profiles Section -->
-    <div class="col-md-12 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-bookmark me-2" aria-hidden="true"></i>Saved Search Profiles
-            </div>
-            <div class="card-body">
+        <!-- Saved Profiles Section -->
+        <div id="saved-profiles-container">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Saved Profiles</h2>
+            <div class="space-y-4">
                 {% if saved_profiles %}
-                <div class="table-responsive">
-                    <table class="table table-hover table-striped">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Terms</th>
-                                <th>Keywords</th>
-                                <th>Location</th>
-                                <th>Experience</th>
-                                <th>Job Type</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for profile in saved_profiles %}
-                            <tr>
-                                <td>{{ profile.profile_name }}</td>
-                                <td>{{ profile.search_terms }}</td>
-                                <td>
-                                    {% set keywords = profile.search_terms.split(',') %}
-                                    {% for kw in keywords %}
-                                        <span class="badge bg-info text-dark me-1">{{ kw.strip() }}</span>
-                                    {% endfor %}
-                                </td>
-                                <td>{{ profile.location }}</td>
-                                <td>{{ profile.experience }}</td>
-                                <td>{{ profile.job_type }}</td>
-                                <td>
-                                    <form action="{{ url_for('apply_profile', profile_id=profile.id) }}" method="POST" class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-info me-2 rounded-pill" title="Apply this profile" data-bs-toggle="tooltip"><i class="fas fa-play" aria-hidden="true"></i> <span class="visually-hidden">Apply</span> Apply</button>
-                                    </form>
-                                    <form action="{{ url_for('delete_profile', profile_id=profile.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this profile?');">
-                                        <button type="submit" class="btn btn-sm btn-danger rounded-pill" title="Delete this profile" data-bs-toggle="tooltip"><i class="fas fa-trash" aria-hidden="true"></i> <span class="visually-hidden">Delete</span> Delete</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <p class="text-muted text-center">No search profiles saved yet. Save one above!</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Email Settings Collapsed -->
-    <div class="col-md-12 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-envelope me-2" aria-hidden="true"></i> Email Notification Settings
-            </div>
-            <div>
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('update_settings') }}">
-                        <div class="mb-3">
-                            <label for="email_recipients" class="form-label">Recipient Email(s) (comma-separated)</label>
-                            <input type="text" class="form-control rounded-pill" id="email_recipients" name="email_recipients" value="{{ user_settings.email_recipients if user_settings else '' }}" placeholder="your_email@example.com, another@example.com">
-                            <div class="form-text">Emails where you want to receive job alerts.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="email_frequency" class="form-label">Email Frequency</label>
-                            <select class="form-select rounded-pill" id="email_frequency" name="email_frequency">
-                                <option value="daily" {% if user_settings and user_settings.email_frequency == 'daily' %}selected{% endif %}>Daily</option>
-                                <option value="weekly" {% if user_settings and user_settings.email_frequency == 'weekly' %}selected{% endif %}>Weekly</option>
-                                <option value="never" {% if user_settings and user_settings.email_frequency == 'never' %}selected{% endif %}>Never</option>
-                            </select>
-                        </div>
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="send_excel_attachment" name="send_excel_attachment" {% if user_settings and user_settings.send_excel_attachment %}checked{% endif %}>
-                            <label class="form-check-label" for="send_excel_attachment">
-                                Attach Excel report to emails
-                            </label>
-                        </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary rounded-pill">Update Settings</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Job Listings Section -->
-    <div class="col-md-12 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-briefcase me-2" aria-hidden="true"></i>Your Job Listings (Total: {{ total_jobs }})
-            </div>
-            <div class="card-body">
-                <div class="row mb-3 align-items-center">
-                    <div class="col-md-5">
-                        <form method="GET" action="{{ url_for('dashboard') }}" class="d-flex">
-                            <input type="hidden" name="sort_by" value="{{ sort_by }}">
-                            <input type="hidden" name="sort_order" value="{{ sort_order }}">
-                            <input type="hidden" name="status_filter" value="{{ status_filter }}">
-                            <input type="hidden" name="limit" value="{{ limit }}">
-                            <input type="search" class="form-control rounded-pill me-2" name="search_query" placeholder="Search jobs..." value="{{ search_query }}" aria-label="Search jobs">
-                            <button type="submit" class="btn btn-outline-secondary rounded-pill me-2" aria-label="Apply search">
-                                <i class="fas fa-search" aria-hidden="true"></i>
-                            </button>
-                            <a class="btn btn-outline-light text-secondary border rounded-pill" href="{{ url_for('dashboard', page=1, limit=limit, sort_by='found_date', sort_order='DESC', search_query='', status_filter='all') }}" title="Clear filters" data-bs-toggle="tooltip">
-                                <i class="fas fa-undo" aria-hidden="true"></i>
-                                <span class="d-none d-md-inline">Clear</span>
-                            </a>
-                        </form>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="dropdown">
-                            <button class="btn btn-outline-secondary dropdown-toggle rounded-pill w-100" type="button" id="dropdownSortBy" data-bs-toggle="dropdown" aria-expanded="false">
-                                Sort by: {{ sort_by.replace('_', ' ').title() }} <i class="fas fa-{{ 'arrow-up' if sort_order == 'ASC' else 'arrow-down' }}" aria-hidden="true"></i>
-                            </button>
-                            <ul class="dropdown-menu" aria-labelledby="dropdownSortBy">
-                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by='found_date', sort_order='DESC', page=current_page, limit=limit, search_query=search_query, status_filter=status_filter) }}">Date Found (Newest)</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by='found_date', sort_order='ASC', page=current_page, limit=limit, search_query=search_query, status_filter=status_filter) }}">Date Found (Oldest)</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by='relevance_score', sort_order='DESC', page=current_page, limit=limit, search_query=search_query, status_filter=status_filter) }}">Relevance (High to Low)</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by='relevance_score', sort_order='ASC', page=current_page, limit=limit, search_query=search_query, status_filter=status_filter) }}">Relevance (Low to High)</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by='title', sort_order='ASC', page=current_page, limit=limit, search_query=search_query, status_filter=status_filter) }}">Title (A-Z)</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by='company', sort_order='ASC', page=current_page, limit=limit, search_query=search_query, status_filter=status_filter) }}">Company (A-Z)</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="dropdown">
-                            <button class="btn btn-outline-secondary dropdown-toggle rounded-pill w-100" type="button" id="dropdownStatusFilter" data-bs-toggle="dropdown" aria-expanded="false">
-                                Status: {{ status_filter.replace('_', ' ').title() }}
-                            </button>
-                            <ul class="dropdown-menu" aria-labelledby="dropdownStatusFilter">
-                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, page=current_page, limit=limit, search_query=search_query, status_filter='all') }}">All</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, page=current_page, limit=limit, search_query=search_query, status_filter='new') }}">New</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, page=current_page, limit=limit, search_query=search_query, status_filter='applied') }}">Applied</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, page=current_page, limit=limit, search_query=search_query, status_filter='interview') }}">Interview</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, page=current_page, limit=limit, search_query=search_query, status_filter='rejected') }}">Rejected</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, page=current_page, limit=limit, search_query=search_query, status_filter='offered') }}">Offered</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="dropdown">
-                            <button class="btn btn-outline-secondary dropdown-toggle rounded-pill w-100" type="button" id="dropdownLimit" data-bs-toggle="dropdown" aria-expanded="false">
-                                Per page: {{ limit }}
-                            </button>
-                            <ul class="dropdown-menu" aria-labelledby="dropdownLimit">
-                                {% for size in [10, 20, 50, 100] %}
-                                <li><a class="dropdown-item" href="{{ url_for('dashboard', page=1, limit=size, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter) }}">{{ size }}</a></li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                {% if jobs %}
-                <div class="table-responsive">
-                    <form id="jobsForm" method="POST">
-                        <div class="mb-3 d-flex align-items-center">
-                            <button id="deleteSelectedBtn" type="submit" formaction="{{ url_for('delete_selected') }}" class="btn btn-danger me-2" onclick="return confirm('Are you sure you want to delete the selected jobs?');">Delete Selected</button>
-                            <button type="submit" formaction="{{ url_for('delete_all_jobs') }}" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete ALL jobs? This cannot be undone.');">Delete All</button>
-                            <span class="ms-3 text-muted" id="selectedCount">0 selected</span>
-                        </div>
-                        <table class="table table-hover table-striped">
-                            <thead>
-                                <tr>
-                                    <th><input type="checkbox" id="selectAll" onclick="toggleAll(this)" aria-label="Select all on page"></th>
-                                    <th>Title</th>
-                                    <th>Company</th>
-                                    <th>Location</th>
-                                    <th>Relevance</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for job in jobs %}
-                                <tr data-job-id="{{ job.id }}">
-                                    <td><input type="checkbox" name="job_ids" value="{{ job.id }}" aria-label="Select job {{ job.title }} at {{ job.company }}"></td>
-                                    <td>
-                                        <a href="{{ job.link }}" target="_blank" class="text-decoration-none text-primary fw-bold" rel="noopener noreferrer">{{ job.title }}</a>
-                                    </td>
-                                    <td>{{ job.company }}</td>
-                                    <td>{{ job.location }}</td>
-                                    <td>
-                                        <div class="progress" style="height: 20px;">
-                                            <div class="progress-bar {% if job.relevance_score >= 60 %}bg-success{% elif job.relevance_score >= 30 %}bg-warning text-dark{% else %}bg-danger{% endif %}"
-                                                 role="progressbar"
-                                                 style="width: {{ job.relevance_score | round(0) }}%;"
-                                                 aria-valuenow="{{ job.relevance_score | round(0) }}" aria-valuemin="0" aria-valuemax="100">
-                                                {{ job.relevance_score | round(0) }}%
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="statusDropdown{{ job.id }}" data-bs-toggle="dropdown" aria-expanded="false">
-                                                {{ job.status | title }}
-                                            </button>
-                                            <ul class="dropdown-menu" aria-labelledby="statusDropdown{{ job.id }}">
-                                                <li><a class="dropdown-item" href="#" onclick="updateJobStatus({{ job.id }}, 'new', {{ (job.notes | default('')) | tojson | safe }})">New</a></li>
-                                                <li><a class="dropdown-item" href="#" onclick="updateJobStatus({{ job.id }}, 'applied', {{ (job.notes | default('')) | tojson | safe }})">Applied</a></li>
-                                                <li><a class="dropdown-item" href="#" onclick="updateJobStatus({{ job.id }}, 'interview', {{ (job.notes | default('')) | tojson | safe }})">Interview</a></li>
-                                                <li><a class="dropdown-item" href="#" onclick="updateJobStatus({{ job.id }}, 'rejected', {{ (job.notes | default('')) | tojson | safe }})">Rejected</a></li>
-                                                <li><a class="dropdown-item" href="#" onclick="updateJobStatus({{ job.id }}, 'offered', {{ (job.notes | default('')) | tojson | safe }})">Offered</a></li>
-                                            </ul>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <!-- Job Table Actions Dropdown -->
-                                        <div class="btn-group">
-                                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#jobDetailsModal" onclick="openJobModal(this)" data-job='{{ {
-                                                    "id": job.id,
-                                                    "title": job.title,
-                                                    "company": job.company,
-                                                    "location": job.location,
-                                                    "salary": job.salary,
-                                                    "experience": job.experience,
-                                                    "min_experience_years": job.min_experience_years,
-                                                    "max_experience_years": job.max_experience_years,
-                                                    "job_type": job.job_type,
-                                                    "posted_date": job.posted_date,
-                                                    "source": job.source,
-                                                    "relevance_score": job.relevance_score,
-                                                    "keywords": job.keywords,
-                                                    "skills": job.skills,
-                                                    "extracted_tools": job.extracted_tools,
-                                                    "extracted_soft_skills": job.extracted_soft_skills,
-                                                    "status": job.status,
-                                                    "user_feedback": job.user_feedback,
-                                                    "link": job.link,
-                                                    "description": job.description | clean_desc,
-                                                    "notes": job.notes
-                                                } | tojson | safe }}'>
-                                                <i class="fas fa-info-circle"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"></button>
-                                            <ul class="dropdown-menu">
-                                                <li>
-                                                    <form action="{{ url_for('feedback') }}" method="POST">
-                                                        <input type="hidden" name="job_id" value="{{ job.id }}">
-                                                        <button type="submit" name="feedback_type" value="like" class="dropdown-item"><i class="fas fa-thumbs-up text-success"></i> Like</button>
-                                                    </form>
-                                                </li>
-                                                <li>
-                                                    <form action="{{ url_for('feedback') }}" method="POST">
-                                                        <input type="hidden" name="job_id" value="{{ job.id }}">
-                                                        <button type="submit" name="feedback_type" value="dislike" class="dropdown-item"><i class="fas fa-thumbs-down text-danger"></i> Dislike</button>
-                                                    </form>
-                                                </li>
-                                                <li>
-                                                    <button type="button" class="dropdown-item" onclick="copyToClipboard({{ job.link | tojson | safe }}, this)"><i class="fas fa-link"></i> Copy Link</button>
-                                                </li>
-                                                <li>
-                                                    <form action="{{ url_for('delete_job', job_id=job.id) }}" method="POST" onsubmit="return confirm('Delete?');">
-                                                        <button type="submit" class="dropdown-item text-danger"><i class="fas fa-trash"></i> Delete</button>
-                                                    </form>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </form>
-                </div>
-
-                <!-- Single Reusable Job Details Modal -->
-                <div class="modal fade" id="jobDetailsModal" tabindex="-1" aria-labelledby="jobDetailsModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header bg-primary text-white">
-                                <h5 class="modal-title" id="jobDetailsModalLabel">Job Details</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    {% for profile in saved_profiles %}
+                        <div class="bg-gray-50 p-4 rounded-lg flex items-center justify-between shadow-sm">
+                            <div>
+                                <h3 class="font-semibold text-gray-900">{{ profile.profile_name }}</h3>
+                                <p class="text-xs text-gray-500">{{ profile.search_terms }}</p>
                             </div>
-                            <div class="modal-body">
-                                <p><strong>Company:</strong> <span id="modalCompany"></span></p>
-                                <p><strong>Location:</strong> <span id="modalLocation"></span></p>
-                                <p><strong>Salary:</strong> <span id="modalSalary"></span></p>
-                                <p><strong>Experience:</strong> <span id="modalExperience"></span> (Min: <span id="modalMinExp"></span> yrs, Max: <span id="modalMaxExp"></span> yrs)</p>
-                                <p><strong>Job Type:</strong> <span id="modalJobType"></span></p>
-                                <p><strong>Posted Date:</strong> <span id="modalPostedDate"></span></p>
-                                <p><strong>Source:</strong> <span id="modalSource"></span></p>
-                                <p><strong>Relevance Score:</strong> <span id="modalRelevance"></span>%</p>
-                                <p><strong>Keywords:</strong> <span id="modalKeywords"></span></p>
-                                <p><strong>Skills:</strong> <span id="modalSkills"></span></p>
-                                <p><strong>Extracted Tools:</strong> <span id="modalTools"></span></p>
-                                <p><strong>Extracted Soft Skills:</strong> <span id="modalSoftSkills"></span></p>
-                                <p><strong>Current Status:</strong> <span id="modalStatus"></span></p>
-                                <p><strong>User Feedback:</strong> <span id="modalFeedback"></span></p>
-                                <hr>
-                                <h6>Description:</h6>
-                                <p id="modalDescription" style="white-space: pre-wrap;"></p>
-                                <hr>
-                                <h6>Your Notes:</h6>
-                                <form id="modalNotesForm" action="{{ url_for('update_job_status') }}" method="POST">
-                                    <input type="hidden" name="job_id" id="modalJobIdInput" value="">
-                                    <input type="hidden" name="status" id="modalStatusInput" value="">
-                                    <textarea class="form-control" name="notes" id="modalNotesTextarea" rows="3" placeholder="Add your notes here..."></textarea>
-                                    <button type="submit" class="btn btn-sm btn-secondary mt-2">Save Notes</button>
+                            <div class="flex gap-2">
+                                <form action="{{ url_for('apply_profile', profile_id=profile.id) }}" method="POST" class="inline-block apply-profile-form">
+                                    <button type="submit" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">Apply</button>
+                                </form>
+                                <form action="{{ url_for('delete_profile', profile_id=profile.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this profile?');">
+                                    <button type="submit" class="text-red-600 hover:text-red-900 text-sm font-medium">Delete</button>
                                 </form>
                             </div>
-                            <div class="modal-footer">
-                                <a href="#" target="_blank" class="btn btn-success" id="modalApplyLink" rel="noopener noreferrer"><i class="fas fa-external-link-alt me-1" aria-hidden="true"></i> Apply Now</a>
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-sm text-gray-500">No saved profiles. Save a search above!</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- User Settings Section -->
+        <div>
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Email Settings</h2>
+            <form action="{{ url_for('update_settings') }}" method="POST" class="space-y-4">
+                <div>
+                    <label for="email_recipients" class="block text-sm font-medium text-gray-700">Recipients (comma-separated)</label>
+                    <input type="text" name="email_recipients" id="email_recipients"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                           value="{{ user_settings.email_recipients if user_settings else '' }}">
+                </div>
+                <div>
+                    <label for="email_frequency" class="block text-sm font-medium text-gray-700">Frequency</label>
+                    <select name="email_frequency" id="email_frequency" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="daily" {% if user_settings and user_settings.email_frequency == 'daily' %}selected{% endif %}>Daily</option>
+                        <option value="weekly" {% if user_settings and user_settings.email_frequency == 'weekly' %}selected{% endif %}>Weekly</option>
+                        <option value="monthly" {% if user_settings and user_settings.email_frequency == 'monthly' %}selected{% endif %}>Monthly</option>
+                    </select>
+                </div>
+                <div class="flex items-center">
+                    <input id="send_excel_attachment" name="send_excel_attachment" type="checkbox"
+                           class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                           {% if user_settings and user_settings.send_excel_attachment %}checked{% endif %}>
+                    <label for="send_excel_attachment" class="ml-2 block text-sm text-gray-900">Send Excel attachment</label>
+                </div>
+                <button type="submit" class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Save Settings
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right Content: Job Listings & Filters -->
+    <div class="w-full lg:w-2/3 p-6 bg-white rounded-xl shadow-md">
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+            <div class="flex items-center gap-4">
+                <h1 class="text-3xl font-bold text-gray-900">Your Jobs ({{ total_jobs }})</h1>
+                {% set next_view = 'detailed' if view_mode == 'simple' else 'simple' %}
+                {% set query_params = request.args.to_dict() %}
+                {% set _ = query_params.update({'view': next_view}) %}
+                <a href="{{ url_for('dashboard', **query_params) }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                    Switch to {{ next_view.title() }} View
+                </a>
+            </div>
+            <form action="{{ url_for('delete_all_jobs') }}" method="POST" onsubmit="return confirm('Are you sure you want to delete ALL jobs? This cannot be undone.');">
+                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-md shadow-sm">Delete All</button>
+            </form>
+        </div>
+        
+        <!-- Job Status Chart -->
+        <div class="mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 text-center">Application Status Overview</h2>
+            <div class="max-w-sm mx-auto">
+                <canvas id="jobStatusChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Filter Form -->
+        <form id="filter-form" action="{{ url_for('dashboard') }}" method="GET" class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div>
+                    <label for="search_query" class="block text-sm font-medium text-gray-700">Search</label>
+                    <input type="text" id="search_query" name="search_query" placeholder="Keywords, company..."
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                           value="{{ search_query }}">
+                </div>
+                <div>
+                    <label for="location_filter" class="block text-sm font-medium text-gray-700">Location</label>
+                    <input type="text" id="location_filter" name="location_filter" placeholder="City, 'Remote'..."
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                           value="{{ location_filter }}">
+                </div>
+                <div>
+                    <label for="status_filter" class="block text-sm font-medium text-gray-700">Status</label>
+                    <select id="status_filter" name="status_filter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="all">All Statuses</option>
+                        <option value="new" {% if status_filter == 'new' %}selected{% endif %}>New</option>
+                        <option value="applied" {% if status_filter == 'applied' %}selected{% endif %}>Applied</option>
+                        <option value="interview" {% if status_filter == 'interview' %}selected{% endif %}>Interview</option>
+                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                        <option value="offered" {% if status_filter == 'offered' %}selected{% endif %}>Offered</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="job_type_filter" class="block text-sm font-medium text-gray-700">Job Type</label>
+                    <select id="job_type_filter" name="job_type_filter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="all">All Types</option>
+                        <option value="Full-time" {% if job_type_filter == 'Full-time' %}selected{% endif %}>Full-time</option>
+                        <option value="Part-time" {% if job_type_filter == 'Part-time' %}selected{% endif %}>Part-time</option>
+                        <option value="Contract" {% if job_type_filter == 'Contract' %}selected{% endif %}>Contract</option>
+                        <option value="Internship" {% if job_type_filter == 'Internship' %}selected{% endif %}>Internship</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-4 flex justify-end">
+                <button type="submit" class="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Apply Filters</button>
+            </div>
+        </form>
+
+        <!-- Job Table -->
+        <div class="bg-white overflow-hidden sm:rounded-lg">
+            <div id="job-list" class="space-y-6">
+                {% if jobs %}
+                    {% for job in jobs %}
+                        <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-lg transition-shadow duration-300">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h3 class="text-lg font-bold text-indigo-600">
+                                        {{ job.title }}
+                                    </h3>
+                                    <p class="text-sm text-gray-600 font-semibold">{{ job.company }}</p>
+                                </div>
+                                <span class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                                    Score: {{ job.relevance_score | round(2) }}
+                                </span>
+                            </div>
+                            <div class="text-sm text-gray-500 mb-4">
+                                <p class="flex items-center gap-1 mb-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    {{ job.location }}
+                                </p>
+                                {% if view_mode == 'detailed' %}
+                                <p class="flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h.01M8 11h.01M12 11h.01M16 11h.01M12 15h.01M16 15h.01M8 15h.01M3 19v-7a2 2 0 012-2h14a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                                    </svg>
+                                    Posted: {{ job.posted_date }}
+                                </p>
+                                <p class="flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                    Experience: {{ job.experience }}
+                                </p>
+                                {% endif %}
+                            </div>
+                            {% if view_mode == 'detailed' %}
+                                <p class="text-gray-700 mb-4 text-sm">{{ job.description | clean_desc | truncate(300, True) }}</p>
+                                <div class="flex items-center flex-wrap gap-2 text-xs font-medium text-gray-700 mb-4">
+                                    <span class="bg-gray-100 rounded-full px-2 py-1">Source: {{ job.source }}</span>
+                                    <span class="bg-gray-100 rounded-full px-2 py-1">Type: {{ job.job_type }}</span>
+                                    {% if job.salary and job.salary != 'N/A' %}
+                                    <span class="bg-gray-100 rounded-full px-2 py-1">Salary: {{ job.salary }}</span>
+                                    {% endif %}
+                                    
+                                    {% set all_skills = [] %}
+                                    {% if job.skills %}{% set _ = all_skills.extend(job.skills.split(',')) %}{% endif %}
+                                    {% if job.extracted_tools %}{% set _ = all_skills.extend(job.extracted_tools.split(',')) %}{% endif %}
+                                    
+                                    {% for skill in all_skills %}
+                                        {% if skill.strip() %}
+                                        <span class="bg-blue-100 text-blue-800 rounded-full px-2 py-1">{{ skill.strip() }}</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="flex items-center space-x-4">
+                                <a href="{{ job.link }}" target="_blank" class="flex-grow inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                                    Apply Now
+                                </a>
+                                <button onclick="openApplyModal({{ job.id }}, '{{ job.link }}')" class="flex-grow inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Assisted Apply
+                                </button>
+                                <form action="{{ url_for('delete_job', job_id=job.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this job?');" class="hidden sm:inline">
+                                    <button type="submit" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 112 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="mt-4 flex space-x-4 text-xs text-gray-500">
+                                {% if job.status == 'new' %}
+                                    <span class="bg-blue-100 text-blue-800 font-medium px-2.5 py-0.5 rounded-full">New</span>
+                                {% elif job.status == 'applied' %}
+                                    <span class="bg-green-100 text-green-800 font-medium px-2.5 py-0.5 rounded-full">Applied</span>
+                                {% elif job.status == 'interview' %}
+                                    <span class="bg-yellow-100 text-yellow-800 font-medium px-2.5 py-0.5 rounded-full">Interview</span>
+                                {% elif job.status == 'rejected' %}
+                                    <span class="bg-red-100 text-red-800 font-medium px-2.5 py-0.5 rounded-full">Rejected</span>
+                                {% elif job.status == 'offered' %}
+                                    <span class="bg-purple-100 text-purple-800 font-medium px-2.5 py-0.5 rounded-full">Offered</span>
+                                {% endif %}
+                                <button onclick="openStatusModal({{ job.id }}, '{{ job.status }}', '{{ job.notes }}')" class="text-indigo-600 hover:text-indigo-900">Update Status</button>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <script>
-                    function toggleAll(source) {
-                        const checkboxes = document.querySelectorAll('input[name="job_ids"]');
-                        checkboxes.forEach(cb => cb.checked = source.checked);
-                        updateSelectionState();
-                    }
-
-                    function updateSelectionState() {
-                        const checkboxes = Array.from(document.querySelectorAll('input[name="job_ids"]'));
-                        const selectAll = document.getElementById('selectAll');
-                        const count = checkboxes.filter(cb => cb.checked).length;
-                        const total = checkboxes.length;
-                        const countEl = document.getElementById('selectedCount');
-                        const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-
-                        if (countEl) countEl.textContent = count + ' selected';
-                        if (deleteSelectedBtn) deleteSelectedBtn.disabled = count === 0;
-
-                        // Update select-all checkbox state
-                        if (selectAll) {
-                            selectAll.indeterminate = count > 0 && count < total;
-                            selectAll.checked = count > 0 && count === total;
-                        }
-                    }
-
-                    function openJobModal(triggerEl) {
-                        const dataRaw = triggerEl.getAttribute('data-job');
-                        if (!dataRaw) return;
-                        let job;
-                        try { job = JSON.parse(dataRaw); } catch (e) { return; }
-
-                        // Title
-                        const titleEl = document.getElementById('jobDetailsModalLabel');
-                        titleEl.textContent = job.title || 'Job Details';
-
-                        // Simple fields
-                        document.getElementById('modalCompany').textContent = job.company || 'N/A';
-                        document.getElementById('modalLocation').textContent = job.location || 'N/A';
-                        document.getElementById('modalSalary').textContent = job.salary || 'N/A';
-                        document.getElementById('modalExperience').textContent = job.experience || 'N/A';
-                        document.getElementById('modalMinExp').textContent = (job.min_experience_years ?? 'N/A');
-                        document.getElementById('modalMaxExp').textContent = (job.max_experience_years ?? 'N/A');
-                        document.getElementById('modalJobType').textContent = job.job_type || 'N/A';
-                        document.getElementById('modalPostedDate').textContent = job.posted_date || 'N/A';
-                        document.getElementById('modalSource').textContent = job.source || 'N/A';
-                        const rel = Number(job.relevance_score);
-                        document.getElementById('modalRelevance').textContent = isNaN(rel) ? 'N/A' : rel.toFixed(2);
-                        document.getElementById('modalKeywords').textContent = job.keywords || 'N/A';
-                        document.getElementById('modalSkills').textContent = job.skills || 'N/A';
-                        document.getElementById('modalTools').textContent = job.extracted_tools || 'N/A';
-                        document.getElementById('modalSoftSkills').textContent = job.extracted_soft_skills || 'N/A';
-                        document.getElementById('modalStatus').textContent = (job.status || 'N/A');
-                        document.getElementById('modalFeedback').textContent = job.user_feedback ? (job.user_feedback.charAt(0).toUpperCase() + job.user_feedback.slice(1)) : 'None';
-
-                        // Description
-                        document.getElementById('modalDescription').textContent = job.description || '';
-
-                        // Notes form
-                        document.getElementById('modalJobIdInput').value = job.id;
-                        document.getElementById('modalStatusInput').value = job.status || '';
-                        document.getElementById('modalNotesTextarea').value = job.notes || '';
-
-                        // Apply link
-                        const linkEl = document.getElementById('modalApplyLink');
-                        linkEl.href = job.link || '#';
-                    }
-                </script>
-
-                <!-- Pagination -->
-                <nav aria-label="Page navigation">
-                    <ul class="pagination justify-content-center">
-                        <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
-                            <a class="page-link" href="{{ url_for('dashboard', page=current_page - 1, limit=limit, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter) }}">Previous</a>
-                        </li>
-                        {% for page_num in range(1, total_pages + 1) %}
-                            <li class="page-item {% if page_num == current_page %}active{% endif %}">
-                                <a class="page-link" href="{{ url_for('dashboard', page=page_num, limit=limit, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter) }}">{{ page_num }}</a>
-                            </li>
-                        {% endfor %}
-                        <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
-                            <a class="page-link" href="{{ url_for('dashboard', page=current_page + 1, limit=limit, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter) }}">Next</a>
-                        </li>
-                    </ul>
-                </nav>
-
+                    {% endfor %}
                 {% else %}
-                <p class="text-muted text-center">No jobs found matching your criteria. Try a new search or apply a saved profile!</p>
+                    <div class="text-center py-10 text-gray-500">
+                        <p class="mb-2">No jobs found. Try a new search or adjust your filters!</p>
+                        <p>Your last search found 0 jobs.</p>
+                    </div>
                 {% endif %}
+            </div>
+            
+            <!-- Pagination -->
+            <div class="flex justify-center mt-8">
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    {% if current_page > 1 %}
+                    <a href="{{ url_for('dashboard', page=current_page-1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter, job_type_filter=job_type_filter) }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">Previous</a>
+                    {% endif %}
+                    {% for p in range(1, total_pages + 1) %}
+                    <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter, job_type_filter=job_type_filter) }}" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium {% if p == current_page %}bg-indigo-50 border-indigo-500 text-indigo-600 z-10{% else %}bg-white border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
+                        {{ p }}
+                    </a>
+                    {% endfor %}
+                    {% if current_page < total_pages %}
+                    <a href="{{ url_for('dashboard', page=current_page+1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter, job_type_filter=job_type_filter) }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">Next</a>
+                    {% endif %}
+                </nav>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Modal for Job Status Update -->
+<div id="status-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Update Job Status</h3>
+        <form id="status-form" action="{{ url_for('update_job_status') }}" method="POST">
+            <input type="hidden" name="job_id" id="status-job-id">
+            <div class="mb-4">
+                <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                <select id="status" name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <option value="new">New</option>
+                    <option value="applied">Applied</option>
+                    <option value="interview">Interview</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="offered">Offered</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
+                <textarea id="notes" name="notes" rows="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+            </div>
+            <div class="flex justify-end space-x-4">
+                <button type="button" onclick="closeStatusModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal for Assisted Apply -->
+<div id="apply-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white text-center">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Assisted Apply</h3>
+        <p class="text-gray-700 mb-4">This will start an automated browser session to fill out the form for you.</p>
+        <p class="text-sm text-red-500 mb-4 font-semibold">
+            Warning: This feature requires a local Celery worker with Selenium configured correctly. A new browser window will open.
+        </p>
+        <div class="flex justify-center space-x-4">
+            <button type="button" onclick="closeApplyModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Cancel</button>
+            <button type="button" id="start-apply-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Start Automation</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    function showToast(message, type='success') {
-        const toastId = 'toast' + Date.now();
-        const toastHTML = `
-<div id="${toastId}" class="toast align-items-center text-bg-${type} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
-  <div class="d-flex">
-    <div class="toast-body">${message}</div>
-    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-  </div>
-</div>`;
-        document.getElementById('toastContainer').insertAdjacentHTML('beforeend', toastHTML);
-        const toastEl = document.getElementById(toastId);
-        new bootstrap.Toast(toastEl, { delay: 3000 }).show();
-    }
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle New Search button
+        const searchForm = document.getElementById('search-form');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const taskStatus = document.getElementById('task-status');
 
-    function updateJobStatus(jobId, newStatus, currentNotes) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '{{ url_for("update_job_status") }}';
-
-        const jobIdInput = document.createElement('input');
-        jobIdInput.type = 'hidden';
-        jobIdInput.name = 'job_id';
-        jobIdInput.value = jobId;
-        form.appendChild(jobIdInput);
-
-        const statusInput = document.createElement('input');
-        statusInput.type = 'hidden';
-        statusInput.name = 'status';
-        statusInput.value = newStatus;
-        form.appendChild(statusInput);
-
-        const notesInput = document.createElement('input');
-        notesInput.type = 'hidden';
-        notesInput.name = 'notes';
-        notesInput.value = (currentNotes == null) ? '' : currentNotes; // Preserve current notes safely
-        form.appendChild(notesInput);
-
-        document.body.appendChild(form);
-        form.submit();
-    }
-
-    function copyToClipboard(text, triggerEl) {
-        const fallback = () => {
-            const tempInput = document.createElement('input');
-            tempInput.style.position = 'absolute';
-            tempInput.style.left = '-9999px';
-            tempInput.value = text;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
-        };
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).catch(fallback).then(() => showToast('Link copied', 'success'));
-        } else {
-            fallback();
-            showToast('Link copied', 'success');
-        }
-        // If there's a tooltip, show feedback
-        if (window.bootstrap && triggerEl) {
-            const tt = bootstrap.Tooltip.getInstance(triggerEl) || new bootstrap.Tooltip(triggerEl);
-            const prev = triggerEl.getAttribute('data-bs-original-title') || triggerEl.getAttribute('title') || '';
-            triggerEl.setAttribute('data-bs-original-title', 'Copied!');
-            tt.show();
-            setTimeout(() => {
-                triggerEl.setAttribute('data-bs-original-title', prev);
-                tt.hide();
-            }, 1000);
-        }
-    }
-
-    function highlightSearchTerms(query) {
-        if (!query) return;
-        const terms = query.split(/[\s,]+/).map(t => t.trim()).filter(t => t.length > 1);
-        if (!terms.length) return;
-        const anchors = document.querySelectorAll('table tbody a.text-primary.fw-bold');
-        anchors.forEach(a => {
-            const text = a.textContent;
-            let html = text;
-            terms.forEach(term => {
-                const esc = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const pattern = new RegExp('(' + esc + ')', 'ig');
-                html = html.replace(pattern, '<mark>$1</mark>');
+        if (searchForm) {
+            searchForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const formData = new FormData(searchForm);
+                const params = new URLSearchParams(formData).toString();
+                
+                progressContainer.classList.remove('hidden');
+                taskStatus.textContent = 'Starting search...';
+                progressBar.style.width = '0%';
+                
+                try {
+                    const response = await fetch('/search_jobs', {
+                        method: 'POST',
+                        body: params,
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        }
+                    });
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        checkTaskStatus(data.task_id);
+                    } else {
+                        taskStatus.textContent = data.message;
+                        progressBar.style.width = '100%';
+                        progressBar.classList.add('bg-red-500');
+                    }
+                } catch (error) {
+                    console.error('Error starting task:', error);
+                    taskStatus.textContent = 'Failed to connect to backend.';
+                    progressBar.style.width = '100%';
+                    progressBar.classList.add('bg-red-500');
+                }
             });
-            a.innerHTML = html;
+        }
+
+        // Handle Saved Profile "Apply" button
+        const applyProfileForms = document.querySelectorAll('.apply-profile-form');
+        applyProfileForms.forEach(form => {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const formData = new FormData(form);
+                const url = form.action;
+                
+                progressContainer.classList.remove('hidden');
+                taskStatus.textContent = 'Applying saved profile...';
+                progressBar.style.width = '0%';
+                
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        taskStatus.textContent = `Applying profile: ${data.profile_name}`;
+                        checkTaskStatus(data.task_id);
+                    } else {
+                        taskStatus.textContent = data.message;
+                        progressBar.style.width = '100%';
+                        progressBar.classList.add('bg-red-500');
+                    }
+                } catch (error) {
+                    console.error('Error applying profile:', error);
+                    taskStatus.textContent = 'Failed to connect to backend.';
+                    progressBar.style.width = '100%';
+                    progressBar.classList.add('bg-red-500');
+                }
+            });
         });
-    }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        // Enable tooltips
-        if (window.bootstrap) {
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
+        // Function to check task status
+        function checkTaskStatus(taskId) {
+            const interval = setInterval(async () => {
+                const response = await fetch(`/task_status/${taskId}`);
+                const data = await response.json();
+                
+                if (data.state === 'SUCCESS') {
+                    clearInterval(interval);
+                    taskStatus.textContent = data.status;
+                    progressBar.style.width = '100%';
+                    progressBar.classList.remove('bg-red-500');
+                    progressBar.classList.add('bg-green-500');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else if (data.state === 'FAILURE') {
+                    clearInterval(interval);
+                    taskStatus.textContent = data.status;
+                    progressBar.style.width = '100%';
+                    progressBar.classList.add('bg-red-500');
+                } else {
+                    taskStatus.textContent = data.status;
+                    progressBar.style.width = `${data.progress}%`;
+                }
+            }, 2000); // Poll every 2 seconds
         }
 
-        // Bootstrap toasts container requires class 'toast' elements, they are added dynamically by showToast
+        // The new filter form handles submission via a standard GET request, so no extra JS is needed for it.
 
-        // Disable submit buttons on submit + show spinner icon
-        document.querySelectorAll('form').forEach(function (form) {
-            form.addEventListener('submit', function () {
-                this.querySelectorAll('button[type="submit"]').forEach(function (btn) {
-                    btn.disabled = true;
-                    const icon = btn.querySelector('i');
-                    if (icon) {
-                        icon.classList.add('fa-spinner', 'fa-spin');
+        // Modals Logic
+        const statusModal = document.getElementById('status-modal');
+        const applyModal = document.getElementById('apply-modal');
+
+        window.openStatusModal = function(jobId, status, notes) {
+            document.getElementById('status-job-id').value = jobId;
+            document.getElementById('status').value = status;
+            document.getElementById('notes').value = notes;
+            statusModal.classList.remove('hidden');
+        };
+
+        window.closeStatusModal = function() {
+            statusModal.classList.add('hidden');
+        };
+
+        window.openApplyModal = function(jobId, jobLink) {
+            const startApplyBtn = document.getElementById('start-apply-btn');
+            startApplyBtn.onclick = function() {
+                startApplyProcess(jobId);
+                closeApplyModal();
+            };
+            applyModal.classList.remove('hidden');
+        };
+
+        window.closeApplyModal = function() {
+            applyModal.classList.add('hidden');
+        };
+
+        async function startApplyProcess(jobId) {
+            try {
+                const response = await fetch(`/assisted_apply/${jobId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    alert(data.message); // Using native alert here for a quick, non-disruptive feedback. You should replace this with a custom modal.
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error triggering assisted apply:', error);
+                alert('An error occurred. Please check the console.');
+            }
+        }
+
+        // Chart.js Logic
+        async function renderJobStatusChart() {
+            try {
+                const response = await fetch('/api/job_status_data');
+                if (!response.ok) {
+                    console.error('Failed to fetch chart data');
+                    return;
+                }
+                const data = await response.json();
+
+                // Check if there's any data to display
+                const totalJobsForChart = Object.values(data).reduce((a, b) => a + b, 0);
+                if (totalJobsForChart === 0) {
+                    document.getElementById('jobStatusChart').parentElement.innerHTML = '<p class="text-center text-gray-500">No job data to display. Start a search to see your application pipeline!</p>';
+                    return;
+                }
+                
+                const chartData = {
+                    labels: Object.keys(data).map(s => s.charAt(0).toUpperCase() + s.slice(1)), // Capitalize labels
+                    datasets: [{
+                        label: 'Job Statuses',
+                        data: Object.values(data),
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.7)',  // New (Blue)
+                            'rgba(16, 185, 129, 0.7)', // Applied (Green)
+                            'rgba(245, 158, 11, 0.7)',  // Interview (Amber)
+                            'rgba(239, 68, 68, 0.7)',   // Rejected (Red)
+                            'rgba(139, 92, 246, 0.7)'   // Offered (Violet)
+                        ],
+                        borderColor: [
+                            '#FFFFFF'
+                        ],
+                        borderWidth: 2
+                    }]
+                };
+
+                const ctx = document.getElementById('jobStatusChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            }
+                        }
                     }
                 });
-            });
-        });
+            } catch (error) {
+                console.error('Error rendering chart:', error);
+            }
+        }
 
-        // Highlight search terms in titles
-        highlightSearchTerms({{ (search_query or '') | tojson | safe }});
-
-        // Initialize selection state listeners
-        const jobCheckboxes = document.querySelectorAll('input[name="job_ids"]');
-        jobCheckboxes.forEach(cb => cb.addEventListener('change', updateSelectionState));
-        // Initial computation
-        updateSelectionState();
+        renderJobStatusChart();
     });
 </script>
 {% endblock %}

@@ -1,47 +1,69 @@
-from celery.schedules import crontab # Import crontab for periodic tasks
-import requests
-from bs4 import BeautifulSoup
-import datetime, schedule, time, os, pickle, base64, json, sys, signal
+# --- Standard Library Imports ---
+import base64
+import concurrent.futures
+import datetime
+import hashlib
+import json
+import logging
+import os
+import pickle
+import random
+import re
+import signal
+import sqlite3
+import sys
+import threading
+import time
+import traceback
+from collections import Counter
+from dataclasses import dataclass, field
+from email import encoders
+from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
-import sqlite3
-import hashlib
-import re
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Tuple
-import logging
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service as ChromeService
-from selenium.webdriver.chrome.options import Options as ChromeOptions
-from selenium.webdriver.edge.service import Service as EdgeService
-from selenium.webdriver.edge.options import Options as EdgeOptions
-from selenium.webdriver.firefox.service import Service as FirefoxService
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, WebDriverException as SeleniumWebDriverException
+from typing import Dict, List, Optional, Tuple
+from urllib.parse import quote_plus, urljoin
+
+# --- Third-Party Imports ---
+import docx
+import fitz  # PyMuPDF
+import gevent.monkey
 import pandas as pd
+import requests
+import schedule
+from bs4 import BeautifulSoup
+from celery import Celery
+from celery.schedules import crontab
+from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
+from flask_login import (LoginManager, UserMixin, current_user, login_required,
+                         login_user, logout_user)
+from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from google.auth.transport.requests import Request
-import concurrent.futures
-import random
+from selenium import webdriver
+from selenium.common.exceptions import (NoSuchElementException, TimeoutException,
+                                        WebDriverException as SeleniumWebDriverException)
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import Select, WebDriverWait
+# Selenium WebDriver-specific imports
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.edge.options import Options as EdgeOptions
+from selenium.webdriver.edge.service import Service as EdgeService
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.firefox.service import Service as FirefoxService
+from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
+
+
 import threading
 import traceback
-from collections import Counter
-import gevent.monkey
+
 if os.environ.get('ENABLE_GEVENT_PATCH', '0') == '1':
     gevent.monkey.patch_all(ssl=False)
-
-# --- Flask & Celery Imports ---
-from flask import Flask, request, render_template, redirect, url_for, flash, jsonify
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
-from celery import Celery
 
 # --- Logging Configuration ---
 if not logging.getLogger().handlers:
@@ -63,8 +85,8 @@ RELEVANCE_WEIGHTS = {
 }
 RECENCY_MULTIPLIERS = {'week': 1.2, 'month': 1.05}
 RELEVANCE_MIN_THRESHOLD = float(os.environ.get('RELEVANCE_MIN_THRESHOLD', '10'))
-SCRAPE_MAX_WORKERS = int(os.environ.get('SCRAPE_MAX_WORKERS', '4'))
-LINKEDIN_DETAIL_MAX_WORKERS = int(os.environ.get('LINKEDIN_DETAIL_MAX_WORKERS', '3'))
+SCRAPE_MAX_WORKERS = int(os.environ.get('SCRAPE_MAX_WORKERS', '5'))
+LINKEDIN_DETAIL_MAX_WORKERS = int(os.environ.get('LINKEDIN_DETAIL_MAX_WORKERS', '2'))
 
 # --- Helpers ---
 
@@ -81,20 +103,22 @@ def make_celery(app):
     celery.conf.update(app.config)
 
     # Configure periodic tasks directly within Celery's configuration
-    celery.conf.beat_schedule = {
-        'run-job-hunt-daily-morning': {
-            'task': 'app.scheduled_job_hunt_for_all_users', # Reference the task by its full path
-            'schedule': crontab(hour=9, minute=0), # 9:00 AM daily
-            'args': (), # No arguments for this task
-            'options': {'queue': 'celery'} # Ensure it uses the default queue
-        },
-        'run-job-hunt-daily-evening': {
-            'task': 'app.scheduled_job_hunt_for_all_users', # Reference the task by its full path
-            'schedule': crontab(hour=18, minute=0), # 6:00 PM daily
-            'args': (),
-            'options': {'queue': 'celery'}
-        },
-    }
+    # The beat_schedule below automatically triggers scraping twice a day.
+    # Comment it out to prevent automatic scraping on startup.
+    # celery.conf.beat_schedule = {
+    #     'run-job-hunt-daily-morning': {
+    #         'task': 'app.scheduled_job_hunt_for_all_users', # Reference the task by its full path
+    #         'schedule': crontab(hour=9, minute=0), # 9:00 AM daily
+    #         'args': (), # No arguments for this task
+    #         'options': {'queue': 'celery'} # Ensure it uses the default queue
+    #     },
+    #     'run-job-hunt-daily-evening': {
+    #         'task': 'app.scheduled_job_hunt_for_all_users', # Reference the task by its full path
+    #         'schedule': crontab(hour=18, minute=0), # 6:00 PM daily
+    #         'args': (),
+    #         'options': {'queue': 'celery'}
+    #     },
+    # }
     celery.conf.timezone = 'UTC' # Or your desired timezone, e.g., 'Asia/Kolkata'
 
     return celery
@@ -102,6 +126,11 @@ def make_celery(app):
 # Initialize Flask app (top-level, so it's imported by all processes)
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True) # Ensure the upload folder exists
+
 # Use new style Celery config keys (lowercase without CELERY_ prefix), with fallback to old env vars
 broker_url = os.environ.get('broker_url') or os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 result_backend = os.environ.get('result_backend') or os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
@@ -134,6 +163,31 @@ def health():
         logger.exception("Health check failed")
         return jsonify({'status': 'error', 'message': 'Service unavailable'}), 503
 
+@app.route('/task_status/<task_id>')
+@login_required
+def task_status(task_id):
+    """Endpoint to check the status of a Celery task."""
+    task = run_job_hunt_task.AsyncResult(task_id)
+    if task.state == 'PENDING':
+        response = {
+            'state': task.state,
+            'progress': 0,
+            'status': 'Pending...'
+        }
+    elif task.state != 'FAILURE':
+        response = {
+            'state': task.state,
+            'progress': task.info.get('progress', 0),
+            'status': task.info.get('status', '')
+        }
+    else: # Something went wrong in the background
+        response = {
+            'state': task.state,
+            'progress': 100,
+            'status': f"Task failed: {str(task.info)}"
+        }
+    return jsonify(response)
+
 # --- Flask-Login Configuration ---
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -164,13 +218,11 @@ ADMIN_ALERT_EMAIL = os.environ.get('ADMIN_ALERT_EMAIL', '')
 
 # --- Add a list of common User-Agent strings to mimic different browsers ---
 USER_AGENTS = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:107.0) Gecko/20100101 Firefox/107.0',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 Edg/108.0.1462.46',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
 ]
 
 # --- Description sanitizer and Jinja filter ---
@@ -237,6 +289,7 @@ class Job:
     job_type: str
     posted_date: str
     source: str
+    deadline: str
     relevance_score: float = 0.0
 
     min_experience_years: Optional[int] = None
@@ -262,6 +315,7 @@ class Job:
             'job_type': self.job_type,
             'posted_date': self.posted_date,
             'source': self.source,
+            'deadline': self.deadline,
             'relevance_score': self.relevance_score,
             'min_experience_years': self.min_experience_years,
             'max_experience_years': self.max_experience_years,
@@ -345,6 +399,58 @@ class JobDatabase:
             except sqlite3.OperationalError as e: logger.warning(f"send_excel_attachment column already exists or error altering users table: {e}")
 
         # --- Jobs Table ---
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_details (
+                user_id INTEGER PRIMARY KEY,
+                full_name TEXT,
+                email TEXT,
+                phone TEXT,
+                address TEXT,
+                linkedin_url TEXT,
+                github_url TEXT,
+                portfolio_url TEXT,
+                resume_path TEXT,
+                cover_letter_template TEXT,
+                browser_profile_path TEXT DEFAULT '',
+                resume_parsed_data TEXT,
+                willing_to_relocate TEXT DEFAULT 'no',
+                authorized_to_work TEXT DEFAULT 'no',
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        ''')
+
+        # Perform ALTER TABLE for new user_details columns if they don't exist
+        cursor.execute("PRAGMA table_info(user_details)")
+        user_details_columns = [col[1] for col in cursor.fetchall()]
+        if 'browser_profile_path' not in user_details_columns:
+            try:
+                cursor.execute("ALTER TABLE user_details ADD COLUMN browser_profile_path TEXT DEFAULT ''")
+                conn.commit()
+                logger.info("Added browser_profile_path column to user_details table.")
+            except sqlite3.OperationalError as e:
+                logger.warning(f"browser_profile_path column already exists or error altering user_details table: {e}")
+        if 'resume_parsed_data' not in user_details_columns:
+            try:
+                cursor.execute("ALTER TABLE user_details ADD COLUMN resume_parsed_data TEXT")
+                conn.commit()
+                logger.info("Added resume_parsed_data column to user_details table.")
+            except sqlite3.OperationalError as e:
+                logger.warning(f"resume_parsed_data column already exists or error altering user_details table: {e}")
+        if 'willing_to_relocate' not in user_details_columns:
+            try:
+                cursor.execute("ALTER TABLE user_details ADD COLUMN willing_to_relocate TEXT DEFAULT 'no'")
+                conn.commit()
+                logger.info("Added willing_to_relocate column to user_details table.")
+            except sqlite3.OperationalError as e:
+                logger.warning(f"willing_to_relocate column already exists or error altering user_details table: {e}")
+        if 'authorized_to_work' not in user_details_columns:
+            try:
+                cursor.execute("ALTER TABLE user_details ADD COLUMN authorized_to_work TEXT DEFAULT 'no'")
+                conn.commit()
+                logger.info("Added authorized_to_work column to user_details table.")
+            except sqlite3.OperationalError as e:
+                logger.warning(f"authorized_to_work column already exists or error altering user_details table: {e}")
+
         cursor.execute("PRAGMA table_info(jobs)")
         jobs_existing_columns = [col[1] for col in cursor.fetchall()]
 
@@ -379,6 +485,7 @@ class JobDatabase:
                     extracted_tools TEXT DEFAULT '',
                     extracted_soft_skills TEXT DEFAULT '',
                     user_feedback TEXT DEFAULT '',
+                    deadline TEXT,
                     FOREIGN KEY(user_id) REFERENCES users(id)
                 )
             ''')
@@ -404,6 +511,12 @@ class JobDatabase:
                     conn.commit(); logger.info("Added user_feedback column to jobs table.")
                 except sqlite3.OperationalError as e:
                     logger.warning(f"user_feedback column already exists or error altering jobs table: {e}")
+            if 'deadline' not in jobs_existing_columns:
+                try:
+                    cursor.execute("ALTER TABLE jobs ADD COLUMN deadline TEXT")
+                    conn.commit(); logger.info("Added deadline column to jobs table.")
+                except sqlite3.OperationalError as e:
+                    logger.warning(f"deadline column already exists or error altering jobs table: {e}")
 
         # --- Search Profiles Table ---
         cursor.execute('''
@@ -468,7 +581,8 @@ class JobDatabase:
 
     def add_job(self, job: Job, user_id: Optional[int] = None):
         """Adds a job to the database with deduplication and user association."""
-        norm = f"{normalize_for_hash(job.title)}|{normalize_for_hash(job.company)}|{normalize_for_hash(job.location)}"
+        # The hash must be unique per user for the same job to allow multiple users to track it.
+        norm = f"{normalize_for_hash(job.title)}|{normalize_for_hash(job.company)}|{normalize_for_hash(job.location)}|{user_id}"
         job_hash = hashlib.md5(norm.encode('utf-8')).hexdigest()
 
         conn = sqlite3.connect(self.db_path)
@@ -478,19 +592,34 @@ class JobDatabase:
                 INSERT OR IGNORE INTO jobs
                 (job_hash, title, company, location, salary, link, description,
                  keywords, skills, experience, job_type, posted_date, source,
-                 relevance_score, found_date, user_id, status, notes,
+                 relevance_score, found_date, user_id, status, notes, deadline,
                  min_experience_years, max_experience_years, extracted_tools, extracted_soft_skills, user_feedback)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
-                job_hash, job.title, job.company, job.location, job.salary,
-                job.link, job.description, ', '.join(job.keywords),
-                ', '.join(job.skills), job.experience, job.job_type,
-                job.posted_date, job.source, job.relevance_score,
-                datetime.datetime.now().isoformat(), user_id,
-                'new', '', # Default status and notes
-                job.min_experience_years, job.max_experience_years,
-                ', '.join(job.extracted_tools), ', '.join(job.extracted_soft_skills),
-                job.user_feedback if job.user_feedback else ''
+                job_hash,  # job_hash
+                job.title,  # title
+                job.company,  # company
+                job.location,  # location
+                job.salary,  # salary
+                job.link,  # link
+                job.description,  # description
+                ', '.join(job.keywords),  # keywords
+                ', '.join(job.skills),  # skills
+                job.experience,  # experience
+                job.job_type,  # job_type
+                job.posted_date,  # posted_date
+                job.source,  # source
+                job.relevance_score,  # relevance_score
+                datetime.datetime.now().isoformat(),  # found_date
+                user_id,  # user_id
+                'new',  # status
+                '',  # notes
+                job.deadline,  # deadline
+                job.min_experience_years,  # min_experience_years
+                job.max_experience_years,  # max_experience_years
+                ', '.join(job.extracted_tools),  # extracted_tools
+                ', '.join(job.extracted_soft_skills),  # extracted_soft_skills
+                job.user_feedback if job.user_feedback else ''  # user_feedback
             ))
             conn.commit()
             if cursor.rowcount > 0:
@@ -501,7 +630,9 @@ class JobDatabase:
                 return False
         except sqlite3.OperationalError as e:
             logger.error(f"SQLite Operational Error (likely schema mismatch during job insert): {e}.")
-            logger.error("Attempting to insert values: %s", (job_hash, job.title, job.company, job.location, job.salary, job.link, job.description, ', '.join(job.keywords), ', '.join(job.skills), job.experience, job.job_type, job.posted_date, job.source, job.relevance_score, datetime.datetime.now().isoformat(), user_id, 'new', '', job.min_experience_years, job.max_experience_years, ', '.join(job.extracted_tools), ', '.join(job.extracted_soft_skills), job.user_feedback))
+            # Log with the corrected order for accurate debugging
+            correct_values = (job_hash, job.title, job.company, job.location, job.salary, job.link, job.description, ', '.join(job.keywords), ', '.join(job.skills), job.experience, job.job_type, job.posted_date, job.source, job.relevance_score, datetime.datetime.now().isoformat(), user_id, 'new', '', job.deadline, job.min_experience_years, job.max_experience_years, ', '.join(job.extracted_tools), ', '.join(job.extracted_soft_skills), job.user_feedback if job.user_feedback else '')
+            logger.error("Attempting to insert values: %s", correct_values)
             return False
         except Exception as e:
             logger.error(f"Error adding job to database: {e}")
@@ -512,7 +643,9 @@ class JobDatabase:
     def get_jobs_for_user(self, user_id: int, limit=100, offset=0,
                              sort_by='found_date', sort_order='DESC',
                              search_query: Optional[str] = None,
-                             status_filter: Optional[str] = None) -> Tuple[List[Dict], int]:
+                             status_filter: Optional[str] = None,
+                             location_filter: Optional[str] = None,
+                             job_type_filter: Optional[str] = None) -> Tuple[List[Dict], int]:
         """Retrieves jobs for a specific user from the database, with filters and pagination."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -520,7 +653,7 @@ class JobDatabase:
         query_columns = """
             id, job_hash, title, company, location, salary, link, description,
             keywords, skills, experience, job_type, posted_date, source,
-            relevance_score, found_date, applied, status, user_id, notes,
+            relevance_score, found_date, applied, status, user_id, notes, deadline,
             min_experience_years, max_experience_years, extracted_tools, extracted_soft_skills, user_feedback
         """
         query = f"SELECT {query_columns} FROM jobs WHERE user_id = ?"
@@ -528,12 +661,21 @@ class JobDatabase:
 
         if search_query:
             search_pattern = f"%{search_query}%"
-            query += " AND (title LIKE ? OR company LIKE ? OR description LIKE ? OR location LIKE ? OR notes LIKE ? OR keywords LIKE ? OR skills LIKE ? OR extracted_tools LIKE ? OR extracted_soft_skills LIKE ?)"
-            params.extend([search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern])
+            query += " AND (title LIKE ? OR company LIKE ? OR description LIKE ? OR notes LIKE ? OR keywords LIKE ? OR skills LIKE ? OR extracted_tools LIKE ? OR extracted_soft_skills LIKE ?)"
+            params.extend([search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern])
 
         if status_filter and status_filter != 'all':
             query += " AND status = ?"
             params.append(status_filter)
+
+        if location_filter:
+            location_pattern = f"%{location_filter}%"
+            query += " AND location LIKE ?"
+            params.append(location_pattern)
+
+        if job_type_filter and job_type_filter != 'all':
+            query += " AND job_type = ?"
+            params.append(job_type_filter)
 
         count_query = f"SELECT COUNT(*) FROM ({query})"
         cursor.execute(count_query, params)
@@ -721,6 +863,33 @@ class JobDatabase:
         finally:
             conn.close()
 
+    def get_job_status_counts(self, user_id: int) -> Dict[str, int]:
+        """Retrieves the count of jobs for each status for a specific user."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Initialize counts to ensure all statuses are present, even if they are 0.
+        status_counts = {
+            'new': 0,
+            'applied': 0,
+            'interview': 0,
+            'rejected': 0,
+            'offered': 0
+        }
+
+        try:
+            cursor.execute("SELECT status, COUNT(*) FROM jobs WHERE user_id = ? AND status IS NOT NULL GROUP BY status", (user_id,))
+            rows = cursor.fetchall()
+            for status, count in rows:
+                if status in status_counts:
+                    status_counts[status] = count
+            return status_counts
+        except Exception as e:
+            logger.error(f"Error getting job status counts for user {user_id}: {e}")
+            return status_counts # Return default counts on error
+        finally:
+            conn.close()
+
     def update_custom_score(self, user_id: int, keyword: str, keyword_type: str, change_multiplier: float) -> None:
         """Adjusts the custom relevance score multiplier for a specific keyword for a user."""
         conn = sqlite3.connect(self.db_path)
@@ -761,41 +930,147 @@ class JobDatabase:
         return custom_scores
 
     def migrate_job_hashes_normalized(self) -> None:
-        """One-time migration to recompute job_hash using normalized title/company/location."""
+        """One-time migration to recompute job_hash using normalized title/company/location and user_id."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         try:
-            cursor.execute("SELECT id, title, company, location, job_hash FROM jobs")
+            # Fetch user_id to make the hash user-specific
+            cursor.execute("SELECT id, title, company, location, job_hash, user_id FROM jobs")
             rows = cursor.fetchall()
             updated = 0
-            for id_, title, company, location, old_hash in rows:
-                norm = f"{normalize_for_hash(title)}|{normalize_for_hash(company)}|{normalize_for_hash(location)}"
+            for id_, title, company, location, old_hash, user_id in rows:
+                # Recompute hash with user_id
+                norm = f"{normalize_for_hash(title)}|{normalize_for_hash(company)}|{normalize_for_hash(location)}|{user_id}"
                 new_hash = hashlib.md5(norm.encode('utf-8')).hexdigest()
                 if new_hash != old_hash:
                     try:
                         cursor.execute("UPDATE jobs SET job_hash = ? WHERE id = ?", (new_hash, id_))
                         updated += 1
                     except sqlite3.IntegrityError:
-                        logger.warning(f"Skipping job id {id_} due to hash collision during migration.")
+                        logger.warning(f"Skipping job id {id_} due to hash collision during migration (likely a true duplicate for the same user).")
                         continue
             conn.commit()
             logger.info(f"Job hash migration complete. Updated {updated} rows.")
+        except sqlite3.OperationalError as e:
+            if "no such column: user_id" in str(e):
+                logger.warning("Skipping job_hash migration: 'user_id' column not found in 'jobs' table. This is expected on very old schemas.")
+            else:
+                logger.error(f"Job hash migration failed with an operational error: {e}")
         except Exception as e:
             logger.error(f"Job hash migration failed: {e}")
         finally:
             conn.close()
+
+    def get_user_details(self, user_id: int) -> Optional[Dict]:
+        """Retrieves a user's application details."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row # This allows accessing columns by name
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM user_details WHERE user_id = ?", (user_id,))
+        details_data = cursor.fetchone()
+        conn.close()
+        if details_data:
+            return dict(details_data)
+        return None
+
+    def save_user_details(self, user_id: int, details: Dict) -> bool:
+        """Saves or updates a user's application details."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            # Using INSERT OR REPLACE (UPSERT) for simplicity
+            cursor.execute('''
+                INSERT OR REPLACE INTO user_details (
+                    user_id, full_name, email, phone, address,
+                    linkedin_url, github_url, portfolio_url,
+                    resume_path, cover_letter_template, browser_profile_path,
+                    resume_parsed_data, willing_to_relocate, authorized_to_work
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                user_id,
+                details.get('full_name'), details.get('email'), details.get('phone'),
+                details.get('address'), details.get('linkedin_url'), details.get('github_url'),
+                details.get('portfolio_url'), details.get('resume_path'),
+                details.get('cover_letter_template'), details.get('browser_profile_path'),
+                details.get('resume_parsed_data'),
+                details.get('willing_to_relocate'),
+                details.get('authorized_to_work')
+            ))
+            conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Error saving user details for user {user_id}: {e}")
+            return False
+        finally:
+            conn.close()
+
+
+class ResumeParser:
+    """Parses resume files to extract structured data for automated form filling."""
+    def parse(self, file_path: str) -> Dict:
+        """Parses a resume file (PDF, DOCX) and extracts structured data."""
+        text = ""
+        try:
+            if file_path.lower().endswith('.pdf'):
+                text = self._parse_pdf(file_path)
+            elif file_path.lower().endswith('.docx'):
+                text = self._parse_docx(file_path)
+            else:
+                logger.warning(f"Unsupported resume file format: {file_path}")
+                return {}
+        except Exception as e:
+            logger.error(f"Failed to parse resume file {file_path}: {e}")
+            return {}
+
+        # NOTE: The following are simple heuristic-based extractions.
+        # A production system would benefit from a more advanced NLP model.
+        work_experience = self._extract_work_experience(text)
+        skills = self._extract_skills(text)
+
+        return {
+            'raw_text': text,
+            'skills': skills,
+            'work_experience': work_experience,
+        }
+
+    def _parse_pdf(self, file_path: str) -> str:
+        with fitz.open(file_path) as doc:
+            text = "".join(page.get_text() for page in doc)
+        return text
+
+    def _parse_docx(self, file_path: str) -> str:
+        doc = docx.Document(file_path)
+        return "\n".join([para.text for para in doc.paragraphs])
+
+    def _extract_skills(self, text: str) -> List[str]:
+        known_skills = ['python', 'java', 'c++', 'javascript', 'react', 'angular', 'vue', 'sql', 'nosql', 'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'html', 'css', 'typescript']
+        found_skills = []
+        text_lower = text.lower()
+        for skill in known_skills:
+            if re.search(r'\b' + re.escape(skill) + r'\b', text_lower):
+                found_skills.append(skill)
+        return list(set(found_skills))
+
+    def _extract_work_experience(self, text: str) -> List[Dict]:
+        # This is a simplified regex for demonstration. It looks for "Title at Company (Date - Date)".
+        experiences = []
+        pattern = re.compile(r'([\w\s]+)\s+at\s+([\w\s]+)\s+\(([\w\s]+)\s*-\s*([\w\s]+)\)', re.IGNORECASE)
+        for match in pattern.finditer(text):
+            experiences.append({'title': match.group(1).strip(),'company': match.group(2).strip(),'start_date': match.group(3).strip(),'end_date': match.group(4).strip(),'description': ''})
+        return experiences
 
 
 class EnhancedJobScraper:
     """Advanced job scraper with multiple sources and strategies."""
     
     def __init__(self, search_terms: List[str], location: Optional[str],
-                 experience: Optional[str], job_type: Optional[str], user_id: int):
+                 experience: Optional[str], job_type: Optional[str], user_id: int, task=None):
         self.search_terms = search_terms
         self.location = location
         self.experience = experience
         self.job_type = job_type
         self.user_id = user_id
+        self.task = task
         self.db = JobDatabase()
         self.custom_scores = self.db.get_custom_scores(self.user_id)
         self.session = None  # Avoid shared Session across threads
@@ -1003,16 +1278,17 @@ class EnhancedJobScraper:
 
     def scrape_linkedin_jobs(self, term: str) -> List[Job]:
         """
-        Enhanced LinkedIn scraper: robust, stealthy, paginated, and with anti-bot/anti-scraping security.
+        Updated LinkedIn scraper: robust, stealthy, paginated, and handles anti-bot measures.
         """
         logger.info(f"[LinkedIn] Scraping for term '{term}' in {self.location or 'All Locations'}...")
         jobs = []
         seen_links = set()
-        max_pages = 3  # LinkedIn throttles hard, so keep this low
+        max_pages = 3  # Limit pages to avoid throttling
         base_url = "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
-        proxies = None  # Optionally add proxy support here
-        for page in range(0, max_pages):
-            logger.info(f"[LinkedIn] --- Starting scrape for page {page+1} of {max_pages} for term '{term}' ---")
+        proxies = None  # Add proxy support if needed
+
+        for page in range(max_pages):
+            logger.info(f"[LinkedIn] --- Starting scrape for page {page + 1} of {max_pages} for term '{term}' ---")
             params = {
                 'keywords': term,
                 'location': self.location,
@@ -1021,47 +1297,59 @@ class EnhancedJobScraper:
             }
             headers = {'User-Agent': random.choice(USER_AGENTS)}
             try:
-                logger.info(f"[LinkedIn] Sending request to LinkedIn for job list (page {page+1})...")
-                time.sleep(random.uniform(2, 5))
+                logger.info(f"[LinkedIn] Sending request to LinkedIn for job list (page {page + 1})...")
+                time.sleep(random.uniform(2, 5))  # Random delay to avoid detection
                 response = requests.get(base_url, params=params, headers=headers, timeout=15, proxies=proxies)
+
                 if response.status_code != 200:
-                    logger.warning(f"[LinkedIn] LinkedIn returned status {response.status_code} on page {page+1}. Stopping further requests.")
+                    logger.warning(f"[LinkedIn] LinkedIn returned status {response.status_code} on page {page + 1}. Stopping further requests.")
                     break
+
                 if b'captcha' in response.content.lower() or b'login' in response.content.lower():
-                    logger.warning(f"[LinkedIn] Bot detection or login wall hit on page {page+1}. Stopping scrape for this term.")
+                    logger.warning(f"[LinkedIn] Bot detection or login wall hit on page {page + 1}. Stopping scrape for this term.")
                     break
+
                 try:
                     soup = BeautifulSoup(response.content, 'lxml')
                 except Exception:
                     soup = BeautifulSoup(response.content, 'html.parser')
-                job_cards = soup.find_all('div', class_='job-card-job-posting-card-wrapper')
+
+                # More robust selector for job cards
+                job_cards = soup.select('div.job-card-container, div.base-card, li.job-result-card')
                 if not job_cards:
-                    job_cards = soup.find_all('li', class_='job-card-job-posting-card-wrapper')
-                if not job_cards:
-                    logger.info(f"[LinkedIn] No job cards found on page {page+1}. Stopping for this term.")
+                    logger.info(f"[LinkedIn] No job cards found on page {page + 1}. Stopping for this term.")
                     break
-                logger.info(f"[LinkedIn] Found {len(job_cards)} job cards on page {page+1}.")
+
+                logger.info(f"[LinkedIn] Found {len(job_cards)} job cards on page {page + 1}.")
                 job_details = []
+
                 for card in job_cards:
                     try:
-                        title_elem = card.find('div', class_='artdeco-entity-lockup__title')
-                        if title_elem and title_elem.find('strong'):
-                            title = title_elem.find('strong').text.strip()
-                        else:
-                            title = 'N/A'
-                        company_elem = card.find('div', class_='artdeco-entity-lockup__subtitle')
+                        # More robust selectors with fallbacks
+                        title_elem = card.select_one('h3.base-search-card__title, h3.job-card-list__title')
+                        title = title_elem.text.strip() if title_elem else 'N/A'
+
+                        company_elem = card.select_one('h4.base-search-card__subtitle, h4.job-card-container__company-name')
                         company = company_elem.text.strip() if company_elem else 'N/A'
-                        location_elem = card.find('div', class_='artdeco-entity-lockup__caption')
+
+                        location_elem = card.select_one('span.job-search-card__location, span.job-card-container__metadata-item')
                         location = location_elem.text.strip() if location_elem else 'N/A'
-                        link_elem = card.find('a', class_='job-card-job-posting-card-wrapper__card-link')
+
+                        link_elem = card.select_one('a.base-card__full-link, a.job-card-container__link')
                         link = link_elem.get('href') if link_elem and link_elem.get('href') else 'N/A'
+                        # Add a fallback for the link
+                        if link == 'N/A':
+                            link_elem = card.find('a', href=True)
+                            if link_elem:
+                                link = link_elem.get('href')
+
                         if link in seen_links or link == 'N/A':
                             continue
                         seen_links.add(link)
-                        date_elem = card.find('li', class_='job-card-job-posting-card-wrapper__footer-item')
-                        posted_date = date_elem.text.strip() if date_elem and date_elem.find('time') else 'N/A'
-                        if date_elem and date_elem.find('time'):
-                            posted_date = date_elem.find('time').text.strip()
+
+                        posted_date_elem = card.find('time')
+                        posted_date = posted_date_elem.text.strip() if posted_date_elem else 'N/A'
+
                         job_details.append({
                             'title': title,
                             'company': company,
@@ -1072,13 +1360,16 @@ class EnhancedJobScraper:
                     except Exception as e:
                         logger.warning(f"[LinkedIn] Error extracting job card: {e}", exc_info=True)
                         continue
-                logger.info(f"[LinkedIn] Now fetching full job descriptions for {len(job_details)} jobs on page {page+1}...")
+
+                logger.info(f"[LinkedIn] Now fetching full job descriptions for {len(job_details)} jobs on page {page + 1}...")
+
                 def fetch_description(job):
                     try:
                         logger.info(f"[LinkedIn] Fetching job detail page: {job['link']}")
                         detail_headers = {'User-Agent': random.choice(USER_AGENTS)}
-                        time.sleep(random.uniform(1, 2))
+                        time.sleep(random.uniform(2.5, 5.5)) # Increased delay to avoid 429 errors
                         resp = requests.get(job['link'], headers=detail_headers, timeout=15)
+
                         if resp.status_code == 200:
                             detail_soup = BeautifulSoup(resp.content, 'lxml')
                             desc_elem = detail_soup.find('div', class_=lambda x: x and 'description' in x)
@@ -1090,293 +1381,346 @@ class EnhancedJobScraper:
                     except Exception as e:
                         logger.warning(f"[LinkedIn] Error fetching job detail page: {e}")
                         description = 'N/A'
+
                     job['description'] = description
                     job['source'] = 'LinkedIn'
                     return job
+
                 with concurrent.futures.ThreadPoolExecutor(max_workers=LINKEDIN_DETAIL_MAX_WORKERS) as executor:
                     enriched_jobs = list(executor.map(fetch_description, job_details))
-                logger.info(f"[LinkedIn] Finished fetching all job descriptions for page {page+1}.")
+
+                logger.info(f"[LinkedIn] Finished fetching all job descriptions for page {page + 1}.")
                 for job in enriched_jobs:
                     jobs.append(self._create_job_object_from_raw_data(job))
+
                 if len(job_cards) < 10:
-                    logger.info(f"[LinkedIn] Less than 10 jobs found on page {page+1}, assuming last page.")
+                    logger.info(f"[LinkedIn] Less than 10 jobs found on page {page + 1}, assuming last page.")
                     break
             except requests.exceptions.RequestException as e:
-                logger.error(f"[LinkedIn] Network error on page {page+1} for '{term}': {e}", exc_info=True)
+                logger.error(f"[LinkedIn] Network error on page {page + 1} for '{term}': {e}", exc_info=True)
                 continue
             except Exception as e:
-                logger.error(f"[LinkedIn] Unexpected error on page {page+1} for '{term}': {e}", exc_info=True)
+                logger.error(f"[LinkedIn] Unexpected error on page {page + 1} for '{term}': {e}", exc_info=True)
                 continue
+
         logger.info(f"[LinkedIn] ✅ Finished scraping. Total jobs scraped for '{term}': {len(jobs)}.")
         return jobs
     
-# --- Rewritten scrape_internshala_jobs to use requests/BeautifulSoup ---
     def scrape_internshala_jobs(self, term: str) -> List[Job]:
         """
-        Enhanced Internshala scraper: robust, paginated, stealthy, and extracts more job details.
+        Enhanced Internshala scraper with improved resilience, better error handling,
+        and support for the latest website structure (2025).
         """
-        logger.info(f"[Internshala] Scraping for term '{term}' in {self.location or 'All Locations'}...")
+        logger.info(f"[Internshala] Starting enhanced scrape for term '{term}' in {self.location or 'All Locations'}...")
         jobs = []
         seen_links = set()
-        max_pages = 5  # Scrape up to 5 pages for depth
-        base_url = "https://internshala.com/jobs/keywords-{}".format(term.replace(' ', '-'))
+        max_pages = 5  # Increased to get more results
+        
+        # Enhanced URL generation with better slug handling
+        term_slug = self._create_url_slug(term)
+        base_url = "https://internshala.com/jobs/"
+        
+        # Determine URL format based on location
+        url_params = self._build_url_params(term_slug)
+        
         if self.location:
-            base_url += f"-{self.location.replace(' ', '-')}"
-        base_url += "/"
-
-        for page in range(1, max_pages + 1):
-            url = base_url + (f"page-{page}/" if page > 1 else "")
-            headers = {'User-Agent': random.choice(USER_AGENTS)}
-            proxies = None  # Optionally add proxy support here
-            try:
-                time.sleep(random.uniform(1.5, 3.5))
-                response = requests.get(url, headers=headers, timeout=15, proxies=proxies)
-                if response.status_code != 200:
-                    logger.warning(f"[Internshala] Non-200 status {response.status_code} on page {page} for '{term}'.")
-                    break
-                soup = BeautifulSoup(response.content, 'lxml')
-                job_cards = soup.find_all('div', class_='individual_internship')
-                if not job_cards:
-                    logger.info(f"[Internshala] No job cards found on page {page} for '{term}'. Stopping.")
-                    break
-                logger.info(f"[Internshala] Page {page}: Found {len(job_cards)} job cards.")
-                for card in job_cards:
-                    # Skip generic/promo/placement guarantee cards
-                    if 'pgc-card' in card.get('class', []) or card.find('div', class_='main-content generic'):
+            is_remote = self.location.lower() in ['remote', 'work from home', 'wfh', 'online']
+            
+            if is_remote:
+                base_url += f"work-from-home/{term_slug}/"
+                logger.info(f"[Internshala] Using remote job URL: {base_url}")
+            else:
+                # Handle location-specific searches
+                primary_location = self.location.split(',')[0].strip()
+                location_slug = self._create_url_slug(primary_location)
+                base_url += f"{term_slug}-in-{location_slug}/"
+                logger.info(f"[Internshala] Using location-based URL: {base_url}")
+        else:
+            base_url += f"{term_slug}/"
+            logger.info(f"[Internshala] Using general job URL: {base_url}")
+        
+        job_details_from_list = []
+        
+        # Enhanced session with better configuration
+        with requests.Session() as session:
+            session.headers.update({
+                'User-Agent': random.choice(USER_AGENTS),
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Cache-Control': 'no-cache',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'same-origin'
+            })
+            
+            # Set initial referer
+            referer = 'https://internshala.com/'
+            
+            for page in range(1, max_pages + 1):
+                url = f"{base_url}?page={page}" if page > 1 else base_url
+                
+                try:
+                    logger.info(f"[Internshala] Scraping page {page}: {url}")
+                    session.headers['Referer'] = referer
+                    
+                    # Randomized delay to avoid detection
+                    time.sleep(random.uniform(2.5, 5.0))
+                    
+                    response = session.get(url, timeout=20)
+                    referer = url
+                    
+                    if response.status_code == 404:
+                        logger.warning(f"[Internshala] Page not found (404): {url}")
+                        break
+                    elif response.status_code == 403:
+                        logger.warning(f"[Internshala] Access forbidden (403). Possible rate limiting.")
+                        time.sleep(10)  # Wait longer if blocked
                         continue
-                    try:
-                        # Title
-                        title_elem = card.find('div', class_='heading_4_5 profile')
-                        if not title_elem:
-                            title_elem = card.find('h1', class_='heading_2_4 heading_title')
-                        title = title_elem.text.strip() if title_elem else 'N/A'
-
-                        # Company
-                        company_elem = card.find('div', class_='heading_6 company_name')
-                        company = company_elem.text.strip() if company_elem else 'N/A'
-                        if company_elem and company_elem.find('a'):
-                            company = company_elem.find('a').text.strip()
-                        if company == 'N/A':
-                            logger.warning(f"[Internshala] Could not extract company. Card HTML: {card.prettify()}")
-
-                        # Location extraction: try multiple selectors; fallback to aggregating tags
-                        location = 'N/A'
-                        loc_selectors = [
-                            "a.location_link",
-                            "a[href*='location']",
-                            "span.location",
-                            "div.location",
-                            "a[class*='location']",
-                            "span[class*='location']",
-                            "div[class*='location']",
-                        ]
-                        for sel in loc_selectors:
-                            el = card.select_one(sel)
-                            if el and el.get_text(strip=True):
-                                location = el.get_text(strip=True)
-                                break
-                        if location == 'N/A':
-                            # sometimes multiple location tags exist
-                            loc_tags = card.select("div[class*='locations'] a, div[class*='location'] a, a[class*='location']")
-                            loc_texts = [t.get_text(strip=True) for t in loc_tags if t.get_text(strip=True)]
-                            if loc_texts:
-                                location = ", ".join(sorted(set(loc_texts)))
-
-                        # Link extraction (robust): prefer job detail anchors; fallback to title link and data-href
-                        link = 'N/A'
-                        # Prefer anchors pointing to job detail pages
-                        link_anchor = card.select_one("a[href*='/job/']") or card.select_one("a[href*='/careers/job/']")
-                        # Fallback: anchor inside the title block
-                        if not link_anchor and title_elem:
-                            link_anchor = title_elem.find('a', href=True)
-                        if link_anchor and link_anchor.get('href'):
-                            href = link_anchor.get('href')
-                            link = href if href.startswith('http') else f"https://internshala.com{href}"
-                        # Fallback: data-href or href on the card container
-                        if link == 'N/A':
-                            data_href = card.get('data-href') or card.get('href')
-                            if data_href:
-                                link = data_href if data_href.startswith('http') else f"https://internshala.com{data_href}"
-                        # Last-chance fallback: any anchor that looks like a job link
-                        if (link in seen_links or link == 'N/A'):
-                            any_anchor = card.find('a', href=True)
-                            if any_anchor:
-                                href = any_anchor.get('href')
-                                if href and ('/job/' in href or '/careers/job/' in href):
-                                    link = href if href.startswith('http') else f"https://internshala.com{href}"
-                        if link in seen_links or link == 'N/A':
-                            continue
-                        seen_links.add(link)
-
-                        # Fallback: derive location from URL slug if still unknown
-                        if location == 'N/A' and link and link != 'N/A':
-                            m = re.search(r'-(?:job|internship)-in-([a-z\-]+)-at-', link)
-                            if not m:
-                                m = re.search(r'-in-([a-z\-]+)-at-', link)
-                            if m:
-                                loc_slug = m.group(1)
-                                location = loc_slug.replace('-', ' ').title()
-
-                        # Posted date
-                        posted_date_elem = card.find('div', class_='status status-small status-success')
-                        posted_date = posted_date_elem.text.strip() if posted_date_elem else 'N/A'
-
-                        # Salary
-                        salary_elem = card.find('div', class_='item_body salary')
-                        salary = salary_elem.text.strip() if salary_elem else 'N/A'
-                        if salary_elem and salary_elem.find('span', class_='desktop'):
-                            salary = salary_elem.find('span', class_='desktop').text.strip()
-
-                        # Experience
-                        experience_elem = card.find('div', class_='item_body desktop-text')
-                        experience = experience_elem.text.strip() if experience_elem else 'N/A'
-
-                        # Skills
-                        skills = []
-                        skills_container = card.find('div', class_='round_tabs_container')
-                        if skills_container:
-                            skills = [s.text.strip() for s in skills_container.find_all('span', class_='round_tabs')]
-
-                        # Description
-                        description_elem = card.find('div', class_='text-container')
-                        description = description_elem.text.strip() if description_elem else card.text.strip()
-
-                        # Compose raw_data
-                        raw_data = {
-                            'title': title,
-                            'company': company,
-                            'location': location,
-                            'link': link,
-                            'description': description,
-                            'posted_date': posted_date,
-                            'salary': salary,
-                            'job_type': '',
-                            'skills': skills,
-                            'experience': experience,
-                            'source': 'Internshala'
-                        }
-                        jobs.append(self._create_job_object_from_raw_data(raw_data))
-                    except Exception as e:
-                        logger.warning(f"[Internshala] Error extracting job card: {e}", exc_info=True)
-                        continue
-                # If less than 10 jobs, likely last page
-                if len(job_cards) < 10:
+                    elif response.status_code != 200:
+                        logger.warning(f"[Internshala] HTTP {response.status_code} on page {page}")
+                        break
+                    
+                    soup = BeautifulSoup(response.content, 'lxml')
+                    
+                    # Enhanced page validation
+                    if self._is_no_results_page(soup):
+                        logger.info(f"[Internshala] No results found on page {page}")
+                        break
+                    
+                    # Multiple selectors for job cards (fallback approach)
+                    job_cards = self._extract_job_cards(soup)
+                    
+                    if not job_cards:
+                        logger.info(f"[Internshala] No job cards found on page {page}")
+                        break
+                    
+                    logger.info(f"[Internshala] Found {len(job_cards)} job cards on page {page}")
+                    
+                    # Process each job card
+                    for card in job_cards:
+                        job_data = self._parse_job_card(card, seen_links)
+                        if job_data:
+                            job_details_from_list.append(job_data)
+                    
+                except requests.exceptions.Timeout:
+                    logger.error(f"[Internshala] Timeout on page {page}")
                     break
-            except requests.exceptions.RequestException as e:
-                logger.error(f"[Internshala] Network error on page {page} for '{term}': {e}", exc_info=True)
-                continue
-            except Exception as e:
-                logger.error(f"[Internshala] Unexpected error on page {page} for '{term}': {e}", exc_info=True)
-                continue
-        logger.info(f"[Internshala] ✅ Scraped {len(jobs)} jobs for '{term}'.")
+                except requests.exceptions.RequestException as e:
+                    logger.error(f"[Internshala] Network error on page {page}: {e}")
+                    break
+                except Exception as e:
+                    logger.error(f"[Internshala] Unexpected error while scraping list page {page}: {e}", exc_info=True)
+                    break
+    
+        if not job_details_from_list:
+            logger.info(f"[Internshala] No jobs found for term '{term}'")
+            return []
+    
+        logger.info(f"[Internshala] Found {len(job_details_from_list)} unique jobs. Fetching details...")
+    
+        # Fetch job details with enhanced concurrency
+        with concurrent.futures.ThreadPoolExecutor(max_workers=SCRAPE_MAX_WORKERS) as executor:
+            future_to_job = {
+                executor.submit(self._fetch_job_details, job_data): job_data 
+                for job_data in job_details_from_list
+            }
+            
+            for future in concurrent.futures.as_completed(future_to_job):
+                try:
+                    enriched_job = future.result()
+                    if enriched_job:
+                        jobs.append(self._create_job_object_from_raw_data(enriched_job))
+                except Exception as e:
+                    logger.error(f"[Internshala] Error processing job detail: {e}")
+    
+        logger.info(f"[Internshala] ✅ Enhanced scrape completed. Total jobs: {len(jobs)}")
         return jobs
 
-    def scrape_talent_jobs(self, term: str) -> List[Job]:
-        """
-        Scraper for Talent.com job listings. Attempts to be resilient to minor DOM changes.
-        """
-        logger.info(f"[Talent.com] Scraping for term '{term}' in {self.location or 'All Locations'}...")
-        jobs = []
-        seen_links = set()
-        max_pages = 5
-        base_url = "https://www.talent.com/en/jobs"
-        for page in range(1, max_pages + 1):
-            headers = {'User-Agent': random.choice(USER_AGENTS)}
-            params = {'k': term}
-            if self.location:
-                params['l'] = self.location
-            params['p'] = page
-            try:
-                time.sleep(random.uniform(1.5, 3.0))
-                response = requests.get(base_url, headers=headers, params=params, timeout=15)
-                if response.status_code != 200:
-                    logger.warning(f"[Talent.com] Non-200 status {response.status_code} on page {page} for '{term}'.")
+    def _create_url_slug(self, text: str) -> str:
+        """Create URL-friendly slug from text."""
+        slug = text.lower().strip()
+        slug = re.sub(r'[^\w\s-]', '', slug)
+        slug = re.sub(r'[\s_-]+', '-', slug)
+        return slug.strip('-')
+
+    def _build_url_params(self, term_slug: str) -> dict:
+        """Build URL parameters for search."""
+        return {
+            'category': '',
+            'type': 'job',
+            'location': self.location or '',
+            'search': term_slug
+        }
+
+    def _is_no_results_page(self, soup: BeautifulSoup) -> bool:
+        """Check if page shows no results."""
+        no_result_indicators = [
+            '.no_internship_found',
+            '.no-results',
+            '.empty-state',
+            '[data-testid="no-results"]'
+        ]
+        
+        for selector in no_result_indicators:
+            if soup.select_one(selector):
+                return True
+        
+        # Check for text indicators
+        page_text = soup.get_text().lower()
+        if any(phrase in page_text for phrase in ['no jobs found', 'no results', 'no internships found']):
+            return True
+        
+        return False
+
+    def _extract_job_cards(self, soup: BeautifulSoup) -> list:
+        """Extract job cards using multiple selectors."""
+        selectors = [
+            '.internship_meta',
+            '.job_container',
+            '.individual_internship',
+            '[data-testid="job-card"]',
+            '.search_results .container-fluid > div'
+        ]
+        
+        for selector in selectors:
+            cards = soup.select(selector)
+            if cards:
+                logger.debug(f"[Internshala] Found job cards using selector: {selector}")
+                return cards
+        
+        return []
+
+    def _parse_job_card(self, card: BeautifulSoup, seen_links: set) -> Optional[Dict]:
+        """Parse individual job card."""
+        try:
+            # Enhanced link extraction
+            link_selectors = [
+                '.profile a',
+                '.view_detail_button',
+                '.job_title a',
+                'a[href*="/job/"]',
+                'a[href*="/jobs/detail/"]'
+            ]
+            
+            link_elem = None
+            for selector in link_selectors:
+                link_elem = card.select_one(selector)
+                if link_elem and link_elem.get('href'):
                     break
-                soup = BeautifulSoup(response.content, 'lxml')
-                # Common Talent.com structure uses 'card card__job' containers
-                job_cards = soup.find_all(lambda tag: tag.name in ['div', 'article', 'li'] and tag.get('class') and any('card__job' in c or 'job' in c for c in tag.get('class')))
-                if not job_cards:
-                    logger.info(f"[Talent.com] No job cards found on page {page} for '{term}'. Stopping.")
-                    break
+            
+            if not link_elem or not link_elem.get('href'):
+                return None
+            
+            href = link_elem['href']
+            link = urljoin('https://internshala.com', href)
+            
+            if link in seen_links:
+                return None
+            seen_links.add(link)
+            
+            # Enhanced title extraction
+            title_selectors = ['.profile a', '.job_title', '.heading_4_5 a', 'h3 a', 'h4 a']
+            title = self._extract_text_by_selectors(card, title_selectors) or 'N/A'
+            
+            # Enhanced company extraction
+            company_selectors = ['.company_name', '.company a', '.subtitle', '[data-testid="company-name"]']
+            company = self._extract_text_by_selectors(card, company_selectors) or 'N/A'
+            
+            # Enhanced location extraction
+            location_selectors = ['#location_names', '.location', '.job_location', '[data-testid="location"]']
+            location = self._extract_text_by_selectors(card, location_selectors) or 'N/A'
+            
+            # Extract salary if available on card
+            salary_selectors = ['.stipend', '.salary', '.package', '[data-testid="salary"]']
+            salary = self._extract_text_by_selectors(card, salary_selectors) or 'N/A'
+            
+            return {
+                'title': title,
+                'company': company,
+                'location': location,
+                'salary': salary,
+                'link': link,
+            }
+            
+        except Exception as e:
+            logger.warning(f"[Internshala] Error parsing job card: {e}")
+            return None
 
-                for card in job_cards:
-                    try:
-                        # Title and Link
-                        title, link = 'N/A', 'N/A'
-                        a = card.find('a', href=True, class_=lambda x: x and ('card__job-link' in x or 'job' in x))
-                        if not a:
-                            # Fallback: any anchor with job-ish href
-                            a = next((x for x in card.find_all('a', href=True) if '/job' in x['href'] or '/jobs' in x['href']), None)
-                        if a:
-                            title = a.get_text(strip=True) or 'N/A'
-                            href = a['href']
-                            link = href if href.startswith('http') else f"https://www.talent.com{href}"
+    def _extract_text_by_selectors(self, element: BeautifulSoup, selectors: List[str]) -> Optional[str]:
+        """Extract text using multiple selector fallbacks."""
+        for selector in selectors:
+            elem = element.select_one(selector)
+            if elem:
+                text = elem.get_text(strip=True)
+                if text and text != 'N/A':
+                    return text
+        return None
 
-                        if link in seen_links or link == 'N/A':
-                            continue
-                        seen_links.add(link)
-
-                        # Company
-                        company = 'N/A'
-                        company_el = card.find(lambda t: t.name in ['div','span'] and t.get('class') and any('empname' in c or 'company' in c for c in t.get('class')))
-                        if company_el:
-                            company = company_el.get_text(strip=True)
-
-                        # Location
-                        location = 'N/A'
-                        loc_el = card.find(lambda t: t.name in ['div','span'] and t.get('class') and any('geo' in c or 'location' in c for c in t.get('class')))
-                        if loc_el:
-                            location = loc_el.get_text(strip=True)
-
-                        # Posted date
-                        posted_date = 'N/A'
-                        time_el = card.find('time')
-                        if time_el and time_el.get_text(strip=True):
-                            posted_date = time_el.get_text(strip=True)
-
-                        # Salary
-                        salary = 'N/A'
-                        salary_el = card.find(lambda t: t.name in ['div','span'] and t.get('class') and any('salary' in c for c in t.get('class')))
-                        if salary_el:
-                            salary = salary_el.get_text(strip=True)
-
-                        # Snippet/Description
-                        description = ''
-                        desc_el = card.find(lambda t: t.name in ['div','p'] and t.get('class') and any('snippet' in c or 'description' in c for c in t.get('class')))
-                        if desc_el:
-                            description = desc_el.get_text(separator=' ', strip=True)
-
-                        raw_data = {
-                            'title': title,
-                            'company': company,
-                            'location': location,
-                            'link': link,
-                            'description': description,
-                            'posted_date': posted_date,
-                            'salary': salary,
-                            'job_type': '',
-                            'skills': [],
-                            'experience': '',
-                            'source': 'Talent.com'
-                        }
-                        jobs.append(self._create_job_object_from_raw_data(raw_data))
-                    except Exception as e:
-                        logger.warning(f"[Talent.com] Error extracting a job card on page {page}: {e}", exc_info=True)
-                        continue
-
-                # Heuristic: if too few cards, likely last page
-                if len(job_cards) < 10:
-                    break
-
-            except requests.exceptions.RequestException as e:
-                logger.error(f"[Talent.com] Network error on page {page} for '{term}': {e}", exc_info=True)
-                continue
-            except Exception as e:
-                logger.error(f"[Talent.com] Unexpected error on page {page} for '{term}': {e}", exc_info=True)
-                continue
-
-        logger.info(f"[Talent.com] ✅ Scraped {len(jobs)} jobs for '{term}'.")
-        return jobs
+    def _fetch_job_details(self, job_data: Dict) -> Optional[Dict]:
+        """Fetch detailed job information."""
+        link = job_data['link']
+        
+        try:
+            logger.debug(f"[Internshala] Fetching details: {link}")
+            
+            # Randomized delay
+            time.sleep(random.uniform(1.5, 3.5))
+            
+            headers = {
+                'User-Agent': random.choice(USER_AGENTS),
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://internshala.com/jobs/'
+            }
+            
+            response = requests.get(link, headers=headers, timeout=20)
+            
+            if response.status_code != 200:
+                logger.warning(f"[Internshala] Failed to fetch {link} (status: {response.status_code})")
+                return None
+            
+            soup = BeautifulSoup(response.content, 'lxml')
+            
+            # Enhanced description extraction
+            description = self._extract_description(soup)
+            
+            # Enhanced salary extraction (if not already found)
+            if job_data.get('salary', 'N/A') == 'N/A':
+                salary_selectors = ['.stipend', '.salary_container', '.ctc', '.package_container']
+                job_data['salary'] = self._extract_text_by_selectors(soup, salary_selectors) or 'N/A'
+            
+            # Extract posted date
+            posted_date = self._extract_posted_date(soup)
+            
+            # Extract skills/requirements
+            skills = self._extract_skills(soup)
+            
+            # Extract experience
+            experience = self._extract_experience(soup)
+            
+            # Extract job type
+            job_type = self._extract_job_type(soup)
+            
+            # Extract application deadline
+            deadline = self._extract_deadline(soup)
+            
+            job_data.update({
+                'description': description,
+                'posted_date': posted_date,
+                'skills': skills,
+                'experience': experience,
+                'job_type': job_type,
+                'deadline': deadline,
+                'source': 'Internshala'
+            })
+            
+            return job_data
+            
+        except Exception as e:
+            logger.error(f"[Internshala] Error fetching details for {link}: {e}")
+            return None
 
     def _create_job_object_from_raw_data(self, raw_data: Dict) -> Job:
         """Helper to create a Job object and calculate its relevance score."""
@@ -1388,10 +1732,9 @@ class EnhancedJobScraper:
         desc_txt = raw_data.get('description', '') or ''
         exp_txt = raw_data.get('experience', '') or ''
         combined_text = ' '.join([t for t in [title_txt, desc_txt, exp_txt] if t]).strip()
-        if combined_text:
-            salary = self._extract_salary(combined_text) or salary
-            experience = self._extract_experience(combined_text) or experience
-
+        if combined_text and (not salary or salary == 'N/A'):
+            salary = self._extract_salary(combined_text)
+        
         job_obj = Job(
             title=raw_data.get('title', ''),
             company=raw_data.get('company', ''),
@@ -1400,11 +1743,12 @@ class EnhancedJobScraper:
             link=raw_data.get('link', ''),
             description=raw_data.get('description', ''),
             keywords=self.search_terms,
-            skills=self._extract_keywords_from_description(combined_text or desc_txt, self.common_skills),
+            skills=raw_data.get('skills') or self._extract_keywords_from_description(combined_text or desc_txt, self.common_skills),
             experience=experience,
             job_type=raw_data.get('job_type', 'Full-time'),
             posted_date=raw_data.get('posted_date', ''),
-            source=raw_data.get('source', '')
+            source=raw_data.get('source', ''),
+            deadline=raw_data.get('deadline', 'N/A')
         )
         # Derive experience years and keyword families from a broader context for robustness
         context_for_years = combined_text or job_obj.description
@@ -1434,34 +1778,130 @@ class EnhancedJobScraper:
                 return m.group(0).strip()
         return "N/A"
 
-    def _extract_experience(self, text: str) -> str:
-        """Extracts experience requirements from text using regex patterns."""
-        if not text:
-            return "N/A"
-        patterns = [
-            # Ranges like 5 - 8 years / yrs
-            r'(\d+)\s*-\s*(\d+)\s*(?:years?|yrs?)',
-            # 7+ years / yrs
-            r'(\d+)\+?\s*(?:years?|yrs?)',
-            # Single like 7 year / 7 yrs
-            r'(\d+)\s*(?:years?|yrs?)',
-            # Seniority keywords
-            r'(fresher|entry\s*level|junior|senior|lead|manager)'
+    def _extract_description(self, soup: BeautifulSoup) -> str:
+        """Extract job description with multiple fallbacks."""
+        description_selectors = [
+            '.internship_details .text-container',
+            '.job_description',
+            '.description_container',
+            '.internship_details',
+            '[data-testid="job-description"]'
         ]
-        for pattern in patterns:
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                return match.group(0)
-        return "N/A"
+        
+        for selector in description_selectors:
+            elem = soup.select_one(selector)
+            if elem:
+                description = elem.get_text(separator='\n', strip=True)
+                if description and len(description) > 10:
+                    return description
+        
+        return 'N/A'
+
+    def _extract_posted_date(self, soup: BeautifulSoup) -> str:
+        """Extract posted date."""
+        date_selectors = [
+            '.posted_on_container .status-container',
+            '.posted_date',
+            '.job_posted_date',
+            '[data-testid="posted-date"]'
+        ]
+        
+        posted_date = self._extract_text_by_selectors(soup, date_selectors)
+        
+        if posted_date:
+            # Clean up posted date text
+            posted_date = re.sub(r'Posted on\s*', '', posted_date, flags=re.IGNORECASE)
+            posted_date = posted_date.strip()
+        
+        return posted_date or 'N/A'
+
+    def _extract_skills(self, soup: BeautifulSoup) -> List[str]:
+        """Extract required skills."""
+        skills_selectors = [
+            '.round_tabs_container .round_tabs',
+            '.skills_required .skill',
+            '.requirements .skill',
+            '[data-testid="skill-tag"]'
+        ]
+        
+        skills = []
+        for selector in skills_selectors:
+            skill_elements = soup.select(selector)
+            if skill_elements:
+                skills = [elem.get_text(strip=True) for elem in skill_elements]
+                break
+        
+        return [skill for skill in skills if skill and skill.strip()]
+
+    def _extract_experience(self, soup: BeautifulSoup) -> str:
+        """Extract experience requirements."""
+        # Look for experience section
+        experience_headings = soup.find_all(['h3', 'h4', 'h5'], 
+                                          string=re.compile(r'Experience|Experience Required', re.I))
+        
+        for heading in experience_headings:
+            next_elem = heading.find_next_sibling(['div', 'p', 'span'])
+            if next_elem:
+                experience_text = next_elem.get_text(strip=True)
+                if experience_text:
+                    return experience_text
+        
+        # Fallback selectors
+        exp_selectors = [
+            '.experience_required',
+            '.experience_container',
+            '[data-testid="experience"]'
+        ]
+        
+        return self._extract_text_by_selectors(soup, exp_selectors) or 'N/A'
+
+    def _extract_job_type(self, soup: BeautifulSoup) -> str:
+        """Extract job type (Full-time, Part-time, etc.)."""
+        type_selectors = [
+            '.job_type',
+            '.employment_type',
+            '.type_container',
+            '[data-testid="job-type"]'
+        ]
+        
+        job_type = self._extract_text_by_selectors(soup, type_selectors)
+        
+        if not job_type:
+            # Infer from URL or content
+            url = soup.find('link', {'rel': 'canonical'})
+            if url and 'internship' in url.get('href', '').lower():
+                return 'Internship'
+            else:
+                return 'Full-time'  # Default assumption for jobs
+        
+        return job_type
+
+    def _extract_deadline(self, soup: BeautifulSoup) -> str:
+        """Extract application deadline."""
+        deadline_selectors = [
+            '.application_deadline',
+            '.last_date',
+            '.deadline_container',
+            '[data-testid="deadline"]'
+        ]
+        
+        return self._extract_text_by_selectors(soup, deadline_selectors) or 'N/A'
 
     def scrape_all_sources(self) -> List[Job]:
         """Scrapes jobs from all configured sources concurrently."""
         all_jobs = []
         scraper_methods = {
             'LinkedIn': self.scrape_linkedin_jobs,
-            'Internshala': self.scrape_internshala_jobs,
-            'Talent.com': self.scrape_talent_jobs
+            'Internshala': self.scrape_internshala_jobs
         }
+
+        if self.task:
+            self.task.update_state(state='PROGRESS', meta={'status': 'Initializing scrapers for multiple sources...', 'progress': 10})
+
+        total_scrapers = len(self.search_terms) * len(scraper_methods)
+        scrapers_done = 0
+        progress_start = 10
+        progress_range = 70 # Scraping happens between 10% and 80%
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=SCRAPE_MAX_WORKERS) as executor:
             future_to_source = {}
@@ -1469,18 +1909,27 @@ class EnhancedJobScraper:
                 for term in self.search_terms:
                     future = executor.submit(method, term)
                     future_to_source[future] = f"{name}-{term}"
-
+            
             for future in concurrent.futures.as_completed(future_to_source):
                 source_info = future_to_source[future]
                 try:
                     jobs_from_source = future.result()
                     all_jobs.extend(jobs_from_source)
                     logger.info(f"Finished scraping {source_info}. Found {len(jobs_from_source)} jobs.")
+                    
+                    scrapers_done += 1
+                    progress = progress_start + int((scrapers_done / total_scrapers) * progress_range)
+                    if self.task:
+                        self.task.update_state(state='PROGRESS', meta={'status': f'Finished scraping {source_info}. Found {len(jobs_from_source)} jobs.', 'progress': progress})
+
                 except Exception as exc:
                     logger.error(f'{source_info} generated an exception: {exc}', exc_info=True)
                     
         logger.info(f"Total jobs scraped across all sources before deduplication: {len(all_jobs)}.")
         
+        if self.task:
+            self.task.update_state(state='PROGRESS', meta={'status': 'Deduplicating and scoring jobs...', 'progress': 85})
+
         unique_jobs = {}
         for job in all_jobs:
             norm = f"{normalize_for_hash(job.title)}|{normalize_for_hash(job.company)}|{normalize_for_hash(job.location)}"
@@ -1489,9 +1938,12 @@ class EnhancedJobScraper:
                 unique_jobs[key] = job
         
         filtered_jobs = list(unique_jobs.values())
-        filtered_jobs = [job for job in filtered_jobs if job.title and job.link]
+        filtered_jobs = [job for job in filtered_jobs if job.title and job.title != 'N/A' and job.link and job.link != 'N/A']
 
         # Location filtering removed: all jobs are included regardless of location.
+
+        if self.task:
+            self.task.update_state(state='PROGRESS', meta={'status': 'Filtering by relevance score...', 'progress': 88})
 
         high_relevance_jobs = [job for job in filtered_jobs if job.relevance_score >= RELEVANCE_MIN_THRESHOLD]
         high_relevance_jobs.sort(key=lambda x: x.relevance_score, reverse=True)
@@ -1503,6 +1955,385 @@ class EnhancedJobScraper:
             logger.info(f"Final jobs from {source}: {count}.")
             
         return high_relevance_jobs[:50]
+
+class ApplicationFiller:
+    """Automated job application filler for various ATS platforms"""
+    
+    def __init__(self, driver: webdriver.Remote, user_details: Dict):
+        self.driver = driver
+        self.user_details = user_details
+        self.wait = WebDriverWait(driver, 10)
+        # Extract parsed data and preferences for easier access
+        self.resume_data = self.user_details.get('parsed_resume', {})
+        self.preferences = {
+            'willing_to_relocate': self.user_details.get('willing_to_relocate', 'no'),
+            'authorized_to_work': self.user_details.get('authorized_to_work', 'no')
+        }
+        
+    def fill(self, url: str) -> bool:
+        """Fill application form based on URL pattern"""
+        try:
+            self.driver.get(url)
+            time.sleep(2)  # Allow page to load
+            
+            # This is a generic flag to indicate if we should try answering questions.
+            # Specific implementations for Lever, Greenhouse etc. will call this.
+            should_answer_questions = True
+            
+            if "greenhouse.io" in url:
+                return self.fill_greenhouse()
+            elif "jobs.lever.co" in url:
+                return self.fill_lever()
+            elif "workday.com" in url or "myworkdayjobs.com" in url:
+                return self.fill_workday()
+            elif "bamboohr.com" in url:
+                return self.fill_bamboohr()
+            elif "smartrecruiters.com" in url:
+                return self.fill_smartrecruiters()
+            elif "jobvite.com" in url:
+                return self.fill_jobvite()
+            else:
+                # For unknown sites, we still try the generic fill and question answering
+                filled_generic = self.fill_generic()
+                if filled_generic and should_answer_questions:
+                    self.answer_custom_questions()
+                logger.info(f"Attempting generic form fill for: {url}")
+                return self.fill_generic()
+                
+        except Exception as e:
+            logger.error(f"Error filling application at {url}: {str(e)}")
+            return False
+
+    def safe_send_keys(self, element, text: str) -> bool:
+        """Safely send keys to an element"""
+        try:
+            if element and text:
+                element.clear()
+                element.send_keys(text)
+                return True
+        except Exception as e:
+            logger.warning(f"Failed to send keys: {str(e)}")
+        return False
+
+    def find_element_by_multiple_selectors(self, selectors: List[str], timeout: int = 5):
+        """Try multiple selectors to find an element"""
+        for selector in selectors:
+            try:
+                if selector.startswith('//'):
+                    element = WebDriverWait(self.driver, timeout).until(
+                        EC.presence_of_element_located((By.XPATH, selector))
+                    )
+                elif selector.startswith('#'):
+                    element = WebDriverWait(self.driver, timeout).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, selector))
+                    )
+                else: # Assumes NAME or other simple locators if not XPath/CSS
+                    element = WebDriverWait(self.driver, timeout).until(
+                        EC.presence_of_element_located((By.NAME, selector))
+                    )
+                return element
+            except TimeoutException:
+                continue
+        return None
+
+    def fill_greenhouse(self) -> bool:
+        """Fill Greenhouse application forms"""
+        logger.info("Filling Greenhouse application...")
+        
+        try:
+            # Common Greenhouse field mappings
+            field_mappings = {
+                'first_name': ['first_name', 'firstName', '#first_name'],
+                'last_name': ['last_name', 'lastName', '#last_name'],
+                'email': ['email', 'email_address', '#email'],
+                'phone': ['phone', 'phone_number', '#phone'],
+                'resume': ['resume', 'resume_file', 'input[type="file"]'],
+                'cover_letter': ['cover_letter', 'coverLetter', 'cover_letter_text'],
+                'linkedin': ['linkedin', 'linkedin_url', '#linkedin']
+            }
+            
+            # Fill basic fields
+            for field_key, selectors in field_mappings.items():
+                if field_key in self.user_details:
+                    element = self.find_element_by_multiple_selectors(selectors)
+                    if element:
+                        if field_key == 'resume' and element.get_attribute('type') == 'file':
+                            element.send_keys(self.user_details[field_key])
+                        else:
+                            self.safe_send_keys(element, self.user_details[field_key])
+            
+            self.handle_dropdowns()
+            self.answer_custom_questions()
+            self.fill_custom_questions()
+            return True
+        except Exception as e:
+            logger.error(f"Error in Greenhouse form fill: {str(e)}")
+            return False
+
+    def fill_lever(self) -> bool:
+        """Fill Lever application forms"""
+        logger.info("Filling Lever application...")
+        try:
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[name="name"]']), self.user_details.get('full_name', ''))
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[name="email"]']), self.user_details.get('email', ''))
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[name="phone"]']), self.user_details.get('phone', ''))
+            resume_upload = self.find_element_by_multiple_selectors(['input[name="resume"]', 'input[type="file"]'])
+            if resume_upload and 'resume' in self.user_details:
+                resume_upload.send_keys(self.user_details['resume'])
+            self.answer_custom_questions()
+            return True
+        except Exception as e:
+            logger.error(f"Error in Lever form fill: {str(e)}")
+            return False
+
+    def fill_workday(self) -> bool:
+        """Fill Workday application forms"""
+        logger.info("Filling Workday application...")
+        try:
+            time.sleep(3)
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[data-automation-id="firstName"]']), self.user_details.get('first_name', ''))
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[data-automation-id="lastName"]']), self.user_details.get('last_name', ''))
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[data-automation-id="email"]']), self.user_details.get('email', ''))
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[data-automation-id="phone"]']), self.user_details.get('phone', ''))
+            self.answer_custom_questions()
+            return True
+        except Exception as e:
+            logger.error(f"Error in Workday form fill: {str(e)}")
+            return False
+
+    def fill_bamboohr(self) -> bool:
+        logger.info("Filling BambooHR application...")
+        try:
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[name*="firstName"]']), self.user_details.get('first_name', ''))
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[name*="lastName"]']), self.user_details.get('last_name', ''))
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[name*="email"]']), self.user_details.get('email', ''))
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[name*="phone"]']), self.user_details.get('phone', ''))
+            self.answer_custom_questions()
+            return True
+        except Exception as e:
+            logger.error(f"Error in BambooHR form fill: {str(e)}")
+            return False
+
+    def fill_smartrecruiters(self) -> bool:
+        logger.info("Filling SmartRecruiters application...")
+        try:
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[name="firstName"]']), self.user_details.get('first_name', ''))
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[name="lastName"]']), self.user_details.get('last_name', ''))
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[name="email"]']), self.user_details.get('email', ''))
+            self.answer_custom_questions()
+            return True
+        except Exception as e:
+            logger.error(f"Error in SmartRecruiters form fill: {str(e)}")
+            return False
+
+    def fill_jobvite(self) -> bool:
+        logger.info("Filling Jobvite application...")
+        try:
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[name="firstName"]']), self.user_details.get('first_name', ''))
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[name="lastName"]']), self.user_details.get('last_name', ''))
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[name="email"]']), self.user_details.get('email', ''))
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[name="phone"]']), self.user_details.get('phone', ''))
+            self.answer_custom_questions()
+            return True
+        except Exception as e:
+            logger.error(f"Error in Jobvite form fill: {str(e)}")
+            return False
+
+    def fill_generic(self) -> bool:
+        logger.info("Attempting generic form fill...")
+        try:
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[name*="first"]', 'input[placeholder*="first name"]']), self.user_details.get('first_name', ''))
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[name*="last"]', 'input[placeholder*="last name"]']), self.user_details.get('last_name', ''))
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[name*="full"]', 'input[placeholder*="full name"]']), self.user_details.get('full_name', ''))
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[type="email"]', 'input[name*="email"]']), self.user_details.get('email', ''))
+            self.safe_send_keys(self.find_element_by_multiple_selectors(['input[type="tel"]', 'input[name*="phone"]']), self.user_details.get('phone', ''))
+            return True
+        except Exception as e:
+            logger.error(f"Error in generic form fill: {str(e)}")
+            return False
+
+    def handle_dropdowns(self):
+        try:
+            if 'experience_level' in self.user_details:
+                exp_dropdown = self.find_element_by_multiple_selectors(['select[name*="experience"]', 'select[id*="experience"]'])
+                if exp_dropdown: Select(exp_dropdown).select_by_visible_text(self.user_details['experience_level'])
+            if 'country' in self.user_details:
+                country_dropdown = self.find_element_by_multiple_selectors(['select[name*="country"]', 'select[id*="country"]'])
+                if country_dropdown: Select(country_dropdown).select_by_visible_text(self.user_details['country'])
+        except Exception as e:
+            logger.warning(f"Error handling dropdowns: {str(e)}")
+
+    def fill_custom_questions(self):
+        try:
+            for textarea in self.driver.find_elements(By.TAG_NAME, "textarea"):
+                label = self.get_field_label(textarea)
+                if label and 'custom_answers' in self.user_details:
+                    answer = self.user_details.get('custom_answers', {}).get(label.lower(), self.user_details.get('default_answer', ''))
+                    self.safe_send_keys(textarea, answer)
+        except Exception as e:
+            logger.warning(f"Error filling custom questions: {str(e)}")
+
+    def get_field_label(self, element):
+        try:
+            field_id = element.get_attribute('id')
+            if field_id: return self.driver.find_element(By.CSS_SELECTOR, f'label[for="{field_id}"]').text.strip()
+            return element.find_element(By.XPATH, '..').text.strip()
+        except: return None
+
+    def answer_custom_questions(self):
+        """Finds and answers custom questions on a page."""
+        logger.info("[AssistApply] Searching for custom questions to answer...")
+        # Generic selectors for question containers. LinkedIn uses the 'jobs-easy-apply-form-section__grouping' class.
+        question_containers = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'form-question') or contains(@class, 'jobs-easy-apply-form-section__grouping') or contains(@class, 'fb-form-element')]")
+        
+        if not question_containers:
+            logger.info("[AssistApply] No custom question containers found.")
+            return
+
+        for container in question_containers:
+            try:
+                label_el = container.find_element(By.TAG_NAME, 'label')
+                question_text = label_el.text
+                if not question_text:
+                    continue
+
+                answer = self._generate_answer(question_text)
+                if answer is None:
+                    logger.info(f"[AssistApply] No answer generated for question: '{question_text}'")
+                    continue
+
+                # Find the input/select/textarea associated with the label
+                input_id = label_el.get_attribute('for')
+                if input_id:
+                    input_el = self.driver.find_element(By.ID, input_id)
+                else: # Fallback for inputs not linked by 'for'
+                    input_el = container.find_element(By.CSS_SELECTOR, 'input, select, textarea')
+
+                # Now fill the element based on its type
+                if input_el.tag_name == 'select':
+                    self._select_answer(input_el, answer)
+                elif input_el.get_attribute('type') in ['radio', 'checkbox']:
+                    self._check_answer(container, answer)
+                else: # Text input or textarea
+                    self.safe_send_keys(input_el, answer)
+                
+                logger.info(f"[AssistApply] Answered '{question_text}' with '{answer}'")
+                time.sleep(0.5) # Small delay after answering
+
+            except NoSuchElementException:
+                continue # Skip if a container doesn't have the expected structure
+            except Exception as e:
+                logger.warning(f"[AssistApply] Error processing a question container: {e}")
+
+    def _generate_answer(self, question_text: str) -> Optional[str]:
+        """Generates an answer based on question text and user data."""
+        q_lower = question_text.lower()
+
+        # Years of experience
+        match = re.search(r'(?:how many|how much) years of experience.* with ([\w\s\+\#\.\-]+)\??', q_lower)
+        if match:
+            skill = match.group(1).strip().replace('.', r'\.') # Sanitize for regex
+            return self._calculate_years_for_skill(skill)
+
+        # Relocation
+        if 'relocate' in q_lower or 'commute' in q_lower or 'relocation' in q_lower:
+            return 'Yes' if self.preferences['willing_to_relocate'] == 'yes' else 'No'
+
+        # Work Authorization & Sponsorship
+        # Check for sponsorship first, as it's a more specific keyword.
+        if 'sponsorship' in q_lower or 'visa' in q_lower:
+            # If authorized, you don't need sponsorship.
+            return 'No' if self.preferences['authorized_to_work'] == 'yes' else 'Yes'
+        
+        if 'legally authorized' in q_lower or 'work authorization' in q_lower or 'work permit' in q_lower or 'right to work' in q_lower:
+            # This question is "Are you authorized?".
+            if self.preferences['authorized_to_work'] == 'yes':
+                return 'Yes'
+            else:
+                # Return a more specific string to help match dropdowns like "No, I require sponsorship".
+                return 'No, I require sponsorship'
+
+        # EEO Questions - Default to "Decline to self-identify" for privacy and safety.
+        if 'gender' in q_lower or 'race' in q_lower or 'ethnicity' in q_lower or 'veteran' in q_lower or 'disability' in q_lower:
+            return 'Decline to self-identify'
+
+        return None
+
+    def _calculate_years_for_skill(self, skill_name: str) -> str:
+        """Calculates total years of experience for a skill from parsed resume data."""
+        work_experience = self.resume_data.get('work_experience', [])
+        if not work_experience:
+            return "0"
+
+        # This is a simplified date parser for demonstration
+        def parse_date(date_str):
+            if 'present' in date_str.lower(): return datetime.datetime.now()
+            for fmt in ('%b %Y', '%B %Y', '%Y'):
+                try: return datetime.datetime.strptime(date_str, fmt)
+                except ValueError: pass
+            return None
+
+        relevant_periods = []
+        for job in work_experience:
+            context = (job.get('title', '') + ' ' + job.get('description', '')).lower()
+            if re.search(r'\b' + re.escape(skill_name.lower()) + r'\b', context):
+                start = parse_date(job.get('start_date', ''))
+                end = parse_date(job.get('end_date', 'Present'))
+                if start and end:
+                    relevant_periods.append((start, end))
+        
+        if not relevant_periods: return "0"
+
+        relevant_periods.sort(key=lambda x: x[0])
+        merged = []
+        for start, end in relevant_periods:
+            if not merged or start > merged[-1][1]: merged.append([start, end])
+            else: merged[-1][1] = max(merged[-1][1], end)
+        
+        total_days = sum((end - start).days for start, end in merged)
+        return str(round(total_days / 365.25))
+
+    def _select_answer(self, select_el: webdriver.remote.webelement.WebElement, answer: str):
+        """Selects an answer in a dropdown, trying partial text match."""
+        try:
+            select = Select(select_el)
+            for option in select.options:
+                if answer.lower() in option.text.lower():
+                    select.select_by_visible_text(option.text); return
+        except Exception as e: logger.warning(f"Could not select '{answer}' in dropdown: {e}")
+
+    def _check_answer(self, container: webdriver.remote.webelement.WebElement, answer: str):
+        """Finds and clicks a radio button or checkbox within a container."""
+        try:
+            options = container.find_elements(By.CSS_SELECTOR, 'input[type="radio"], input[type="checkbox"]')
+            for option in options:
+                if answer.lower() in option.find_element(By.XPATH, '..').text.lower():
+                    option.click(); return
+        except Exception as e: logger.warning(f"Could not check '{answer}' radio/checkbox: {e}")
+
+    def submit_application(self) -> bool:
+        try:
+            submit_selectors = [
+                'input[type="submit"]',
+                'button[type="submit"]',
+                'button[name*="submit"]',
+                '.submit-btn',
+                '[data-automation-id="submitApplication"]',
+                '//button[contains(text(), "Submit")]',
+                '//button[contains(text(), "Apply")]'
+            ]
+            submit_btn = self.find_element_by_multiple_selectors(submit_selectors)
+            if submit_btn and submit_btn.is_enabled():
+                submit_btn.click()
+                logger.info("Application submitted successfully!")
+                return True
+            else:
+                logger.warning("Submit button not found or not enabled")
+                return False
+        except Exception as e:
+            logger.error(f"Error submitting application: {str(e)}")
+            return False
+
 
 class SmartEmailer:
     """Enhanced email system with better formatting and attachments using Gmail API."""
@@ -1541,10 +2372,12 @@ class SmartEmailer:
         from openpyxl.utils import get_column_letter
         filename = f"jobs_report_{datetime.date.today().strftime('%Y%m%d')}.xlsx"
         job_data = [job.to_dict() for job in jobs]
-        # Remove 'id' column if present and add row number
+        # Remove 'id' and 'source' columns if present and add row number
         df = pd.DataFrame(job_data)
         if 'id' in df.columns:
             df = df.drop(columns=['id'])
+        if 'source' in df.columns:
+            df = df.drop(columns=['source'])
         df.insert(0, 'No.', range(1, len(df) + 1))
         try:
             with pd.ExcelWriter(filename, engine='openpyxl') as writer:
@@ -1643,7 +2476,6 @@ class SmartEmailer:
                     'experience': 'Experience',
                     'job_type': 'Job Type',
                     'posted_date': 'Posted Date',
-                    'source': 'Source',
                     'relevance_score': 'Relevance Score',
                     'min_experience_years': 'Min Exp (yrs)',
                     'max_experience_years': 'Max Exp (yrs)',
@@ -2116,23 +2948,30 @@ class SmartEmailer:
 
 class JobHunter:
     """Main class to run the job alert system."""
-    def __init__(self, user_id: int, search_terms: List[str], location: str, experience: str = "", job_type: str = ""):
+    def __init__(self, user_id: int, search_terms: List[str], location: str, experience: str = "", job_type: str = "", task=None):
         self.user_id = user_id
         self.search_terms = search_terms
         self.location = location
         self.experience = experience
         self.job_type = job_type
+        self.task = task
         self.db = JobDatabase()
-        self.scraper = EnhancedJobScraper(search_terms=self.search_terms, location=self.location, experience=self.experience, job_type=self.job_type, user_id=self.user_id)
+        self.scraper = EnhancedJobScraper(search_terms=self.search_terms, location=self.location, experience=self.experience, job_type=self.job_type, user_id=self.user_id, task=self.task)
         self.emailer = SmartEmailer()
         
     def run(self):
         """Orchestrates the entire job search and alert process."""
         logger.info(f"🔍 Starting job hunt for user {self.user_id} with terms: {self.search_terms}, location: {self.location}")
+        if self.task:
+            self.task.update_state(state='PROGRESS', meta={'status': 'Starting job hunt...', 'progress': 5})
+
         logger.info("Calling scraper.scrape_all_sources()...")
         jobs = self.scraper.scrape_all_sources()
         logger.info(f"Scraper returned {len(jobs)} jobs.")
         
+        if self.task:
+            self.task.update_state(state='PROGRESS', meta={'status': f'Scraping complete. Found {len(jobs)} potential jobs. Saving to database...', 'progress': 90})
+
         # Store new jobs in the database for the specific user
         new_jobs_count = 0
         for job in jobs:
@@ -2152,6 +2991,9 @@ class JobHunter:
             # self.emailer.send_email(f"No New Job Matches - {datetime.date.today().strftime('%b %d, %Y')}", html)
             return
             
+        if self.task:
+            self.task.update_state(state='PROGRESS', meta={'status': 'Generating email report...', 'progress': 95})
+
         html = self.emailer.build_smart_html_email(jobs)
         excel_file = ""
         if send_excel_attachment:
@@ -2169,20 +3011,158 @@ class JobHunter:
         logger.info(f"🤖 Super Job Agent finished its run for user {self.user_id}.")
 
 # --- Celery Tasks ---
-@celery.task(name='app.run_job_hunt_task')
-def run_job_hunt_task(user_id: int, search_terms: List[str], location: str, experience: str, job_type: str):
+@celery.task(bind=True, name='app.run_job_hunt_task')
+def run_job_hunt_task(self, user_id: int, search_terms: List[str], location: str, experience: str, job_type: str):
     """Celery task to run the job hunt for a specific user and search profile."""
-    logger.info(f"Celery task started for user {user_id} with terms {search_terms} at {location}.")
+    logger.info(f"Celery task {self.request.id} started for user {user_id} with terms {search_terms} at {location}.")
     try:
         logger.info(f"Creating JobHunter instance for user {user_id}.")
-        hunter = JobHunter(user_id=user_id, search_terms=search_terms, location=location, experience=experience, job_type=job_type)
+        hunter = JobHunter(user_id=user_id, search_terms=search_terms, location=location, experience=experience, job_type=job_type, task=self)
         logger.info(f"Running JobHunter.run() for user {user_id}.")
         hunter.run()
-        logger.info(f"Celery task completed successfully for user {user_id}.")
+        logger.info(f"Celery task {self.request.id} completed successfully for user {user_id}.")
+        return {'status': 'Complete! Your dashboard will now reload.', 'progress': 100}
     except Exception as e:
-        logger.error(f"Celery task failed for user {user_id}: {e}", exc_info=True)
+        logger.error(f"Celery task {self.request.id} failed for user {user_id}: {e}", exc_info=True)
+        self.update_state(state='FAILURE', meta={'status': 'Task failed!', 'error': str(e), 'progress': 100})
         # Consider sending an admin alert email here
         # SmartEmailer().send_email("CRITICAL: Job Hunt Task Failed", f"Task for user {user_id} failed with error: {traceback.format_exc()}", recipients=[ADMIN_ALERT_EMAIL])
+        raise
+
+# In app.py
+@celery.task(name='app.assisted_apply_task')
+def assisted_apply_task(user_id: int, job_id: int):
+    """
+    Launches a NON-headless browser and uses ApplicationFiller to pre-fill a job application.
+    Uses a pre-existing browser profile if configured by the user, to maintain login sessions.
+    """
+    db = JobDatabase()
+    conn = sqlite3.connect(db.db_path)
+    conn.row_factory = sqlite3.Row # Use row_factory for dict-like access
+    cursor = conn.cursor()
+
+    # 1. Fetch user_details and job_link from DB
+    cursor.execute("SELECT * FROM user_details WHERE user_id = ?", (user_id,))
+    user_details_raw = cursor.fetchone()
+
+    if not user_details_raw:
+        logger.error(f"[AssistApply] No user_details found for user_id {user_id}. Aborting. Please add your details to the database.")
+        conn.close()
+        return {'status': 'error', 'message': 'User details not found in database.'}
+
+    user_details = dict(user_details_raw)
+
+    # Load parsed resume data from the JSON string in the database
+    try:
+        user_details['parsed_resume'] = json.loads(user_details.get('resume_parsed_data', '{}') or '{}')
+    except (json.JSONDecodeError, TypeError):
+        user_details['parsed_resume'] = {}
+        logger.warning(f"[AssistApply] Could not load/parse resume data for user {user_id}. Answering will be limited.")
+
+    # Remap DB keys to what the ApplicationFiller bot expects
+    if user_details.get('linkedin_url'):
+        user_details['linkedin'] = user_details['linkedin_url']
+    if user_details.get('resume_path'):
+        # Ensure the path is absolute for the Celery worker
+        user_details['resume'] = os.path.abspath(user_details['resume_path'])
+    if user_details.get('cover_letter_template'):
+        user_details['cover_letter'] = user_details['cover_letter_template']
+
+    # Add first/last name for compatibility with the filler bot
+    full_name = user_details.get('full_name', '')
+    if full_name:
+        name_parts = full_name.split(' ')
+        user_details['first_name'] = name_parts[0]
+        user_details['last_name'] = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+
+    cursor.execute("SELECT link FROM jobs WHERE id = ? AND user_id = ?", (job_id, user_id))
+    job_link_raw = cursor.fetchone()
+    conn.close()
+
+    if not job_link_raw or not job_link_raw['link']:
+        logger.error(f"[AssistApply] No job link found for job_id {job_id}. Aborting.")
+        return {'status': 'error', 'message': 'Job link not found.'}
+
+    job_link = job_link_raw['link']
+    logger.info(f"[AssistApply] Starting for user {user_id} on job {job_id} -> {job_link}")
+
+    # 2. Launch a NON-headless Selenium browser
+    driver = None
+    try:
+        options = EdgeOptions()
+        options.use_chromium = True
+        options.add_argument("--start-maximized")
+        options.add_experimental_option("detach", True) # This is key to keeping the browser open
+
+        # Explicitly set the browser binary location to improve robustness.
+        edge_binary_paths = [
+            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+            r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"
+        ]
+        for path in edge_binary_paths:
+            if os.path.exists(path):
+                options.binary_location = path
+                logger.info(f"[AssistApply] Setting Edge binary location to: {path}")
+                break
+
+        browser_profile_path_input = user_details.get('browser_profile_path', '').strip()
+        if browser_profile_path_input:
+            # NEW CHECK: If user provided path to executable, log a clear error and fallback.
+            if browser_profile_path_input.lower().endswith('.exe'):
+                logger.error(f"[AssistApply] CONFIGURATION ERROR: The Browser Profile Path is set to an executable file ('{browser_profile_path_input}'). It should be a directory path ending in 'User Data'. Please correct this in your profile. Falling back to a temporary profile.")
+                browser_profile_path_input = '' # Clear the invalid path to proceed with fallback
+
+        if browser_profile_path_input:
+            # The user_data_dir should be the parent of the profile folder (e.g., 'Default', 'Profile 1')
+            # We'll try to auto-correct if the user provides the full path to the profile sub-directory.
+            user_data_dir = browser_profile_path_input
+            profile_directory = "Default"
+
+            path_basename = os.path.basename(user_data_dir)
+            if path_basename.lower() == 'default' or path_basename.lower().startswith('profile '):
+                profile_directory = path_basename
+                user_data_dir = os.path.dirname(user_data_dir)
+                logger.info(f"[AssistApply] User-provided path seems to be a full profile path. Auto-adjusting to User Data Dir: '{user_data_dir}' and Profile: '{profile_directory}'")
+
+            if os.path.isdir(user_data_dir):
+                # NEW: Check for a lock file, which indicates the browser is likely running.
+                lock_file_path = os.path.join(user_data_dir, 'SingletonLock')
+                if os.path.exists(lock_file_path):
+                    logger.warning(f"[AssistApply] WARNING: A lock file was found at '{lock_file_path}'. This strongly indicates that Edge is already running with this profile. Please close all Edge windows and processes (check Task Manager for 'msedge.exe') before trying again.")
+
+                logger.info(f"[AssistApply] Using browser session from User Data Dir: '{user_data_dir}' with Profile: '{profile_directory}'")
+                options.add_argument(f"user-data-dir={user_data_dir}")
+                options.add_argument(f"profile-directory={profile_directory}")
+            else:
+                logger.warning(f"[AssistApply] The derived User Data Directory '{user_data_dir}' (from your input '{browser_profile_path_input}') is not a valid directory. Falling back to a new temporary profile. Please check your profile settings.")
+        else:
+            logger.info("[AssistApply] No browser profile path configured in your profile. Starting with a new temporary profile. You may need to log in to job sites.")
+
+        driver_path = os.environ.get('EDGE_DRIVER_PATH', DRIVER_PATHS.get('edge'))
+        if not driver_path or not os.path.exists(driver_path):
+            raise FileNotFoundError("Edge WebDriver executable not found on the worker machine. Please check the server configuration (EDGE_DRIVER_PATH).")
+
+        service = EdgeService(executable_path=driver_path)
+        logger.info("[AssistApply] Attempting to initialize Edge WebDriver...")
+        time.sleep(1) # A small delay can sometimes help prevent race conditions
+        driver = webdriver.Edge(service=service, options=options)
+        
+        filler = ApplicationFiller(driver, user_details)
+        filler.fill(job_link)
+        logger.info(f"[AssistApply] Form filling process initiated for {job_link}. The browser window is now open for your review and final submission.")
+    except FileNotFoundError as e:
+        logger.critical(f"[AssistApply] CONFIGURATION ERROR: {e}", exc_info=True)
+        if driver: driver.quit()
+    except SeleniumWebDriverException as e:
+        if "session not created" in str(e).lower():
+            logger.error(f"[AssistApply] CRITICAL ERROR: Could not create browser session. This often happens if the browser is already running with the same user profile. Please close all Edge windows and try again.", exc_info=False)
+            logger.debug(f"Full SessionNotCreatedException: {e}") # Log the full trace for debugging if needed
+        else:
+            logger.error(f"[AssistApply] A browser automation error occurred. This might be due to a driver/browser version mismatch or a browser crash.", exc_info=True)
+        if driver: driver.quit()
+    except Exception as e:
+        logger.error(f"An error occurred during assisted_apply_task for job {job_id}: {e}", exc_info=True)
+        if driver: driver.quit() # Close browser on error
 
 
 @celery.task(name='app.scheduled_job_hunt_for_all_users')
@@ -2258,6 +3238,59 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    db = JobDatabase()
+    if request.method == 'POST':
+        # Get existing details to not lose the resume path if not updated
+        existing_details = db.get_user_details(current_user.id) or {}
+        
+        details = {
+            'full_name': request.form.get('full_name'),
+            'email': request.form.get('email'),
+            'phone': request.form.get('phone'),
+            'address': request.form.get('address'),
+            'linkedin_url': request.form.get('linkedin_url'),
+            'github_url': request.form.get('github_url'),
+            'portfolio_url': request.form.get('portfolio_url'),
+            'cover_letter_template': request.form.get('cover_letter_template'),
+            'resume_path': existing_details.get('resume_path'),
+            'browser_profile_path': request.form.get('browser_profile_path', '').strip(),
+            'willing_to_relocate': request.form.get('willing_to_relocate', 'no'),
+            'authorized_to_work': request.form.get('authorized_to_work', 'no')
+        }
+
+        # Handle resume file upload
+        if 'resume' in request.files:
+            file = request.files['resume']
+            if file and file.filename != '':
+                # Save to a user-specific subfolder to avoid name collisions
+                user_upload_dir = os.path.join(app.config['UPLOAD_FOLDER'], str(current_user.id))
+                os.makedirs(user_upload_dir, exist_ok=True)
+                filename = secure_filename(file.filename)
+                file_path = os.path.join(user_upload_dir, filename)
+                file.save(file_path)
+                details['resume_path'] = file_path
+
+                # NEW: Parse the resume and store the structured data as JSON
+                parser = ResumeParser()
+                parsed_data = parser.parse(file_path)
+                details['resume_parsed_data'] = json.dumps(parsed_data) if parsed_data else None
+            else: # No new file uploaded, keep the old parsed data
+                details['resume_parsed_data'] = existing_details.get('resume_parsed_data')
+        else: # No file in request, also keep old parsed data
+            details['resume_parsed_data'] = existing_details.get('resume_parsed_data')
+        
+        if db.save_user_details(current_user.id, details):
+            flash('Profile updated successfully!', 'success')
+        else:
+            flash('Failed to update profile.', 'danger')
+        return redirect(url_for('profile'))
+
+    user_details = db.get_user_details(current_user.id)
+    return render_template('profile.html', user_details=user_details)
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
@@ -2269,6 +3302,9 @@ def dashboard():
     sort_order = request.args.get('sort_order', 'DESC')
     search_query = request.args.get('search_query', '')
     status_filter = request.args.get('status_filter', 'all')
+    location_filter = request.args.get('location_filter', '')
+    job_type_filter = request.args.get('job_type_filter', 'all')
+    view_mode = request.args.get('view', 'simple')
 
     jobs, total_jobs = db.get_jobs_for_user(
         current_user.id,
@@ -2277,14 +3313,24 @@ def dashboard():
         sort_by=sort_by,
         sort_order=sort_order,
         search_query=search_query,
-        status_filter=status_filter
+        status_filter=status_filter,
+        location_filter=location_filter,
+        job_type_filter=job_type_filter
     )
     
     saved_profiles = db.get_search_profiles(current_user.id)
     user_settings = db.get_user_settings(current_user.id)
     
-    total_pages = (total_jobs + limit - 1) // limit
-    
+    total_pages = (total_jobs + limit - 1) // limit if limit > 0 else 1
+
+    # Generate a window of page numbers for pagination controls
+    page_window = 2  # Number of pages to show before and after the current page
+    start_page = max(1, page - page_window)
+    end_page = min(total_pages, page + page_window)
+    if end_page < start_page: # Handle case where total_pages is very small
+        end_page = start_page
+    pagination_pages = range(start_page, end_page + 1)
+
     return render_template('dashboard.html', 
                            jobs=jobs, 
                            saved_profiles=saved_profiles,
@@ -2292,11 +3338,15 @@ def dashboard():
                            current_page=page,
                            total_pages=total_pages,
                            limit=limit,
+                           pagination_pages=pagination_pages,
                            sort_by=sort_by,
                            sort_order=sort_order,
                            search_query=search_query,
                            status_filter=status_filter,
+                           location_filter=location_filter,
+                           job_type_filter=job_type_filter,
                            total_jobs=total_jobs,
+                           view_mode=view_mode,
                            now=datetime.datetime.now())
 
 @app.route('/search_jobs', methods=['POST'])
@@ -2306,22 +3356,21 @@ def search_jobs():
     location = request.form.get('location', '')
     experience = request.form.get('experience', '')
     job_type = request.form.get('job_type', '')
-    
+
     search_terms = [term.strip() for term in search_terms_str.split(',') if term.strip()]
-    
+
     if not search_terms:
         flash('Please enter at least one search term.', 'warning')
         return redirect(url_for('dashboard'))
 
     # Trigger the Celery task for job scraping
     try:
-        run_job_hunt_task.delay(current_user.id, search_terms, location, experience, job_type)
-        logger.info(f"Celery task enqueued for user {current_user.id} with terms '{search_terms_str}'.")
-        flash('Job search initiated in the background! Results will appear on your dashboard soon.', 'info')
+        task = run_job_hunt_task.delay(current_user.id, search_terms, location, experience, job_type)
+        logger.info(f"Celery task {task.id} enqueued for user {current_user.id} with terms '{search_terms_str}'.")
+        return jsonify({'status': 'success', 'task_id': task.id})
     except Exception as e:
         logger.error(f"Failed to enqueue Celery task for user {current_user.id} with terms '{search_terms_str}': {e}", exc_info=True)
-        flash(f"Failed to initiate job search. Please ensure the Celery worker is running and connected to Redis.", 'danger')
-    return redirect(url_for('dashboard'))
+        return jsonify({'status': 'error', 'message': 'Failed to start search. Celery worker might be down.'}), 500
 
 @app.route('/save_profile', methods=['POST'])
 @login_required
@@ -2353,21 +3402,22 @@ def delete_profile(profile_id):
 @login_required
 def apply_profile(profile_id):
     db = JobDatabase()
-    profile = db.get_search_profile_by_id(profile_id, current_user.id)
-    if not profile:
-        flash('Profile not found or access denied.', 'error')
-        return redirect(url_for('dashboard'))
-    
-    search_terms = [term.strip() for term in profile['search_terms'].split(',')]
-    location = profile['location']
-    experience = profile['experience']
-    job_type = profile['job_type']
-    
-    # Queue the Celery task for scraping
-    run_job_hunt_task.delay(current_user.id, search_terms, location, experience, job_type)
-    
-    flash(f'Scraping job hunt initiated for profile "{profile["profile_name"]}". Check back soon for new jobs!', 'success')
-    return redirect(url_for('dashboard'))
+    try:
+        profile = db.get_search_profile_by_id(profile_id, current_user.id)
+        if not profile:
+            return jsonify({'status': 'error', 'message': 'Profile not found or access denied.'}), 404
+        
+        search_terms = [term.strip() for term in profile['search_terms'].split(',')]
+        location = profile['location']
+        experience = profile['experience']
+        job_type = profile['job_type']
+        
+        task = run_job_hunt_task.delay(current_user.id, search_terms, location, experience, job_type)
+        logger.info(f"Celery task {task.id} enqueued for user {current_user.id} from profile '{profile['profile_name']}'.")
+        return jsonify({'status': 'success', 'task_id': task.id, 'profile_name': profile["profile_name"]})
+    except Exception as e:
+        logger.error(f"Failed to enqueue Celery task for user {current_user.id} from profile {profile_id}: {e}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Failed to start search. Celery worker might be down.'}), 500
 
 @app.route('/delete_job/<int:job_id>', methods=['POST'])
 @login_required
@@ -2405,23 +3455,6 @@ def delete_all_jobs():
         flash(f'Successfully deleted all {deleted_count} jobs.', 'success')
     else:
         flash('No jobs to delete.', 'info')
-    return redirect(url_for('dashboard'))
-    profile = db.get_search_profile_by_id(profile_id, current_user.id)
-    if profile:
-        search_terms = [term.strip() for term in profile['search_terms'].split(',') if term.strip()]
-        location = profile['location']
-        experience = profile['experience']
-        job_type = profile['job_type']
-        
-        try:
-            run_job_hunt_task.delay(current_user.id, search_terms, location, experience, job_type)
-            logger.info(f"Celery task enqueued for user {current_user.id} with profile '{profile['profile_name']}'.")
-            flash(f"Applied profile '{profile['profile_name']}'. Job search initiated in the background! Results will appear on your dashboard soon.", 'info')
-        except Exception as e:
-            logger.error(f"Failed to enqueue Celery task for user {current_user.id} with profile '{profile['profile_name']}': {e}", exc_info=True)
-            flash(f"Failed to initiate job search. Please ensure the Celery worker is running and connected to Redis.", 'danger')
-    else:
-        flash('Search profile not found or unauthorized.', 'danger')
     return redirect(url_for('dashboard'))
 
 @app.route('/update_settings', methods=['POST'])
@@ -2467,6 +3500,27 @@ def feedback():
         flash('Failed to record feedback.', 'danger')
     return redirect(url_for('dashboard'))
 
+@app.route('/assisted_apply/<int:job_id>', methods=['POST'])
+@login_required
+def assisted_apply(job_id):
+    """Triggers the assisted apply Celery task."""
+    try:
+        # You could add a check here to see if the user has filled out their profile
+        task = assisted_apply_task.delay(current_user.id, job_id)
+        logger.info(f"Enqueued assisted_apply_task {task.id} for user {current_user.id}, job {job_id}.")
+        return jsonify({'status': 'success', 'message': 'Task started! A browser window should open shortly.'})
+    except Exception as e:
+        logger.error(f"Failed to enqueue assisted_apply_task for user {current_user.id}, job {job_id}: {e}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Failed to start task. Is the Celery worker running?'}), 500
+
+@app.route('/api/job_status_data')
+@login_required
+def job_status_data():
+    """API endpoint to provide job status data for charts."""
+    db = JobDatabase()
+    status_counts = db.get_job_status_counts(current_user.id)
+    return jsonify(status_counts)
+
 
 # This part runs the Flask app if executed directly
 if __name__ == "__main__":
@@ -2480,4 +3534,3 @@ if __name__ == "__main__":
     
     logger.info("Starting Flask application...")
     app.run(debug=True, host='0.0.0.0', port=5000)
-

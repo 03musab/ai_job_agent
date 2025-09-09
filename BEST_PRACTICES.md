@@ -227,3 +227,16 @@ Notes
   - Timezone: Celery is configured to UTC. If user-facing schedules are needed, add timezone-aware conversions.
   - Very long descriptions: UI uses a clean_desc filter; keep email/report truncation in Job.to_dict consistent.
   - Sorting safety: only allow whitelisted columns in ORDER BY (already enforced).
+
+2. Deeper AI & Intelligence Features
+Let's lean into the "AI" part of the "AI Job Agent" name.
+
+AI Cover Letter Generation: You currently have a cover letter template. We could create a feature that uses an AI model to generate a unique, tailored cover letter for a specific job by analyzing the job description and using the details from your profile.
+Resume-to-Job Matching: Instead of just scoring based on keywords, you could upload your resume, have the system parse it, and then score new jobs based on how well they align with your actual experience and skills listed in the resume.
+Interview Prep Assistant: For any job you move to the "Interview" status, we could add a button that uses AI to generate a list of potential interview questions (behavioral and technical) based on the job description.
+3. Enhanced Workflow & Automation
+We can make the connection between finding and applying even smoother.
+
+Track "Assisted Apply" Status: Right now, when you click "Assisted Apply," the task runs in the background. We could add UI feedback to track its status, similar to how the scraping task is tracked, so you know when the browser is about to open.
+
+Calendar Integration: For jobs in the "Interview" stage, add an "Add to Calendar" button that creates a Google Calendar event for the interview, pre-filling the company name and job title.
