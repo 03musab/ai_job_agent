@@ -209,8 +209,11 @@ EDGE_BINARY_PATH_WINDOWS = r"C:\Program Files (x86)\Microsoft\Edge\Application\m
 CHROME_BINARY_PATH_PA = '/usr/bin/google-chrome'
 
 
-# --- Google API Scopes for Gmail ---
-SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+# --- Google API Scopes for Gmail and Calendar ---
+SCOPES = [
+    'https://www.googleapis.com/auth/gmail.send',
+    'https://www.googleapis.com/auth/calendar'
+]
 
 # --- Admin Email for Critical Alerts ---
 ADMIN_ALERT_EMAIL = os.environ.get('ADMIN_ALERT_EMAIL', '')
@@ -624,6 +627,18 @@ class JobDatabase:
             conn.commit()
             if cursor.rowcount > 0:
                 logger.debug(f"Added new job to DB: {job.title} at {job.company} for user {user_id}")
+                
+                # Create calendar reminder for deadline if available
+                if job.deadline and job.deadline != 'N/A':
+                    try:
+                        calendar_manager = GoogleCalendarManager()
+                        job_data = job.to_dict()
+                        job_data['id'] = cursor.lastrowid
+                        calendar_manager.create_deadline_reminder(job_data, job.deadline)
+                        logger.info(f"Created deadline reminder for job: {job.title}")
+                    except Exception as e:
+                        logger.warning(f"Failed to create deadline reminder: {e}")
+                
                 return True
             else:
                 logger.debug(f"Job already exists in DB (skipped): {job.title} at {job.company} for user {user_id}")
@@ -660,9 +675,20 @@ class JobDatabase:
         params = [user_id]
 
         if search_query:
-            search_pattern = f"%{search_query}%"
-            query += " AND (title LIKE ? OR company LIKE ? OR description LIKE ? OR notes LIKE ? OR keywords LIKE ? OR skills LIKE ? OR extracted_tools LIKE ? OR extracted_soft_skills LIKE ?)"
-            params.extend([search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern])
+            # Handle special search formats like "id:123"
+            if search_query.startswith('id:'):
+                job_id = search_query.split(':', 1)[1].strip()
+                if job_id.isdigit():
+                    query += " AND id = ?"
+                    params.append(int(job_id))
+                else:
+                    # Invalid ID format, no results
+                    query += " AND 1 = 0"
+            else:
+                # Regular text search
+                search_pattern = f"%{search_query}%"
+                query += " AND (title LIKE ? OR company LIKE ? OR description LIKE ? OR notes LIKE ? OR keywords LIKE ? OR skills LIKE ? OR extracted_tools LIKE ? OR extracted_soft_skills LIKE ?)"
+                params.extend([search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern])
 
         if status_filter and status_filter != 'all':
             query += " AND status = ?"
@@ -701,8 +727,8 @@ class JobDatabase:
         return jobs, total_count
 
     def save_search_profile(self, user_id: int, profile_name: str, search_terms: str,
-                            location: str, experience: str, job_type: str) -> bool:
-        """Saves a search profile for a user."""
+                            location: str, experience: str, job_type: str) -> Optional[int]:
+        """Saves a search profile for a user. Returns profile ID on success, None on failure."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         try:
@@ -712,13 +738,13 @@ class JobDatabase:
                 VALUES (?, ?, ?, ?, ?, ?)
             ''', (user_id, profile_name, search_terms, location, experience, job_type))
             conn.commit()
-            return True
+            return cursor.lastrowid
         except sqlite3.IntegrityError:
             logger.warning(f"Attempted to save duplicate profile name '{profile_name}' for user {user_id}.")
-            return False
+            return None
         except Exception as e:
             logger.error(f"Error saving search profile: {e}")
-            return False
+            return None
         finally:
             conn.close()
 
@@ -2335,6 +2361,502 @@ class ApplicationFiller:
             return False
 
 
+class GoogleCalendarManager:
+    """Enhanced Google Calendar integration for job application tracking."""
+    def __init__(self):
+        self.calendar_service = self.authenticate_calendar()
+        self.job_alerts_calendar_id = None
+        self.user_name = None
+        self._initialize_calendar()
+    
+    def authenticate_calendar(self):
+        """Authenticate with Google Calendar API using shared credentials."""
+        # Use the same authentication as Gmail since we share the token
+        gmail_service = SmartEmailer().authenticate_gmail()
+        if not gmail_service:
+            return None
+        
+        # Get the credentials from the gmail service
+        creds = None
+        if os.path.exists('token.pickle'):
+            with open('token.pickle', 'rb') as token:
+                creds = pickle.load(token)
+        
+        if not creds or not creds.valid:
+            logger.error("No valid credentials for Calendar API")
+            return None
+        
+        try:
+            return build('calendar', 'v3', credentials=creds)
+        except Exception as e:
+            logger.error(f"Failed to build Calendar service: {e}")
+            return None
+    
+    def _initialize_calendar(self):
+        """Initialize the Job Alerts calendar and get user info."""
+        if not self.calendar_service:
+            return
+        
+        try:
+            # Get user's name from their primary calendar
+            primary_calendar = self.calendar_service.calendars().get(calendarId='primary').execute()
+            self.user_name = primary_calendar.get('summary', 'User')
+            
+            # Find or create "Job Alerts" calendar
+            self.job_alerts_calendar_id = self._get_or_create_job_alerts_calendar()
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize calendar: {e}")
+    
+    def _get_or_create_job_alerts_calendar(self) -> Optional[str]:
+        """Find existing Job Alerts calendar or create a new one."""
+        try:
+            # List all calendars to find existing "Job Alerts" calendar
+            calendar_list = self.calendar_service.calendarList().list().execute()
+            
+            for calendar in calendar_list.get('items', []):
+                if calendar.get('summary') == 'Job Alerts':
+                    logger.info(f"Found existing Job Alerts calendar: {calendar['id']}")
+                    return calendar['id']
+            
+            # Create new "Job Alerts" calendar if not found
+            calendar_body = {
+                'summary': 'Job Alerts',
+                'description': f'Automated job application tracking for {self.user_name}',
+                'timeZone': 'UTC'
+            }
+            
+            created_calendar = self.calendar_service.calendars().insert(body=calendar_body).execute()
+            calendar_id = created_calendar['id']
+            
+            # Set calendar color to a nice blue
+            calendar_list_entry = {
+                'id': calendar_id,
+                'colorId': '9'  # Blue color
+            }
+            self.calendar_service.calendarList().patch(
+                calendarId=calendar_id, 
+                body=calendar_list_entry
+            ).execute()
+            
+            logger.info(f"Created new Job Alerts calendar: {calendar_id}")
+            return calendar_id
+            
+        except Exception as e:
+            logger.error(f"Failed to get/create Job Alerts calendar: {e}")
+            return 'primary'  # Fallback to primary calendar
+    
+    def _get_existing_event_id(self, job_id: int, event_type: str) -> Optional[str]:
+        """Check if an event already exists for this job to prevent duplicates."""
+        if not self.job_alerts_calendar_id:
+            return None
+        
+        try:
+            # Search for existing events with this job ID in the description
+            search_query = f"Job ID: {job_id}"
+            events = self.calendar_service.events().list(
+                calendarId=self.job_alerts_calendar_id,
+                q=search_query,
+                maxResults=50
+            ).execute()
+            
+            for event in events.get('items', []):
+                description = event.get('description', '')
+                if f"Job ID: {job_id}" in description and event_type.lower() in event.get('summary', '').lower():
+                    return event.get('id')
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Failed to check for existing events: {e}")
+            return None
+    
+    def _delete_existing_event(self, event_id: str):
+        """Delete an existing calendar event."""
+        try:
+            self.calendar_service.events().delete(
+                calendarId=self.job_alerts_calendar_id,
+                eventId=event_id
+            ).execute()
+            logger.info(f"Deleted existing calendar event: {event_id}")
+        except Exception as e:
+            logger.error(f"Failed to delete existing event {event_id}: {e}")
+    
+    def create_interview_event(self, job_data: Dict) -> Optional[str]:
+        """Create a calendar event when job status changes to 'interview'."""
+        if not self.calendar_service or not self.job_alerts_calendar_id:
+            logger.warning("Calendar service not available. Skipping interview event creation.")
+            return None
+        
+        try:
+            job_id = job_data.get('id')
+            
+            # Check for existing interview event and delete it
+            existing_event_id = self._get_existing_event_id(job_id, 'interview')
+            if existing_event_id:
+                self._delete_existing_event(existing_event_id)
+            
+            # Default to next business day at 10 AM if no specific time provided
+            interview_date = datetime.datetime.now() + datetime.timedelta(days=1)
+            # Skip to Monday if it's weekend
+            while interview_date.weekday() > 4:  # 0-4 is Mon-Fri
+                interview_date += datetime.timedelta(days=1)
+            
+            interview_date = interview_date.replace(hour=10, minute=0, second=0, microsecond=0)
+            end_time = interview_date + datetime.timedelta(hours=1)
+            
+            event = {
+                'summary': f'🎯 Interview: {job_data.get("title", "Job")} at {job_data.get("company", "Company")}',
+                'description': self._build_interview_description(job_data),
+                'start': {
+                    'dateTime': interview_date.isoformat(),
+                    'timeZone': 'UTC',
+                },
+                'end': {
+                    'dateTime': end_time.isoformat(),
+                    'timeZone': 'UTC',
+                },
+                'reminders': {
+                    'useDefault': False,
+                    'overrides': [
+                        {'method': 'popup', 'minutes': 24 * 60},  # 1 day before
+                        {'method': 'popup', 'minutes': 60},       # 1 hour before
+                    ],
+                },
+                'colorId': '9',  # Blue color for interviews
+            }
+            
+            result = self.calendar_service.events().insert(
+                calendarId=self.job_alerts_calendar_id, 
+                body=event
+            ).execute()
+            logger.info(f"Created interview calendar event in Job Alerts calendar: {result.get('id')}")
+            return result.get('id')
+            
+        except Exception as e:
+            logger.error(f"Failed to create interview calendar event: {e}")
+            return None
+    
+    def create_deadline_reminder(self, job_data: Dict, deadline_str: str) -> Optional[str]:
+        """Create a calendar reminder for application deadlines."""
+        if not self.calendar_service or not self.job_alerts_calendar_id or not deadline_str or deadline_str == 'N/A':
+            return None
+        
+        try:
+            job_id = job_data.get('id')
+            
+            # Check for existing deadline event and delete it
+            existing_event_id = self._get_existing_event_id(job_id, 'deadline')
+            if existing_event_id:
+                self._delete_existing_event(existing_event_id)
+            
+            # Parse deadline string (you might need to improve this parsing)
+            deadline_date = self._parse_deadline(deadline_str)
+            if not deadline_date:
+                return None
+            
+            # Create all-day event for the deadline
+            event = {
+                'summary': f'⏰ Application Deadline: {job_data.get("title", "Job")} at {job_data.get("company", "Company")}',
+                'description': self._build_deadline_description(job_data),
+                'start': {
+                    'date': deadline_date.strftime('%Y-%m-%d'),
+                },
+                'end': {
+                    'date': deadline_date.strftime('%Y-%m-%d'),
+                },
+                'reminders': {
+                    'useDefault': False,
+                    'overrides': [
+                        {'method': 'popup', 'minutes': 24 * 60 * 3},  # 3 days before
+                        {'method': 'popup', 'minutes': 24 * 60},      # 1 day before
+                    ],
+                },
+                'colorId': '11',  # Red color for deadlines
+            }
+            
+            result = self.calendar_service.events().insert(
+                calendarId=self.job_alerts_calendar_id, 
+                body=event
+            ).execute()
+            logger.info(f"Created deadline reminder in Job Alerts calendar: {result.get('id')}")
+            return result.get('id')
+            
+        except Exception as e:
+            logger.error(f"Failed to create deadline reminder: {e}")
+            return None
+    
+    def create_followup_reminder(self, job_data: Dict, status: str) -> Optional[str]:
+        """Create follow-up reminders based on job status and company response patterns."""
+        if not self.calendar_service or not self.job_alerts_calendar_id:
+            return None
+        
+        try:
+            job_id = job_data.get('id')
+            
+            # Check for existing follow-up event and delete it
+            existing_event_id = self._get_existing_event_id(job_id, 'follow-up')
+            if existing_event_id:
+                self._delete_existing_event(existing_event_id)
+            
+            followup_date = self._calculate_followup_date(status)
+            if not followup_date:
+                return None
+            
+            followup_time = followup_date.replace(hour=9, minute=0, second=0, microsecond=0)
+            end_time = followup_time + datetime.timedelta(minutes=30)
+            
+            event = {
+                'summary': f'📞 Follow-up: {job_data.get("title", "Job")} at {job_data.get("company", "Company")}',
+                'description': self._build_followup_description(job_data, status),
+                'start': {
+                    'dateTime': followup_time.isoformat(),
+                    'timeZone': 'UTC',
+                },
+                'end': {
+                    'dateTime': end_time.isoformat(),
+                    'timeZone': 'UTC',
+                },
+                'reminders': {
+                    'useDefault': False,
+                    'overrides': [
+                        {'method': 'popup', 'minutes': 60},  # 1 hour before
+                    ],
+                },
+                'colorId': '5',  # Yellow color for follow-ups
+            }
+            
+            result = self.calendar_service.events().insert(
+                calendarId=self.job_alerts_calendar_id, 
+                body=event
+            ).execute()
+            logger.info(f"Created follow-up reminder in Job Alerts calendar: {result.get('id')}")
+            return result.get('id')
+            
+        except Exception as e:
+            logger.error(f"Failed to create follow-up reminder: {e}")
+            return None
+    
+    def _build_interview_description(self, job_data: Dict) -> str:
+        """Build detailed description for interview calendar event."""
+        skills_list = job_data.get('skills', '').split(',')[:5] if job_data.get('skills') else []
+        skills_text = ', '.join([skill.strip() for skill in skills_list]) if skills_list else 'Review job requirements'
+        
+        description = f"""🎯 INTERVIEW PREPARATION CHECKLIST for {self.user_name}
+
+📋 Job Details:
+• Position: {job_data.get('title', 'N/A')}
+• Company: {job_data.get('company', 'N/A')}
+• Location: {job_data.get('location', 'N/A')}
+• Experience Level: {job_data.get('experience', 'N/A')}
+• Job Type: {job_data.get('job_type', 'N/A')}
+• Relevance Score: {job_data.get('relevance_score', 'N/A')}%
+
+🔍 Pre-Interview Research (Complete 24-48 hours before):
+□ Company mission, values, and recent news/press releases
+□ Research interviewer(s) on LinkedIn
+□ Review company's products/services and competitors
+□ Understand the role's responsibilities and requirements
+□ Prepare 3-5 thoughtful questions about the role/company
+□ Practice common behavioral and technical questions
+
+💼 Materials to Prepare:
+□ 3-5 printed copies of updated resume
+□ Portfolio/work samples relevant to the role
+□ List of professional references with contact info
+□ Notebook and pen for taking notes
+□ Business cards (if you have them)
+□ Directions and parking information
+
+⚡ Key Skills & Experience to Highlight:
+{skills_text}
+
+🗣️ STAR Method Examples to Prepare:
+□ Situation: Challenging project or problem you faced
+□ Task: What you needed to accomplish
+□ Action: Specific steps you took to address it
+□ Result: Positive outcome and what you learned
+
+❓ Questions to Ask Them:
+□ "What does success look like in this role after 6 months?"
+□ "What are the biggest challenges facing the team/department?"
+□ "How would you describe the company culture?"
+□ "What opportunities are there for professional development?"
+□ "What are the next steps in the interview process?"
+
+📝 Your Notes:
+{job_data.get('notes', 'No additional notes')}
+
+🔗 Original Job Posting: {job_data.get('link', 'N/A')}
+📧 Follow-up: Send thank-you email within 24 hours after interview
+
+---
+Generated by AI Job Hunter for {self.user_name}
+Job ID: {job_data.get('id', 'N/A')}
+"""
+        return description
+    
+    def _build_deadline_description(self, job_data: Dict) -> str:
+        """Build description for deadline reminder."""
+        return f"""⏰ APPLICATION DEADLINE TODAY for {self.user_name}!
+
+📋 Job Details:
+• Position: {job_data.get('title', 'N/A')}
+• Company: {job_data.get('company', 'N/A')}
+• Location: {job_data.get('location', 'N/A')}
+• Experience Required: {job_data.get('experience', 'N/A')}
+• Job Type: {job_data.get('job_type', 'N/A')}
+• Relevance Score: {job_data.get('relevance_score', 'N/A')}%
+
+✅ FINAL APPLICATION CHECKLIST - Complete Today:
+□ Resume tailored specifically for {job_data.get('company', 'this company')}
+□ Custom cover letter highlighting relevant experience and enthusiasm
+□ Portfolio/work samples that demonstrate relevant skills
+□ Professional references list (if requested)
+□ Review all application requirements one final time
+□ Proofread everything for typos and formatting
+□ Submit application before 11:59 PM today!
+
+🎯 Key Skills to Emphasize:
+{', '.join(job_data.get('skills', '').split(',')[:3]) if job_data.get('skills') else 'Review job requirements'}
+
+💡 Last-Minute Tips:
+• Use keywords from the job description in your application
+• Quantify your achievements with specific numbers/results
+• Show genuine interest in the company and role
+• Follow application instructions exactly as specified
+
+📝 Your Notes:
+{job_data.get('notes', 'No additional notes')}
+
+🔗 Apply Here: {job_data.get('link', 'N/A')}
+
+⚠️ URGENT: This is your final reminder - deadline is TODAY!
+
+---
+Generated by AI Job Hunter for {self.user_name}
+Job ID: {job_data.get('id', 'N/A')}
+"""
+    
+    def _build_followup_description(self, job_data: Dict, status: str) -> str:
+        """Build description for follow-up reminder."""
+        status_descriptions = {
+            'applied': {
+                'action': 'Send polite follow-up email asking about application timeline and next steps',
+                'template': f"Hi [Hiring Manager], I hope this message finds you well. I recently submitted my application for the {job_data.get('title', '')} position at {job_data.get('company', '')} and wanted to follow up on the status. I remain very enthusiastic about this opportunity and would appreciate any updates on your timeline for next steps. Thank you for your time and consideration.",
+                'tips': '• Keep it brief and professional\n• Show continued interest\n• Ask about timeline, not decision\n• Include your contact information'
+            },
+            'interview': {
+                'action': 'Send thank-you note within 24 hours and reiterate your strong interest',
+                'template': f"Dear [Interviewer Name], Thank you for taking the time to meet with me yesterday about the {job_data.get('title', '')} position. I enjoyed our conversation about [specific topic discussed] and am even more excited about the opportunity to contribute to {job_data.get('company', '')}. Please let me know if you need any additional information. I look forward to hearing about next steps.",
+                'tips': '• Send within 24 hours\n• Reference specific conversation points\n• Reiterate key qualifications\n• Keep it concise but personal'
+            },
+            'offered': {
+                'action': 'Respond to job offer professionally - accept, negotiate, or request more time',
+                'template': f"Dear [Hiring Manager], Thank you for extending the offer for the {job_data.get('title', '')} position at {job_data.get('company', '')}. I am excited about this opportunity and would like to [accept/discuss terms/request additional time to consider]. [Include specific next steps or questions]. I appreciate your time and look forward to your response.",
+                'tips': '• Respond promptly (within 2-3 business days)\n• Be gracious regardless of your decision\n• If negotiating, be specific and reasonable\n• Confirm details in writing'
+            },
+            'rejected': {
+                'action': 'Request constructive feedback and maintain professional relationship for future opportunities',
+                'template': f"Dear [Hiring Manager], Thank you for informing me about your decision regarding the {job_data.get('title', '')} position. While I'm disappointed, I understand these decisions are difficult. I would greatly appreciate any feedback you could share about my application or interview to help me improve. I remain interested in {job_data.get('company', '')} and would welcome the opportunity to be considered for future roles that match my background.",
+                'tips': '• Stay positive and professional\n• Ask for specific feedback\n• Express continued interest in company\n• Keep the door open for future opportunities'
+            }
+        }
+        
+        status_info = status_descriptions.get(status, {
+            'action': 'Follow up on application status',
+            'template': f"Hi [Name], I wanted to follow up on my application for the {job_data.get('title', '')} position. I remain very interested in this opportunity and would appreciate any updates on the timeline. Thank you for your time and consideration.",
+            'tips': '• Keep it professional and brief'
+        })
+        
+        return f"""📞 FOLLOW-UP REMINDER - {status.upper()} STATUS
+
+📋 Job Details:
+• Position: {job_data.get('title', 'N/A')}
+• Company: {job_data.get('company', 'N/A')}
+• Location: {job_data.get('location', 'N/A')}
+• Current Status: {status.title()}
+• Relevance Score: {job_data.get('relevance_score', 'N/A')}%
+
+🎯 Action Required:
+{status_info['action']}
+
+📧 Email Template:
+{status_info['template']}
+
+💡 Best Practices:
+{status_info['tips']}
+
+📝 Your Notes:
+{job_data.get('notes', 'No notes available')}
+
+🔗 Job Link: {job_data.get('link', 'N/A')}
+
+---
+Generated by AI Job Hunter for {self.user_name}
+"""
+    
+    def _parse_deadline(self, deadline_str: str) -> Optional[datetime.datetime]:
+        """Parse deadline string into datetime object."""
+        if not deadline_str or deadline_str == 'N/A':
+            return None
+        
+        try:
+            # Try common date formats
+            formats = [
+                '%Y-%m-%d',
+                '%m/%d/%Y',
+                '%d/%m/%Y',
+                '%B %d, %Y',
+                '%b %d, %Y',
+                '%d %B %Y',
+                '%d %b %Y'
+            ]
+            
+            for fmt in formats:
+                try:
+                    return datetime.datetime.strptime(deadline_str.strip(), fmt)
+                except ValueError:
+                    continue
+            
+            # If no format matches, try to extract date from text
+            import re
+            date_match = re.search(r'(\d{1,2})[/-](\d{1,2})[/-](\d{4})', deadline_str)
+            if date_match:
+                month, day, year = date_match.groups()
+                return datetime.datetime(int(year), int(month), int(day))
+            
+            logger.warning(f"Could not parse deadline: {deadline_str}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error parsing deadline '{deadline_str}': {e}")
+            return None
+    
+    def _calculate_followup_date(self, status: str) -> Optional[datetime.datetime]:
+        """Calculate appropriate follow-up date based on status."""
+        now = datetime.datetime.now()
+        
+        followup_delays = {
+            'applied': 14,    # 2 weeks after application
+            'interview': 1,   # 1 day after interview (thank you note)
+            'offered': 3,     # 3 days to respond to offer
+            'rejected': 30,   # 1 month later for feedback/networking
+        }
+        
+        days = followup_delays.get(status)
+        if days is None:
+            return None
+        
+        followup_date = now + datetime.timedelta(days=days)
+        
+        # Skip weekends for follow-ups
+        while followup_date.weekday() > 4:  # 0-4 is Mon-Fri
+            followup_date += datetime.timedelta(days=1)
+        
+        return followup_date
+
+
 class SmartEmailer:
     """Enhanced email system with better formatting and attachments using Gmail API."""
     def __init__(self):
@@ -2346,20 +2868,28 @@ class SmartEmailer:
             with open('token.pickle', 'rb') as token:
                 creds = pickle.load(token)
         
+        # Check if we have the required scopes
+        if creds and creds.valid:
+            # Verify we have both Gmail and Calendar scopes
+            if not all(scope in (creds.scopes or []) for scope in SCOPES):
+                logger.info("Token missing required scopes. Re-authenticating...")
+                creds = None
+        
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 try:
                     # FIX: Use google.auth.transport.requests.Request() for token refresh
                     creds.refresh(Request())
                 except Exception as e:
-                    logger.critical(f"Failed to refresh Gmail API token: {e}")
-                    return None
-            else:
+                    logger.warning(f"Failed to refresh token, re-authenticating: {e}")
+                    creds = None
+            
+            if not creds:
                 try:
                     flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
                     creds = flow.run_local_server(port=0)
                 except Exception as e:
-                    logger.critical(f"Failed to authenticate with Gmail API: {e}")
+                    logger.critical(f"Failed to authenticate with Google APIs: {e}")
                     return None
         
             with open('token.pickle', 'wb') as token:
@@ -3304,7 +3834,7 @@ def dashboard():
     status_filter = request.args.get('status_filter', 'all')
     location_filter = request.args.get('location_filter', '')
     job_type_filter = request.args.get('job_type_filter', 'all')
-    view_mode = request.args.get('view', 'simple')
+    view_mode = 'detailed'  # Always use detailed view
 
     jobs, total_jobs = db.get_jobs_for_user(
         current_user.id,
@@ -3317,6 +3847,24 @@ def dashboard():
         location_filter=location_filter,
         job_type_filter=job_type_filter
     )
+    
+    # Add status colors to jobs
+    def add_status_colors(job):
+        status_colors = {
+            'new': {'bg': '#f3f4f6', 'text': '#374151'},
+            'applied': {'bg': '#dcfce7', 'text': '#166534'},
+            'interview': {'bg': '#e0e7ff', 'text': '#3730a3'},
+            'offered': {'bg': '#fef3c7', 'text': '#92400e'},
+            'rejected': {'bg': '#fee2e2', 'text': '#991b1b'},
+            'withdrawn': {'bg': '#f3f4f6', 'text': '#6b7280'}
+        }
+        status = job.get('status', 'new')
+        colors = status_colors.get(status, status_colors['new'])
+        job['status_color'] = colors['bg']
+        job['status_text_color'] = colors['text']
+        return job
+    
+    jobs = [add_status_colors(job) for job in jobs]
     
     saved_profiles = db.get_search_profiles(current_user.id)
     user_settings = db.get_user_settings(current_user.id)
@@ -3375,17 +3923,43 @@ def search_jobs():
 @app.route('/save_profile', methods=['POST'])
 @login_required
 def save_profile():
-    profile_name = request.form['profile_name']
-    search_terms = request.form['search_terms']
-    location = request.form['location']
-    experience = request.form.get('experience', '') # Ensure experience is fetched
-    job_type = request.form.get('job_type', '') # Ensure job_type is fetched
+    # Handle both JSON and form data
+    if request.is_json:
+        data = request.get_json()
+        profile_name = data.get('profile_name')
+        search_terms = data.get('search_terms')
+        location = data.get('location', '')
+        experience = data.get('experience', '')
+        job_type = data.get('job_type', '')
+    else:
+        profile_name = request.form['profile_name']
+        search_terms = request.form['search_terms']
+        location = request.form['location']
+        experience = request.form.get('experience', '')
+        job_type = request.form.get('job_type', '')
+
+    if not profile_name or not search_terms:
+        if request.is_json:
+            return jsonify({'error': 'Profile name and search terms are required'}), 400
+        flash('Profile name and search terms are required', 'danger')
+        return redirect(url_for('dashboard'))
 
     db = JobDatabase()
-    if db.save_search_profile(current_user.id, profile_name, search_terms, location, experience, job_type):
+    profile_id = db.save_search_profile(current_user.id, profile_name, search_terms, location, experience, job_type)
+    
+    if profile_id:
+        if request.is_json:
+            return jsonify({
+                'success': True,
+                'message': f"Search profile '{profile_name}' saved successfully!",
+                'profile_id': profile_id
+            })
         flash(f"Search profile '{profile_name}' saved successfully!", 'success')
     else:
+        if request.is_json:
+            return jsonify({'error': f"Failed to save profile. A profile with name '{profile_name}' might already exist."}), 400
         flash(f"Failed to save profile. A profile with name '{profile_name}' might already exist.", 'danger')
+    
     return redirect(url_for('dashboard'))
 
 @app.route('/delete_profile/<int:profile_id>', methods=['POST'])
@@ -3405,19 +3979,24 @@ def apply_profile(profile_id):
     try:
         profile = db.get_search_profile_by_id(profile_id, current_user.id)
         if not profile:
-            return jsonify({'status': 'error', 'message': 'Profile not found or access denied.'}), 404
+            return jsonify({'error': 'Profile not found or access denied.'}), 404
         
-        search_terms = [term.strip() for term in profile['search_terms'].split(',')]
-        location = profile['location']
-        experience = profile['experience']
-        job_type = profile['job_type']
+        # Always return JSON for apply_profile since it's used by JavaScript
+        return jsonify({
+            'success': True,
+            'profile': {
+                'profile_name': profile['profile_name'],
+                'search_terms': profile['search_terms'],
+                'location': profile['location'] or '',
+                'experience': profile['experience'] or '',
+                'job_type': profile['job_type'] or ''
+            }
+        })
         
-        task = run_job_hunt_task.delay(current_user.id, search_terms, location, experience, job_type)
-        logger.info(f"Celery task {task.id} enqueued for user {current_user.id} from profile '{profile['profile_name']}'.")
-        return jsonify({'status': 'success', 'task_id': task.id, 'profile_name': profile["profile_name"]})
+        # Note: Original behavior for starting search task is now handled by the search form
     except Exception as e:
-        logger.error(f"Failed to enqueue Celery task for user {current_user.id} from profile {profile_id}: {e}", exc_info=True)
-        return jsonify({'status': 'error', 'message': 'Failed to start search. Celery worker might be down.'}), 500
+        logger.error(f"Failed to apply profile for user {current_user.id} from profile {profile_id}: {e}", exc_info=True)
+        return jsonify({'error': 'Failed to apply profile.'}), 500
 
 @app.route('/delete_job/<int:job_id>', methods=['POST'])
 @login_required
@@ -3472,18 +4051,152 @@ def update_settings():
     return redirect(url_for('dashboard'))
 
 @app.route('/update_job_status', methods=['POST'])
+@app.route('/update_job_status/<int:job_id>', methods=['POST'])
 @login_required
-def update_job_status():
-    job_id = request.form.get('job_id', type=int)
+def update_job_status(job_id=None):
+    # Handle both URL parameter and form data
+    if job_id is None:
+        job_id = request.form.get('job_id', type=int)
+    
     status = request.form.get('status')
     notes = request.form.get('notes', '')
+    sync_to_calendar = request.form.get('sync_to_calendar') == '1'  # Check if checkbox is checked
+
+    if not job_id or not status:
+        if request.is_json or 'application/json' in request.headers.get('Accept', ''):
+            return jsonify({'error': 'Job ID and status are required'}), 400
+        flash('Job ID and status are required', 'danger')
+        return redirect(url_for('dashboard'))
 
     db = JobDatabase()
+    
     if db.update_job_status_and_notes(job_id, current_user.id, status, notes):
-        flash('Job status updated successfully!', 'success')
+        success_message = 'Job status updated successfully!'
+        
+        # Only sync to calendar if user requested it
+        if sync_to_calendar:
+            # Get job details for calendar integration
+            jobs, _ = db.get_jobs_for_user(current_user.id, limit=1, offset=0, 
+                                           search_query=f"id:{job_id}")
+            
+            if jobs:
+                job_data = jobs[0]
+                calendar_manager = GoogleCalendarManager()
+                
+                try:
+                    calendar_synced = False
+                    
+                    if status == 'interview':
+                        result = calendar_manager.create_interview_event(job_data)
+                        if result:
+                            success_message = 'Job status updated and interview event created in calendar!'
+                            calendar_synced = True
+                    elif status == 'applied':
+                        result = calendar_manager.create_followup_reminder(job_data, status)
+                        if result:
+                            success_message = 'Job status updated and follow-up reminder created!'
+                            calendar_synced = True
+                    elif status in ['offered', 'rejected']:
+                        result = calendar_manager.create_followup_reminder(job_data, status)
+                        if result:
+                            success_message = f'Job status updated and {status} follow-up reminder created!'
+                            calendar_synced = True
+                    elif job_data.get('deadline') and job_data['deadline'] != 'N/A':
+                        # Create deadline reminder for any status if deadline exists
+                        result = calendar_manager.create_deadline_reminder(job_data, job_data['deadline'])
+                        if result:
+                            success_message = 'Job status updated and deadline reminder created!'
+                            calendar_synced = True
+                    
+                    if not calendar_synced and sync_to_calendar:
+                        success_message += ' (No calendar event needed for this status)'
+                        
+                except Exception as e:
+                    logger.error(f"Calendar integration failed: {e}")
+                    if request.is_json or 'application/json' in request.headers.get('Accept', ''):
+                        return jsonify({'error': 'Job status updated, but calendar sync failed. Check your Google Calendar connection.'}), 500
+                    flash('Job status updated, but calendar sync failed. Check your Google Calendar connection.', 'warning')
+                    return redirect(url_for('dashboard'))
+        
+        # Return JSON response for AJAX requests
+        if request.is_json or 'application/json' in request.headers.get('Accept', ''):
+            # Get updated job data
+            jobs, _ = db.get_jobs_for_user(current_user.id, limit=1, offset=0, 
+                                           search_query=f"id:{job_id}")
+            if jobs:
+                job_data = jobs[0]
+                return jsonify({
+                    'success': True,
+                    'message': success_message,
+                    'job': {
+                        'id': job_data['id'],
+                        'status': job_data['status'],
+                        'title': job_data['title'],
+                        'company': job_data['company']
+                    }
+                })
+            else:
+                return jsonify({'error': 'Job not found after update'}), 404
+        
+        flash(success_message, 'success')
     else:
+        if request.is_json or 'application/json' in request.headers.get('Accept', ''):
+            return jsonify({'error': 'Failed to update job status'}), 500
         flash('Failed to update job status.', 'danger')
+    
     return redirect(url_for('dashboard'))
+
+@app.route('/sync_job_to_calendar/<int:job_id>', methods=['POST'])
+@login_required
+def sync_job_to_calendar(job_id):
+    """Sync a specific job to Google Calendar."""
+    try:
+        db = JobDatabase()
+        calendar_manager = GoogleCalendarManager()
+        
+        if not calendar_manager.calendar_service:
+            return jsonify({'error': 'Calendar not connected'}), 400
+        
+        # Get job details
+        jobs, _ = db.get_jobs_for_user(current_user.id, limit=1, offset=0, 
+                                       search_query=f"id:{job_id}")
+        
+        if not jobs:
+            return jsonify({'error': 'Job not found'}), 404
+        
+        job_data = jobs[0]
+        events_created = []
+        
+        # Create appropriate calendar events based on job status and data
+        if job_data.get('status') == 'interview':
+            result = calendar_manager.create_interview_event(job_data)
+            if result:
+                events_created.append('Interview event')
+        
+        if job_data.get('status') == 'applied':
+            result = calendar_manager.create_followup_reminder(job_data, 'applied')
+            if result:
+                events_created.append('Follow-up reminder')
+        
+        if job_data.get('status') in ['offered', 'rejected']:
+            result = calendar_manager.create_followup_reminder(job_data, job_data['status'])
+            if result:
+                events_created.append(f'{job_data["status"].title()} follow-up')
+        
+        if job_data.get('deadline') and job_data['deadline'] != 'N/A':
+            result = calendar_manager.create_deadline_reminder(job_data, job_data['deadline'])
+            if result:
+                events_created.append('Deadline reminder')
+        
+        if events_created:
+            message = f'Successfully created: {", ".join(events_created)}'
+            return jsonify({'success': True, 'message': message, 'events_created': events_created})
+        else:
+            return jsonify({'success': True, 'message': 'No calendar events needed for this job', 'events_created': []})
+        
+    except Exception as e:
+        logger.error(f"Failed to sync job {job_id} to calendar: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/feedback', methods=['POST'])
 @login_required
@@ -3520,6 +4233,378 @@ def job_status_data():
     db = JobDatabase()
     status_counts = db.get_job_status_counts(current_user.id)
     return jsonify(status_counts)
+
+@app.route('/sync_calendar', methods=['POST'])
+@login_required
+def sync_calendar():
+    """Manually sync existing jobs with Google Calendar (with duplicate prevention)."""
+    try:
+        db = JobDatabase()
+        calendar_manager = GoogleCalendarManager()
+        
+        if not calendar_manager.calendar_service or not calendar_manager.job_alerts_calendar_id:
+            flash('Google Calendar not connected or Job Alerts calendar not created. Please check your connection.', 'danger')
+            return redirect(url_for('dashboard'))
+        
+        # Get all jobs for the user
+        jobs, _ = db.get_jobs_for_user(current_user.id, limit=1000)
+        
+        synced_count = 0
+        skipped_count = 0
+        
+        flash(f'Starting sync of {len(jobs)} jobs to "{calendar_manager.user_name}\'s Job Alerts" calendar...', 'info')
+        
+        for job in jobs:
+            try:
+                events_created = 0
+                
+                # Create deadline reminders for jobs with deadlines
+                if job.get('deadline') and job['deadline'] != 'N/A':
+                    result = calendar_manager.create_deadline_reminder(job, job['deadline'])
+                    if result:
+                        events_created += 1
+                
+                # Create interview events for jobs in interview status
+                if job.get('status') == 'interview':
+                    result = calendar_manager.create_interview_event(job)
+                    if result:
+                        events_created += 1
+                
+                # Create follow-up reminders for applied/offered/rejected jobs
+                if job.get('status') in ['applied', 'offered', 'rejected']:
+                    result = calendar_manager.create_followup_reminder(job, job['status'])
+                    if result:
+                        events_created += 1
+                
+                if events_created > 0:
+                    synced_count += events_created
+                else:
+                    skipped_count += 1
+                    
+            except Exception as e:
+                logger.warning(f"Failed to sync job {job.get('id')}: {e}")
+                skipped_count += 1
+                continue
+        
+        if synced_count > 0:
+            flash(f'✅ Successfully synced {synced_count} calendar events! {skipped_count} jobs skipped (no events needed or duplicates prevented).', 'success')
+        else:
+            flash(f'No new calendar events created. {skipped_count} jobs processed (may already have events or no events needed).', 'info')
+        
+    except Exception as e:
+        logger.error(f"Calendar sync failed: {e}")
+        flash('Calendar sync failed. Please check your Google Calendar connection.', 'danger')
+    
+    return redirect(url_for('dashboard'))
+
+@app.route('/test_calendar', methods=['POST'])
+@login_required
+def test_calendar():
+    """Test Google Calendar connection."""
+    try:
+        calendar_manager = GoogleCalendarManager()
+        
+        if not calendar_manager.calendar_service:
+            flash('Google Calendar connection failed. Please check your credentials.json file.', 'danger')
+            return redirect(url_for('dashboard'))
+        
+        # Try to list calendars to test connection
+        calendars = calendar_manager.calendar_service.calendarList().list().execute()
+        primary_calendar = next((cal for cal in calendars['items'] if cal.get('primary')), None)
+        
+        if primary_calendar:
+            flash(f'✅ Google Calendar connected successfully! Primary calendar: {primary_calendar.get("summary", "Unknown")}', 'success')
+        else:
+            flash('Google Calendar connected but no primary calendar found.', 'warning')
+            
+    except Exception as e:
+        logger.error(f"Calendar test failed: {e}")
+        error_str = str(e).lower()
+        if "insufficient authentication scopes" in error_str:
+            flash('❌ Calendar permissions missing. Click "Re-authorize Google APIs" to fix this.', 'danger')
+        elif "accessnotconfigured" in error_str or "has not been used" in error_str:
+            flash('❌ Google Calendar API not enabled. Please enable it in Google Cloud Console for project: job-alert-automation-465708', 'danger')
+        else:
+            flash(f'Google Calendar connection test failed: {str(e)}', 'danger')
+    
+    return redirect(url_for('dashboard'))
+
+@app.route('/reauth_google', methods=['POST'])
+@login_required
+def reauth_google():
+    """Force re-authentication with Google APIs to get all required scopes."""
+    try:
+        # Delete existing token to force re-auth
+        if os.path.exists('token.pickle'):
+            os.remove('token.pickle')
+            logger.info("Deleted existing token.pickle for re-authentication")
+        
+        # Force new authentication
+        emailer = SmartEmailer()
+        if emailer.gmail_service:
+            flash('✅ Google APIs re-authorized successfully! You now have Gmail and Calendar access.', 'success')
+        else:
+            flash('❌ Re-authorization failed. Please check your credentials.json file.', 'danger')
+            
+    except Exception as e:
+        logger.error(f"Re-authorization failed: {e}")
+        flash(f'Re-authorization failed: {str(e)}', 'danger')
+    
+    return redirect(url_for('dashboard'))
+
+@app.route('/calendar_events')
+@login_required
+def get_calendar_events():
+    """Get all job-related calendar events."""
+    try:
+        calendar_manager = GoogleCalendarManager()
+        
+        if not calendar_manager.calendar_service:
+            return jsonify({'error': 'Calendar not connected'}), 400
+        
+        # Get events from the last 30 days to next 90 days
+        from datetime import datetime, timedelta
+        import pytz
+        
+        now = datetime.now(pytz.UTC)
+        time_min = (now - timedelta(days=30)).isoformat()
+        time_max = (now + timedelta(days=90)).isoformat()
+        
+        # Search for events in our Job Alerts calendar
+        calendar_id = calendar_manager.job_alerts_calendar_id or 'primary'
+        
+        events_result = calendar_manager.calendar_service.events().list(
+            calendarId=calendar_id,
+            timeMin=time_min,
+            timeMax=time_max,
+            maxResults=100,
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
+        
+        events = events_result.get('items', [])
+        
+        # Format events for display
+        formatted_events = []
+        for event in events:
+            start = event['start'].get('dateTime', event['start'].get('date'))
+            # Parse datetime for better display
+            try:
+                if 'T' in start:
+                    dt = datetime.fromisoformat(start.replace('Z', '+00:00'))
+                    display_date = dt.strftime('%Y-%m-%d %H:%M')
+                else:
+                    display_date = start
+            except:
+                display_date = start
+                
+            formatted_events.append({
+                'id': event['id'],
+                'summary': event.get('summary', 'No Title'),
+                'description': event.get('description', ''),
+                'start': display_date,
+                'htmlLink': event.get('htmlLink', ''),
+                'created': event.get('created', ''),
+                'calendar_id': calendar_id
+            })
+        
+        return jsonify({'events': formatted_events})
+        
+    except Exception as e:
+        logger.error(f"Failed to get calendar events: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/delete_calendar_event/<event_id>', methods=['DELETE'])
+@login_required
+def delete_calendar_event(event_id):
+    """Delete a specific calendar event."""
+    try:
+        calendar_manager = GoogleCalendarManager()
+        
+        if not calendar_manager.calendar_service:
+            return jsonify({'error': 'Calendar not connected'}), 400
+        
+        # Use the Job Alerts calendar or primary calendar
+        calendar_id = calendar_manager.job_alerts_calendar_id or 'primary'
+        
+        # Delete the event
+        calendar_manager.calendar_service.events().delete(
+            calendarId=calendar_id,
+            eventId=event_id
+        ).execute()
+        
+        return jsonify({'success': True, 'message': 'Event deleted successfully'})
+        
+    except Exception as e:
+        logger.error(f"Failed to delete calendar event {event_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/calendar_sync_status')
+@login_required
+def calendar_sync_status():
+    """Check if calendar is in sync and return last sync time."""
+    try:
+        calendar_manager = GoogleCalendarManager()
+        
+        if not calendar_manager.calendar_service:
+            return jsonify({'error': 'Calendar not connected', 'synced': False}), 400
+        
+        # Get current event count
+        from datetime import datetime, timedelta
+        import pytz
+        
+        now = datetime.now(pytz.UTC)
+        time_min = (now - timedelta(days=30)).isoformat()
+        time_max = (now + timedelta(days=90)).isoformat()
+        
+        calendar_id = calendar_manager.job_alerts_calendar_id or 'primary'
+        
+        events_result = calendar_manager.calendar_service.events().list(
+            calendarId=calendar_id,
+            timeMin=time_min,
+            timeMax=time_max,
+            maxResults=100,
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
+        
+        events = events_result.get('items', [])
+        
+        return jsonify({
+            'synced': True,
+            'event_count': len(events),
+            'last_sync': now.isoformat(),
+            'calendar_id': calendar_id
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to check calendar sync status: {e}")
+        return jsonify({'error': str(e), 'synced': False}), 500
+
+
+# --- Missing Routes for Dashboard JavaScript ---
+
+@app.route('/start_scrape', methods=['POST'])
+@login_required
+def start_scrape():
+    """Start job scraping task and return task ID."""
+    try:
+        search_terms = request.form.get('search_terms', '')
+        location = request.form.get('location', '')
+        experience = request.form.get('experience', '')
+        job_type = request.form.get('job_type', '')
+        
+        if not search_terms:
+            return jsonify({'error': 'Search terms are required'}), 400
+        
+        # Convert search terms to list
+        search_terms_list = [term.strip() for term in search_terms.split(',') if term.strip()]
+        
+        # Start the Celery task
+        task = run_job_hunt_task.delay(
+            current_user.id, search_terms_list, location, experience, job_type
+        )
+        
+        return jsonify({
+            'task_id': task.id,
+            'status': 'started',
+            'message': 'Job search started successfully'
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to start scraping task: {e}")
+        return jsonify({'error': 'Failed to start search. Celery worker might be down.'}), 500
+
+
+@app.route('/status/<task_id>')
+@login_required
+def status(task_id):
+    """Get status of a Celery task."""
+    try:
+        task = run_job_hunt_task.AsyncResult(task_id)
+        
+        if task.state == 'PENDING':
+            response = {
+                'status': 'Pending...',
+                'progress': 0,
+                'details': 'Task is waiting to be processed...'
+            }
+        elif task.state == 'PROGRESS':
+            response = {
+                'status': task.info.get('status', 'In Progress...'),
+                'progress': task.info.get('progress', 0),
+                'details': task.info.get('status', 'Processing...')  # Use status as details for now
+            }
+        elif task.state == 'SUCCESS':
+            response = {
+                'status': 'SUCCESS',
+                'progress': 100,
+                'details': 'Job search completed successfully!',
+                'message': task.info.get('message', 'Search completed')
+            }
+        else:  # FAILURE
+            response = {
+                'status': 'FAILURE',
+                'progress': 100,
+                'details': f'Task failed: {str(task.info)}',
+                'message': 'Search failed'
+            }
+            
+        return jsonify(response)
+        
+    except Exception as e:
+        logger.error(f"Failed to get task status: {e}")
+        return jsonify({
+            'status': 'ERROR',
+            'progress': 0,
+            'details': f'Error checking task status: {str(e)}'
+        }), 500
+
+
+@app.route('/jobs')
+@login_required
+def jobs():
+    """Get jobs for current user as JSON."""
+    try:
+        db = JobDatabase()
+        jobs_data, total_count = db.get_jobs_for_user(current_user.id, limit=100)
+        
+        # Format jobs for frontend
+        def get_status_colors(status):
+            status_colors = {
+                'new': {'bg': '#f3f4f6', 'text': '#374151'},
+                'applied': {'bg': '#dcfce7', 'text': '#166534'},
+                'interview': {'bg': '#e0e7ff', 'text': '#3730a3'},
+                'offered': {'bg': '#fef3c7', 'text': '#92400e'},
+                'rejected': {'bg': '#fee2e2', 'text': '#991b1b'},
+                'withdrawn': {'bg': '#f3f4f6', 'text': '#6b7280'}
+            }
+            return status_colors.get(status, status_colors['new'])
+        
+        formatted_jobs = []
+        for job in jobs_data:
+            colors = get_status_colors(job.get('status', 'new'))
+            formatted_job = {
+                'id': job['id'],
+                'title': job['title'],
+                'company': job['company'],
+                'location': job['location'],
+                'salary': job['salary'] or 'Not specified',
+                'link': job['link'],
+                'post_date': job['posted_date'],
+                'status': job['status'],
+                'status_color': colors['bg'],
+                'status_text_color': colors['text'],
+                'description': job['description'][:200] + '...' if len(job.get('description', '')) > 200 else job.get('description', '')
+            }
+            formatted_jobs.append(formatted_job)
+        
+        return jsonify(formatted_jobs)
+        
+    except Exception as e:
+        logger.error(f"Failed to fetch jobs: {e}")
+        return jsonify({'error': 'Failed to fetch jobs'}), 500
+
 
 
 # This part runs the Flask app if executed directly
