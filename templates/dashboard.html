@@ -228,101 +228,292 @@
         </div>
 
         <!-- Job Status Chart -->
-        <div
-            class="mb-8 p-6 bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 rounded-2xl border-2 border-purple-200 shadow-lg">
-            <div class="text-center mb-6">
-                <h2
-                    class="text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-2">
-                    ✨ Your Job Hunt Vibe Check ✨
-                </h2>
-                <p class="text-sm text-gray-600 font-medium">Current application status breakdown 📊</p>
+        <div class="mb-8 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <!-- Chart Header -->
+            <div class="bg-gradient-to-r from-slate-50 to-gray-50 px-6 py-5 border-b border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="p-2 bg-indigo-100 rounded-lg">
+                            <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-semibold text-gray-900">Application Status Overview</h2>
+                            <p class="text-sm text-gray-600">Track your job application progress</p>
+                        </div>
+                    </div>
+                    <div class="hidden sm:flex items-center space-x-4 text-sm text-gray-500">
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                            <span>Active Applications</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="max-w-sm mx-auto relative">
-                <canvas id="jobStatusChart"></canvas>
-                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div class="text-center">
-                        <div class="text-2xl mb-1">🎯</div>
-                        <div class="text-xs font-semibold text-gray-500" id="chartCenterText">Job Hunt</div>
+
+            <!-- Chart Content -->
+            <div class="p-6">
+                <div class="flex flex-col lg:flex-row items-center gap-8">
+                    <!-- Chart Container -->
+                    <div class="flex-shrink-0">
+                        <div class="relative w-80 h-80">
+                            <canvas id="jobStatusChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Chart Legend & Stats -->
+                    <div class="flex-1 space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="chartStats">
+                            <!-- Stats will be populated by JavaScript -->
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="pt-4 border-t border-gray-100">
+                            <h4 class="text-sm font-medium text-gray-700 mb-3">Quick Actions</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="filterByStatus('new')"
+                                    class="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-100 transition-colors">
+                                    <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                                    View New Jobs
+                                </button>
+                                <button onclick="filterByStatus('interview')"
+                                    class="inline-flex items-center px-3 py-1.5 bg-yellow-50 text-yellow-700 text-xs font-medium rounded-lg hover:bg-yellow-100 transition-colors">
+                                    <div class="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
+                                    Interview Pipeline
+                                </button>
+                                <button onclick="filterByStatus('offered')"
+                                    class="inline-flex items-center px-3 py-1.5 bg-purple-50 text-purple-700 text-xs font-medium rounded-lg hover:bg-purple-100 transition-colors">
+                                    <div class="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                                    Job Offers
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Filter Form -->
-        <form id="filter-form" action="{{ url_for('dashboard') }}" method="GET"
-            class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                <div>
-                    <label for="search_query" class="block text-sm font-medium text-gray-700">Search Keywords</label>
-                    <input type="text" id="search_query" name="search_query" placeholder="Job title, company, skills..."
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        value="{{ search_query }}">
-                </div>
-                <div>
-                    <label for="location_filter" class="block text-sm font-medium text-gray-700">Job Location</label>
-                    <input type="text" id="location_filter" name="location_filter"
-                        placeholder="City, state, or 'Remote'"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        value="{{ location_filter }}">
-                </div>
-                <div>
-                    <label for="status_filter" class="block text-sm font-medium text-gray-700">Application
-                        Status</label>
-                    <select id="status_filter" name="status_filter"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="all">All Statuses</option>
-                        <option value="new" {% if status_filter=='new' %}selected{% endif %}>New Applications</option>
-                        <option value="applied" {% if status_filter=='applied' %}selected{% endif %}>Applications Sent
-                        </option>
-                        <option value="interview" {% if status_filter=='interview' %}selected{% endif %}>Interview Stage
-                        </option>
-                        <option value="rejected" {% if status_filter=='rejected' %}selected{% endif %}>Not Selected
-                        </option>
-                        <option value="offered" {% if status_filter=='offered' %}selected{% endif %}>Job Offers</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="job_type_filter" class="block text-sm font-medium text-gray-700">Job Type</label>
-                    <select id="job_type_filter" name="job_type_filter"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="all">All Types</option>
-                        <option value="Full-time" {% if job_type_filter=='Full-time' %}selected{% endif %}>Full-time
-                        </option>
-                        <option value="Part-time" {% if job_type_filter=='Part-time' %}selected{% endif %}>Part-time
-                        </option>
-                        <option value="Contract" {% if job_type_filter=='Contract' %}selected{% endif %}>Contract
-                        </option>
-                        <option value="Internship" {% if job_type_filter=='Internship' %}selected{% endif %}>Internship
-                        </option>
-                    </select>
-                </div>
-                <div>
-                    <label for="sort_by" class="block text-sm font-medium text-gray-700">Sort By</label>
-                    <select id="sort_by" name="sort_by"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="found_date" {% if sort_by=='found_date' %}selected{% endif %}>Date Found</option>
-                        <option value="relevance_score" {% if sort_by=='relevance_score' %}selected{% endif %}>Relevance
-                            Score</option>
-                        <option value="title" {% if sort_by=='title' %}selected{% endif %}>Job Title</option>
-                        <option value="company" {% if sort_by=='company' %}selected{% endif %}>Company</option>
-                        <option value="location" {% if sort_by=='location' %}selected{% endif %}>Location</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="sort_order" class="block text-sm font-medium text-gray-700">Sort Order</label>
-                    <select id="sort_order" name="sort_order"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="DESC" {% if sort_order=='DESC' %}selected{% endif %}>Newest First</option>
-                        <option value="ASC" {% if sort_order=='ASC' %}selected{% endif %}>Oldest First</option>
-                    </select>
+        <!-- Enhanced Filter Form -->
+        <div class="mb-8 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <!-- Filter Header -->
+            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="p-2 bg-indigo-100 rounded-lg">
+                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">Filter & Sort Jobs</h3>
+                            <p class="text-sm text-gray-600">Refine your job search results</p>
+                        </div>
+                    </div>
+                    <button type="button" id="toggle-filters"
+                        class="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                            </path>
+                        </svg>
+                    </button>
                 </div>
             </div>
-            <div class="mt-4 flex justify-end">
-                <button type="submit"
-                    class="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Apply
-                    Filters</button>
+
+            <!-- Filter Content -->
+            <div id="filter-content" class="p-6">
+                <form id="filter-form" action="{{ url_for('dashboard') }}" method="GET">
+                    <!-- Primary Filters Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                        <!-- Search Keywords -->
+                        <div class="space-y-2">
+                            <label for="search_query" class="flex items-center text-sm font-medium text-gray-700">
+                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                Search Keywords
+                            </label>
+                            <div class="relative">
+                                <input type="text" id="search_query" name="search_query"
+                                    placeholder="Job title, company, skills..."
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-300"
+                                    value="{{ search_query }}">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Location -->
+                        <div class="space-y-2">
+                            <label for="location_filter" class="flex items-center text-sm font-medium text-gray-700">
+                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
+                                    </path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                Job Location
+                            </label>
+                            <div class="relative">
+                                <input type="text" id="location_filter" name="location_filter"
+                                    placeholder="City, state, or 'Remote'"
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-300"
+                                    value="{{ location_filter }}">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
+                                        </path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Application Status -->
+                        <div class="space-y-2">
+                            <label for="status_filter" class="flex items-center text-sm font-medium text-gray-700">
+                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Application Status
+                            </label>
+                            <select id="status_filter" name="status_filter"
+                                class="w-full py-3 px-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-300 bg-white">
+                                <option value="all">🔍 All Statuses</option>
+                                <option value="new" {% if status_filter=='new' %}selected{% endif %}>🆕 New Applications
+                                </option>
+                                <option value="applied" {% if status_filter=='applied' %}selected{% endif %}>📤
+                                    Applications Sent</option>
+                                <option value="interview" {% if status_filter=='interview' %}selected{% endif %}>🎤
+                                    Interview Stage</option>
+                                <option value="rejected" {% if status_filter=='rejected' %}selected{% endif %}>📋 Not
+                                    Selected</option>
+                                <option value="offered" {% if status_filter=='offered' %}selected{% endif %}>🎉 Job
+                                    Offers</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Secondary Filters Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <!-- Job Type -->
+                        <div class="space-y-2">
+                            <label for="job_type_filter" class="flex items-center text-sm font-medium text-gray-700">
+                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 002 2v10a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                Job Type
+                            </label>
+                            <select id="job_type_filter" name="job_type_filter"
+                                class="w-full py-3 px-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-300 bg-white">
+                                <option value="all">💼 All Types</option>
+                                <option value="Full-time" {% if job_type_filter=='Full-time' %}selected{% endif %}>🕘
+                                    Full-time</option>
+                                <option value="Part-time" {% if job_type_filter=='Part-time' %}selected{% endif %}>⏰
+                                    Part-time</option>
+                                <option value="Contract" {% if job_type_filter=='Contract' %}selected{% endif %}>📝
+                                    Contract</option>
+                                <option value="Internship" {% if job_type_filter=='Internship' %}selected{% endif %}>🎓
+                                    Internship</option>
+                            </select>
+                        </div>
+
+                        <!-- Sort By -->
+                        <div class="space-y-2">
+                            <label for="sort_by" class="flex items-center text-sm font-medium text-gray-700">
+                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"></path>
+                                </svg>
+                                Sort By
+                            </label>
+                            <select id="sort_by" name="sort_by"
+                                class="w-full py-3 px-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-300 bg-white">
+                                <option value="found_date" {% if sort_by=='found_date' %}selected{% endif %}>📅 Date
+                                    Found</option>
+                                <option value="relevance_score" {% if sort_by=='relevance_score' %}selected{% endif %}>⭐
+                                    Relevance Score</option>
+                                <option value="title" {% if sort_by=='title' %}selected{% endif %}>📋 Job Title</option>
+                                <option value="company" {% if sort_by=='company' %}selected{% endif %}>🏢 Company
+                                </option>
+                                <option value="location" {% if sort_by=='location' %}selected{% endif %}>📍 Location
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Sort Order -->
+                        <div class="space-y-2">
+                            <label for="sort_order" class="flex items-center text-sm font-medium text-gray-700">
+                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                                </svg>
+                                Sort Order
+                            </label>
+                            <select id="sort_order" name="sort_order"
+                                class="w-full py-3 px-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-300 bg-white">
+                                <option value="DESC" {% if sort_order=='DESC' %}selected{% endif %}>⬇️ Newest First
+                                </option>
+                                <option value="ASC" {% if sort_order=='ASC' %}selected{% endif %}>⬆️ Oldest First
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
+                        <button type="submit"
+                            class="flex-1 sm:flex-none inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg hover:shadow-xl">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z">
+                                </path>
+                            </svg>
+                            Apply Filters
+                        </button>
+                        <button type="button" id="clear-filters"
+                            class="flex-1 sm:flex-none inline-flex items-center justify-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            Clear All
+                        </button>
+                        <div
+                            class="flex-1 sm:flex-none text-sm text-gray-500 flex items-center justify-center sm:justify-start">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Showing {{ total_jobs }} jobs
+                        </div>
+                    </div>
+                </form>
             </div>
-        </form>
+        </div>
 
         <!-- Job Table -->
         <div class="bg-white overflow-hidden sm:rounded-lg">
@@ -849,8 +1040,8 @@
                         'offered': 'Job Offers'
                     };
 
-                    // Update center text with total count
-                    document.getElementById('chartCenterText').innerHTML = `<div class="text-lg font-bold text-purple-600">${totalJobsForChart}</div><div class="text-xs text-gray-500">Total Jobs</div>`;
+                    // Populate stats section
+                    populateChartStats(data, totalJobsForChart);
 
                     const chartData = {
                         labels: Object.keys(data).map(status => statusEmojis[status] || status),
@@ -858,11 +1049,11 @@
                             label: 'Job Statuses',
                             data: Object.values(data),
                             backgroundColor: [
-                                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',  // New - Purple gradient
-                                'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',  // Applied - Pink gradient  
-                                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',  // Interview - Blue gradient
-                                'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',  // Rejected - Green gradient (positive spin)
-                                'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'   // Offered - Pink-yellow gradient
+                                '#3B82F6',  // New - Professional Blue
+                                '#10B981',  // Applied - Success Green  
+                                '#F59E0B',  // Interview - Warning Amber
+                                '#6B7280',  // Rejected - Neutral Gray
+                                '#8B5CF6'   // Offered - Professional Purple
                             ],
                             borderColor: '#FFFFFF',
                             borderWidth: 3,
@@ -945,7 +1136,128 @@
                 return gradient;
             }
 
+            // Populate chart stats section
+            function populateChartStats(data, total) {
+                const statsContainer = document.getElementById('chartStats');
+                if (!statsContainer) return;
+
+                const statusConfig = {
+                    'new': { color: 'blue', icon: '', label: 'New Applications' },
+                    'applied': { color: 'green', icon: '', label: 'Applications Sent' },
+                    'interview': { color: 'yellow', icon: '', label: 'Interview Stage' },
+                    'rejected': { color: 'gray', icon: '', label: 'Not Selected' },
+                    'offered': { color: 'purple', icon: '', label: 'Job Offers' }
+                };
+
+                let statsHTML = '';
+                Object.entries(data).forEach(([status, count]) => {
+                    const config = statusConfig[status] || { color: 'gray', icon: '📊', label: status };
+                    const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+
+                    statsHTML += `
+                        <div class="bg-${config.color}-50 border border-${config.color}-100 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-lg">${config.icon}</span>
+                                    <span class="text-sm font-medium text-${config.color}-700">${config.label}</span>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-2xl font-bold text-${config.color}-600">${count}</div>
+                                    <div class="text-xs text-${config.color}-500">${percentage}%</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                statsContainer.innerHTML = statsHTML;
+            }
+
+            // Filter by status function
+            window.filterByStatus = function (status) {
+                const statusFilter = document.getElementById('status_filter');
+                if (statusFilter) {
+                    statusFilter.value = status;
+                    document.getElementById('filter-form').submit();
+                }
+            }
+
             renderJobStatusChart();
+
+            // Enhanced Filter Form JavaScript
+            // Toggle filters on mobile
+            const toggleFilters = document.getElementById('toggle-filters');
+            const filterContent = document.getElementById('filter-content');
+
+            if (toggleFilters && filterContent) {
+                toggleFilters.addEventListener('click', function () {
+                    filterContent.classList.toggle('hidden');
+                    const icon = toggleFilters.querySelector('svg');
+                    icon.style.transform = filterContent.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+                });
+            }
+
+            // Clear all filters
+            const clearFilters = document.getElementById('clear-filters');
+            if (clearFilters) {
+                clearFilters.addEventListener('click', function () {
+                    // Clear all form inputs
+                    document.getElementById('search_query').value = '';
+                    document.getElementById('location_filter').value = '';
+                    document.getElementById('status_filter').value = 'all';
+                    document.getElementById('job_type_filter').value = 'all';
+                    document.getElementById('sort_by').value = 'found_date';
+                    document.getElementById('sort_order').value = 'DESC';
+
+                    // Submit the form to apply cleared filters
+                    document.getElementById('filter-form').submit();
+                });
+            }
+
+            // The user wants to manually click "Apply Filters", so we disable auto-submit.
+            // // Auto-submit on select changes for better UX
+            // const selectElements = document.querySelectorAll('#filter-form select');
+            // selectElements.forEach(select => {
+            //     select.addEventListener('change', function () {
+            //         // Add a small delay to allow users to make multiple changes
+            //         clearTimeout(window.filterTimeout);
+            //         window.filterTimeout = setTimeout(() => {
+            //             document.getElementById('filter-form').submit();
+            //         }, 500);
+            //     });
+            // });
+
+            // Enhanced input handling with debounce
+            const textInputs = document.querySelectorAll('#filter-form input[type="text"]');
+            textInputs.forEach(input => {
+                input.addEventListener('input', function () {
+                    // Visual feedback
+                    this.classList.add('border-indigo-300');
+
+                    // Debounced auto-submit
+                    clearTimeout(window.inputTimeout);
+                    window.inputTimeout = setTimeout(() => {
+                        this.classList.remove('border-indigo-300');
+                        // Uncomment the next line if you want auto-submit on text input
+                        // document.getElementById('filter-form').submit();
+                    }, 1000);
+                });
+            });
+
+            // Form submission loading state
+            const filterForm = document.getElementById('filter-form');
+            const submitButton = filterForm.querySelector('button[type="submit"]');
+
+            filterForm.addEventListener('submit', function () {
+                submitButton.innerHTML = `
+                    <svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Filtering...
+                `;
+                submitButton.disabled = true;
+            });
 
             // Calendar Events Management
             const loadEventsBtn = document.getElementById('load-events-btn');
