@@ -1,6 +1,6 @@
-# 🤖 AI Job Hunter
+# 🤖 AI JobSnap
 
-AI Job Hunter is a powerful, Flask-based web application designed to automate and streamline your job search. It aggregates job listings from multiple sources, scores them for relevance, and provides a comprehensive dashboard to manage your applications from discovery to offer.
+AI JobSnap is a powerful, Flask-based web application designed to automate and streamline your job search. It aggregates job listings from multiple sources, scores them for relevance, and provides a comprehensive dashboard to manage your applications from discovery to offer.
 
 
 ## ✨ Features

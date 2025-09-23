@@ -1,7 +1,7 @@
 # 📘 Project Best Practices
 
 ## 1. Project Purpose
-This project is a Flask-based “Job Hunter” web application that helps users search and track jobs across multiple sources (currently LinkedIn and Internshala). It features user authentication, saved search profiles, background scraping via Celery workers, job scoring and deduplication, a management dashboard for tracking application status, and automated email reports (including optional Excel attachments) via the Gmail API.
+This project is a Flask-based “JobSnap” web application that helps users search and track jobs across multiple sources (currently LinkedIn and Internshala). It features user authentication, saved search profiles, background scraping via Celery workers, job scoring and deduplication, a management dashboard for tracking application status, and automated email reports (including optional Excel attachments) via the Gmail API.
 
 ## 2. Project Structure
 - app.py

@@ -1,123 +1,269 @@
 {% extends "base.html" %}
+
 {% block content %}
-<div class="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-lg border border-gray-200">
-    <h1 class="text-3xl font-bold mb-6 text-gray-900">Your Profile</h1>
-    <form action="{{ url_for('profile') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+<!-- Full-screen fixed background -->
+<div class="fixed inset-0 bg-cover bg-center -z-10" style="background-image: url({{ url_for('static', filename='assets/profiletemporalbg.jpg') }});">
+    <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-[4px]"></div>
+</div>
+
+<div class="relative max-w-4xl mx-auto px-8 md:px-12 py-16">
+    <div class="text-center mb-10">
+        <h1 class="text-4xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">Your Profile</h1>
+        <p class="mt-2 text-lg text-gray-300">Keep your application details up-to-date for seamless job hunting.</p>
+    </div>
+
+    <form action="{{ url_for('profile') }}" method="POST" enctype="multipart/form-data" class="space-y-8">
+        
+        <!-- Personal Information -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-                <label for="full_name" class="block text-sm font-medium text-gray-700">Full Name</label>
-                <input type="text" name="full_name" id="full_name"
-                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                       value="{{ user_details.full_name if user_details }}">
+                <label for="full_name" class="block text-sm font-medium text-gray-300">Full Name</label>
+                <input type="text" name="full_name" id="full_name" value="{{ user_details.full_name if user_details else '' }}" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
             </div>
             <div>
-                <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                <input type="email" name="email" id="email"
-                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                       value="{{ user_details.email if user_details }}">
+                <label for="email" class="block text-sm font-medium text-gray-300">Email</label>
+                <input type="email" name="email" id="email" value="{{ user_details.email if user_details else '' }}" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
             </div>
             <div>
-                <label for="phone" class="block text-sm font-medium text-gray-700">Phone</label>
-                <input type="tel" name="phone" id="phone"
-                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                       value="{{ user_details.phone if user_details }}">
+                <label for="phone" class="block text-sm font-medium text-gray-300">Phone</label>
+                <input type="tel" name="phone" id="phone" value="{{ user_details.phone if user_details else '' }}" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
             </div>
             <div>
-                <label for="address" class="block text-sm font-medium text-gray-700">Address</label>
-                <input type="text" name="address" id="address"
-                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                       value="{{ user_details.address if user_details }}">
+                <label for="address" class="block text-sm font-medium text-gray-300">Address</label>
+                <input type="text" name="address" id="address" value="{{ user_details.address if user_details else '' }}" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
             </div>
         </div>
-        
-        <div>
-            <label for="linkedin_url" class="block text-sm font-medium text-gray-700">LinkedIn URL</label>
-            <input type="url" name="linkedin_url" id="linkedin_url"
-                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                   value="{{ user_details.linkedin_url if user_details }}">
+
+        <!-- Professional Links -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div>
+                <label for="linkedin_url" class="block text-sm font-medium text-gray-300">LinkedIn URL</label>
+                <input type="url" name="linkedin_url" id="linkedin_url" value="{{ user_details.linkedin_url if user_details else '' }}" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
+            </div>
+            <div>
+                <label for="github_url" class="block text-sm font-medium text-gray-300">GitHub URL</label>
+                <input type="url" name="github_url" id="github_url" value="{{ user_details.github_url if user_details else '' }}" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
+            </div>
+            <div>
+                <label for="portfolio_url" class="block text-sm font-medium text-gray-300">Portfolio URL</label>
+                <input type="url" name="portfolio_url" id="portfolio_url" value="{{ user_details.portfolio_url if user_details else '' }}" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
+            </div>
         </div>
+
+        <!-- Resume and Cover Letter -->
         <div>
-            <label for="github_url" class="block text-sm font-medium text-gray-700">GitHub URL</label>
-            <input type="url" name="github_url" id="github_url"
-                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                   value="{{ user_details.github_url if user_details }}">
-        </div>
-        <div>
-            <label for="portfolio_url" class="block text-sm font-medium text-gray-700">Portfolio URL</label>
-            <input type="url" name="portfolio_url" id="portfolio_url"
-                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                   value="{{ user_details.portfolio_url if user_details }}">
-        </div>
-        
-        <div>
-            <label for="resume" class="block text-sm font-medium text-gray-700">Upload Resume</label>
-            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+            <label for="resume" class="block text-sm font-medium text-gray-300">Upload Resume</label>
+            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-indigo-500/30 border-dashed rounded-lg bg-gray-900/40 backdrop-blur-md shadow-inner shadow-black/20">
                 <div class="space-y-1 text-center">
                     <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-20m32-12a4 4 0 00-4-4h-4a4 4 0 00-4 4m0 0a4 4 0 00-4 4v12a4 4 0 004 4h4a4 4 0 004-4v-12a4 4 0 00-4-4z" />
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
-                    <div class="flex text-sm text-gray-600">
-                        <label for="resume" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                    <div class="flex text-sm text-gray-400">
+                        <label for="resume" class="relative cursor-pointer bg-gray-900 rounded-md font-medium text-indigo-400 hover:text-indigo-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-offset-gray-900 focus-within:ring-indigo-500">
                             <span>Upload a file</span>
                             <input id="resume" name="resume" type="file" class="sr-only">
                         </label>
                         <p class="pl-1">or drag and drop</p>
                     </div>
-                    {% if user_details and user_details.resume_path %}
-                        <p class="text-xs text-gray-500">Current file: {{ user_details.resume_path.split('/')[-1] }}</p>
-                    {% endif %}
+                    <p class="text-xs text-gray-500">PDF, DOCX up to 10MB</p>
                 </div>
             </div>
-        </div>
-        
-        <div>
-            <label for="cover_letter_template" class="block text-sm font-medium text-gray-700">Cover Letter Template</label>
-            <textarea name="cover_letter_template" id="cover_letter_template" rows="8"
-                      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                      placeholder="Enter a default cover letter template here. Use placeholders like [Job Title], [Company Name]... to personalize it.">{{ user_details.cover_letter_template if user_details }}</textarea>
+            {% if user_details and user_details.resume_path %}
+            <p class="mt-2 text-sm text-green-400">Current file: <span class="font-medium">{{ user_details.resume_path.split('/')[-1].split('\\')[-1] }}</span></p>
+            {% endif %}
         </div>
 
         <div>
-            <label for="browser_profile_path" class="block text-sm font-medium text-gray-700">Browser Profile Path (for Assisted Apply)</label>
-            <input type="text" name="browser_profile_path" id="browser_profile_path"
-                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                   value="{{ user_details.browser_profile_path if user_details else '' }}"
-                   placeholder="e.g., C:\Users\YourUser\AppData\Local\Microsoft\Edge\User Data">
-            <p class="mt-2 text-xs text-gray-500">
-                <span class="font-semibold">Optional:</span> Makes "Assisted Apply" use your logged-in browser session to avoid re-logging in.
-                <br />
-                On Edge/Chrome, go to <code class="text-xs bg-gray-100 p-1 rounded">edge://version</code> or <code class="text-xs bg-gray-100 p-1 rounded">chrome://version</code>. Copy the <span class="font-semibold">"Profile Path"</span>.
-                <br />
-                <span class="font-semibold text-red-600">Important:</span> If the path ends with `\Default` or `\Profile 1`, remove that last part. The correct path should end in <code class="text-xs bg-gray-100 p-1 rounded">User Data</code>.
-                <br />
-                <span class="font-semibold">This is a folder path, NOT the path to the `msedge.exe` file.</span>
+            <div class="flex justify-between items-center">
+                <label for="cover_letter_template" class="block text-sm font-medium text-gray-300">Cover Letter Template</label>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick='generateAICoverLetter({{ user_details | tojson | safe }})' class="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-md text-cyan-300 bg-cyan-900/50 border border-cyan-500/30 hover:bg-cyan-900/80 transition-colors">
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12.965 2.084a1 1 0 0 0-1.93 0l-1.113 4.023a1 1 0 0 1-.949.691l-4.023 1.113a1 1 0 0 0 0 1.93l4.023 1.113a1 1 0 0 1 .949.691l1.113 4.023a1 1 0 0 0 1.93 0l1.113-4.023a1 1 0 0 1 .949-.691l4.023-1.113a1 1 0 0 0 0-1.93l-4.023-1.113a1 1 0 0 1-.949-.691L12.965 2.084ZM5 14a1 1 0 0 0-1.93 0l-.523 1.887a1 1 0 0 1-.95.691l-1.887.523a1 1 0 0 0 0 1.93l1.887.523a1 1 0 0 1 .95.691l.523 1.887a1 1 0 0 0 1.93 0l.523-1.887a1 1 0 0 1 .95-.691l1.887-.523a1 1 0 0 0 0-1.93l-1.887-.523a1 1 0 0 1-.95-.691L5 14Z" />
+                        </svg>
+                        AI Generate
+                    </button>
+                    <button type="button" id="copy-cover-letter-btn" onclick="copyCoverLetterToClipboard()" class="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-md text-green-300 bg-green-900/50 border border-green-500/30 hover:bg-green-900/80 transition-colors">
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M7 3.5A1.5 1.5 0 0 1 8.5 2h3A1.5 1.5 0 0 1 13 3.5v1A1.5 1.5 0 0 1 11.5 6v0h-3A1.5 1.5 0 0 1 7 4.5v-1Z" />
+                            <path d="M5.5 4.5A1.5 1.5 0 0 1 7 3h6a1.5 1.5 0 0 1 1.5 1.5v7A1.5 1.5 0 0 1 13 13h-1a.5.5 0 0 1 0-1h1a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.5-.5H7a.5.5 0 0 0-.5.5v1.586l.293.293a.5.5 0 0 1 0 .707l-.293.293V11.5a.5.5 0 0 0 .5.5h1a.5.5 0 0 1 0 1h-1A1.5 1.5 0 0 1 5.5 11.5v-7Z" />
+                            <path d="M4 10a1.5 1.5 0 0 1 1.5-1.5h6A1.5 1.5 0 0 1 13 10v6a1.5 1.5 0 0 1-1.5 1.5h-6A1.5 1.5 0 0 1 4 16v-6Zm1.5-.5a.5.5 0 0 0-.5.5v6a.5.5 0 0 0 .5.5h6a.5.5 0 0 0 .5-.5v-6a.5.5 0 0 0-.5-.5h-6Z" />
+                        </svg>
+                        Copy
+                    </button>
+                </div>
+            </div>
+            <textarea id="cover_letter_template" name="cover_letter_template" rows="6" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200" placeholder="Enter a default cover letter template here. Use placeholders like [Job Title], [Company Name]... to personalize it.">{{ user_details.cover_letter_template if user_details else '' }}</textarea>
+        </div>
+
+        <!-- Assisted Apply Settings -->
+        <div>
+            <label for="browser_profile_path" class="block text-sm font-medium text-gray-300">Browser Profile Path (for Assisted Apply)</label>
+            <input type="text" name="browser_profile_path" id="browser_profile_path" value="{{ user_details.browser_profile_path if user_details else '' }}" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
+            <p class="mt-2 text-xs text-gray-400">
+                <strong>Optional:</strong> Makes "Assisted Apply" use your logged-in browser session to avoid re-logging in.<br>
+                On Edge/Chrome, go to <code class="text-cyan-400">edge://version</code> or <code class="text-cyan-400">chrome://version</code>. Copy the "Profile Path".<br>
+                <strong>Important:</strong> If the path ends with `\Default` or `\Profile 1`, remove that last part. The correct path should end in <code class="text-cyan-400">User Data</code>.<br>
+                This is a folder path, NOT the path to the `msedge.exe` file.
             </p>
         </div>
 
+        <!-- Additional Questions -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <label for="willing_to_relocate" class="block text-sm font-medium text-gray-700">Willing to Relocate?</label>
-                <select name="willing_to_relocate" id="willing_to_relocate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    <option value="yes" {% if user_details and user_details.willing_to_relocate == 'yes' %}selected{% endif %}>Yes</option>
-                    <option value="no" {% if not user_details or user_details.willing_to_relocate == 'no' %}selected{% endif %}>No</option>
-                    <option value="case_by_case" {% if user_details and user_details.willing_to_relocate == 'case_by_case' %}selected{% endif %}>On a case-by-case basis</option>
-                </select>
-            </div>
-            <div>
-                <label for="authorized_to_work" class="block text-sm font-medium text-gray-700">Legally Authorized to Work?</label>
-                <select name="authorized_to_work" id="authorized_to_work" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    <option value="yes" {% if user_details and user_details.authorized_to_work == 'yes' %}selected{% endif %}>Yes</option>
-                    <option value="no" {% if not user_details or user_details.authorized_to_work == 'no' %}selected{% endif %}>No, I require sponsorship</option>
-                </select>
-                 <p class="mt-2 text-xs text-gray-500">
-                    This helps answer questions about work authorization and visa sponsorship.
-                </p>
-            </div>
+            <fieldset>
+                <legend class="text-sm font-medium text-gray-300">Willing to Relocate?</legend>
+                <div class="mt-2 space-y-2">
+                    <div class="flex items-center">
+                        <input id="relocate_yes" name="willing_to_relocate" type="radio" value="yes" {% if user_details and user_details.willing_to_relocate == 'yes' %}checked{% endif %} class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-600 bg-gray-700/50">
+                        <label for="relocate_yes" class="ml-3 block text-sm font-medium text-gray-200">Yes</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="relocate_no" name="willing_to_relocate" type="radio" value="no" {% if not user_details or user_details.willing_to_relocate == 'no' %}checked{% endif %} class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-600 bg-gray-700/50">
+                        <label for="relocate_no" class="ml-3 block text-sm font-medium text-gray-200">No</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="relocate_case" name="willing_to_relocate" type="radio" value="case-by-case" {% if user_details and user_details.willing_to_relocate == 'case-by-case' %}checked{% endif %} class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-600 bg-gray-700/50">
+                        <label for="relocate_case" class="ml-3 block text-sm font-medium text-gray-200">On a case-by-case basis</label>
+                    </div>
+                </div>
+            </fieldset>
+            <fieldset>
+                <legend class="text-sm font-medium text-gray-300">Legally Authorized to Work?</legend>
+                <div class="mt-2 space-y-2">
+                    <div class="flex items-center">
+                        <input id="auth_yes" name="authorized_to_work" type="radio" value="yes" {% if user_details and user_details.authorized_to_work == 'yes' %}checked{% endif %} class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-600 bg-gray-700/50">
+                        <label for="auth_yes" class="ml-3 block text-sm font-medium text-gray-200">Yes</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="auth_no" name="authorized_to_work" type="radio" value="no" {% if not user_details or user_details.authorized_to_work == 'no' %}checked{% endif %} class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-600 bg-gray-700/50">
+                        <label for="auth_no" class="ml-3 block text-sm font-medium text-gray-200">No, I require sponsorship</label>
+                    </div>
+                </div>
+                <p class="mt-2 text-xs text-gray-400">This helps answer questions about work authorization and visa sponsorship.</p>
+            </fieldset>
         </div>
 
-        <button type="submit" class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-            Save Profile
-        </button>
+        <!-- Submit Button -->
+        <div class="pt-5">
+            <div class="flex justify-end">
+                <button type="submit" class="btn-temporal inline-flex justify-center py-3 px-8 border border-transparent shadow-sm text-base font-medium rounded-md text-white">
+                    Save Profile
+                </button>
+            </div>
+        </div>
     </form>
 </div>
+
+<script>
+    /**
+     * Generates a cover letter template when the "AI Generate" button is clicked.
+     * It uses the user's profile details and parsed resume skills to populate a template.
+     */
+    function generateAICoverLetter(userDetails) {
+        const coverLetterTextarea = document.getElementById('cover_letter_template');
+        const generateBtn = document.querySelector("button[onclick^='generateAICoverLetter']");
+        const copyBtn = document.getElementById('copy-cover-letter-btn');
+
+        const fullName = userDetails ? userDetails.full_name || '[Your Name]' : '[Your Name]';
+        const email = userDetails ? userDetails.email || '[Your Email]' : '[Your Email]';
+        const phone = userDetails ? userDetails.phone || '[Your Phone]' : '[Your Phone]';
+        
+        let skills = [];
+        if (userDetails && userDetails.resume_parsed_data) {
+            try {
+                // Safely parse the resume data which is stored as a JSON string
+                const parsedResume = JSON.parse(userDetails.resume_parsed_data);
+                if (parsedResume && parsedResume.skills && parsedResume.skills.length > 0) {
+                    skills = parsedResume.skills;
+                }
+            } catch (e) {
+                console.error("Could not parse resume data:", e);
+            }
+        }
+
+        let skillsParagraph = "Throughout my career, I have developed a strong skill set that I believe is a great match for this role.";
+        // If skills were found in the resume, create a more personalized paragraph
+        if (skills.length > 0) {
+            const skillsList = skills.slice(0, 5).join(', '); // Take top 5 skills
+            skillsParagraph = `I am proficient in a variety of technologies and methodologies, including ${skillsList}. My experience in these areas has prepared me to tackle the challenges of this position and contribute effectively to your team.`;
+        }
+
+        const template = `Dear [Hiring Manager Name],
+
+I am writing to express my enthusiastic interest in the [Job Title] position at [Company Name], which I discovered on [Platform, e.g., LinkedIn]. Having followed [Company Name]'s work for some time, I am deeply impressed by your commitment to [Company Value or Product], and I am confident that my skills and experience align perfectly with the requirements of this role.
+
+${skillsParagraph}
+
+I am particularly drawn to this opportunity because [Reason you are interested in the company or role]. I am eager to bring my background in [Your Key Experience Area] to your team and contribute to your continued success.
+
+Thank you for considering my application. I have attached my resume for your review and welcome the opportunity to discuss how my qualifications can benefit [Company Name].
+
+Sincerely,
+${fullName}
+${email}
+${phone}`;
+
+        // --- AI Animation Logic ---
+        generateBtn.disabled = true;
+        copyBtn.disabled = true;
+        coverLetterTextarea.value = '';
+        coverLetterTextarea.placeholder = '🤖 AI is thinking...';
+
+        // 1. "Thinking" phase
+        setTimeout(() => {
+            coverLetterTextarea.placeholder = '✍️ Generating your cover letter...';
+            
+            // 2. "Typing" phase
+            let i = 0;
+            const typingSpeed = 10; // milliseconds per character
+            const typingInterval = setInterval(() => {
+                if (i < template.length) {
+                    coverLetterTextarea.value += template.charAt(i);
+                    i++;
+                    coverLetterTextarea.scrollTop = coverLetterTextarea.scrollHeight;
+                } else {
+                    clearInterval(typingInterval);
+                    generateBtn.disabled = false;
+                    copyBtn.disabled = false;
+
+                    // 3. "Finished" glow effect
+                    coverLetterTextarea.style.transition = 'box-shadow 0.3s ease-in-out';
+                    coverLetterTextarea.style.boxShadow = '0 0 15px rgba(0, 255, 255, 0.5)';
+                    setTimeout(() => {
+                        coverLetterTextarea.style.boxShadow = '';
+                    }, 1500);
+                }
+            }, typingSpeed);
+        }, 700); // Delay for "thinking"
+    }
+
+    function copyCoverLetterToClipboard() {
+        const textarea = document.getElementById('cover_letter_template');
+        const copyButton = document.getElementById('copy-cover-letter-btn');
+
+        if (!textarea.value) {
+            alert('Nothing to copy. Generate a cover letter first.');
+            return;
+        }
+
+        navigator.clipboard.writeText(textarea.value).then(() => {
+            const originalContent = copyButton.innerHTML;
+            copyButton.disabled = true;
+            copyButton.innerHTML = `
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.052-.143Z" clip-rule="evenodd" />
+                </svg>
+                Copied!
+            `;
+
+            setTimeout(() => {
+                copyButton.innerHTML = originalContent;
+                copyButton.disabled = false;
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+            alert('Failed to copy text. Please try again.');
+        });
+    }
+</script>
 {% endblock %}

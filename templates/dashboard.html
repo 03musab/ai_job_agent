@@ -1,211 +1,221 @@
 {% extends "base.html" %}
 {% block content %}
+<!-- Full-screen fixed background -->
+<div class="fixed inset-0 bg-cover bg-center -z-10" style="background-image: url({{ url_for('static', filename='assets/temporalbg.jpg') }});">
+    <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-[4px]"></div>
+</div>
+
 <div class="flex flex-col lg:flex-row gap-8">
     <!-- Left Sidebar: Search & Profiles -->
-    <div class="w-full lg:w-1/3 p-6 bg-white rounded-xl shadow-md space-y-8">
+    <div class="w-full lg:w-1/3 p-6 bg-gradient-to-b from-gray-800/90 to-gray-900/90 backdrop-blur-lg rounded-xl shadow-xl border border-indigo-500/20 space-y-8">
         <!-- Search & Scrape Section -->
-        <div>
-            <h2 class="text-2xl font-bold mb-4 text-gray-800">New Job Search</h2>
-            <form id="search-form" class="space-y-4">
-                <div class="relative">
-                    <label for="search_terms" class="block text-sm font-medium text-gray-700">Keywords (e.g., Python,
-                        AI, Data Science)</label>
-                    <input type="text" name="search_terms" id="search_terms" placeholder="Keywords" required
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="location" class="block text-sm font-medium text-gray-700">Location (e.g.,
-                            Bengaluru)</label>
-                        <input type="text" name="location" id="location" placeholder="City or 'Remote'"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+        <div class="relative">
+            <div class="absolute inset-0 bg-gradient-to-r from-indigo-600/10 to-purple-600/10 rounded-lg"></div>
+            <div class="relative p-6">
+                <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text">New Job Search</h2>
+                <form id="search-form" class="space-y-4">
+                    <div class="relative">
+                        <label for="search_terms" class="block text-sm font-medium text-gray-300">Keywords (e.g., Python, AI, Data Science)</label>
+                        <input type="text" name="search_terms" id="search_terms" placeholder="Keywords" required
+                            class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100 placeholder-gray-400 backdrop-blur-sm">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="location" class="block text-sm font-medium text-gray-300">Location (e.g., Bengaluru)</label>
+                            <input type="text" name="location" id="location" placeholder="City or 'Remote'"
+                                class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100 placeholder-gray-400 backdrop-blur-sm">
+                        </div>
+                        <div>
+                            <label for="experience" class="block text-sm font-medium text-gray-300">Experience (e.g., 2-5 years)</label>
+                            <input type="text" name="experience" id="experience"
+                                placeholder="e.g.'0','1','2-5'"
+                                class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100 placeholder-gray-400 backdrop-blur-sm">
+                        </div>
                     </div>
                     <div>
-                        <label for="experience" class="block text-sm font-medium text-gray-700">Experience (e.g., 2-5
-                            years)</label>
-                        <input type="text" name="experience" id="experience"
-                            placeholder="e.g. '3 years', 'Senior', 'Entry Level'"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="job_type" class="block text-sm font-medium text-gray-300">Job Type</label>
+                        <select id="job_type" name="job_type"
+                            class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100">
+                            <option value="">Any</option>
+                            <option value="Full-time">Full-time</option>
+                            <option value="Part-time">Part-time</option>
+                            <option value="Contract">Contract</option>
+                            <option value="Internship">Internship</option>
+                        </select>
                     </div>
-                </div>
-                <div>
-                    <label for="job_type" class="block text-sm font-medium text-gray-700">Job Type</label>
-                    <select id="job_type" name="job_type"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="">Any</option>
-                        <option value="Full-time">Full-time</option>
-                        <option value="Part-time">Part-time</option>
-                        <option value="Contract">Contract</option>
-                        <option value="Internship">Internship</option>
-                    </select>
-                </div>
-                <div class="flex gap-4">
-                    <button type="submit" id="scrape-btn"
-                        class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        Start Search
-                    </button>
-                    <button type="button" id="save-profile-btn"
-                        class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        Save Profile
-                    </button>
-                </div>
-            </form>
-            <div id="progress-container" class="mt-4 hidden">
-                <div class="text-sm font-medium text-gray-700">Progress: <span id="task-status"></span></div>
-                <div class="w-full bg-gray-200 rounded-full h-2.5 mt-1">
-                    <div id="progress-bar" class="bg-indigo-600 h-2.5 rounded-full" style="width: 0%;"></div>
+                    <div class="flex gap-4">
+                        <button type="submit" id="scrape-btn"
+                            class="w-full btn-temporal inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md shadow-sm">
+                            Start Search
+                        </button>
+                        <button type="button" id="save-profile-btn"
+                            class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 backdrop-blur-sm transition-all duration-200">
+                            Save Profile
+                        </button>
+                    </div>
+                </form>
+                <div id="progress-container" class="mt-4 hidden">
+                    <div class="text-sm font-medium text-gray-300">Progress: <span id="task-status" class="text-cyan-400"></span></div>
+                    <div class="w-full bg-gray-700 rounded-full h-2.5 mt-1">
+                        <div id="progress-bar" class="progress-bar h-2.5 rounded-full" style="width: 0%;"></div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Saved Profiles Section -->
-        <div id="saved-profiles-container">
-            <h2 class="text-2xl font-bold mb-4 text-gray-800">Saved Profiles</h2>
-            <div class="space-y-4">
-                {% if saved_profiles %}
-                {% for profile in saved_profiles %}
-                <div class="bg-gray-50 p-4 rounded-lg flex items-center justify-between shadow-sm">
-                    <div>
-                        <h3 class="font-semibold text-gray-900">{{ profile.profile_name }}</h3>
-                        <p class="text-xs text-gray-500">{{ profile.search_terms }}</p>
+        <div id="saved-profiles-container" class="relative">
+            <div class="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 rounded-lg"></div>
+            <div class="relative p-6">
+                <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text">Saved Profiles</h2>
+                <div class="space-y-4">
+                    {% if saved_profiles %}
+                    {% for profile in saved_profiles %}
+                    <div class="bg-gray-800/60 p-4 rounded-lg flex items-center justify-between shadow-sm border border-gray-700/50 backdrop-blur-sm hover:bg-gray-800/80 transition-all duration-200">
+                        <div>
+                            <h3 class="font-semibold text-gray-100">{{ profile.profile_name }}</h3>
+                            <p class="text-xs text-gray-400">{{ profile.search_terms }}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <form action="{{ url_for('apply_profile', profile_id=profile.id) }}" method="POST"
+                                class="inline-block apply-profile-form">
+                                <button type="submit"
+                                    class="text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors duration-200">Apply</button>
+                            </form>
+                            <form action="{{ url_for('delete_profile', profile_id=profile.id) }}" method="POST"
+                                onsubmit="return confirm('Are you sure you want to delete this profile?');">
+                                <button type="submit"
+                                    class="text-red-400 hover:text-red-300 text-sm font-medium transition-colors duration-200">Delete</button>
+                            </form>
+                        </div>
                     </div>
-                    <div class="flex gap-2">
-                        <form action="{{ url_for('apply_profile', profile_id=profile.id) }}" method="POST"
-                            class="inline-block apply-profile-form">
-                            <button type="submit"
-                                class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">Apply</button>
-                        </form>
-                        <form action="{{ url_for('delete_profile', profile_id=profile.id) }}" method="POST"
-                            onsubmit="return confirm('Are you sure you want to delete this profile?');">
-                            <button type="submit"
-                                class="text-red-600 hover:text-red-900 text-sm font-medium">Delete</button>
-                        </form>
-                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-sm text-gray-400">No saved profiles. Save a search above!</p>
+                    {% endif %}
                 </div>
-                {% endfor %}
-                {% else %}
-                <p class="text-sm text-gray-500">No saved profiles. Save a search above!</p>
-                {% endif %}
             </div>
         </div>
 
         <!-- User Settings Section -->
-        <div>
-            <h2 class="text-2xl font-bold mb-4 text-gray-800">Email Settings</h2>
-            <form action="{{ url_for('update_settings') }}" method="POST" class="space-y-4">
-                <div>
-                    <label for="email_recipients" class="block text-sm font-medium text-gray-700">Recipients
-                        (comma-separated)</label>
-                    <input type="text" name="email_recipients" id="email_recipients"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        value="{{ user_settings.email_recipients if user_settings else '' }}">
-                </div>
-                <div>
-                    <label for="email_frequency" class="block text-sm font-medium text-gray-700">Frequency</label>
-                    <select name="email_frequency" id="email_frequency"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="daily" {% if user_settings and user_settings.email_frequency=='daily'
-                            %}selected{% endif %}>Daily</option>
-                        <option value="weekly" {% if user_settings and user_settings.email_frequency=='weekly'
-                            %}selected{% endif %}>Weekly</option>
-                        <option value="monthly" {% if user_settings and user_settings.email_frequency=='monthly'
-                            %}selected{% endif %}>Monthly</option>
-                    </select>
-                </div>
-                <div class="flex items-center">
-                    <input id="send_excel_attachment" name="send_excel_attachment" type="checkbox"
-                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" {% if
-                        user_settings and user_settings.send_excel_attachment %}checked{% endif %}>
-                    <label for="send_excel_attachment" class="ml-2 block text-sm text-gray-900">Send Excel
-                        attachment</label>
-                </div>
-                <button type="submit"
-                    class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    Save Settings
-                </button>
-            </form>
+        <div class="relative">
+            <div class="absolute inset-0 bg-gradient-to-r from-green-600/10 to-teal-600/10 rounded-lg"></div>
+            <div class="relative p-6">
+                <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-green-400 to-teal-400 bg-clip-text">Email Settings</h2>
+                <form action="{{ url_for('update_settings') }}" method="POST" class="space-y-4">
+                    <div>
+                        <label for="email_recipients" class="block text-sm font-medium text-gray-300">Recipients (comma-separated)</label>
+                        <input type="text" name="email_recipients" id="email_recipients"
+                            class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100 placeholder-gray-400 backdrop-blur-sm"
+                            value="{{ user_settings.email_recipients if user_settings else '' }}">
+                    </div>
+                    <div>
+                        <label for="email_frequency" class="block text-sm font-medium text-gray-300">Frequency</label>
+                        <select name="email_frequency" id="email_frequency"
+                            class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100">
+                            <option value="daily" {% if user_settings and user_settings.email_frequency=='daily' %}selected{% endif %}>Daily</option>
+                            <option value="weekly" {% if user_settings and user_settings.email_frequency=='weekly' %}selected{% endif %}>Weekly</option>
+                            <option value="monthly" {% if user_settings and user_settings.email_frequency=='monthly' %}selected{% endif %}>Monthly</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="send_excel_attachment" name="send_excel_attachment" type="checkbox"
+                            class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-600 rounded bg-gray-700" {% if user_settings and user_settings.send_excel_attachment %}checked{% endif %}>
+                        <label for="send_excel_attachment" class="ml-2 block text-sm text-gray-300">Send Excel attachment</label>
+                    </div>
+                    <button type="submit"
+                        class="w-full btn-temporal inline-flex justify-center py-2 px-4 text-sm font-medium rounded-md shadow-sm">
+                        Save Settings
+                    </button>
+                </form>
+            </div>
         </div>
 
         <!-- Calendar Integration Section -->
-        <div>
-            <h2 class="text-2xl font-bold mb-4 text-gray-800">📅 Calendar Integration</h2>
-            <div class="space-y-4">
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h3 class="text-sm font-semibold text-blue-800 mb-2">Auto-Sync Features:</h3>
-                    <ul class="text-xs text-blue-700 space-y-1">
-                        <li>• Interview events when status changes</li>
-                        <li>• Application deadline reminders</li>
-                        <li>• Follow-up task scheduling</li>
-                        <li>• Smart conflict prevention</li>
-                    </ul>
-                </div>
+        <div class="relative">
+            <div class="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-cyan-600/10 rounded-lg"></div>
+            <div class="relative p-6">
+                <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text">Calendar Integration</h2>
+                <div class="space-y-4">
+                    <div class="bg-gradient-to-r from-blue-600/20 to-cyan-600/20 border border-blue-500/30 rounded-lg p-4 backdrop-blur-sm">
+                        <h3 class="text-sm font-semibold text-blue-300 mb-2">Auto-Sync Features:</h3>
+                        <ul class="text-xs text-blue-200 space-y-1">
+                            <li>• Interview events when status changes</li>
+                            <li>• Application deadline reminders</li>
+                            <li>• Follow-up task scheduling</li>
+                            <li>• Smart conflict prevention</li>
+                        </ul>
+                    </div>
 
-                <div class="flex flex-col gap-2">
-                    <form action="{{ url_for('test_calendar') }}" method="POST" class="inline">
-                        <button type="submit"
-                            class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            🔗 Test G-Calendar Connection
-                        </button>
-                    </form>
+                    <div class="flex flex-col gap-2">
+                        <form action="{{ url_for('test_calendar') }}" method="POST" class="inline">
+                            <button type="submit"
+                                class="w-full inline-flex justify-center py-2 px-4 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 backdrop-blur-sm transition-all duration-200">
+                                Test G-Calendar Connection
+                            </button>
+                        </form>
 
-                    <form action="{{ url_for('reauth_google') }}" method="POST" class="inline">
-                        <button type="submit"
-                            class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
-                            🔑 Sign in with google account
-                        </button>
-                    </form>
+                        <form action="{{ url_for('reauth_google') }}" method="POST" class="inline">
+                            <button type="submit"
+                                class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all duration-200">
+                                Sign in with google account
+                            </button>
+                        </form>
 
-                    <form action="{{ url_for('sync_calendar') }}" method="POST" class="inline"
-                        onsubmit="return confirm('This will create calendar events for all your jobs. Continue?');">
-                        <button type="submit"
-                            class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                            📅 Sync All Status Jobs to Calendar
-                        </button>
-                    </form>
-                </div>
+                        <form action="{{ url_for('sync_calendar') }}" method="POST" class="inline"
+                            onsubmit="return confirm('This will create calendar events for all your jobs. Continue?');">
+                            <button type="submit"
+                                class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200">
+                                Sync All Status Jobs to Calendar
+                            </button>
+                        </form>
+                    </div>
 
-                <div class="text-xs text-gray-500">
-                    <p><strong>Note:</strong> Requires Google Calendar API access. Make sure your
-                        <code>credentials.json</code> file includes calendar permissions.
-                    </p>
+                    <div class="text-xs text-gray-400 bg-gray-800/30 border border-gray-700/50 rounded p-2 backdrop-blur-sm">
+                        <p><strong>Note:</strong> Requires Google Calendar API access. Make sure your
+                            <code class="text-cyan-400">credentials.json</code> file includes calendar permissions.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Calendar Events Management -->
-        <div>
-            <h2 class="text-2xl font-bold mb-4 text-gray-800">📅 My Calendar Events</h2>
-            <div class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    <button id="load-events-btn"
-                        class="inline-flex justify-center py-2 px-3 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        Load Events
-                    </button>
-                    <button id="refresh-events-btn"
-                        class="inline-flex justify-center py-2 px-3 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                        Refresh (events)
-                    </button>
-                    <a href="https://calendar.google.com" target="_blank"
-                        class="inline-flex justify-center py-2 px-3 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        Open Calendar
-                    </a>
-                </div>
+        <div class="relative">
+            <div class="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-indigo-600/10 rounded-lg"></div>
+            <div class="relative p-6">
+                <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text">My Calendar Events</h2>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <button id="load-events-btn"
+                            class="inline-flex justify-center py-2 px-3 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 backdrop-blur-sm transition-all duration-200">
+                            Load Events
+                        </button>
+                        <button id="refresh-events-btn"
+                            class="inline-flex justify-center py-2 px-3 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 backdrop-blur-sm transition-all duration-200">
+                            Refresh (events)
+                        </button>
+                        <a href="https://calendar.google.com" target="_blank"
+                            class="inline-flex justify-center py-2 px-3 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
+                            Open Calendar
+                        </a>
+                    </div>
 
-                <div class="text-xs text-gray-500 bg-blue-50 border border-blue-200 rounded p-2">
-                    <p><strong>🔄 Auto-Sync:</strong> Events automatically refresh every 30 seconds to stay in sync with
-                        Google Calendar</p>
-                </div>
+                    <div class="text-xs text-gray-400 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 border border-blue-500/30 rounded p-2 backdrop-blur-sm">
+                        <p><strong>Auto-Sync:</strong> Events automatically refresh every 30 seconds to stay in sync with Google Calendar</p>
+                    </div>
 
-                <div id="calendar-events-container" class="hidden">
-                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto">
-                        <div id="events-list" class="space-y-2">
-                            <!-- Events will be loaded here -->
-                        </div>
-                        <div id="no-events" class="text-center text-gray-500 py-4 hidden">
-                            No job-related calendar events found.
-                        </div>
-                        <div id="events-loading" class="text-center text-gray-500 py-4">
-                            Loading calendar events...
+                    <div id="calendar-events-container" class="hidden">
+                        <div class="bg-gray-800/30 border border-gray-700/50 rounded-lg p-4 max-h-96 overflow-y-auto backdrop-blur-sm">
+                            <div id="events-list" class="space-y-2">
+                                <!-- Events will be loaded here -->
+                            </div>
+                            <div id="no-events" class="text-center text-gray-400 py-4 hidden">
+                                No job-related calendar events found.
+                            </div>
+                            <div id="events-loading" class="text-center text-gray-400 py-4">
+                                Loading calendar events...
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -214,40 +224,39 @@
     </div>
 
     <!-- Right Content: Job Listings & Filters -->
-    <div class="w-full lg:w-2/3 p-6 bg-white rounded-xl shadow-md">
+    <div class="w-full lg:w-2/3 p-6 bg-gradient-to-b from-gray-800/90 to-gray-900/90 backdrop-blur-lg rounded-xl shadow-xl border border-indigo-500/20">
         <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
             <div class="flex items-center gap-4">
-                <h1 class="text-3xl font-bold text-gray-900">Your Jobs ({{ total_jobs }})</h1>
+                <h1 class="text-3xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">Your Jobs ({{ total_jobs }})</h1>
             </div>
             <form action="{{ url_for('delete_all_jobs') }}" method="POST"
                 onsubmit="return confirm('Are you sure you want to delete ALL jobs? This cannot be undone.');">
                 <button type="submit"
-                    class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-md shadow-sm">Delete
-                    All</button>
+                    class="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium py-2 px-4 rounded-md shadow-sm transition-all duration-200">Delete All</button>
             </form>
         </div>
 
         <!-- Job Status Chart -->
-        <div class="mb-8 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="mb-8 bg-gradient-to-r from-gray-800/60 to-gray-900/60 rounded-2xl shadow-xl border border-indigo-500/20 overflow-hidden backdrop-blur-lg">
             <!-- Chart Header -->
-            <div class="bg-gradient-to-r from-slate-50 to-gray-50 px-6 py-5 border-b border-gray-100">
+            <div class="bg-gradient-to-r from-gray-700/30 to-gray-800/30 px-6 py-5 border-b border-indigo-500/20 backdrop-blur-sm">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-3">
-                        <div class="p-2 bg-indigo-100 rounded-lg">
-                            <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="p-2 bg-gradient-to-r from-indigo-600/30 to-purple-600/30 rounded-lg backdrop-blur-sm">
+                            <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
                                 </path>
                             </svg>
                         </div>
                         <div>
-                            <h2 class="text-xl font-semibold text-gray-900">Application Status Overview</h2>
-                            <p class="text-sm text-gray-600">Track your job application progress</p>
+                            <h2 class="text-xl font-semibold text-gray-100">Application Status Overview</h2>
+                            <p class="text-sm text-gray-400">Track your job application progress</p>
                         </div>
                     </div>
-                    <div class="hidden sm:flex items-center space-x-4 text-sm text-gray-500">
+                    <div class="hidden sm:flex items-center space-x-4 text-sm text-gray-400">
                         <div class="flex items-center">
-                            <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                            <div class="w-2 h-2 bg-green-500 rounded-full mr-2 pulse-dot"></div>
                             <span>Active Applications</span>
                         </div>
                     </div>
@@ -271,22 +280,22 @@
                         </div>
 
                         <!-- Quick Actions -->
-                        <div class="pt-4 border-t border-gray-100">
-                            <h4 class="text-sm font-medium text-gray-700 mb-3">Quick Actions</h4>
+                        <div class="pt-4 border-t border-gray-700/50">
+                            <h4 class="text-sm font-medium text-gray-300 mb-3">Quick Actions</h4>
                             <div class="flex flex-wrap gap-2">
                                 <button onclick="filterByStatus('new')"
-                                    class="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-100 transition-colors">
-                                    <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                                    class="inline-flex items-center px-3 py-1.5 bg-blue-600/20 text-blue-300 text-xs font-medium rounded-lg hover:bg-blue-600/30 transition-colors border border-blue-500/30">
+                                    <div class="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
                                     View New Jobs
                                 </button>
                                 <button onclick="filterByStatus('interview')"
-                                    class="inline-flex items-center px-3 py-1.5 bg-yellow-50 text-yellow-700 text-xs font-medium rounded-lg hover:bg-yellow-100 transition-colors">
-                                    <div class="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
+                                    class="inline-flex items-center px-3 py-1.5 bg-yellow-600/20 text-yellow-300 text-xs font-medium rounded-lg hover:bg-yellow-600/30 transition-colors border border-yellow-500/30">
+                                    <div class="w-2 h-2 bg-yellow-400 rounded-full mr-2"></div>
                                     Interview Pipeline
                                 </button>
                                 <button onclick="filterByStatus('offered')"
-                                    class="inline-flex items-center px-3 py-1.5 bg-purple-50 text-purple-700 text-xs font-medium rounded-lg hover:bg-purple-100 transition-colors">
-                                    <div class="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                                    class="inline-flex items-center px-3 py-1.5 bg-purple-600/20 text-purple-300 text-xs font-medium rounded-lg hover:bg-purple-600/30 transition-colors border border-purple-500/30">
+                                    <div class="w-2 h-2 bg-purple-400 rounded-full mr-2"></div>
                                     Job Offers
                                 </button>
                             </div>
@@ -297,28 +306,27 @@
         </div>
 
         <!-- Enhanced Filter Form -->
-        <div class="mb-8 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="mb-8 bg-gradient-to-r from-gray-800/60 to-gray-900/60 rounded-2xl shadow-xl border border-indigo-500/20 overflow-hidden backdrop-blur-lg">
             <!-- Filter Header -->
-            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-gray-100">
+            <div class="bg-gradient-to-r from-indigo-600/20 to-purple-600/20 px-6 py-4 border-b border-indigo-500/20 backdrop-blur-sm">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-3">
-                        <div class="p-2 bg-indigo-100 rounded-lg">
-                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="p-2 bg-gradient-to-r from-indigo-600/30 to-purple-600/30 rounded-lg backdrop-blur-sm">
+                            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z">
                                 </path>
                             </svg>
                         </div>
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-900">Filter & Sort Jobs</h3>
-                            <p class="text-sm text-gray-600">Refine your job search results</p>
+                            <h3 class="text-lg font-semibold text-gray-100">Filter & Sort Jobs</h3>
+                            <p class="text-sm text-gray-400">Refine your job search results</p>
                         </div>
                     </div>
                     <button type="button" id="toggle-filters"
-                        class="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                        class="lg:hidden p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 rounded-lg transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
-                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
                     </button>
                 </div>
@@ -331,9 +339,8 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                         <!-- Search Keywords -->
                         <div class="space-y-2">
-                            <label for="search_query" class="flex items-center text-sm font-medium text-gray-700">
-                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
+                            <label for="search_query" class="flex items-center text-sm font-medium text-gray-300">
+                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                 </svg>
@@ -342,11 +349,10 @@
                             <div class="relative">
                                 <input type="text" id="search_query" name="search_query"
                                     placeholder="Job title, company, skills..."
-                                    class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-300"
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-500 bg-gray-700/50 text-gray-100 placeholder-gray-400 backdrop-blur-sm"
                                     value="{{ search_query }}">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                     </svg>
@@ -356,9 +362,8 @@
 
                         <!-- Location -->
                         <div class="space-y-2">
-                            <label for="location_filter" class="flex items-center text-sm font-medium text-gray-700">
-                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
+                            <label for="location_filter" class="flex items-center text-sm font-medium text-gray-300">
+                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
                                     </path>
@@ -370,11 +375,10 @@
                             <div class="relative">
                                 <input type="text" id="location_filter" name="location_filter"
                                     placeholder="City, state, or 'Remote'"
-                                    class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-300"
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-500 bg-gray-700/50 text-gray-100 placeholder-gray-400 backdrop-blur-sm"
                                     value="{{ location_filter }}">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
                                         </path>
@@ -384,1124 +388,1073 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Application Status -->
+                        
                         <div class="space-y-2">
-                            <label for="status_filter" class="flex items-center text-sm font-medium text-gray-700">
-                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
+                            <label for="status_filter" class="flex items-center text-sm font-medium text-gray-300">
+                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                                 Application Status
                             </label>
                             <select id="status_filter" name="status_filter"
-                                class="w-full py-3 px-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-300 bg-white">
-                                <option value="all">🔍 All Statuses</option>
-                                <option value="new" {% if status_filter=='new' %}selected{% endif %}>🆕 New Applications
-                                </option>
-                                <option value="applied" {% if status_filter=='applied' %}selected{% endif %}>📤
-                                    Applications Sent</option>
-                                <option value="interview" {% if status_filter=='interview' %}selected{% endif %}>🎤
-                                    Interview Stage</option>
-                                <option value="rejected" {% if status_filter=='rejected' %}selected{% endif %}>📋 Not
-                                    Selected</option>
-                                <option value="offered" {% if status_filter=='offered' %}selected{% endif %}>🎉 Job
-                                    Offers</option>
+                                class="w-full px-4 py-3 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-500 bg-gray-700/50 text-gray-100 placeholder-gray-400 backdrop-blur-sm">
+                                <option value="">All Statuses</option>
+                                <option value="new" {% if status_filter=='new' %}selected{% endif %}>New</option>
+                                <option value="applied" {% if status_filter=='applied' %}selected{% endif %}>Applied</option>
+                                <option value="interview" {% if status_filter=='interview' %}selected{% endif %}>Interview</option>
+                                <option value="offered" {% if status_filter=='offered' %}selected{% endif %}>Offered</option>
+                                <option value="rejected" {% if status_filter=='rejected' %}selected{% endif %}>Rejected</option>
+                                <option value="archived" {% if status_filter=='archived' %}selected{% endif %}>Archived</option>
                             </select>
                         </div>
                     </div>
 
-                    <!-- Secondary Filters Row -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                        <!-- Job Type -->
-                        <div class="space-y-2">
-                            <label for="job_type_filter" class="flex items-center text-sm font-medium text-gray-700">
-                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 002 2v10a2 2 0 002 2z">
-                                    </path>
-                                </svg>
-                                Job Type
-                            </label>
-                            <select id="job_type_filter" name="job_type_filter"
-                                class="w-full py-3 px-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-300 bg-white">
-                                <option value="all">💼 All Types</option>
-                                <option value="Full-time" {% if job_type_filter=='Full-time' %}selected{% endif %}>🕘
-                                    Full-time</option>
-                                <option value="Part-time" {% if job_type_filter=='Part-time' %}selected{% endif %}>⏰
-                                    Part-time</option>
-                                <option value="Contract" {% if job_type_filter=='Contract' %}selected{% endif %}>📝
-                                    Contract</option>
-                                <option value="Internship" {% if job_type_filter=='Internship' %}selected{% endif %}>🎓
-                                    Internship</option>
-                            </select>
-                        </div>
-
-                        <!-- Sort By -->
-                        <div class="space-y-2">
-                            <label for="sort_by" class="flex items-center text-sm font-medium text-gray-700">
-                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"></path>
-                                </svg>
-                                Sort By
-                            </label>
-                            <select id="sort_by" name="sort_by"
-                                class="w-full py-3 px-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-300 bg-white">
-                                <option value="found_date" {% if sort_by=='found_date' %}selected{% endif %}>📅 Date
-                                    Found</option>
-                                <option value="relevance_score" {% if sort_by=='relevance_score' %}selected{% endif %}>⭐
-                                    Relevance Score</option>
-                                <option value="title" {% if sort_by=='title' %}selected{% endif %}>📋 Job Title</option>
-                                <option value="company" {% if sort_by=='company' %}selected{% endif %}>🏢 Company
-                                </option>
-                                <option value="location" {% if sort_by=='location' %}selected{% endif %}>📍 Location
-                                </option>
-                            </select>
-                        </div>
-
-                        <!-- Sort Order -->
-                        <div class="space-y-2">
-                            <label for="sort_order" class="flex items-center text-sm font-medium text-gray-700">
-                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
-                                </svg>
-                                Sort Order
-                            </label>
-                            <select id="sort_order" name="sort_order"
-                                class="w-full py-3 px-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-300 bg-white">
-                                <option value="DESC" {% if sort_order=='DESC' %}selected{% endif %}>⬇️ Newest First
-                                </option>
-                                <option value="ASC" {% if sort_order=='ASC' %}selected{% endif %}>⬆️ Oldest First
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
-                        <button type="submit"
-                            class="flex-1 sm:flex-none inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg hover:shadow-xl">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z">
-                                </path>
-                            </svg>
-                            Apply Filters
-                        </button>
-                        <button type="button" id="clear-filters"
-                            class="flex-1 sm:flex-none inline-flex items-center justify-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                            Clear All
-                        </button>
-                        <div
-                            class="flex-1 sm:flex-none text-sm text-gray-500 flex items-center justify-center sm:justify-start">
-                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            Showing {{ total_jobs }} jobs
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Job Table -->
-        <div class="bg-white overflow-hidden sm:rounded-lg">
-            <div id="job-list" class="space-y-6">
-                {% if jobs %}
-                {% for job in jobs %}
-                <div
-                    class="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-lg transition-shadow duration-300">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <h3 class="text-lg font-bold text-indigo-600">
-                                {{ job.title }}
-                            </h3>
-                            <p class="text-sm text-gray-600 font-semibold">{{ job.company }}</p>
-                        </div>
-                        <span class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                            Score: {{ job.relevance_score | round(2) }}
-                        </span>
-                    </div>
-                    <div class="text-sm text-gray-500 mb-4">
-                        <p class="flex items-center gap-1 mb-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                            {{ job.location }}
-                        </p>
-                        <p class="flex items-center gap-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M8 7V3m8 4V3m-9 8h.01M8 11h.01M12 11h.01M16 11h.01M12 15h.01M16 15h.01M8 15h.01M3 19v-7a2 2 0 012-2h14a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                            </svg>
-                            Posted: {{ job.posted_date }}
-                        </p>
-                        <p class="flex items-center gap-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                            </svg>
-                            Experience: {{ job.experience }}
-                        </p>
-                    </div>
-                    <p class="text-gray-700 mb-4 text-sm">{{ job.description | clean_desc | truncate(300, True) }}</p>
-                    <div class="flex items-center flex-wrap gap-2 text-xs font-medium text-gray-700 mb-4">
-                        <span class="bg-gray-100 rounded-full px-2 py-1">Source: {{ job.source }}</span>
-                        <span class="bg-gray-100 rounded-full px-2 py-1">Type: {{ job.job_type }}</span>
-                        {% if job.salary and job.salary != 'N/A' %}
-                        <span class="bg-gray-100 rounded-full px-2 py-1">Salary: {{ job.salary }}</span>
-                        {% endif %}
-
-                        {% set all_skills = [] %}
-                        {% if job.skills %}{% set _ = all_skills.extend(job.skills.split(',')) %}{% endif %}
-                        {% if job.extracted_tools %}{% set _ = all_skills.extend(job.extracted_tools.split(',')) %}{%
-                        endif %}
-
-                        {% for skill in all_skills %}
-                        {% if skill.strip() %}
-                        <span class="bg-blue-100 text-blue-800 rounded-full px-2 py-1">{{ skill.strip() }}</span>
-                        {% endif %}
-                        {% endfor %}
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <a href="{{ job.link }}" target="_blank"
-                            class="flex-grow inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
-                            Apply Now
-                        </a>
-                        <button onclick="openApplyModal({{ job.id }}, '{{ job.link }}')"
-                            class="flex-grow inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                            Assisted Apply
-                        </button>
-                        <form action="{{ url_for('delete_job', job_id=job.id) }}" method="POST"
-                            onsubmit="return confirm('Are you sure you want to delete this job?');"
-                            class="hidden sm:inline">
-                            <button type="submit"
-                                class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
-                                    fill="currentColor">
-                                    <path fill-rule="evenodd"
-                                        d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 112 0v6a1 1 0 11-2 0V8z"
-                                        clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                        </form>
-                    </div>
-                    <div class="mt-4 flex space-x-4 text-xs text-gray-500">
-                        {% if job.status == 'new' %}
-                        <span class="bg-blue-100 text-blue-800 font-medium px-2.5 py-0.5 rounded-full">New</span>
-                        {% elif job.status == 'applied' %}
-                        <span class="bg-green-100 text-green-800 font-medium px-2.5 py-0.5 rounded-full">Applied</span>
-                        {% elif job.status == 'interview' %}
-                        <span
-                            class="bg-yellow-100 text-yellow-800 font-medium px-2.5 py-0.5 rounded-full">Interview</span>
-                        {% elif job.status == 'rejected' %}
-                        <span class="bg-red-100 text-red-800 font-medium px-2.5 py-0.5 rounded-full">Rejected</span>
-                        {% elif job.status == 'offered' %}
-                        <span
-                            class="bg-purple-100 text-purple-800 font-medium px-2.5 py-0.5 rounded-full">Offered</span>
-                        {% endif %}
-                        <button onclick="openStatusModal({{ job.id }}, '{{ job.status }}', '{{ job.notes }}')"
-                            class="text-indigo-600 hover:text-indigo-900">Update Status</button>
-                    </div>
-                </div>
-                {% endfor %}
-                {% else %}
-                <div class="text-center py-10 text-gray-500">
-                    <p class="mb-2">No jobs found. Try a new search or adjust your filters!</p>
-                    <p>Your last search found 0 jobs.</p>
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Enhanced Pagination -->
-            {% if total_pages > 1 %}
-            <div class="mt-12 mb-8">
-                <!-- Pagination Info -->
-                <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
-                    <div class="text-sm text-gray-600 mb-4 sm:mb-0">
-                        <span class="font-medium">Showing page {{ current_page }} of {{ total_pages }}</span>
-                        <span class="mx-2">•</span>
-                        <span>{{ total_jobs }} total jobs found</span>
-                    </div>
-                    <div class="text-sm text-gray-500">
-                        {% set start_job = (current_page - 1) * limit + 1 %}
-                        {% set end_job = current_page * limit if current_page * limit < total_jobs else total_jobs %}
-                            Jobs {{ start_job }}-{{ end_job }} of {{ total_jobs }} </div>
-                    </div>
-
-                    <!-- Pagination Controls -->
-                    <div class="flex justify-center">
-                        <nav class="flex items-center space-x-2" aria-label="Pagination">
-                            <!-- Previous Button -->
-                            {% if current_page > 1 %}
-                            <a href="{{ url_for('dashboard', page=current_page-1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter, job_type_filter=job_type_filter) }}"
-                                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-indigo-600 transition-colors duration-200">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M15 19l-7-7 7-7"></path>
-                                </svg>
-                                Previous
-                            </a>
-                            {% else %}
-                            <span
-                                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M15 19l-7-7 7-7"></path>
-                                </svg>
-                                Previous
-                            </span>
-                            {% endif %}
-
-                            <!-- Page Numbers -->
-                            <div class="flex items-center space-x-1">
-                                {% if pagination_pages %}
-                                {% for p in pagination_pages %}
-                                {% if p == current_page %}
-                                <span
-                                    class="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-md">
-                                    {{ p }}
-                                </span>
-                                {% else %}
-                                <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter, job_type_filter=job_type_filter) }}"
-                                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 transition-colors duration-200">
-                                    {{ p }}
-                                </a>
-                                {% endif %}
-                                {% endfor %}
-                                {% else %}
-                                {% for p in range(1, total_pages + 1) %}
-                                {% if p == current_page %}
-                                <span
-                                    class="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-md">
-                                    {{ p }}
-                                </span>
-                                {% else %}
-                                <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter, job_type_filter=job_type_filter) }}"
-                                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 transition-colors duration-200">
-                                    {{ p }}
-                                </a>
-                                {% endif %}
-                                {% endfor %}
-                                {% endif %}
+                    <!-- New Stuff: Refactored filter actions for better responsiveness -->
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-700/50">
+                        <!-- Left side: Sort controls -->
+                        <div class="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
+                            <label for="sort_by" class="text-sm font-medium text-gray-400 hidden sm:block">Sort by:</label>
+                            <div class="w-full flex gap-2">
+                                <select id="sort_by" name="sort_by"
+                                    class="w-full px-4 py-2 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-500 bg-gray-700/50 text-gray-100 backdrop-blur-sm">
+                                    <option value="found_date" {% if sort_by=='found_date' %}selected{% endif %}>Date Added</option>
+                                    <option value="company" {% if sort_by=='company' %}selected{% endif %}>Company</option>
+                                    <option value="title" {% if sort_by=='title' %}selected{% endif %}>Title</option>
+                                </select>
+                                <select id="sort_order" name="sort_order"
+                                    class="w-full px-4 py-2 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-500 bg-gray-700/50 text-gray-100 backdrop-blur-sm">
+                                    <option value="desc" {% if sort_order=='desc' %}selected{% endif %}>Descending</option>
+                                    <option value="asc" {% if sort_order=='asc' %}selected{% endif %}>Ascending</option>
+                                </select>
                             </div>
-
-                            <!-- Next Button -->
-                            {% if current_page < total_pages %} <a
-                                href="{{ url_for('dashboard', page=current_page+1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter, job_type_filter=job_type_filter) }}"
-                                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-indigo-600 transition-colors duration-200">
-                                Next
-                                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 5l7 7-7 7"></path>
-                                </svg>
-                                </a>
-                                {% else %}
-                                <span
-                                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed">
-                                    Next
-                                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 5l7 7-7 7"></path>
-                                    </svg>
-                                </span>
-                                {% endif %}
-                        </nav>
-                    </div>
-
-                    <!-- Quick Jump (for many pages) -->
-                    {% if total_pages > 10 %}
-                    <div class="flex justify-center mt-4">
-                        <div class="flex items-center space-x-2 text-sm text-gray-600">
-                            <span>Jump to page:</span>
-                            <select
-                                onchange="window.location.href='{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter, job_type_filter=job_type_filter) }}&page=' + this.value"
-                                class="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                {% for p in range(1, total_pages + 1) %}
-                                <option value="{{ p }}" {% if p==current_page %}selected{% endif %}>{{ p }}</option>
-                                {% endfor %}
-                            </select>
+                        </div>
+                        <!-- Right side: Action buttons -->
+                        <div class="w-full sm:w-auto flex items-center gap-2">
+                            <button type="submit"
+                                class="flex-1 btn-temporal inline-flex justify-center py-2.5 px-5 text-sm font-semibold rounded-xl shadow-sm">
+                                Apply Filters
+                            </button>
+                            <a href="{{ url_for('dashboard') }}"
+                                class="flex-1 sm:flex-initial inline-flex justify-center py-2.5 px-5 border border-gray-600 shadow-sm text-sm font-medium rounded-xl text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 backdrop-blur-sm transition-all duration-200">
+                                Reset
+                            </a>
                         </div>
                     </div>
+</form>
+</div>
+</div>
+
+<div id="job-listings" class="space-y-6">
+    {% if jobs %}
+    {% for job in jobs %}
+    <div
+        class="job-item bg-gray-800/60 p-6 rounded-2xl shadow-lg border border-gray-700/50 backdrop-blur-sm hover:border-indigo-500/50 transition-all duration-300">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 gap-4">
+            <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                <span class="px-2 py-0.5 text-xs font-semibold rounded-full uppercase status-badge status-{{ job.status }} border">
+                    {{ job.status }}</span>
+                    <h3 class="text-xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text">
+                        {{ job.title }}
+                    </h3>
+                </div>
+                <div class="flex items-center text-gray-300 text-sm mb-2 gap-2">
+                    <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.549l-.079.052A2 2 0 0115.584 14H14.5a.5.5 0 01-.5-.5V12a1.5 1.5 0 00-1.5-1.5h-3A1.5 1.5 0 008 12v1.5a.5.5 0 01-.5.5H4.416a2 2 0 01-1.937-2.4l-.079-.053V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                    <span>{{ job.company }}</span>
+                    <span class="text-gray-500">•</span>
+                    <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                    <span>{{ job.location }}</span>
+                    {% if job.experience %}
+                    <span class="text-gray-500">•</span>
+                    <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>{{ job.experience }}</span>
                     {% endif %}
                 </div>
-                {% endif %}
+                <p class="text-xs text-gray-400">Added: {{ job.found_date.split('T')[0] if job.found_date else 'N/A' }}</p>
+            </div>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                <a href="{{ job.link }}" target="_blank"
+                    class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 transition-all duration-200">
+                    Apply Now
+                </a>
+                <button type="button" onclick="openStatusModal({{ job.id }}, '{{ job.status }}', '{{ job.notes | default('') }}')"
+                    class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
+                    Update Status
+                </button>
             </div>
         </div>
-    </div>
-
-    <!-- Modal for Job Status Update -->
-    <div id="status-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <h3 class="text-lg font-bold text-gray-900 mb-4">Update Job Status</h3>
-            <form id="status-form" action="{{ url_for('update_job_status') }}" method="POST">
-                <input type="hidden" name="job_id" id="status-job-id">
-                <div class="mb-4">
-                    <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
-                    <select id="status" name="status"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="new">New</option>
-                        <option value="applied">Applied</option>
-                        <option value="interview">Interview</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="offered">Offered</option>
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
-                    <textarea id="notes" name="notes" rows="4"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
-                </div>
-                <div class="mb-4">
-                    <div class="flex items-center">
-                        <input type="checkbox" id="sync_to_calendar" name="sync_to_calendar" value="1" checked
-                            class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-                        <label for="sync_to_calendar" class="ml-2 block text-sm text-gray-700">
-                            📅 Sync to Google Calendar
-                        </label>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-1">Creates/updates calendar events based on job status
-                        (interviews,
-                        deadlines, follow-ups)</p>
-                </div>
-                <div class="flex justify-end space-x-4">
-                    <button type="button" onclick="closeStatusModal()"
-                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Cancel</button>
-                    <button type="submit"
-                        class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save</button>
-                </div>
+        <div class="flex flex-wrap items-center gap-2 mt-4 text-xs text-gray-400">
+            <button type="button" onclick='openDetailsModal({{ job | tojson | safe }})'
+                class="inline-flex items-center px-2 py-1 rounded-md border border-gray-600 hover:bg-gray-700 transition-colors">
+                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                View Details
+            </button>
+            <button type="button" onclick="analyzeTraffic({{ job.id }})"
+                class="inline-flex items-center px-2 py-1 rounded-md border transition-colors btn-analysis">
+                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                Analyze Traffic
+            </button>
+            <form action="{{ url_for('delete_job', job_id=job.id) }}" method="POST"
+                onsubmit="return confirm('Are you sure you want to delete this job?');" class="inline-block">
+                <button type="submit"
+                    class="inline-flex items-center px-2 py-1 rounded-md border border-gray-600 hover:bg-gray-700 transition-colors">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                        </path>
+                    </svg>
+                    Delete
+                </button>
             </form>
         </div>
     </div>
+    {% endfor %}
+    {% else %}
+    <div class="bg-gray-800/60 p-6 rounded-2xl text-center text-gray-400 backdrop-blur-sm">
+        <p>No jobs found. Try a new search!</p>
+    </div>
+    {% endif %}
+</div>
 
-    <!-- Modal for Assisted Apply -->
-    <div id="apply-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white text-center">
-            <h3 class="text-lg font-bold text-gray-900 mb-4">Assisted Apply</h3>
-            <p class="text-gray-700 mb-4">This will start an automated browser session to fill out the form for you.</p>
-            <p class="text-sm text-red-500 mb-4 font-semibold">
-                Warning: This feature requires a local Celery worker with Selenium configured correctly. A new browser
-                window will open.
-            </p>
-            <div class="flex justify-center space-x-4">
-                <button type="button" onclick="closeApplyModal()"
-                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Cancel</button>
-                <button type="button" id="start-apply-btn"
-                    class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Start Automation</button>
-            </div>
+<!-- Enhanced Pagination -->
+{% if total_pages > 1 %}
+<div class="mt-12 mb-8">
+    <!-- Pagination Info -->
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+        <div class="text-sm text-gray-400 mb-4 sm:mb-0">
+            <span class="font-medium">Showing page {{ current_page }} of {{ total_pages }}</span>
+            <span class="mx-2">•</span>
+            <span>{{ total_jobs }} total jobs found</span>
+        </div>
+        <div class="text-sm text-gray-500">
+            {% set start_job = (current_page - 1) * limit + 1 %}
+            {% set end_job = current_page * limit if current_page * limit < total_jobs else total_jobs %}
+            Jobs {{ start_job }}-{{ end_job }} of {{ total_jobs }}
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Handle New Search button
-            const searchForm = document.getElementById('search-form');
-            const progressContainer = document.getElementById('progress-container');
-            const progressBar = document.getElementById('progress-bar');
-            const taskStatus = document.getElementById('task-status');
+    <!-- Pagination Controls -->
+    <div class="flex justify-center">
+        <nav class="flex items-center space-x-2" aria-label="Pagination">
+            <!-- Previous Button -->
+            {% if current_page > 1 %}
+            <a href="{{ url_for('dashboard', page=current_page-1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
+                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800/50 border border-gray-600 rounded-lg hover:bg-gray-700/50 transition-colors duration-200">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Previous
+            </a>
+            {% else %}
+            <span
+                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-gray-800 border border-gray-700 rounded-lg cursor-not-allowed">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Previous
+            </span>
+            {% endif %}
 
-            if (searchForm) {
-                searchForm.addEventListener('submit', async function (e) {
-                    e.preventDefault();
-                    const formData = new FormData(searchForm);
-                    const params = new URLSearchParams(formData).toString();
+            <!-- Page Numbers -->
+            <div class="flex items-center space-x-1">
+                {% if pagination_pages %}
+                {% for p in pagination_pages %}
+                {% if p == current_page %}
+                <span
+                    class="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-md">
+                    {{ p }}
+                </span>
+                {% else %}
+                <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800/50 border border-gray-600 rounded-lg hover:bg-gray-700/50 hover:border-indigo-500/50 transition-colors duration-200">
+                    {{ p }}
+                </a>
+                {% endif %}
+                {% endfor %}
+                {% else %}
+                {% for p in range(1, total_pages + 1) %}
+                {% if p == current_page %}
+                <span
+                    class="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-md">
+                    {{ p }}
+                </span>
+                {% else %}
+                <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800/50 border border-gray-600 rounded-lg hover:bg-gray-700/50 hover:border-indigo-500/50 transition-colors duration-200">
+                    {{ p }}
+                </a>
+                {% endif %}
+                {% endfor %}
+                {% endif %}
+            </div>
 
-                    progressContainer.classList.remove('hidden');
-                    taskStatus.textContent = 'Starting search...';
-                    progressBar.style.width = '0%';
+            <!-- Next Button -->
+            {% if current_page < total_pages %}
+            <a href="{{ url_for('dashboard', page=current_page+1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
+                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800/50 border border-gray-600 rounded-lg hover:bg-gray-700/50 transition-colors duration-200">
+                Next
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+            </a>
+            {% else %}
+            <span
+                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-gray-800 border border-gray-700 rounded-lg cursor-not-allowed">
+                Next
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+            </span>
+            {% endif %}
+        </nav>
+    </div>
 
-                    try {
-                        const response = await fetch('/search_jobs', {
-                            method: 'POST',
-                            body: params,
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded'
-                            }
-                        });
-                        const data = await response.json();
-                        if (data.status === 'success') {
-                            checkTaskStatus(data.task_id);
-                        } else {
-                            taskStatus.textContent = data.message;
-                            progressBar.style.width = '100%';
-                            progressBar.classList.add('bg-red-500');
-                        }
-                    } catch (error) {
-                        console.error('Error starting task:', error);
-                        taskStatus.textContent = 'Failed to connect to backend.';
-                        progressBar.style.width = '100%';
-                        progressBar.classList.add('bg-red-500');
-                    }
-                });
-            }
+    <!-- Quick Jump (for many pages) -->
+    {% if total_pages > 10 %}
+    <div class="flex justify-center mt-4">
+        <div class="flex items-center space-x-2 text-sm text-gray-400">
+            <span>Jump to page:</span>
+            <select
+                onchange="window.location.href='{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}&page=' + this.value"
+                class="px-3 py-1 border border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700/50 text-gray-200">
+                {% for p in range(1, total_pages + 1) %}
+                <option value="{{ p }}" {% if p==current_page %}selected{% endif %}>{{ p }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
 
-            // Handle Save Profile button
-            const saveProfileBtn = document.getElementById('save-profile-btn');
-            if (saveProfileBtn) {
-                saveProfileBtn.addEventListener('click', function (e) {
-                    e.preventDefault();
+</div>
+</div>
 
-                    // Get form data from the search form
-                    const searchTerms = document.getElementById('search_terms').value.trim();
-                    const location = document.getElementById('location').value.trim();
-                    const experience = document.getElementById('experience').value.trim();
-                    const jobType = document.getElementById('job_type').value.trim();
+<!-- Modal for Job Details -->
+<div id="details-modal" class="fixed inset-0 bg-black bg-opacity-80 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div id="details-modal-content" class="relative w-full max-w-3xl shadow-2xl rounded-2xl bg-gradient-to-b from-gray-800 to-gray-900 border border-indigo-500/30 transform transition-all duration-300 scale-95 opacity-0">
+        <!-- Modal Header -->
+        <div class="px-6 py-5 border-b border-gray-700/50 flex justify-between items-start">
+            <div>
+                <h3 id="modal-title" class="text-2xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">Job Title</h3>
+                <p id="modal-company" class="text-lg text-gray-300">Company Name</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="modal-relevance" class="px-3 py-1 text-sm font-semibold rounded-full"></span>
+                <button onclick="closeDetailsModal()" class="text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+        </div>
 
-                    if (!searchTerms) {
-                        alert('Please enter search terms before saving the profile.');
-                        return;
-                    }
+        <!-- Modal Body -->
+        <div class="p-6 max-h-[70vh] overflow-y-auto space-y-6">
+            <!-- Key Info Section -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Location</div><div id="modal-location" class="font-semibold text-gray-200"></div></div>
+                <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Salary</div><div id="modal-salary" class="font-semibold text-gray-200"></div></div>
+                <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Experience</div><div id="modal-experience" class="font-semibold text-gray-200"></div></div>
+                <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Job Type</div><div id="modal-job-type" class="font-semibold text-gray-200"></div></div>
+            </div>
 
-                    // Prompt for profile name
-                    const profileName = prompt('Enter a name for this search profile:');
-                    if (!profileName || !profileName.trim()) {
-                        return;
-                    }
+            <!-- Description Section -->
+            <div>
+                <h4 class="text-lg font-semibold text-gray-200 mb-2">Job Description</h4>
+                <div id="modal-description" class="text-sm text-gray-300 bg-gray-900/50 p-4 rounded-lg border border-gray-700/50 max-h-60 overflow-y-auto whitespace-pre-wrap"></div>
+            </div>
 
-                    // Create form data
-                    const formData = new FormData();
-                    formData.append('profile_name', profileName.trim());
-                    formData.append('search_terms', searchTerms);
-                    formData.append('location', location);
-                    formData.append('experience', experience);
-                    formData.append('job_type', jobType);
+            <!-- Skills & Keywords Section -->
+            <div class="space-y-4">
+                <div id="modal-skills-container" class="hidden">
+                    <h4 class="text-lg font-semibold text-gray-200 mb-2">Skills</h4>
+                    <div id="modal-skills" class="flex flex-wrap gap-2"></div>
+                </div>
+                <div id="modal-tools-container" class="hidden">
+                    <h4 class="text-lg font-semibold text-gray-200 mb-2">Tools & Platforms</h4>
+                    <div id="modal-tools" class="flex flex-wrap gap-2"></div>
+                </div>
+                <div id="modal-soft-skills-container" class="hidden">
+                    <h4 class="text-lg font-semibold text-gray-200 mb-2">Soft Skills</h4>
+                    <div id="modal-soft-skills" class="flex flex-wrap gap-2"></div>
+                </div>
+            </div>
 
-                    // Submit to save_profile endpoint
-                    fetch('/save_profile', {
-                        method: 'POST',
-                        body: formData
-                    })
-                        .then(response => {
-                            if (response.ok) {
-                                alert('Profile saved successfully!');
-                                window.location.reload(); // Reload to show the new profile
-                            } else {
-                                alert('Failed to save profile. It may already exist.');
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error saving profile:', error);
-                            alert('An error occurred while saving the profile.');
-                        });
-                });
-            }
+            <!-- Other Details Section -->
+            <div>
+                <h4 class="text-lg font-semibold text-gray-200 mb-2">Additional Information</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><span class="text-gray-400">Posted:</span> <span id="modal-posted-date" class="font-medium text-gray-200"></span></div>
+                    <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><span class="text-gray-400">Source:</span> <span id="modal-source" class="font-medium text-gray-200"></span></div>
+                    <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><span class="text-gray-400">Deadline:</span> <span id="modal-deadline" class="font-medium text-gray-200"></span></div>
+                    <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><span class="text-gray-400">Experience Range:</span> <span id="modal-exp-range" class="font-medium text-gray-200"></span></div>
+                </div>
+            </div>
+        </div>
 
-            // Handle Saved Profile "Apply" button
-            const applyProfileForms = document.querySelectorAll('.apply-profile-form');
-            applyProfileForms.forEach(form => {
-                form.addEventListener('submit', async function (e) {
-                    e.preventDefault();
-                    const formData = new FormData(form);
-                    const url = form.action;
+        <!-- Modal Footer -->
+        <div class="px-6 py-4 bg-gray-800/50 border-t border-gray-700/50 flex justify-end items-center gap-4 rounded-b-2xl">
+            <button onclick="closeDetailsModal()" class="inline-flex items-center justify-center px-4 py-2 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 transition-all duration-200">Close</button>
+            <a id="modal-apply-link" href="#" target="_blank" class="btn-temporal inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md shadow-sm">
+                Apply Now
+            </a>
+        </div>
+    </div>
+</div>
 
-                    progressContainer.classList.remove('hidden');
-                    taskStatus.textContent = 'Applying saved profile...';
-                    progressBar.style.width = '0%';
+<!-- Modal for Job Status Update -->
+<div id="status-modal" class="fixed inset-0 bg-black bg-opacity-70 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm">
+    <div class="relative top-20 mx-auto p-6 border border-gray-700 w-96 shadow-lg rounded-xl bg-gray-800">
+        <h3 class="text-lg font-bold text-gray-100 mb-4">Update Job Status</h3>
+        <form id="status-form" action="{{ url_for('update_job_status') }}" method="POST">
+            <input type="hidden" name="job_id" id="status-job-id">
+            <div class="mb-4">
+                <label for="status" class="block text-sm font-medium text-gray-300">Status</label>
+                <select id="status" name="status"
+                    class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100">
+                    <option value="new">New</option>
+                    <option value="applied">Applied</option>
+                    <option value="interview">Interview</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="offered">Offered</option>
+                    <option value="archived">Archived</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label for="notes" class="block text-sm font-medium text-gray-300">Notes</label>
+                <textarea id="notes" name="notes" rows="4"
+                    class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100"></textarea>
+            </div>
+            <div class="mb-4">
+                <div class="flex items-center">
+                    <input type="checkbox" id="sync_to_calendar" name="sync_to_calendar" value="1" checked
+                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-600 rounded bg-gray-700">
+                    <label for="sync_to_calendar" class="ml-2 block text-sm text-gray-300">
+                        Sync to Google Calendar
+                    </label>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Creates/updates calendar events based on job status.</p>
+            </div>
+            <div class="flex justify-end space-x-4">
+                <button type="button" onclick="closeStatusModal()"
+                    class="px-4 py-2 bg-gray-700 text-gray-200 rounded-md hover:bg-gray-600">Cancel</button>
+                <button type="submit"
+                    class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-                    try {
-                        const response = await fetch(url, {
-                            method: 'POST',
-                            body: formData
-                        });
-                        const data = await response.json();
-                        if (data.status === 'success') {
-                            taskStatus.textContent = `Applying profile: ${data.profile_name}`;
-                            checkTaskStatus(data.task_id);
-                        } else {
-                            taskStatus.textContent = data.message;
-                            progressBar.style.width = '100%';
-                            progressBar.classList.add('bg-red-500');
-                        }
-                    } catch (error) {
-                        console.error('Error applying profile:', error);
-                        taskStatus.textContent = 'Failed to connect to backend.';
-                        progressBar.style.width = '100%';
-                        progressBar.classList.add('bg-red-500');
-                    }
-                });
-            });
+<!-- Modal for Assisted Apply -->
+<div id="apply-modal" class="fixed inset-0 bg-black bg-opacity-70 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm">
+    <div class="relative top-20 mx-auto p-6 border border-gray-700 w-96 shadow-lg rounded-xl bg-gray-800 text-center">
+        <h3 class="text-lg font-bold text-gray-100 mb-4">Assisted Apply</h3>
+        <p class="text-gray-300 mb-4">This will start an automated browser session to fill out the form for you.</p>
+        <p class="text-sm text-red-400 mb-4 font-semibold">
+            Warning: This feature requires a local Celery worker with Selenium configured correctly. A new browser
+            window will open.
+        </p>
+        <div class="flex justify-center space-x-4">
+            <button type="button" onclick="closeApplyModal()"
+                class="px-4 py-2 bg-gray-700 text-gray-200 rounded-md hover:bg-gray-600">Cancel</button>
+            <button type="button" id="start-apply-btn"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Start Automation</button>
+        </div>
+    </div>
+</div>
 
-            // Function to check task status
-            function checkTaskStatus(taskId) {
-                const interval = setInterval(async () => {
-                    const response = await fetch(`/task_status/${taskId}`);
-                    const data = await response.json();
+<!-- Modal for Traffic Analysis -->
+<div id="traffic-analysis-modal" class="fixed inset-0 bg-black bg-opacity-80 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div id="traffic-analysis-modal-content" class="relative w-full max-w-2xl shadow-2xl rounded-2xl bg-gradient-to-b from-gray-800 to-gray-900 border border-sky-500/30 transform transition-all duration-300 scale-95 opacity-0">
+        <!-- Modal Header -->
+        <div class="px-6 py-5 border-b border-gray-700/50 flex justify-between items-center">
+            <div>
+                <h3 class="text-2xl font-bold text-transparent bg-gradient-to-r from-sky-400 to-cyan-400 bg-clip-text">Company Traffic Analysis</h3>
+                <p id="traffic-modal-company" class="text-lg text-gray-300">Company Name</p>
+            </div>
+            <button onclick="closeTrafficAnalysisModal()" class="text-gray-400 hover:text-white transition-colors">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
 
-                    if (data.state === 'SUCCESS') {
-                        clearInterval(interval);
-                        taskStatus.textContent = data.status;
-                        progressBar.style.width = '100%';
-                        progressBar.classList.remove('bg-red-500');
-                        progressBar.classList.add('bg-green-500');
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
-                    } else if (data.state === 'FAILURE') {
-                        clearInterval(interval);
-                        taskStatus.textContent = data.status;
-                        progressBar.style.width = '100%';
-                        progressBar.classList.add('bg-red-500');
-                    } else {
-                        taskStatus.textContent = data.status;
-                        progressBar.style.width = `${data.progress}%`;
-                    }
-                }, 2000); // Poll every 2 seconds
-            }
+        <!-- Modal Body -->
+        <div id="traffic-modal-body" class="p-6 max-h-[70vh] overflow-y-auto space-y-6">
+            <!-- Loading/Error State -->
+            <div id="traffic-modal-placeholder" class="text-center py-8">
+                <svg class="animate-spin mx-auto h-8 w-8 text-sky-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="mt-4 text-gray-400">Analyzing company traffic data...</p>
+            </div>
+            <!-- Results Content (hidden by default) -->
+            <div id="traffic-modal-results" class="hidden space-y-4">
+                <p class="text-sm text-gray-400 bg-yellow-900/50 border border-yellow-600/50 rounded-lg p-3">
+                    <strong>Disclaimer:</strong> This is a placeholder feature. The data shown below is for demonstration purposes only and is not real.
+                </p>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
+                    <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Monthly Visits</div><div id="traffic-visits" class="font-semibold text-2xl text-sky-300">--</div></div>
+                    <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Bounce Rate</div><div id="traffic-bounce-rate" class="font-semibold text-2xl text-sky-300">--</div></div>
+                    <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Pages per Visit</div><div id="traffic-pages-per-visit" class="font-semibold text-2xl text-sky-300">--</div></div>
+                </div>
+                <div id="traffic-message" class="text-gray-300"></div>
+            </div>
+        </div>
 
-            // The new filter form handles submission via a standard GET request, so no extra JS is needed for it.
+        <!-- Modal Footer -->
+        <div class="px-6 py-4 bg-gray-800/50 border-t border-gray-700/50 flex justify-end items-center gap-4 rounded-b-2xl">
+            <button onclick="closeTrafficAnalysisModal()" class="inline-flex items-center justify-center px-4 py-2 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 transition-all duration-200">Close</button>
+        </div>
+    </div>
+</div>
 
-            // Modals Logic
-            const statusModal = document.getElementById('status-modal');
-            const applyModal = document.getElementById('apply-modal');
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Handle New Search button
+        const searchForm = document.getElementById('search-form');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const taskStatus = document.getElementById('task-status');
 
-            window.openStatusModal = function (jobId, status, notes) {
-                document.getElementById('status-job-id').value = jobId;
-                document.getElementById('status').value = status;
-                document.getElementById('notes').value = notes;
-                statusModal.classList.remove('hidden');
-            };
+        if (searchForm) {
+            searchForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const formData = new FormData(searchForm);
+                const params = new URLSearchParams(formData).toString();
 
-            window.closeStatusModal = function () {
-                statusModal.classList.add('hidden');
-            };
+                progressContainer.classList.remove('hidden');
+                taskStatus.textContent = 'Starting search...';
+                progressBar.style.width = '0%';
 
-            window.openApplyModal = function (jobId, jobLink) {
-                const startApplyBtn = document.getElementById('start-apply-btn');
-                startApplyBtn.onclick = function () {
-                    startApplyProcess(jobId);
-                    closeApplyModal();
-                };
-                applyModal.classList.remove('hidden');
-            };
-
-            window.closeApplyModal = function () {
-                applyModal.classList.add('hidden');
-            };
-
-            async function startApplyProcess(jobId) {
                 try {
-                    const response = await fetch(`/assisted_apply/${jobId}`, {
+                    const response = await fetch('/search_jobs', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
+                        body: params,
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        }
                     });
                     const data = await response.json();
                     if (data.status === 'success') {
-                        alert(data.message); // Using native alert here for a quick, non-disruptive feedback. You should replace this with a custom modal.
+                        checkTaskStatus(data.task_id);
                     } else {
-                        alert('Error: ' + data.message);
+                        taskStatus.textContent = data.message;
+                        progressBar.style.width = '100%';
+                        progressBar.classList.add('bg-red-500');
                     }
                 } catch (error) {
-                    console.error('Error triggering assisted apply:', error);
-                    alert('An error occurred. Please check the console.');
+                    console.error('Error starting task:', error);
+                    taskStatus.textContent = 'Failed to connect to backend.';
+                    progressBar.style.width = '100%';
+                    progressBar.classList.add('bg-red-500');
                 }
-            }
+            });
+        }
 
-            // Chart.js Logic - Gen Z Edition 🔥
-            async function renderJobStatusChart() {
-                try {
-                    const response = await fetch('/api/job_status_data');
-                    if (!response.ok) {
-                        console.error('Failed to fetch chart data');
-                        return;
-                    }
-                    const data = await response.json();
+        // Handle Save Profile button
+        const saveProfileBtn = document.getElementById('save-profile-btn');
+        if (saveProfileBtn) {
+            saveProfileBtn.addEventListener('click', function (e) {
+                e.preventDefault();
 
-                    // Check if there's any data to display
-                    const totalJobsForChart = Object.values(data).reduce((a, b) => a + b, 0);
-                    if (totalJobsForChart === 0) {
-                        document.getElementById('jobStatusChart').parentElement.innerHTML = '<div class="text-center py-8"><div class="text-4xl mb-3">🤷‍♀️</div><p class="text-gray-500 font-medium">No job data yet!</p><p class="text-sm text-gray-400">Start your job hunt to see the magic ✨</p></div>';
-                        return;
-                    }
+                const searchTerms = document.getElementById('search_terms').value.trim();
+                const location = document.getElementById('location').value.trim();
+                const experience = document.getElementById('experience').value.trim();
+                const jobType = document.getElementById('job_type').value.trim();
 
-                    // Professional status labels with emojis
-                    const statusEmojis = {
-                        'new': 'New Applications',
-                        'applied': 'Applications Sent',
-                        'interview': 'Interview Stage',
-                        'rejected': 'Not Selected',
-                        'offered': 'Job Offers'
-                    };
+                if (!searchTerms) {
+                    alert('Please enter search terms before saving the profile.');
+                    return;
+                }
 
-                    // Populate stats section
-                    populateChartStats(data, totalJobsForChart);
+                const profileName = prompt('Enter a name for this search profile:');
+                if (!profileName || !profileName.trim()) {
+                    return;
+                }
 
-                    const chartData = {
-                        labels: Object.keys(data).map(status => statusEmojis[status] || status),
-                        datasets: [{
-                            label: 'Job Statuses',
-                            data: Object.values(data),
-                            backgroundColor: [
-                                '#3B82F6',  // New - Professional Blue
-                                '#10B981',  // Applied - Success Green  
-                                '#F59E0B',  // Interview - Warning Amber
-                                '#6B7280',  // Rejected - Neutral Gray
-                                '#8B5CF6'   // Offered - Professional Purple
-                            ],
-                            borderColor: '#FFFFFF',
-                            borderWidth: 3,
-                            hoverBorderWidth: 4,
-                            hoverBorderColor: '#FFD700'
-                        }]
-                    };
+                const formData = new FormData();
+                formData.append('profile_name', profileName.trim());
+                formData.append('search_terms', searchTerms);
+                formData.append('location', location);
+                formData.append('experience', experience);
+                formData.append('job_type', jobType);
 
-                    const ctx = document.getElementById('jobStatusChart').getContext('2d');
-
-                    // Create gradients for each segment
-                    const gradients = [
-                        createGradient(ctx, '#667eea', '#764ba2'),
-                        createGradient(ctx, '#f093fb', '#f5576c'),
-                        createGradient(ctx, '#4facfe', '#00f2fe'),
-                        createGradient(ctx, '#43e97b', '#38f9d7'),
-                        createGradient(ctx, '#fa709a', '#fee140')
-                    ];
-
-                    chartData.datasets[0].backgroundColor = gradients;
-
-                    new Chart(ctx, {
-                        type: 'doughnut',
-                        data: chartData,
-                        options: {
-                            responsive: true,
-                            cutout: '60%',
-                            plugins: {
-                                legend: {
-                                    position: 'bottom',
-                                    labels: {
-                                        padding: 20,
-                                        font: {
-                                            size: 12,
-                                            weight: 'bold'
-                                        },
-                                        color: '#4B5563',
-                                        usePointStyle: true,
-                                        pointStyle: 'circle'
-                                    }
-                                },
-                                tooltip: {
-                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                    titleColor: '#FFFFFF',
-                                    bodyColor: '#FFFFFF',
-                                    borderColor: '#FFD700',
-                                    borderWidth: 2,
-                                    cornerRadius: 10,
-                                    displayColors: false,
-                                    callbacks: {
-                                        label: function (context) {
-                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                            const percentage = ((context.parsed / total) * 100).toFixed(1);
-                                            return `${context.parsed} jobs (${percentage}%)`;
-                                        }
-                                    }
-                                }
-                            },
-                            animation: {
-                                animateRotate: true,
-                                animateScale: true,
-                                duration: 2000,
-                                easing: 'easeOutBounce'
-                            },
-                            hover: {
-                                animationDuration: 300
-                            }
+                fetch('/save_profile', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            alert('Profile saved successfully!');
+                            window.location.reload();
+                        } else {
+                            alert('Failed to save profile. It may already exist.');
                         }
+                    })
+                    .catch(error => {
+                        console.error('Error saving profile:', error);
+                        alert('An error occurred while saving the profile.');
                     });
+            });
+        }
+
+        // Handle Saved Profile "Apply" button
+        const applyProfileForms = document.querySelectorAll('.apply-profile-form');
+        applyProfileForms.forEach(form => {
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const url = form.action;
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST'
+                    });
+                    const data = await response.json();
+                    if (data.success && data.profile) {
+                        // Populate the search form with the profile data
+                        document.getElementById('search_terms').value = data.profile.search_terms;
+                        document.getElementById('location').value = data.profile.location;
+                        document.getElementById('experience').value = data.profile.experience;
+                        document.getElementById('job_type').value = data.profile.job_type;
+                        
+                        // Provide visual feedback
+                        const searchBox = document.querySelector('#search-form').parentElement.parentElement;
+                        searchBox.style.transition = 'box-shadow 0.3s ease-in-out';
+                        searchBox.style.boxShadow = '0 0 20px rgba(79, 70, 229, 0.7)';
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        setTimeout(() => {
+                            searchBox.style.boxShadow = '';
+                        }, 2000);
+
+                    } else {
+                        alert('Error applying profile: ' + (data.error || 'Unknown error'));
+                    }
                 } catch (error) {
-                    console.error('Error rendering chart:', error);
+                    console.error('Error applying profile:', error);
+                    alert('Failed to connect to backend to apply profile.');
                 }
+            });
+        });
+
+        // Function to check task status
+        function checkTaskStatus(taskId) {
+            const interval = setInterval(async () => {
+                const response = await fetch(`/task_status/${taskId}`);
+                const data = await response.json();
+
+                if (data.state === 'SUCCESS') {
+                    clearInterval(interval);
+                    taskStatus.textContent = data.status;
+                    progressBar.style.width = '100%';
+                    progressBar.classList.remove('bg-red-500');
+                    progressBar.classList.add('bg-green-500');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else if (data.state === 'FAILURE') {
+                    clearInterval(interval);
+                    taskStatus.textContent = data.status;
+                    progressBar.style.width = '100%';
+                    progressBar.classList.add('bg-red-500');
+                } else {
+                    taskStatus.textContent = data.status;
+                    progressBar.style.width = `${data.progress}%`;
+                }
+            }, 2000); // Poll every 2 seconds
+        }
+
+        // Modals Logic
+        const statusModal = document.getElementById('status-modal');
+        const applyModal = document.getElementById('apply-modal');
+        const detailsModal = document.getElementById('details-modal');
+        const detailsModalContent = document.getElementById('details-modal-content');
+        const trafficAnalysisModal = document.getElementById('traffic-analysis-modal');
+        const trafficAnalysisModalContent = document.getElementById('traffic-analysis-modal-content');
+
+        window.openStatusModal = function (jobId, status, notes) {
+            document.getElementById('status-job-id').value = jobId;
+            document.getElementById('status').value = status;
+            document.getElementById('notes').value = notes;
+            statusModal.classList.remove('hidden');
+        };
+
+        window.closeStatusModal = function () {
+            statusModal.classList.add('hidden');
+        };
+
+        window.openApplyModal = function (jobId, jobLink) {
+            const startApplyBtn = document.getElementById('start-apply-btn');
+            startApplyBtn.onclick = function () {
+                startApplyProcess(jobId);
+                closeApplyModal();
+            };
+            applyModal.classList.remove('hidden');
+        };
+
+        window.closeApplyModal = function () {
+            applyModal.classList.add('hidden');
+        };
+
+        function openTrafficAnalysisModal() {
+            trafficAnalysisModal.classList.remove('hidden');
+            setTimeout(() => {
+                trafficAnalysisModalContent.classList.remove('scale-95', 'opacity-0');
+            }, 10);
+        }
+
+        window.closeTrafficAnalysisModal = function () {
+            trafficAnalysisModalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                trafficAnalysisModal.classList.add('hidden');
+            }, 300);
+        };
+
+        // New Modal Logic for Job Details
+        window.openDetailsModal = function (job) {
+            const notSpecified = '<span class="text-gray-500">Not specified</span>';
+
+            // Populate text content
+            document.getElementById('modal-title').textContent = job.title || 'No Title';
+            document.getElementById('modal-company').textContent = job.company || 'No Company';
+            document.getElementById('modal-location').innerHTML = job.location || notSpecified;
+            document.getElementById('modal-salary').innerHTML = job.salary || notSpecified;
+            document.getElementById('modal-experience').innerHTML = job.experience || notSpecified;
+            document.getElementById('modal-job-type').innerHTML = job.job_type || notSpecified;
+            document.getElementById('modal-description').textContent = job.description || 'No description provided.';
+            document.getElementById('modal-posted-date').innerHTML = job.posted_date || notSpecified;
+            document.getElementById('modal-source').innerHTML = job.source || notSpecified;
+            document.getElementById('modal-deadline').innerHTML = job.deadline || notSpecified;
+
+            // Experience Range
+            let expRange = notSpecified;
+            const minExp = job.min_experience_years;
+            const maxExp = job.max_experience_years;
+
+            if (minExp != null && maxExp != null) {
+                expRange = (minExp === maxExp) ? `${minExp} years` : `${minExp} - ${maxExp} years`;
+            } else if (minExp != null) {
+                expRange = `${minExp}+ years`;
+            } else if (maxExp != null) {
+                expRange = `Up to ${maxExp} years`;
             }
+            document.getElementById('modal-exp-range').innerHTML = expRange;
 
-            // Helper function to create gradients
-            function createGradient(ctx, color1, color2) {
-                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-                gradient.addColorStop(0, color1);
-                gradient.addColorStop(1, color2);
-                return gradient;
+            // Populate tag-based fields
+            const createTags = (items, containerId) => {
+                const container = document.getElementById(containerId);
+                const parentContainer = document.getElementById(containerId + '-container');
+                if (items && items.trim()) {
+                    container.innerHTML = items.split(',').map(item => `<span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-700 text-gray-300">${item.trim()}</span>`).join('');
+                    parentContainer.classList.remove('hidden');
+                } else {
+                    parentContainer.classList.add('hidden');
+                }
+            };
+            createTags(job.skills, 'modal-skills');
+            createTags(job.extracted_tools, 'modal-tools');
+            createTags(job.extracted_soft_skills, 'modal-soft-skills');
+
+            // Relevance Score Badge
+            const relevanceBadge = document.getElementById('modal-relevance');
+            const score = job.relevance_score || 0;
+            relevanceBadge.textContent = `${Math.round(score)}% Match`;
+            relevanceBadge.className = 'px-3 py-1 text-sm font-semibold rounded-full'; // Reset classes
+            if (score >= 60) relevanceBadge.classList.add('bg-green-500/20', 'text-green-300');
+            else if (score >= 30) relevanceBadge.classList.add('bg-yellow-500/20', 'text-yellow-300');
+            else relevanceBadge.classList.add('bg-red-500/20', 'text-red-300');
+
+            // Apply link
+            document.getElementById('modal-apply-link').href = job.link || '#';
+
+            // Show modal with animation
+            detailsModal.classList.remove('hidden');
+            setTimeout(() => {
+                detailsModalContent.classList.remove('scale-95', 'opacity-0');
+            }, 10);
+        };
+
+        window.closeDetailsModal = function () {
+            detailsModalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                detailsModal.classList.add('hidden');
+            }, 300);
+        };
+
+        async function startApplyProcess(jobId) {
+            try {
+                const response = await fetch(`/assisted_apply/${jobId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    alert(data.message); // Using native alert here for a quick, non-disruptive feedback. You should replace this with a custom modal.
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error triggering assisted apply:', error);
+                alert('An error occurred. Please check the console.');
             }
+        }
 
-            // Populate chart stats section
-            function populateChartStats(data, total) {
-                const statsContainer = document.getElementById('chartStats');
-                if (!statsContainer) return;
+        window.analyzeTraffic = async function (jobId) {
+            console.log(`Analyzing traffic for job ID: ${jobId}`);
 
-                const statusConfig = {
-                    'new': { color: 'blue', icon: '', label: 'New Applications' },
-                    'applied': { color: 'green', icon: '', label: 'Applications Sent' },
-                    'interview': { color: 'yellow', icon: '', label: 'Interview Stage' },
-                    'rejected': { color: 'gray', icon: '', label: 'Not Selected' },
-                    'offered': { color: 'purple', icon: '', label: 'Job Offers' }
+            // 1. Open modal and show loading state
+            openTrafficAnalysisModal();
+            document.getElementById('traffic-modal-placeholder').classList.remove('hidden');
+            document.getElementById('traffic-modal-results').classList.add('hidden');
+            document.getElementById('traffic-modal-company').textContent = 'Loading...';
+
+            try {
+                const response = await fetch(`/analyze_traffic/${jobId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+
+                // 2. Hide loading and show results
+                document.getElementById('traffic-modal-placeholder').classList.add('hidden');
+                document.getElementById('traffic-modal-results').classList.remove('hidden');
+
+                if (response.ok && data.status === 'success') {
+                    // 3. Populate modal with data
+                    document.getElementById('traffic-modal-company').textContent = data.company_name || 'N/A';
+                    document.getElementById('traffic-visits').textContent = data.analysis.monthly_visits || '--';
+                    document.getElementById('traffic-bounce-rate').textContent = data.analysis.bounce_rate || '--';
+                    document.getElementById('traffic-pages-per-visit').textContent = data.analysis.pages_per_visit || '--';
+                    document.getElementById('traffic-message').textContent = data.message || '';
+                } else {
+                    // Handle error case
+                    document.getElementById('traffic-modal-company').textContent = 'Error';
+                    document.getElementById('traffic-message').innerHTML = `<p class="text-red-400">${data.message || 'An unknown error occurred.'}</p>`;
+                }
+
+            } catch (error) {
+                console.error('Error analyzing traffic:', error);
+                document.getElementById('traffic-modal-placeholder').classList.add('hidden');
+                document.getElementById('traffic-modal-results').classList.remove('hidden');
+                document.getElementById('traffic-modal-company').textContent = 'Error';
+                document.getElementById('traffic-message').innerHTML = `<p class="text-red-400">A network error occurred while analyzing traffic.</p>`;
+            }
+        }
+
+        // Close details modal if clicking on the backdrop
+        detailsModal.addEventListener('click', (event) => {
+            if (event.target === detailsModal) {
+                closeDetailsModal();
+            }
+        });
+
+        // Close traffic modal if clicking on the backdrop
+        trafficAnalysisModal.addEventListener('click', (event) => {
+            if (event.target === trafficAnalysisModal) {
+                closeTrafficAnalysisModal();
+            }
+        });
+
+        // Chart.js Logic
+        async function renderJobStatusChart() {
+            try {
+                const response = await fetch('/api/job_status_data');
+                if (!response.ok) {
+                    console.error('Failed to fetch chart data');
+                    return;
+                }
+                const data = await response.json();
+
+                const totalJobsForChart = Object.values(data).reduce((a, b) => a + b, 0);
+                if (totalJobsForChart === 0) {
+                    document.getElementById('jobStatusChart').parentElement.innerHTML = '<div class="text-center py-8"><div class="text-4xl mb-3">🤷‍♀️</div><p class="text-gray-400 font-medium">No job data yet!</p><p class="text-sm text-gray-500">Start your job hunt to see the magic ✨</p></div>';
+                    return;
+                }
+
+                const statusEmojis = {
+                    'new': 'New Applications',
+                    'applied': 'Applications Sent',
+                    'interview': 'Interview Stage',
+                    'rejected': 'Not Selected',
+                    'offered': 'Job Offers',
+                    'archived': 'Archived'
                 };
 
-                let statsHTML = '';
-                Object.entries(data).forEach(([status, count]) => {
-                    const config = statusConfig[status] || { color: 'gray', icon: '📊', label: status };
+                populateChartStats(data, totalJobsForChart);
+
+                const chartData = {
+                    labels: Object.keys(data).map(status => statusEmojis[status] || status),
+                    datasets: [{
+                        label: 'Job Statuses',
+                        data: Object.values(data),
+                        backgroundColor: [
+                        '#3B82F6',  // New - Blue
+                        '#10B981',  // Applied - Emerald
+                            '#F59E0B',  // Interview - Amber
+                            '#8B5CF6',   // Offered - Purple
+                            '#EF4444',  // Rejected - Red
+                            '#6B7280'   // Archived - Gray
+                        ],
+                        borderColor: '#0f172a', // Match dark bg
+                        borderWidth: 3,
+                        hoverBorderWidth: 4,
+                        hoverBorderColor: '#94a3b8'
+                    }]
+                };
+
+                const ctx = document.getElementById('jobStatusChart').getContext('2d');
+
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        cutout: '60%',
+                        plugins: {
+                            legend: {
+                                display: false // Legend is handled by the stats section
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                titleColor: '#FFFFFF',
+                                bodyColor: '#e2e8f0',
+                                borderColor: '#4f46e5',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                displayColors: false,
+                                callbacks: {
+                                    label: function (context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                        return `${context.label}: ${context.parsed} jobs (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        },
+                        animation: {
+                            animateRotate: true,
+                            animateScale: true,
+                            duration: 1500,
+                            easing: 'easeOutQuart'
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error rendering chart:', error);
+            }
+        }
+
+        function populateChartStats(data, total) {
+            const statsContainer = document.getElementById('chartStats');
+            if (!statsContainer) return;
+
+            const statusConfig = {
+                'new': { color: 'blue', label: 'New' },
+                'applied': { color: 'emerald', label: 'Applied' },
+                'interview': { color: 'amber', label: 'Interview' },
+                'offered': { color: 'purple', label: 'Offered' },
+                'rejected': { color: 'red', label: 'Rejected' },
+                'archived': { color: 'gray', label: 'Archived' }
+            };
+
+            let statsHTML = '';
+            Object.entries(data).forEach(([status, count]) => {
+                    const config = statusConfig[status] || { color: 'gray', label: status };
                     const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
 
                     statsHTML += `
-                        <div class="bg-${config.color}-50 border border-${config.color}-100 rounded-lg p-4">
+                        <div class="bg-gray-800/50 border border-gray-700/50 rounded-lg p-4 backdrop-blur-sm">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-2">
-                                    <span class="text-lg">${config.icon}</span>
-                                    <span class="text-sm font-medium text-${config.color}-700">${config.label}</span>
+                                    <div class="chart-legend-dot chart-legend-${config.color}"></div>
+                                    <span class="text-sm font-medium text-gray-300">${config.label}</span>
                                 </div>
                                 <div class="text-right">
-                                    <div class="text-2xl font-bold text-${config.color}-600">${count}</div>
-                                    <div class="text-xs text-${config.color}-500">${percentage}%</div>
+                                    <div class="text-xl font-bold text-gray-100">${count}</div>
+                                    <div class="text-xs text-gray-400">${percentage}%</div>
                                 </div>
                             </div>
                         </div>
                     `;
-                });
-
-                statsContainer.innerHTML = statsHTML;
-            }
-
-            // Filter by status function
-            window.filterByStatus = function (status) {
-                const statusFilter = document.getElementById('status_filter');
-                if (statusFilter) {
-                    statusFilter.value = status;
-                    document.getElementById('filter-form').submit();
-                }
-            }
-
-            renderJobStatusChart();
-
-            // Enhanced Filter Form JavaScript
-            // Toggle filters on mobile
-            const toggleFilters = document.getElementById('toggle-filters');
-            const filterContent = document.getElementById('filter-content');
-
-            if (toggleFilters && filterContent) {
-                toggleFilters.addEventListener('click', function () {
-                    filterContent.classList.toggle('hidden');
-                    const icon = toggleFilters.querySelector('svg');
-                    icon.style.transform = filterContent.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
-                });
-            }
-
-            // Clear all filters
-            const clearFilters = document.getElementById('clear-filters');
-            if (clearFilters) {
-                clearFilters.addEventListener('click', function () {
-                    // Clear all form inputs
-                    document.getElementById('search_query').value = '';
-                    document.getElementById('location_filter').value = '';
-                    document.getElementById('status_filter').value = 'all';
-                    document.getElementById('job_type_filter').value = 'all';
-                    document.getElementById('sort_by').value = 'found_date';
-                    document.getElementById('sort_order').value = 'DESC';
-
-                    // Submit the form to apply cleared filters
-                    document.getElementById('filter-form').submit();
-                });
-            }
-
-            // The user wants to manually click "Apply Filters", so we disable auto-submit.
-            // // Auto-submit on select changes for better UX
-            // const selectElements = document.querySelectorAll('#filter-form select');
-            // selectElements.forEach(select => {
-            //     select.addEventListener('change', function () {
-            //         // Add a small delay to allow users to make multiple changes
-            //         clearTimeout(window.filterTimeout);
-            //         window.filterTimeout = setTimeout(() => {
-            //             document.getElementById('filter-form').submit();
-            //         }, 500);
-            //     });
-            // });
-
-            // Enhanced input handling with debounce
-            const textInputs = document.querySelectorAll('#filter-form input[type="text"]');
-            textInputs.forEach(input => {
-                input.addEventListener('input', function () {
-                    // Visual feedback
-                    this.classList.add('border-indigo-300');
-
-                    // Debounced auto-submit
-                    clearTimeout(window.inputTimeout);
-                    window.inputTimeout = setTimeout(() => {
-                        this.classList.remove('border-indigo-300');
-                        // Uncomment the next line if you want auto-submit on text input
-                        // document.getElementById('filter-form').submit();
-                    }, 1000);
-                });
             });
 
-            // Form submission loading state
-            const filterForm = document.getElementById('filter-form');
-            const submitButton = filterForm.querySelector('button[type="submit"]');
+            statsContainer.innerHTML = statsHTML;
+        }
 
-            filterForm.addEventListener('submit', function () {
-                submitButton.innerHTML = `
-                    <svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Filtering...
-                `;
-                submitButton.disabled = true;
+        window.filterByStatus = function (status) {
+            const statusFilter = document.getElementById('status_filter');
+            if (statusFilter) {
+                statusFilter.value = status;
+                document.getElementById('filter-form').submit();
+            }
+        }
+
+        renderJobStatusChart();
+
+        const toggleFilters = document.getElementById('toggle-filters');
+        const filterContent = document.getElementById('filter-content');
+
+        if (toggleFilters && filterContent) {
+            toggleFilters.addEventListener('click', function () {
+                filterContent.classList.toggle('hidden');
+                const icon = toggleFilters.querySelector('svg');
+                icon.style.transform = filterContent.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
             });
+        }
 
-            // Calendar Events Management
-            const loadEventsBtn = document.getElementById('load-events-btn');
-            const eventsContainer = document.getElementById('calendar-events-container');
-            const eventsList = document.getElementById('events-list');
-            const noEventsMsg = document.getElementById('no-events');
-            const eventsLoading = document.getElementById('events-loading');
-            let autoRefreshInterval = null;
+        const filterForm = document.getElementById('filter-form');
+        const submitButton = filterForm.querySelector('button[type="submit"]');
 
-            // Function to load calendar events
-            async function loadCalendarEvents(showLoading = true) {
+        filterForm.addEventListener('submit', function () {
+            submitButton.innerHTML = `
+                <svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Filtering...
+            `;
+            submitButton.disabled = true;
+        });
+
+        // Calendar Events Management
+        const loadEventsBtn = document.getElementById('load-events-btn');
+        const eventsContainer = document.getElementById('calendar-events-container');
+        const eventsList = document.getElementById('events-list');
+        const noEventsMsg = document.getElementById('no-events');
+        const eventsLoading = document.getElementById('events-loading');
+        let autoRefreshInterval = null;
+
+        async function loadCalendarEvents(showLoading = true) {
+            if (showLoading) {
+                eventsContainer.classList.remove('hidden');
+                eventsLoading.classList.remove('hidden');
+                noEventsMsg.classList.add('hidden');
+                eventsList.innerHTML = '';
+            }
+
+            try {
+                const response = await fetch('/calendar_events');
+                const data = await response.json();
+
                 if (showLoading) {
-                    eventsContainer.classList.remove('hidden');
-                    eventsLoading.classList.remove('hidden');
-                    noEventsMsg.classList.add('hidden');
-                    eventsList.innerHTML = '';
+                    eventsLoading.classList.add('hidden');
                 }
 
-                try {
-                    const response = await fetch('/calendar_events');
-                    const data = await response.json();
+                if (data.error) {
+                    eventsList.innerHTML = `<div class="text-red-400 text-center py-4">Error: ${data.error}</div>`;
+                    return;
+                }
 
-                    if (showLoading) {
-                        eventsLoading.classList.add('hidden');
-                    }
-
-                    if (data.error) {
-                        eventsList.innerHTML = `<div class="text-red-600 text-center py-4">Error: ${data.error}</div>`;
-                        return;
-                    }
-
-                    if (data.events && data.events.length > 0) {
-                        eventsList.innerHTML = data.events.map(event => `
-                        <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm" data-event-id="${event.id}">
-                            <div class="flex justify-between items-start">
-                                <div class="flex-1">
-                                    <h4 class="font-medium text-gray-900 text-sm">${event.summary}</h4>
-                                    <p class="text-xs text-gray-600 mt-1">📅 ${event.start}</p>
-                                    ${event.description ? `<p class="text-xs text-gray-500 mt-1 line-clamp-2">${event.description.substring(0, 100)}${event.description.length > 100 ? '...' : ''}</p>` : ''}
-                                </div>
-                                <div class="flex gap-1 ml-2">
-                                    <a href="${event.htmlLink}" target="_blank" class="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 bg-blue-50 rounded">
-                                        View
-                                    </a>
-                                    <button onclick="deleteCalendarEvent('${event.id}')" class="text-red-600 hover:text-red-800 text-xs px-2 py-1 bg-red-50 rounded">
-                                        Delete
-                                    </button>
-                                </div>
+                if (data.events && data.events.length > 0) {
+                    eventsList.innerHTML = data.events.map(event => `
+                    <div class="bg-gray-900/50 border border-gray-700/50 rounded-lg p-3 shadow-sm" data-event-id="${event.id}">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h4 class="font-medium text-gray-200 text-sm">${event.summary}</h4>
+                                <p class="text-xs text-gray-400 mt-1">📅 ${event.start}</p>
+                                ${event.description ? `<p class="text-xs text-gray-500 mt-1 line-clamp-2">${event.description.substring(0, 100)}${event.description.length > 100 ? '...' : ''}</p>` : ''}
+                            </div>
+                            <div class="flex gap-1 ml-2">
+                                <a href="${event.htmlLink}" target="_blank" class="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 bg-blue-600/20 rounded">
+                                    View
+                                </a>
+                                <button onclick="deleteCalendarEvent('${event.id}')" class="text-red-400 hover:text-red-300 text-xs px-2 py-1 bg-red-600/20 rounded">
+                                    Delete
+                                </button>
                             </div>
                         </div>
-                    `).join('');
+                    </div>
+                `).join('');
 
-                        // Start auto-refresh if not already running
-                        if (!autoRefreshInterval) {
-                            startAutoRefresh();
-                        }
-                    } else {
-                        noEventsMsg.classList.remove('hidden');
-                        // Stop auto-refresh if no events
-                        if (autoRefreshInterval) {
-                            clearInterval(autoRefreshInterval);
-                            autoRefreshInterval = null;
-                        }
+                    if (!autoRefreshInterval) {
+                        startAutoRefresh();
                     }
-                } catch (error) {
-                    if (showLoading) {
-                        eventsLoading.classList.add('hidden');
+                } else {
+                    noEventsMsg.classList.remove('hidden');
+                    if (autoRefreshInterval) {
+                        clearInterval(autoRefreshInterval);
+                        autoRefreshInterval = null;
                     }
-                    eventsList.innerHTML = `<div class="text-red-600 text-center py-4">Failed to load events: ${error.message}</div>`;
                 }
+            } catch (error) {
+                if (showLoading) {
+                    eventsLoading.classList.add('hidden');
+                }
+                eventsList.innerHTML = `<div class="text-red-400 text-center py-4">Failed to load events: ${error.message}</div>`;
             }
+        }
 
-            // Auto-refresh function to sync with Google Calendar
-            function startAutoRefresh() {
-                // Refresh every 30 seconds to stay in sync with Google Calendar
-                autoRefreshInterval = setInterval(() => {
-                    loadCalendarEvents(false); // Don't show loading spinner for auto-refresh
-                }, 30000);
+        function startAutoRefresh() {
+            autoRefreshInterval = setInterval(() => {
+                loadCalendarEvents(false);
+            }, 30000);
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
             }
-
-            // Stop auto-refresh when user leaves the page
-            window.addEventListener('beforeunload', () => {
-                if (autoRefreshInterval) {
-                    clearInterval(autoRefreshInterval);
-                }
-            });
-
-            if (loadEventsBtn) {
-                loadEventsBtn.addEventListener('click', function () {
-                    loadCalendarEvents(true);
-                });
-            }
-
-            // Manual refresh button
-            const refreshEventsBtn = document.getElementById('refresh-events-btn');
-            if (refreshEventsBtn) {
-                refreshEventsBtn.addEventListener('click', function () {
-                    // Show brief loading state
-                    refreshEventsBtn.innerHTML = '⏳ Syncing...';
-                    refreshEventsBtn.disabled = true;
-
-                    loadCalendarEvents(false).then(() => {
-                        refreshEventsBtn.innerHTML = '🔄 Refresh';
-                        refreshEventsBtn.disabled = false;
-
-                        // Show sync confirmation
-                        const syncMsg = document.createElement('div');
-                        syncMsg.className = 'text-xs text-green-600 mt-1';
-                        syncMsg.textContent = '✅ Synced with Google Calendar';
-                        refreshEventsBtn.parentNode.appendChild(syncMsg);
-
-                        setTimeout(() => {
-                            if (syncMsg.parentNode) {
-                                syncMsg.parentNode.removeChild(syncMsg);
-                            }
-                        }, 2000);
-                    });
-                });
-            }
-
-            // Global function to sync individual job to calendar
-            window.syncJobToCalendar = async function (jobId) {
-                if (!confirm('Sync this job to Google Calendar? This will create appropriate calendar events based on the job status and deadline.')) {
-                    return;
-                }
-
-                // Find the sync button and show loading state
-                const syncBtn = event.target;
-                const originalText = syncBtn.innerHTML;
-                syncBtn.innerHTML = '⏳ Syncing...';
-                syncBtn.disabled = true;
-
-                try {
-                    const response = await fetch(`/sync_job_to_calendar/${jobId}`, {
-                        method: 'POST'
-                    });
-                    const data = await response.json();
-
-                    if (data.success) {
-                        // Show success message
-                        syncBtn.innerHTML = '✅ Synced!';
-                        syncBtn.className = 'text-green-600 hover:text-green-900';
-
-                        // Show detailed success message
-                        if (data.events_created && data.events_created.length > 0) {
-                            alert(`✅ Successfully synced to calendar!\n\nCreated: ${data.events_created.join(', ')}`);
-                        } else {
-                            alert('✅ Job synced! No new calendar events were needed for this job.');
-                        }
-
-                        // Reset button after 3 seconds
-                        setTimeout(() => {
-                            syncBtn.innerHTML = originalText;
-                            syncBtn.className = 'text-green-600 hover:text-green-900';
-                            syncBtn.disabled = false;
-                        }, 3000);
-
-                    } else {
-                        // Reset button on error
-                        syncBtn.innerHTML = originalText;
-                        syncBtn.disabled = false;
-                        alert('Failed to sync job to calendar: ' + (data.error || 'Unknown error'));
-                    }
-                } catch (error) {
-                    // Reset button on error
-                    syncBtn.innerHTML = originalText;
-                    syncBtn.disabled = false;
-                    alert('Failed to sync job to calendar: ' + error.message);
-                }
-            };
-
-            // Global function to delete calendar events
-            window.deleteCalendarEvent = async function (eventId) {
-                if (!confirm('Are you sure you want to delete this calendar event?')) {
-                    return;
-                }
-
-                // Find the event element and show deleting state
-                const eventElement = document.querySelector(`[data-event-id="${eventId}"]`);
-                const deleteBtn = eventElement?.querySelector('button[onclick*="deleteCalendarEvent"]');
-
-                if (deleteBtn) {
-                    deleteBtn.innerHTML = '⏳ Deleting...';
-                    deleteBtn.disabled = true;
-                }
-
-                try {
-                    const response = await fetch(`/delete_calendar_event/${eventId}`, {
-                        method: 'DELETE'
-                    });
-                    const data = await response.json();
-
-                    if (data.success) {
-                        // Immediately remove from UI with animation
-                        if (eventElement) {
-                            eventElement.style.opacity = '0.5';
-                            eventElement.style.transform = 'scale(0.95)';
-                            eventElement.style.transition = 'all 0.3s ease';
-
-                            setTimeout(() => {
-                                eventElement.remove();
-
-                                // Check if no events left
-                                const remainingEvents = document.querySelectorAll('[data-event-id]');
-                                if (remainingEvents.length === 0) {
-                                    noEventsMsg.classList.remove('hidden');
-                                    // Stop auto-refresh if no events
-                                    if (autoRefreshInterval) {
-                                        clearInterval(autoRefreshInterval);
-                                        autoRefreshInterval = null;
-                                    }
-                                }
-                            }, 300);
-                        }
-
-                        // Show success message
-                        const successMsg = document.createElement('div');
-                        successMsg.className = 'text-xs text-green-600 bg-green-50 border border-green-200 rounded p-2 mt-2';
-                        successMsg.textContent = '✅ Event deleted successfully';
-                        eventsContainer.appendChild(successMsg);
-
-                        setTimeout(() => {
-                            if (successMsg.parentNode) {
-                                successMsg.parentNode.removeChild(successMsg);
-                            }
-                        }, 3000);
-
-                    } else {
-                        // Reset button on error
-                        if (deleteBtn) {
-                            deleteBtn.innerHTML = 'Delete';
-                            deleteBtn.disabled = false;
-                        }
-                        alert('Failed to delete event: ' + (data.error || 'Unknown error'));
-                    }
-                } catch (error) {
-                    // Reset button on error
-                    if (deleteBtn) {
-                        deleteBtn.innerHTML = 'Delete';
-                        deleteBtn.disabled = false;
-                    }
-                    alert('Failed to delete event: ' + error.message);
-                }
-            };
         });
-    </script>
-    {% endblock %}
+
+        if (loadEventsBtn) {
+            loadEventsBtn.addEventListener('click', function () {
+                loadCalendarEvents(true);
+            });
+        }
+
+        const refreshEventsBtn = document.getElementById('refresh-events-btn');
+        if (refreshEventsBtn) {
+            refreshEventsBtn.addEventListener('click', function () {
+                refreshEventsBtn.innerHTML = 'Syncing...';
+                refreshEventsBtn.disabled = true;
+
+                loadCalendarEvents(false).then(() => {
+                    refreshEventsBtn.innerHTML = 'Refresh';
+                    refreshEventsBtn.disabled = false;
+                });
+            });
+        }
+
+        window.deleteCalendarEvent = async function (eventId) {
+            if (!confirm('Are you sure you want to delete this calendar event?')) {
+                return;
+            }
+
+            const eventElement = document.querySelector(`[data-event-id="${eventId}"]`);
+            
+            try {
+                const response = await fetch(`/delete_calendar_event/${eventId}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    if (eventElement) {
+                        eventElement.style.opacity = '0';
+                        setTimeout(() => eventElement.remove(), 300);
+                    }
+                } else {
+                    alert('Failed to delete event: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Failed to delete event: ' + error.message);
+            }
+        };
+    });
+</script>
+</div>
+</div>
+{% endblock %}
