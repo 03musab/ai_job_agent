@@ -21,7 +21,7 @@ from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import quote_plus, urljoin
 
 # --- Third-Party Imports ---
@@ -56,6 +56,7 @@ from selenium.webdriver.edge.service import Service as EdgeService
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.firefox.service import Service as FirefoxService
 from werkzeug.security import check_password_hash, generate_password_hash
+from flask import send_from_directory
 from werkzeug.utils import secure_filename
 
 
@@ -271,6 +272,17 @@ def clean_description(text: str, title: str = None, company: str = None) -> str:
 @app.template_filter('clean_desc')
 def jinja_clean_desc_filter(text: str) -> str:
     return clean_description(text)
+
+@app.template_filter('fromjson')
+def fromjson_filter(json_string):
+    """Custom Jinja filter to parse a JSON string into a Python object."""
+    if json_string is None:
+        return {}  # Return an empty dict to prevent errors on attribute access
+    try:
+        return json.loads(json_string)
+    except (json.JSONDecodeError, TypeError):
+        logger.warning(f"Could not decode JSON string in template: {json_string[:100]}")
+        return {} # Return an empty dict on error
 
 @app.context_processor
 def inject_now():
@@ -708,7 +720,7 @@ class JobDatabase:
         total_count = cursor.fetchone()[0]
 
         # Safely construct ORDER BY clause
-        allowed_sort_columns = ['found_date', 'title', 'company', 'location', 'relevance_score']
+        allowed_sort_columns = ['found_date', 'title', 'location', 'relevance_score']
         if sort_by not in allowed_sort_columns:
             sort_by = 'found_date' # Default to safe column
         sort_order = 'ASC' if sort_order.upper() == 'ASC' else 'DESC' # Ensure valid order
@@ -1027,6 +1039,20 @@ class JobDatabase:
             return True
         except Exception as e:
             logger.error(f"Error saving user details for user {user_id}: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def delete_user_details(self, user_id: int) -> bool:
+        """Deletes a user's application details from the user_details table."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM user_details WHERE user_id = ?", (user_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error deleting user details for user {user_id}: {e}")
             return False
         finally:
             conn.close()
@@ -3726,9 +3752,9 @@ def scheduled_job_hunt_for_all_users():
 @app.route('/')
 def index():
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
-
+        return redirect(url_for('dashboard')) # Logged-in users go to dashboard
+    return redirect(url_for('login')) # Logged-out users go to the login page
+    
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
@@ -3777,6 +3803,10 @@ def profile():
         # Get existing details to not lose the resume path if not updated
         existing_details = db.get_user_details(current_user.id) or {}
         
+        # Start with the existing resume path and parsed data
+        resume_path = existing_details.get('resume_path')
+        resume_parsed_data = existing_details.get('resume_parsed_data')
+
         details = {
             'full_name': request.form.get('full_name'),
             'email': request.form.get('email'),
@@ -3786,7 +3816,6 @@ def profile():
             'github_url': request.form.get('github_url'),
             'portfolio_url': request.form.get('portfolio_url'),
             'cover_letter_template': request.form.get('cover_letter_template'),
-            'resume_path': existing_details.get('resume_path'),
             'browser_profile_path': request.form.get('browser_profile_path', '').strip(),
             'willing_to_relocate': request.form.get('willing_to_relocate', 'no'),
             'authorized_to_work': request.form.get('authorized_to_work', 'no')
@@ -3802,17 +3831,16 @@ def profile():
                 filename = secure_filename(file.filename)
                 file_path = os.path.join(user_upload_dir, filename)
                 file.save(file_path)
-                details['resume_path'] = file_path
+                resume_path = file_path # Update with the new path
 
                 # NEW: Parse the resume and store the structured data as JSON
                 parser = ResumeParser()
                 parsed_data = parser.parse(file_path)
-                details['resume_parsed_data'] = json.dumps(parsed_data) if parsed_data else None
-            else: # No new file uploaded, keep the old parsed data
-                details['resume_parsed_data'] = existing_details.get('resume_parsed_data')
-        else: # No file in request, also keep old parsed data
-            details['resume_parsed_data'] = existing_details.get('resume_parsed_data')
+                resume_parsed_data = json.dumps(parsed_data) if parsed_data else None
         
+        details['resume_path'] = resume_path
+        details['resume_parsed_data'] = resume_parsed_data
+
         if db.save_user_details(current_user.id, details):
             flash('Profile updated successfully!', 'success')
         else:
@@ -3821,6 +3849,26 @@ def profile():
 
     user_details = db.get_user_details(current_user.id)
     return render_template('profile.html', user_details=user_details)
+
+@app.route('/cold_base')
+@login_required
+def cold_base():
+    """Renders the cold outreach base page."""
+    return render_template('cold_base.html')
+
+@app.route('/clear_profile', methods=['POST'])
+@login_required
+def clear_profile():
+    """Deletes all profile information for the current user."""
+    db = JobDatabase()
+    # The action is considered successful even if there was nothing to delete.
+    db.delete_user_details(current_user.id)
+    # Return a JSON response for the frontend to handle.
+    return jsonify({
+        'success': True,
+        'message': 'Your profile information has been cleared.'
+    })
+
 
 @app.route('/dashboard')
 @login_required
@@ -4235,7 +4283,7 @@ def analyze_traffic(job_id):
     # In a real implementation, you would fetch job/company details
     # and use an external API (like SimilarWeb, etc.) to get traffic data.
     jobs, _ = db.get_jobs_for_user(current_user.id, limit=1, search_query=f"id:{job_id}")
-    
+
     if not jobs:
         return jsonify({'status': 'error', 'message': 'Job not found.'}), 404
         
