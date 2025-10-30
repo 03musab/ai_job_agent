@@ -1,6 +1,7 @@
 # --- Standard Library Imports ---
 import base64
 import concurrent.futures
+import csv
 import datetime
 import hashlib
 import json
@@ -22,6 +23,7 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import unquote_plus
 from urllib.parse import quote_plus, urljoin
 
 # --- Third-Party Imports ---
@@ -34,13 +36,14 @@ import schedule
 from bs4 import BeautifulSoup
 from celery import Celery
 from celery.schedules import crontab
-from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
+from flask import Flask, flash, jsonify, redirect, render_template, request, url_for, Response, stream_with_context
 from flask_login import (LoginManager, UserMixin, current_user, login_required,
                          login_user, logout_user)
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+import undetected_chromedriver as uc
 from selenium import webdriver
 from selenium.common.exceptions import (NoSuchElementException, TimeoutException,
                                         WebDriverException as SeleniumWebDriverException)
@@ -189,6 +192,113 @@ def task_status(task_id):
         }
     return jsonify(response)
 
+@app.route('/contact_task_status/<task_id>')
+@login_required
+def contact_task_status(task_id):
+    """Endpoint to check the status of a contact scraping Celery task."""
+    task = scrape_contacts_task.AsyncResult(task_id)
+    if task.state == 'PENDING':
+        response = {
+            'state': task.state,
+            'progress': 0,
+            'status': 'Pending...'
+        }
+    elif task.state != 'FAILURE':
+        response = {
+            'state': task.state,
+            'progress': task.info.get('progress', 0),
+            'status': task.info.get('status', '')
+        }
+    else: # Something went wrong
+        response = {
+            'state': task.state,
+            'progress': 100,
+            'status': f"Task failed: {str(task.info)}"
+        }
+    return jsonify(response)
+
+
+# Server-Sent Events endpoint for task progress streaming
+@app.route('/task_progress_stream/<task_id>')
+@login_required
+def task_progress_stream(task_id):
+    """Stream task progress as SSE events. Clients should connect with EventSource.
+    The server polls Celery AsyncResult for state and meta and emits JSON payloads
+    with keys: percent (int 0-100), state (string), milestone (optional), message (optional).
+    """
+    def generate():
+        # initial client retry directive
+        yield 'retry: 1000\n\n'
+        try:
+            async_result = celery.AsyncResult(task_id)
+        except Exception:
+            payload = {'percent': 0, 'state': 'UNKNOWN', 'milestone': 'init', 'message': 'invalid task id'}
+            yield f"data: {json.dumps(payload)}\n\n"
+            return
+
+        while True:
+            try:
+                async_result = celery.AsyncResult(task_id)
+                state = getattr(async_result, 'state', None) or 'PENDING'
+                info = async_result.info or {}
+            except Exception:
+                state = 'UNKNOWN'
+                info = {}
+
+            # Determine percent from meta if present
+            percent = None
+            if isinstance(info, dict):
+                if 'progress' in info:
+                    try:
+                        percent = int(float(info.get('progress') or 0))
+                    except Exception:
+                        percent = None
+                elif 'percent' in info:
+                    try:
+                        percent = int(float(info.get('percent') or 0))
+                    except Exception:
+                        percent = None
+
+            # Fallback mapping for states
+            if percent is None:
+                if state == 'PENDING':
+                    percent = 0
+                elif state in ('RETRY', 'STARTED'):
+                    percent = 10
+                elif state == 'PROGRESS':
+                    percent = 30
+                elif state == 'SUCCESS':
+                    percent = 100
+                elif state == 'FAILURE':
+                    percent = 100
+                else:
+                    percent = 5
+
+            milestone = info.get('milestone') if isinstance(info, dict) else None
+            message = info.get('message') if isinstance(info, dict) else None
+
+            payload = {
+                'percent': int(max(0, min(100, percent))) if percent is not None else 0,
+                'state': state,
+                'milestone': milestone or None,
+                'message': message or None,
+            }
+
+            yield f"data: {json.dumps(payload)}\n\n"
+
+            # Terminate stream on final states
+            if state in ('SUCCESS', 'FAILURE') or async_result.ready():
+                break
+
+            time.sleep(0.7)
+
+    headers = {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no',
+    }
+    return Response(stream_with_context(generate()), headers=headers)
+
 # --- Flask-Login Configuration ---
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -291,7 +401,7 @@ def inject_now():
 
 @dataclass
 class Job:
-    """Enhanced Job data structure to store scraped job details."""
+    """Enhanced Job data structure to store scraped job details.""" # noqa: E501
     title: str
     company: str
     location: str
@@ -340,12 +450,11 @@ class Job:
         }
 
 class User(UserMixin):
-    def __init__(self, id, username, password_hash, email_recipients='', email_frequency='daily', send_excel_attachment=True):
+    def __init__(self, id, username, password_hash, email_recipients='', send_excel_attachment=True):
         self.id = id
         self.username = username
         self.password_hash = password_hash
         self.email_recipients = email_recipients
-        self.email_frequency = email_frequency
         self.send_excel_attachment = send_excel_attachment
 
     @staticmethod
@@ -353,7 +462,7 @@ class User(UserMixin):
         db = JobDatabase()
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, username, password_hash, email_recipients, email_frequency, send_excel_attachment FROM users WHERE id = ?", (user_id,))
+        cursor.execute("SELECT id, username, password_hash, email_recipients, send_excel_attachment FROM users WHERE id = ?", (user_id,))
         user_data = cursor.fetchone()
         conn.close()
         if user_data:
@@ -365,7 +474,7 @@ class User(UserMixin):
         db = JobDatabase()
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, username, password_hash, email_recipients, email_frequency, send_excel_attachment FROM users WHERE username = ?", (username,))
+        cursor.execute("SELECT id, username, password_hash, email_recipients, send_excel_attachment FROM users WHERE username = ?", (username,))
         user_data = cursor.fetchone()
         conn.close()
         if user_data:
@@ -396,19 +505,12 @@ class JobDatabase:
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
                 email_recipients TEXT DEFAULT '',
-                email_frequency TEXT DEFAULT 'daily',
                 send_excel_attachment BOOLEAN DEFAULT TRUE
             )
         ''')
         # Perform ALTER TABLE for new user columns if they don't exist
         cursor.execute("PRAGMA table_info(users)")
         user_columns = [col[1] for col in cursor.fetchall()]
-        if 'email_recipients' not in user_columns:
-            try: cursor.execute("ALTER TABLE users ADD COLUMN email_recipients TEXT DEFAULT ''"); conn.commit(); logger.info("Added email_recipients column to users table.")
-            except sqlite3.OperationalError as e: logger.warning(f"email_recipients column already exists or error altering users table: {e}")
-        if 'email_frequency' not in user_columns:
-            try: cursor.execute("ALTER TABLE users ADD COLUMN email_frequency TEXT DEFAULT 'daily'"); conn.commit(); logger.info("Added email_frequency column to users table.")
-            except sqlite3.OperationalError as e: logger.warning(f"email_frequency column already exists or error altering users table: {e}")
         if 'send_excel_attachment' not in user_columns:
             try: cursor.execute("ALTER TABLE users ADD COLUMN send_excel_attachment BOOLEAN DEFAULT TRUE"); conn.commit(); logger.info("Added send_excel_attachment column to users table.")
             except sqlite3.OperationalError as e: logger.warning(f"send_excel_attachment column already exists or error altering users table: {e}")
@@ -426,6 +528,7 @@ class JobDatabase:
                 portfolio_url TEXT,
                 resume_path TEXT,
                 cover_letter_template TEXT,
+                browser_profile_name TEXT DEFAULT 'Default',
                 browser_profile_path TEXT DEFAULT '',
                 resume_parsed_data TEXT,
                 willing_to_relocate TEXT DEFAULT 'no',
@@ -444,6 +547,13 @@ class JobDatabase:
                 logger.info("Added browser_profile_path column to user_details table.")
             except sqlite3.OperationalError as e:
                 logger.warning(f"browser_profile_path column already exists or error altering user_details table: {e}")
+        if 'browser_profile_name' not in user_details_columns:
+            try:
+                cursor.execute("ALTER TABLE user_details ADD COLUMN browser_profile_name TEXT DEFAULT 'Default'")
+                conn.commit()
+                logger.info("Added browser_profile_name column to user_details table.")
+            except sqlite3.OperationalError as e:
+                logger.warning(f"browser_profile_name column already exists or error altering user_details table: {e}")
         if 'resume_parsed_data' not in user_details_columns:
             try:
                 cursor.execute("ALTER TABLE user_details ADD COLUMN resume_parsed_data TEXT")
@@ -465,6 +575,13 @@ class JobDatabase:
                 logger.info("Added authorized_to_work column to user_details table.")
             except sqlite3.OperationalError as e:
                 logger.warning(f"authorized_to_work column already exists or error altering user_details table: {e}")
+        if 'assisted_apply_mode' not in user_details_columns:
+            try:
+                cursor.execute("ALTER TABLE user_details ADD COLUMN assisted_apply_mode TEXT DEFAULT 'personal'")
+                conn.commit()
+                logger.info("Added assisted_apply_mode column to user_details table.")
+            except sqlite3.OperationalError as e:
+                logger.warning(f"assisted_apply_mode column already exists or error altering user_details table: {e}")
 
         cursor.execute("PRAGMA table_info(jobs)")
         jobs_existing_columns = [col[1] for col in cursor.fetchall()]
@@ -794,18 +911,16 @@ class JobDatabase:
         conn.close()
         return rows_affected > 0
 
-    def update_user_settings(self, user_id: int, email_recipients: str, email_frequency: str, send_excel_attachment: bool) -> bool:
+    def update_user_settings(self, user_id: int, email_recipients: str, send_excel_attachment: bool) -> bool:
         """Updates user's email notification settings."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         try:
             cursor.execute('''
                 UPDATE users SET
-                    email_recipients = ?,
-                    email_frequency = ?,
-                    send_excel_attachment = ?
+                    email_recipients = ?, send_excel_attachment = ?
                 WHERE id = ?
-            ''', (email_recipients, email_frequency, int(bool(send_excel_attachment)), user_id))
+            ''', (email_recipients, int(bool(send_excel_attachment)), user_id))
             conn.commit()
             return cursor.rowcount > 0
         except Exception as e:
@@ -818,10 +933,10 @@ class JobDatabase:
         """Retrieves a user's email notification settings."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT email_recipients, email_frequency, send_excel_attachment FROM users WHERE id = ?", (user_id,))
+        cursor.execute("SELECT email_recipients, send_excel_attachment FROM users WHERE id = ?", (user_id,))
         settings_data = cursor.fetchone()
         conn.close()
-        if settings_data: return {'email_recipients': settings_data[0], 'email_frequency': settings_data[1], 'send_excel_attachment': bool(settings_data[2])}
+        if settings_data: return {'email_recipients': settings_data[0], 'send_excel_attachment': bool(settings_data[1])}
         return None
 
     def update_job_status_and_notes(self, job_id: int, user_id: int, status: str, notes: str) -> bool:
@@ -1022,18 +1137,20 @@ class JobDatabase:
                 INSERT OR REPLACE INTO user_details (
                     user_id, full_name, email, phone, address,
                     linkedin_url, github_url, portfolio_url,
-                    resume_path, cover_letter_template, browser_profile_path,
-                    resume_parsed_data, willing_to_relocate, authorized_to_work
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    resume_path, cover_letter_template, browser_profile_path, browser_profile_name,
+                    resume_parsed_data, willing_to_relocate, authorized_to_work, assisted_apply_mode
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 user_id,
                 details.get('full_name'), details.get('email'), details.get('phone'),
                 details.get('address'), details.get('linkedin_url'), details.get('github_url'),
                 details.get('portfolio_url'), details.get('resume_path'),
-                details.get('cover_letter_template'), details.get('browser_profile_path'),
+                details.get('cover_letter_template'),
+                details.get('browser_profile_path'), details.get('browser_profile_name', 'Default'),
                 details.get('resume_parsed_data'),
                 details.get('willing_to_relocate'),
-                details.get('authorized_to_work')
+                details.get('authorized_to_work'),
+                details.get('assisted_apply_mode', 'personal')
             ))
             conn.commit()
             return True
@@ -1054,6 +1171,388 @@ class JobDatabase:
         except Exception as e:
             logger.error(f"Error deleting user details for user {user_id}: {e}")
             return False
+        finally:
+            conn.close()
+
+class OutreachDatabase:
+    """Manages the SQLite database for all outreach activities."""
+
+    def __init__(self, db_path="outreach.db"):
+        self.db_path = db_path
+        self.init_db()
+
+    def init_db(self):
+        """Initializes the outreach database tables if they don't exist."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Contacts Table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS contacts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                full_name TEXT NOT NULL,
+                title TEXT,
+                company TEXT,
+                email TEXT,
+                linkedin_url TEXT UNIQUE,
+                source TEXT, -- e.g., 'LinkedIn', 'Manual'
+                status TEXT DEFAULT 'new', -- e.g., 'new', 'contacted', 'replied'
+                notes TEXT,
+                added_date TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        ''')
+
+        # Global Hiring Contacts Table (for uploaded CSV data)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS global_hiring_contacts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                full_name TEXT,
+                title TEXT,
+                company TEXT,
+                email TEXT,
+                linkedin_url TEXT UNIQUE,
+                source TEXT DEFAULT 'Uploaded CSV',
+                added_date TEXT NOT NULL
+            )
+        ''')
+        # This UNIQUE constraint on linkedin_url will prevent duplicate entries
+        # when we use 'INSERT OR IGNORE' or 'to_sql(if_exists='append')'.
+
+        # Templates Table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS templates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                template_name TEXT NOT NULL,
+                subject TEXT,
+                body TEXT NOT NULL,
+                type TEXT DEFAULT 'email', -- 'email', 'linkedin_message', 'text'
+                created_date TEXT NOT NULL,
+                UNIQUE(user_id, template_name),
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        ''')
+
+        # Add 'tone' column to templates table if it doesn't exist
+        cursor.execute("PRAGMA table_info(templates)")
+        template_columns = [col[1] for col in cursor.fetchall()]
+        if 'tone' not in template_columns:
+            try:
+                cursor.execute("ALTER TABLE templates ADD COLUMN tone TEXT DEFAULT 'direct'")
+                conn.commit()
+                logger.info("Added tone column to templates table.")
+            except sqlite3.OperationalError as e:
+                logger.warning(f"tone column already exists or error altering templates table: {e}")
+
+        # Campaigns Table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS campaigns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                campaign_name TEXT NOT NULL,
+                description TEXT,
+                status TEXT DEFAULT 'draft', -- 'draft', 'active', 'completed'
+                created_date TEXT NOT NULL,
+                UNIQUE(user_id, campaign_name),
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        ''')
+
+        # Outreach Logs Table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS outreach_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                campaign_id INTEGER NOT NULL,
+                contact_id INTEGER NOT NULL,
+                template_id INTEGER,
+                channel TEXT NOT NULL, -- 'email', 'linkedin', etc.
+                sent_date TEXT NOT NULL,
+                status TEXT DEFAULT 'sent', -- 'sent', 'opened', 'replied', 'ghosted'
+                status_date TEXT,
+                notes TEXT,
+                FOREIGN KEY(user_id) REFERENCES users(id),
+                FOREIGN KEY(campaign_id) REFERENCES campaigns(id),
+                FOREIGN KEY(contact_id) REFERENCES contacts(id),
+                FOREIGN KEY(template_id) REFERENCES templates(id)
+            )
+        ''')
+
+        conn.commit()
+        conn.close()
+        logger.info("Outreach database schema check/update complete.")
+
+    def get_outreach_stats(self, user_id: int) -> Dict[str, int]:
+        """Retrieves key statistics for the outreach dashboard."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        stats = {}
+        try:
+            # Only count the user's personal contacts for their dashboard.
+            cursor.execute("SELECT COUNT(*) FROM contacts WHERE user_id = ?", (user_id,))
+            stats['contact_count'] = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM campaigns WHERE user_id = ?", (user_id,))
+            stats['campaign_count'] = cursor.fetchone()[0]
+            return stats
+        finally:
+            conn.close()
+
+    def get_templates_by_user(self, user_id: int) -> List[Dict]:
+        """Retrieves all templates for a specific user."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT * FROM templates WHERE user_id = ? ORDER BY created_date DESC", (user_id,))
+            templates = [dict(row) for row in cursor.fetchall()]
+            return templates
+        finally:
+            conn.close()
+
+    def add_template(self, user_id: int, data: Dict) -> Optional[int]:
+        """Adds a new template to the database."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                INSERT INTO templates (user_id, template_name, subject, body, type, tone, created_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                user_id,
+                data['template_name'],
+                data.get('subject', ''),
+                data['body'],
+                data.get('type', 'email'),
+                data.get('tone', 'direct'),
+                datetime.datetime.now().isoformat()
+            ))
+            conn.commit()
+            return cursor.lastrowid
+        except sqlite3.IntegrityError:
+            logger.warning(f"Template '{data['template_name']}' already exists for user {user_id}.")
+            return None
+        finally:
+            conn.close()
+
+    def get_template_by_id(self, template_id: int, user_id: int) -> Optional[Dict]:
+        """Retrieves a single template by its ID for a specific user."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT * FROM templates WHERE id = ? AND user_id = ?", (template_id, user_id))
+            template = cursor.fetchone()
+            return dict(template) if template else None
+        except Exception as e:
+            logger.error(f"Error fetching template {template_id} for user {user_id}: {e}")
+            return None
+        finally:
+            conn.close()
+
+    def update_template(self, template_id: int, user_id: int, data: Dict) -> bool:
+        """Updates an existing template."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                UPDATE templates SET
+                    template_name = ?,
+                    subject = ?,
+                    body = ?,
+                    type = ?,
+                    tone = ?
+                WHERE id = ? AND user_id = ?
+            ''', (
+                data['template_name'],
+                data.get('subject', ''),
+                data['body'],
+                data.get('type', 'email'),
+                data.get('tone', 'direct'),
+                template_id,
+                user_id
+            ))
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            conn.close()
+
+    def delete_template(self, template_id: int, user_id: int) -> bool:
+        """Deletes a template from the database."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM templates WHERE id = ? AND user_id = ?", (template_id, user_id))
+            conn.commit()
+            return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error deleting template {template_id} for user {user_id}: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def add_global_contacts(self, contacts: List[Dict]) -> int:
+        """Adds a list of contact dictionaries to the global contacts table, ignoring duplicates."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        inserted_count = 0
+        try:
+            for contact in contacts:
+                try:
+                    cursor.execute('''
+                        INSERT OR IGNORE INTO global_hiring_contacts (full_name, title, company, email, linkedin_url, source, added_date)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        contact.get('full_name'), contact.get('title'), contact.get('company'),
+                        contact.get('email'), contact.get('linkedin_url'),
+                        contact.get('source'), contact.get('added_date')
+                    ))
+                    if cursor.rowcount > 0:
+                        inserted_count += 1
+                except sqlite3.IntegrityError:
+                    continue
+            conn.commit()
+            return inserted_count # Return the count of newly inserted rows
+        finally:
+            conn.close()
+
+    def search_and_copy_global_contacts(self, user_id: int, keywords: List[str]) -> int:
+        """
+        Searches global contacts for keywords and copies matches to a user's personal contacts.
+        Returns the number of new contacts added.
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        # Build the search query for global contacts
+        where_clauses = []
+        params = []
+        for keyword in keywords:
+            like_pattern = f"%{keyword}%"
+            where_clauses.append("(full_name LIKE ? OR title LIKE ? OR company LIKE ?)")
+            params.extend([like_pattern, like_pattern, like_pattern])
+        
+        if not where_clauses:
+            return 0
+
+        search_query = f"SELECT * FROM global_hiring_contacts WHERE {' OR '.join(where_clauses)}"
+        cursor.execute(search_query, params)
+        matching_global_contacts = cursor.fetchall()
+
+        added_count = 0
+        for global_contact in matching_global_contacts:
+            # global_contact is a tuple: (id, full_name, title, company, email, linkedin_url, source, added_date)
+            contact_data = {'full_name': global_contact[1], 'title': global_contact[2], 'company': global_contact[3], 'email': global_contact[4], 'linkedin_url': global_contact[5], 'source': 'Internal Search'}
+            if self.add_contact(user_id, contact_data):
+                added_count += 1
+        
+        return added_count
+
+    def add_contact(self, user_id: int, data: Dict) -> bool:
+        """Adds a new contact, avoiding duplicates based on LinkedIn URL."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                INSERT OR IGNORE INTO contacts (user_id, full_name, title, company, email, linkedin_url, source, added_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                user_id,
+                data['full_name'],
+                data.get('title'),
+                data.get('company'),
+                data.get('email'),
+                data['linkedin_url'],
+                data.get('source'),
+                datetime.datetime.now().isoformat()
+            ))
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            conn.close()
+
+    def get_contacts_by_user(self, user_id: int) -> List[Dict]:
+        """Retrieves all contacts for a specific user."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT * FROM contacts WHERE user_id = ? ORDER BY added_date DESC", (user_id,))
+            contacts = [dict(row) for row in cursor.fetchall()]
+            return contacts
+        finally:
+            conn.close()
+
+    def clear_global_contacts(self) -> int:
+        """Deletes all records from the global_hiring_contacts table."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM global_hiring_contacts")
+            deleted_count = cursor.rowcount
+            conn.commit()
+            return deleted_count
+        finally:
+            conn.close()
+
+    def delete_contact(self, contact_id: int, user_id: int) -> bool:
+        """Deletes a single personal contact for a specific user."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM contacts WHERE id = ? AND user_id = ?", (contact_id, user_id))
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            conn.close()
+
+    def delete_all_contacts_for_user(self, user_id: int) -> int:
+        """Deletes all personal contacts for a specific user."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM contacts WHERE user_id = ?", (user_id,))
+            deleted_count = cursor.rowcount
+            conn.commit()
+            return deleted_count
+        finally:
+            conn.close()
+
+    def get_campaigns_with_analytics(self, user_id: int) -> List[Dict]:
+        """Retrieves all campaigns for a user, enriched with analytics from outreach_logs."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT * FROM campaigns WHERE user_id = ? ORDER BY created_date DESC", (user_id,))
+            campaigns = [dict(row) for row in cursor.fetchall()]
+
+            for campaign in campaigns:
+                cursor.execute("SELECT status, COUNT(*) FROM outreach_logs WHERE campaign_id = ? GROUP BY status", (campaign['id'],))
+                status_counts_raw = cursor.fetchall()
+                
+                status_counts = {
+                    'sent': 0,
+                    'opened': 0,
+                    'replied': 0,
+                    'ghosted': 0
+                }
+                for status, count in status_counts_raw:
+                    if status in status_counts:
+                        status_counts[status] = count
+                
+                total_sent = sum(status_counts.values())
+                total_replied = status_counts.get('replied', 0)
+                
+                campaign['analytics'] = {
+                    'total_sent': total_sent,
+                    'replied_count': total_replied,
+                    'opened_count': status_counts.get('opened', 0),
+                    'reply_rate': (total_replied / total_sent * 100) if total_sent > 0 else 0
+                }
+
+            return campaigns
         finally:
             conn.close()
 
@@ -1946,6 +2445,8 @@ class EnhancedJobScraper:
         scraper_methods = {
             'LinkedIn': self.scrape_linkedin_jobs,
             'Internshala': self.scrape_internshala_jobs
+            # To add a new scraper, simply add its name and method here.
+            # 'NewSource': self.scrape_newsource_jobs
         }
 
         if self.task:
@@ -1953,7 +2454,7 @@ class EnhancedJobScraper:
 
         total_scrapers = len(self.search_terms) * len(scraper_methods)
         scrapers_done = 0
-        progress_start = 10
+        progress_start = 15 # Start after initialization
         progress_range = 70 # Scraping happens between 10% and 80%
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=SCRAPE_MAX_WORKERS) as executor:
@@ -1972,8 +2473,8 @@ class EnhancedJobScraper:
                     
                     scrapers_done += 1
                     progress = progress_start + int((scrapers_done / total_scrapers) * progress_range)
-                    if self.task:
-                        self.task.update_state(state='PROGRESS', meta={'status': f'Finished scraping {source_info}. Found {len(jobs_from_source)} jobs.', 'progress': progress})
+                    if self.task: # More detailed progress
+                        self.task.update_state(state='PROGRESS', meta={'status': f'Scraped {len(jobs_from_source)} jobs from {source_info.split("-")[0]} for "{source_info.split("-")[1]}"...', 'progress': progress})
 
                 except Exception as exc:
                     logger.error(f'{source_info} generated an exception: {exc}', exc_info=True)
@@ -1981,7 +2482,7 @@ class EnhancedJobScraper:
         logger.info(f"Total jobs scraped across all sources before deduplication: {len(all_jobs)}.")
         
         if self.task:
-            self.task.update_state(state='PROGRESS', meta={'status': 'Deduplicating and scoring jobs...', 'progress': 85})
+            self.task.update_state(state='PROGRESS', meta={'status': f'Deduplicating and scoring {len(all_jobs)} jobs...', 'progress': 85})
 
         unique_jobs = {}
         for job in all_jobs:
@@ -1996,7 +2497,7 @@ class EnhancedJobScraper:
         # Location filtering removed: all jobs are included regardless of location.
 
         if self.task:
-            self.task.update_state(state='PROGRESS', meta={'status': 'Filtering by relevance score...', 'progress': 88})
+            self.task.update_state(state='PROGRESS', meta={'status': f'Filtering {len(filtered_jobs)} unique jobs by relevance...', 'progress': 88})
 
         high_relevance_jobs = [job for job in filtered_jobs if job.relevance_score >= RELEVANCE_MIN_THRESHOLD]
         high_relevance_jobs.sort(key=lambda x: x.relevance_score, reverse=True)
@@ -2080,9 +2581,9 @@ class ApplicationFiller:
                     element = WebDriverWait(self.driver, timeout).until(
                         EC.presence_of_element_located((By.CSS_SELECTOR, selector))
                     )
-                else: # Assumes NAME or other simple locators if not XPath/CSS
+                else: # Default to CSS_SELECTOR for attribute selectors like 'input[name*="..."]'
                     element = WebDriverWait(self.driver, timeout).until(
-                        EC.presence_of_element_located((By.NAME, selector))
+                        EC.presence_of_element_located((By.CSS_SELECTOR, selector))
                     )
                 return element
             except TimeoutException:
@@ -3512,7 +4013,7 @@ class JobHunter:
         self.experience = experience
         self.job_type = job_type
         self.task = task
-        self.db = JobDatabase()
+        self.db = JobDatabase() # This is fine, DB can be initialized here.
         self.scraper = EnhancedJobScraper(search_terms=self.search_terms, location=self.location, experience=self.experience, job_type=self.job_type, user_id=self.user_id, task=self.task)
         self.emailer = SmartEmailer()
         
@@ -3520,20 +4021,22 @@ class JobHunter:
         """Orchestrates the entire job search and alert process."""
         logger.info(f"🔍 Starting job hunt for user {self.user_id} with terms: {self.search_terms}, location: {self.location}")
         if self.task:
-            self.task.update_state(state='PROGRESS', meta={'status': 'Starting job hunt...', 'progress': 5})
+            self.task.update_state(state='PROGRESS', meta={'status': 'Initializing job hunt...', 'progress': 5, 'milestone': 'Initializing'})
 
         logger.info("Calling scraper.scrape_all_sources()...")
-        jobs = self.scraper.scrape_all_sources()
+        jobs = self.scraper.scrape_all_sources() # This method now handles progress from 15% to 88%
         logger.info(f"Scraper returned {len(jobs)} jobs.")
         
         if self.task:
             self.task.update_state(state='PROGRESS', meta={'status': f'Scraping complete. Found {len(jobs)} potential jobs. Saving to database...', 'progress': 90})
-
+        
         # Store new jobs in the database for the specific user
         new_jobs_count = 0
         for job in jobs:
             if self.db.add_job(job, self.user_id):
                 new_jobs_count += 1
+        if self.task:
+            self.task.update_state(state='PROGRESS', meta={'status': f'Saved {new_jobs_count} new jobs to your dashboard.', 'progress': 92, 'milestone': 'Saving'})
         logger.info(f"💾 Added {new_jobs_count} new jobs to the database for user {self.user_id}.")
 
         # Retrieve user settings for email
@@ -3543,13 +4046,15 @@ class JobHunter:
 
         if not jobs:
             logger.info(f"📊 Found 0 new jobs matching criteria for user {self.user_id} today. No email will be sent.")
+            if self.task:
+                self.task.update_state(state='SUCCESS', meta={'status': 'Search complete. No new jobs found.', 'progress': 100})
             # Optionally send a "no jobs found" email
             # html = self.emailer.build_smart_html_email([])
             # self.emailer.send_email(f"No New Job Matches - {datetime.date.today().strftime('%b %d, %Y')}", html)
             return
             
         if self.task:
-            self.task.update_state(state='PROGRESS', meta={'status': 'Generating email report...', 'progress': 95})
+            self.task.update_state(state='PROGRESS', meta={'status': 'Generating your personalized email report...', 'progress': 95, 'milestone': 'Reporting'})
 
         html = self.emailer.build_smart_html_email(jobs)
         excel_file = ""
@@ -3558,8 +4063,12 @@ class JobHunter:
         
         subject = f"🧠 {len(jobs)} New Job Matches – {datetime.date.today().strftime('%b %d, %Y')}"
         
+        if self.task:
+            self.task.update_state(state='PROGRESS', meta={'status': f'Sending report to {email_recipients}...', 'progress': 98})
+
         # Pass the recipients list directly
         self.emailer.send_email(subject, html, attachment_path=excel_file, recipients=email_recipients.split(','))
+        
         
         if os.path.exists(excel_file):
             os.remove(excel_file)
@@ -3574,7 +4083,7 @@ def run_job_hunt_task(self, user_id: int, search_terms: List[str], location: str
     logger.info(f"Celery task {self.request.id} started for user {user_id} with terms {search_terms} at {location}.")
     try:
         logger.info(f"Creating JobHunter instance for user {user_id}.")
-        hunter = JobHunter(user_id=user_id, search_terms=search_terms, location=location, experience=experience, job_type=job_type, task=self)
+        hunter = JobHunter(user_id=user_id, search_terms=search_terms, location=location, experience=experience, job_type=job_type, task=self) # Correctly passing self
         logger.info(f"Running JobHunter.run() for user {user_id}.")
         hunter.run()
         logger.info(f"Celery task {self.request.id} completed successfully for user {user_id}.")
@@ -3621,6 +4130,7 @@ def assisted_apply_task(user_id: int, job_id: int):
         user_details['linkedin'] = user_details['linkedin_url']
     if user_details.get('resume_path'):
         # Ensure the path is absolute for the Celery worker
+                # This is a temporary fix for local development, consider a more robust path handling for production
         user_details['resume'] = os.path.abspath(user_details['resume_path'])
     if user_details.get('cover_letter_template'):
         user_details['cover_letter'] = user_details['cover_letter_template']
@@ -3646,63 +4156,46 @@ def assisted_apply_task(user_id: int, job_id: int):
     # 2. Launch a NON-headless Selenium browser
     driver = None
     try:
-        options = EdgeOptions()
-        options.use_chromium = True
-        options.add_argument("--start-maximized")
-        options.add_experimental_option("detach", True) # This is key to keeping the browser open
+        # Use undetected_chromedriver to avoid bot detection
+        options = uc.ChromeOptions()
+        options.add_argument('--start-maximized')
 
-        # Explicitly set the browser binary location to improve robustness.
-        edge_binary_paths = [
-            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-            r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"
-        ]
-        for path in edge_binary_paths:
-            if os.path.exists(path):
-                options.binary_location = path
-                logger.info(f"[AssistApply] Setting Edge binary location to: {path}")
-                break
-
-        browser_profile_path_input = user_details.get('browser_profile_path', '').strip()
-        if browser_profile_path_input:
-            # NEW CHECK: If user provided path to executable, log a clear error and fallback.
-            if browser_profile_path_input.lower().endswith('.exe'):
-                logger.error(f"[AssistApply] CONFIGURATION ERROR: The Browser Profile Path is set to an executable file ('{browser_profile_path_input}'). It should be a directory path ending in 'User Data'. Please correct this in your profile. Falling back to a temporary profile.")
-                browser_profile_path_input = '' # Clear the invalid path to proceed with fallback
-
-        if browser_profile_path_input:
-            # The user_data_dir should be the parent of the profile folder (e.g., 'Default', 'Profile 1')
-            # We'll try to auto-correct if the user provides the full path to the profile sub-directory.
-            user_data_dir = browser_profile_path_input
-            profile_directory = "Default"
-
-            path_basename = os.path.basename(user_data_dir)
-            if path_basename.lower() == 'default' or path_basename.lower().startswith('profile '):
-                profile_directory = path_basename
-                user_data_dir = os.path.dirname(user_data_dir)
-                logger.info(f"[AssistApply] User-provided path seems to be a full profile path. Auto-adjusting to User Data Dir: '{user_data_dir}' and Profile: '{profile_directory}'")
-
-            if os.path.isdir(user_data_dir):
-                # NEW: Check for a lock file, which indicates the browser is likely running.
-                lock_file_path = os.path.join(user_data_dir, 'SingletonLock')
-                if os.path.exists(lock_file_path):
-                    logger.warning(f"[AssistApply] WARNING: A lock file was found at '{lock_file_path}'. This strongly indicates that Edge is already running with this profile. Please close all Edge windows and processes (check Task Manager for 'msedge.exe') before trying again.")
-
-                logger.info(f"[AssistApply] Using browser session from User Data Dir: '{user_data_dir}' with Profile: '{profile_directory}'")
-                options.add_argument(f"user-data-dir={user_data_dir}")
-                options.add_argument(f"profile-directory={profile_directory}")
-            else:
-                logger.warning(f"[AssistApply] The derived User Data Directory '{user_data_dir}' (from your input '{browser_profile_path_input}') is not a valid directory. Falling back to a new temporary profile. Please check your profile settings.")
+        # Explicitly set the browser binary location to prevent errors if auto-detection fails.
+        # This is the fix for the "Binary Location Must be a String" TypeError.
+        if os.path.exists(CHROME_BINARY_PATH_WINDOWS):
+            options.binary_location = CHROME_BINARY_PATH_WINDOWS
         else:
-            logger.info("[AssistApply] No browser profile path configured in your profile. Starting with a new temporary profile. You may need to log in to job sites.")
+            logger.warning(f"Chrome binary not found at the configured path: {CHROME_BINARY_PATH_WINDOWS}. Relying on auto-detection.")
+        
+        assisted_apply_mode = user_details.get('assisted_apply_mode', 'personal')
+        if assisted_apply_mode == 'personal':
+            browser_profile_path_input = user_details.get('browser_profile_path', '').strip()
+            browser_profile_name = user_details.get('browser_profile_name', 'Default').strip() # Get the user-configured profile name
+            if browser_profile_path_input:
+                if browser_profile_path_input.lower().endswith('.exe'):
+                    logger.error(f"[AssistApply] CONFIGURATION ERROR: The Browser Profile Path is set to an executable file ('{browser_profile_path_input}'). It should be a directory path ending in 'User Data'. Please correct this in your profile. Falling back to a temporary profile.")
+                    browser_profile_path_input = '' # Clear the invalid path to proceed with fallback
 
-        driver_path = os.environ.get('EDGE_DRIVER_PATH', DRIVER_PATHS.get('edge'))
-        if not driver_path or not os.path.exists(driver_path):
-            raise FileNotFoundError("Edge WebDriver executable not found on the worker machine. Please check the server configuration (EDGE_DRIVER_PATH).")
+            if browser_profile_path_input:
+                user_data_dir = browser_profile_path_input
 
-        service = EdgeService(executable_path=driver_path)
-        logger.info("[AssistApply] Attempting to initialize Edge WebDriver...")
-        time.sleep(1) # A small delay can sometimes help prevent race conditions
-        driver = webdriver.Edge(service=service, options=options)
+                if os.path.isdir(user_data_dir):
+                    lock_file_path = os.path.join(user_data_dir, 'SingletonLock')
+                    if os.path.exists(lock_file_path):
+                        logger.warning(f"[AssistApply] WARNING: A lock file was found at '{lock_file_path}'. This strongly indicates that Chrome is already running with this profile. Please close all Chrome windows and processes before trying again.")
+
+                    logger.info(f"[AssistApply] Using browser session from User Data Dir: '{user_data_dir}' with Profile: '{browser_profile_name}'")
+                    options.user_data_dir = user_data_dir
+                    options.profile_directory = browser_profile_name
+                else:
+                    logger.warning(f"[AssistApply] The derived User Data Directory '{user_data_dir}' (from your input '{browser_profile_path_input}') is not a valid directory. Falling back to a new temporary profile. Please check your profile settings.")
+            else:
+                logger.info("[AssistApply] No browser profile path configured in your profile. Starting with a new temporary profile. You may need to log in to job sites.")
+        else:
+            logger.info("[AssistApply] Mode is 'temporary'. Starting with a fresh, temporary browser profile.")
+
+        logger.info("[AssistApply] Attempting to initialize undetected_chromedriver...")
+        driver = uc.Chrome(options=options, headless=False, use_subprocess=True)
         
         filler = ApplicationFiller(driver, user_details)
         filler.fill(job_link)
@@ -3712,14 +4205,17 @@ def assisted_apply_task(user_id: int, job_id: int):
         if driver: driver.quit()
     except SeleniumWebDriverException as e:
         if "session not created" in str(e).lower():
-            logger.error(f"[AssistApply] CRITICAL ERROR: Could not create browser session. This often happens if the browser is already running with the same user profile. Please close all Edge windows and try again.", exc_info=False)
+            logger.error(f"[AssistApply] CRITICAL ERROR: Could not create browser session. This often happens if the browser is already running with the same user profile. Please close all Chrome windows and try again.", exc_info=False)
             logger.debug(f"Full SessionNotCreatedException: {e}") # Log the full trace for debugging if needed
+            raise  # Re-raise the exception to mark the Celery task as failed
         else:
             logger.error(f"[AssistApply] A browser automation error occurred. This might be due to a driver/browser version mismatch or a browser crash.", exc_info=True)
+            raise  # Re-raise for other Selenium errors too
         if driver: driver.quit()
     except Exception as e:
         logger.error(f"An error occurred during assisted_apply_task for job {job_id}: {e}", exc_info=True)
         if driver: driver.quit() # Close browser on error
+        raise # Re-raise to fail the task
 
 
 @celery.task(name='app.scheduled_job_hunt_for_all_users')
@@ -3752,9 +4248,9 @@ def scheduled_job_hunt_for_all_users():
 @app.route('/')
 def index():
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard')) # Logged-in users go to dashboard
-    return redirect(url_for('login')) # Logged-out users go to the login page
-    
+        return redirect(url_for('dashboard'))  # Logged-in users go to dashboard
+    return render_template('login.html', now=datetime.datetime.now())  # Show login page for logged-out users
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
@@ -3817,8 +4313,10 @@ def profile():
             'portfolio_url': request.form.get('portfolio_url'),
             'cover_letter_template': request.form.get('cover_letter_template'),
             'browser_profile_path': request.form.get('browser_profile_path', '').strip(),
+            'browser_profile_name': request.form.get('browser_profile_name', 'Default').strip(), # NEW: Get profile name from form
             'willing_to_relocate': request.form.get('willing_to_relocate', 'no'),
-            'authorized_to_work': request.form.get('authorized_to_work', 'no')
+            'authorized_to_work': request.form.get('authorized_to_work', 'no'),
+            'assisted_apply_mode': request.form.get('assisted_apply_mode', 'personal')
         }
 
         # Handle resume file upload
@@ -3848,13 +4346,365 @@ def profile():
         return redirect(url_for('profile'))
 
     user_details = db.get_user_details(current_user.id)
-    return render_template('profile.html', user_details=user_details)
+    custom_answers = {}
+    if user_details and user_details.get('custom_answers'):
+        try:
+            custom_answers = json.loads(user_details['custom_answers'])
+        except (json.JSONDecodeError, TypeError):
+            logger.warning(f"Could not parse custom_answers for user {current_user.id}")
 
-@app.route('/cold_base')
+    # Check if the profile path is set and valid
+    profile_path_is_set = user_details and user_details.get('browser_profile_path')
+    return render_template('profile.html', 
+                           user_details=user_details, 
+                           custom_answers=custom_answers,
+                           profile_path_is_set=profile_path_is_set)
+
+@app.route('/outreach_studio')
 @login_required
-def cold_base():
-    """Renders the cold outreach base page."""
-    return render_template('cold_base.html')
+def outreach_studio():
+    """Renders the Outreach Studio dashboard."""
+    outreach_db = OutreachDatabase()
+    # In a real implementation, you'd get this from Redis
+    # For now, we'll just use the current time as a placeholder.
+    last_scan_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    stats = outreach_db.get_outreach_stats(current_user.id)
+    return render_template('outreach_studio.html', last_scan_time=last_scan_time, stats=stats)
+
+@app.route('/setup_assisted_apply')
+@login_required
+def setup_assisted_apply():
+    """Renders the Assisted Apply setup wizard page."""
+    return render_template('setup_assisted_apply.html')
+
+@app.route('/setup_assisted_apply/start_browser', methods=['POST'])
+@login_required
+def setup_assisted_apply_start_browser():
+    """
+    Launches a non-headless Chrome browser for the user to log into LinkedIn.
+    This browser will remain open (detached).
+    """
+    # This function is now deprecated in favor of the re-authentication flow.
+    # We will re-use the Google Auth flow which is more robust.
+    try:
+        temp_profile_dir = os.path.abspath(os.path.join(app.config['UPLOAD_FOLDER'], 'chrome_setup_profile'))
+        if not os.path.exists(temp_profile_dir):
+            os.makedirs(temp_profile_dir)
+        logger.info(f"[Setup Wizard] Using temporary Chrome profile directory: {temp_profile_dir}")
+
+        options = uc.ChromeOptions()
+        options.user_data_dir = temp_profile_dir
+        options.profile_directory = "Default"
+
+        driver = uc.Chrome(options=options, headless=False, use_subprocess=True)
+        driver.get("https://www.linkedin.com/login") # Explicitly navigate to the URL
+
+        logger.info("[Setup Wizard] Launched Chrome browser for user login.")
+        return jsonify({'status': 'success', 'message': 'Browser launched. Please log in to LinkedIn in the new window.'})
+
+    except Exception as e:
+        logger.error(f"Error launching browser for Assisted Apply setup: {e}", exc_info=True)
+        return jsonify({'status': 'error', 'message': f'Failed to launch browser: {e}. Check server logs.'}), 500
+
+@app.route('/setup_assisted_apply/detect', methods=['POST'])
+@login_required
+def setup_assisted_apply_detect():
+    """
+    Detects, tests, and saves the user's Chrome browser profile path.
+    Assumes a browser was previously launched and the user logged in.
+    """
+    driver = None
+    # The path we will test is the one we created in the 'start_browser' step.
+    detected_path = os.path.abspath(os.path.join(app.config['UPLOAD_FOLDER'], 'chrome_setup_profile'))
+    profile_name_for_setup = "Default" # For the setup wizard, we assume the 'Default' profile
+
+    try:
+        if not detected_path or not os.path.isdir(detected_path):
+            return jsonify({'status': 'error', 'message': f"Could not auto-detect a valid profile path. Detected: {detected_path}"}), 500
+        
+        logger.info(f"[Setup Wizard] Detected profile path: {detected_path}")
+
+        # --- Step 2: Test the detected profile path ---
+        logger.info(f"[Setup Wizard] Testing detected path by launching a new undetected_chromedriver instance...")
+        test_options = uc.ChromeOptions()
+        user_data_dir = detected_path
+        test_options.user_data_dir = user_data_dir
+        test_options.profile_directory = profile_name_for_setup
+
+        test_driver = uc.Chrome(options=test_options, headless=True)
+        test_driver.get("https://www.linkedin.com/feed/")
+        time.sleep(4) # Wait for page to load and redirect if not logged in
+
+        # A simple but effective test: if we are redirected to /login, the test fails.
+        is_logged_in = "linkedin.com/feed/" in test_driver.current_url
+        test_driver.quit()
+
+        if not is_logged_in:
+            logger.warning("[Setup Wizard] Test failed. LinkedIn login page was detected.")
+            return jsonify({'status': 'error', 'message': 'Test Failed: The detected profile is not logged into LinkedIn. Please try again.'}), 400
+
+        logger.info("[Setup Wizard] Test successful! User is logged into LinkedIn.")
+
+        # --- Step 3: Save the successful path to the database ---
+        db = JobDatabase()
+        user_details = db.get_user_details(current_user.id) or {}
+        user_details['browser_profile_path'] = user_data_dir # Save the parent 'User Data' directory
+        user_details['browser_profile_name'] = profile_name_for_setup # NEW: Save the profile name used during setup
+        db.save_user_details(current_user.id, user_details)
+
+        return jsonify({'status': 'success', 'message': 'Setup complete! Your LinkedIn profile is connected.'})
+
+    except Exception as e:
+        logger.error(f"Error during Assisted Apply setup: {e}", exc_info=True)
+        return jsonify({'status': 'error', 'message': f'An unexpected error occurred: {e}'}), 500
+
+@app.route('/people_radar')
+@login_required
+def people_radar():
+    """Renders the People Radar page for managing contacts."""
+    outreach_db = OutreachDatabase()
+    contacts = outreach_db.get_contacts_by_user(current_user.id)
+    templates = outreach_db.get_templates_by_user(current_user.id)
+    return render_template('people_radar.html', contacts=contacts, templates=templates)
+
+@app.route('/setup_assisted_apply/test', methods=['POST'])
+@login_required
+def test_assisted_apply_connection():
+    """Tests the currently saved browser profile path."""
+    db = JobDatabase()
+    user_details = db.get_user_details(current_user.id)
+    profile_path = user_details.get('browser_profile_path') if user_details else None
+    profile_name = user_details.get('browser_profile_name', 'Default') if user_details else 'Default' # NEW: Get profile name
+
+    if not profile_path or not os.path.isdir(profile_path):
+        return jsonify({'status': 'error', 'message': 'No profile path is configured or the path is invalid.'}), 400
+
+    driver = None
+    try:
+        options = uc.ChromeOptions()
+        options.user_data_dir = profile_path
+        options.profile_directory = profile_name
+
+        driver = uc.Chrome(options=options, headless=True)
+        
+        driver.get("https://www.linkedin.com/feed/")
+        time.sleep(4)
+
+        is_logged_in = "linkedin.com/feed/" in driver.current_url
+        driver.quit()
+
+        if is_logged_in:
+            return jsonify({'status': 'success', 'message': 'Connection successful! You are logged into LinkedIn.'})
+        else:
+            return jsonify({'status': 'error', 'message': 'Connection test failed. You are not logged into LinkedIn with this profile.'}), 400
+    except Exception as e:
+        logger.error(f"Error testing profile connection: {e}", exc_info=True)
+        if driver: driver.quit()
+        return jsonify({'status': 'error', 'message': f'Test failed with an error: {e}'}), 500
+
+@app.route('/open_browser_session', methods=['POST'])
+@login_required
+def open_browser_session():
+    """
+    Launches a non-headless Chrome browser using the user's saved profile path.
+    This is useful for debugging or manual logins.
+    """
+    db = JobDatabase()
+    user_details = db.get_user_details(current_user.id)
+    profile_path = user_details.get('browser_profile_path') if user_details else None
+    profile_name = user_details.get('browser_profile_name', 'Default') if user_details else 'Default' # NEW: Get profile name
+
+    if not profile_path or not os.path.isdir(profile_path):
+        return jsonify({'status': 'error', 'message': 'No valid browser profile path is configured. Please run the setup wizard.'}), 400
+
+    try:
+        options = uc.ChromeOptions()
+        options.user_data_dir = profile_path
+        options.profile_directory = profile_name
+
+        # For opening a browser for the user, we must not use headless mode.
+        # The use_subprocess=True is important for keeping it open.
+        driver = uc.Chrome(options=options, headless=False, use_subprocess=True)
+        driver.get("https://www.linkedin.com/feed/") # Navigate to a useful page
+
+        return jsonify({'status': 'success', 'message': 'Browser session opened successfully.'})
+    except Exception as e:
+        logger.error(f"Error opening browser session for user {current_user.id}: {e}", exc_info=True)
+        return jsonify({'status': 'error', 'message': f'Failed to open browser: {e}'}), 500
+
+@app.route('/delete_contact/<int:contact_id>', methods=['POST'])
+@login_required
+def delete_contact(contact_id):
+    """Deletes a single personal contact for the current user."""
+    outreach_db = OutreachDatabase()
+    if outreach_db.delete_contact(contact_id, current_user.id):
+        flash('Contact deleted successfully.', 'success')
+    else:
+        flash('Failed to delete contact. It may not exist or you may not have permission.', 'danger')
+    return redirect(url_for('people_radar'))
+
+@app.route('/delete_all_personal_contacts', methods=['POST'])
+@login_required
+def delete_all_personal_contacts():
+    """Deletes all personal contacts for the current user."""
+    try:
+        outreach_db = OutreachDatabase()
+        count = outreach_db.delete_all_contacts_for_user(current_user.id)
+        flash(f'Successfully deleted all {count} of your personal contacts.', 'success')
+    except Exception as e:
+        logger.error(f"Error clearing personal contacts for user {current_user.id}: {e}", exc_info=True)
+        flash(f'An error occurred while clearing your contacts: {e}', 'danger')
+    return redirect(url_for('people_radar'))
+
+@app.route('/admin/upload_contacts', methods=['GET', 'POST'])
+@login_required
+def admin_upload_contacts():
+    # In a real app, you would add a check here to ensure only admin users can access this.
+    # For now, any logged-in user can access it for demonstration.
+    if request.method == 'POST':
+        if 'contacts_csv' not in request.files:
+            flash('No file part in the request.', 'danger')
+            return redirect(request.url)
+        file = request.files['contacts_csv']
+        if file.filename == '':
+            flash('No file selected for uploading.', 'warning')
+            return redirect(request.url)
+        if file and file.filename.endswith('.csv'):
+            try:
+                # --- New Robust Approach using standard `csv` library ---
+                # Decode the file stream and read it as text
+                file.stream.seek(0)
+                csv_text = file.stream.read().decode("utf-8")
+                reader = csv.DictReader(csv_text.splitlines())
+                
+                # --- Smarter Header Mapping ---
+                # This map allows for flexible CSV column names.
+                header_map = {
+                    'full_name': ['full_name', 'name', 'contact name', 'contact', 'full name', 'customer name'],
+                    'title': ['title', 'job title', 'position', 'role', 'job_title', 'job position'],
+                    'company': ['company', 'company name', 'organization', 'employer', 'business', 'corp'],
+                    'email': ['email', 'email address', 'e-mail', 'mail', 'email_address', 'contact email'],
+                    'phone': ['phone', 'phone number', 'contact phone', 'contact_phone'],
+                    'linkedin_url': ['linkedin_url', 'linkedin', 'linkedin profile', 'profile url', 'linkedin_profile', 'social profile']
+                }
+
+                contacts_to_add = []
+                for row in reader:
+                    processed_row = {}
+                    # Normalize the keys from the uploaded file once
+                    normalized_input_row = {key.lower().replace(' ', '_'): value for key, value in row.items()}
+
+                    # Map the flexible headers to our standard database columns
+                    for db_key, possible_headers in header_map.items():
+                        for header in possible_headers:
+                            if header in normalized_input_row:
+                                processed_row[db_key] = normalized_input_row[header]
+                                break # Move to the next db_key once found
+                    
+                    # Add metadata
+                    processed_row['source'] = 'Uploaded CSV'
+                    processed_row['added_date'] = datetime.datetime.now().isoformat()
+                    
+                    contacts_to_add.append(processed_row)
+
+                # --- Diagnostic Check ---
+                if contacts_to_add:
+                    first_contact_preview = contacts_to_add[0]
+                    flash(f"Diagnostic: First contact read from CSV -> Name: {first_contact_preview.get('full_name')}, Company: {first_contact_preview.get('company')}", 'info')
+
+                outreach_db = OutreachDatabase()
+                count = outreach_db.add_global_contacts(contacts_to_add)
+                flash(f'Successfully processed {count} contacts from the CSV. Duplicates were ignored.', 'success')
+            except Exception as e:
+                logger.error(f"Error processing uploaded CSV: {e}", exc_info=True)
+                flash(f'An error occurred while processing the file: {e}', 'danger')
+            return redirect(url_for('admin_upload_contacts'))
+
+    return render_template('admin_upload.html')
+
+@app.route('/admin/clear_global_contacts', methods=['POST'])
+@login_required
+def clear_global_contacts():
+    # Add admin check here in a real application
+    try:
+        outreach_db = OutreachDatabase()
+        count = outreach_db.clear_global_contacts()
+        flash(f'Successfully deleted {count} global contacts.', 'success')
+    except Exception as e:
+        logger.error(f"Error clearing global contacts: {e}", exc_info=True)
+        flash(f'An error occurred while clearing contacts: {e}', 'danger')
+    return redirect(url_for('admin_upload_contacts'))
+
+@app.route('/signal_board')
+@login_required
+def signal_board():
+    """Renders the Signal Board page for tracking campaigns."""
+    outreach_db = OutreachDatabase()
+    campaigns = outreach_db.get_campaigns_with_analytics(current_user.id)
+    return render_template('signal_board.html', campaigns=campaigns)
+
+@app.route('/api/send_message', methods=['POST'])
+@login_required
+def api_send_message():
+    """API endpoint to send a personalized email to a contact."""
+    data = request.get_json()
+    contact_email = data.get('contact_email')
+    subject = data.get('subject')
+    body = data.get('body')
+
+    if not all([contact_email, subject, body]):
+        return jsonify({'success': False, 'message': 'Missing required fields.'}), 400
+
+    try:
+        emailer = SmartEmailer()
+        if not emailer.gmail_service:
+            return jsonify({'success': False, 'message': 'Gmail not authenticated. Please connect your Google account.'}), 500
+        
+        emailer.send_email(subject=subject, html_content=body.replace('\n', '<br>'), recipients=[contact_email])
+        
+        return jsonify({'success': True, 'message': 'Email sent successfully!'})
+    except Exception as e:
+        logger.error(f"Error sending email via API for user {current_user.id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'An error occurred: {e}'}), 500
+
+@app.route('/message_vault')
+@login_required
+def message_vault():
+    """Renders the Message Vault page for managing templates."""
+    outreach_db = OutreachDatabase()
+    templates = outreach_db.get_templates_by_user(current_user.id)
+    return render_template('message_vault.html', templates=templates)
+
+@app.route('/api/templates', methods=['POST'])
+@login_required
+def add_template():
+    """API endpoint to add a new template."""
+    data = request.get_json()
+    outreach_db = OutreachDatabase()
+    template_id = outreach_db.add_template(current_user.id, data)
+    if template_id:
+        return jsonify({'success': True, 'message': 'Template saved!', 'template_id': template_id}), 201
+    return jsonify({'success': False, 'message': 'A template with this name already exists.'}), 409
+
+@app.route('/api/templates/<int:template_id>', methods=['PUT'])
+@login_required
+def update_template(template_id):
+    """API endpoint to update an existing template."""
+    data = request.get_json()
+    outreach_db = OutreachDatabase()
+    if outreach_db.update_template(template_id, current_user.id, data):
+        return jsonify({'success': True, 'message': 'Template updated!'})
+    return jsonify({'success': False, 'message': 'Update failed. Template not found or name conflict.'}), 400
+
+@app.route('/api/templates/<int:template_id>', methods=['DELETE'])
+@login_required
+def delete_template(template_id):
+    """API endpoint to delete a template."""
+    outreach_db = OutreachDatabase()
+    if outreach_db.delete_template(template_id, current_user.id):
+        return jsonify({'success': True, 'message': 'Template deleted!'})
+    return jsonify({'success': False, 'message': 'Delete failed. Template not found.'}), 404
+
 
 @app.route('/clear_profile', methods=['POST'])
 @login_required
@@ -3869,6 +4719,81 @@ def clear_profile():
         'message': 'Your profile information has been cleared.'
     })
 
+# --- Import custom scrapers ---
+from outreach_scraper import LegalContactResearcher
+
+# --- Enhanced Contact Search Term Mapping ---
+HR_SEARCH_TERMS_MAP = {
+    # Job Function
+    "manager": ["HR Manager", "Recruitment Manager", "Talent Acquisition Manager", "People Operations Manager"],
+    "specialist": ["Talent Acquisition Specialist", "HR Business Partner", "Senior Recruiter"],
+    "director": ["Head of HR", "HR Director", "CHRO (Chief Human Resources Officer)"],
+    "leader": ["Head of HR", "HR Director", "CHRO (Chief Human Resources Officer)", "Executive HR Leader (15+ years)"],
+    # Industry
+    "tech": ["AI/ML HR Manager", "Tech Startup Recruiter", "SaaS Company HR Manager", "Cybersecurity HR Manager"],
+    "ai": ["AI/ML HR Manager"],
+    "ml": ["AI/ML HR Manager"],
+    "fintech": ["Fintech HR Manager"],
+    "health": ["Healthcare HR Specialist"],
+    "ecommerce": ["E-commerce Talent Acquisition"],
+    "saas": ["SaaS Company HR Manager"],
+    "crypto": ["Blockchain/Crypto HR"],
+    "blockchain": ["Blockchain/Crypto HR"],
+    "edtech": ["EdTech Recruiter"],
+    "gaming": ["Gaming Industry HR"],
+    "cybersecurity": ["Cybersecurity HR Manager"],
+    # Location
+    "bangalore": ["Bangalore HR Manager"],
+    "mumbai": ["Mumbai Talent Acquisition"],
+    "delhi": ["Delhi/NCR HR Director"],
+    "ncr": ["Delhi/NCR HR Director"],
+    "hyderabad": ["Hyderabad Tech Recruiter"],
+    "pune": ["Pune IT HR Manager"],
+    "chennai": ["Chennai Software HR"],
+    # Experience
+    "entry": ["Entry Level HR Coordinator"],
+    "junior": ["Entry Level HR Coordinator"],
+    "mid": ["Mid-level HR Manager (3-7 years)"],
+    "senior": ["Senior HR Manager (7-15 years)", "Senior Recruiter"],
+    "executive": ["Executive HR Leader (15+ years)", "CHRO (Chief Human Resources Officer)"],
+    # Hot Keywords
+    "remote": ["Remote Work HR Specialist"],
+    "diversity": ["Diversity & Inclusion Manager"],
+    "inclusion": ["Diversity & Inclusion Manager"],
+    "experience": ["Employee Experience Manager"],
+    "analytics": ["HR Analytics Manager"],
+    "compensation": ["Compensation & Benefits Manager"],
+    "benefits": ["Compensation & Benefits Manager"],
+    "learning": ["Learning & Development HR"],
+    "development": ["Learning & Development HR"],
+}
+
+# --- Celery Tasks for Outreach ---
+@celery.task(bind=True, name='app.scrape_contacts_task')
+def scrape_contacts_task(self, user_id: int, keywords: List[str]):
+    """Celery task to scrape contacts from various platforms."""
+    logger.info(f"Celery task {self.request.id} started for user {user_id} to find contacts with keywords: {keywords}.")
+    try:
+        self.update_state(state='PROGRESS', meta={'status': 'Searching internal database...', 'progress': 50})
+        
+        outreach_db = OutreachDatabase()
+        added_count = outreach_db.search_and_copy_global_contacts(user_id, keywords)
+
+        message = f"Search complete. Added {added_count} new contact(s) to your People Radar."
+        logger.info(message)
+        
+        return {'status': 'Complete', 'message': message, 'progress': 100, 'added_count': added_count}
+    except Exception as e:
+        logger.error(f"Celery task {self.request.id} failed for user {user_id}: {e}", exc_info=True)
+        self.update_state(state='FAILURE', meta={'status': 'Task failed!', 'error': str(e), 'progress': 100})
+        raise
+
+@app.route('/api/scrape_contacts', methods=['POST'])
+@login_required
+def api_scrape_contacts():
+    keywords = [term.strip() for term in request.form.get('keywords', '').split(',') if term.strip()]
+    task = scrape_contacts_task.delay(current_user.id, keywords)
+    return jsonify({'success': True, 'task_id': task.id})
 
 @app.route('/dashboard')
 @login_required
@@ -4089,11 +5014,10 @@ def delete_all_jobs():
 @login_required
 def update_settings():
     email_recipients = request.form.get('email_recipients', '').strip()
-    email_frequency = request.form.get('email_frequency', 'daily').strip()
     send_excel_attachment = 'send_excel_attachment' in request.form
 
     db = JobDatabase()
-    if db.update_user_settings(current_user.id, email_recipients, email_frequency, send_excel_attachment):
+    if db.update_user_settings(current_user.id, email_recipients, send_excel_attachment):
         flash('Email settings updated successfully!', 'success')
     else:
         flash('Failed to update email settings.', 'danger')

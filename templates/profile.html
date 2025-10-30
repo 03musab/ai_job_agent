@@ -3,12 +3,12 @@
 {% block content %}
 <!-- Full-screen fixed background -->
 <div class="fixed inset-0 bg-cover bg-center -z-10" style="background-image: url({{ url_for('static', filename='assets/profiletemporalbg.jpg') }});">
-    <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-[4px]"></div>
+    <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-[2px]"></div>
 </div>
 
 <div class="relative max-w-4xl mx-auto px-8 md:px-12 py-16">
-    <div class="text-center mb-10">
-        <h1 class="text-4xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">Your Profile</h1>
+    <div class="text-center mb-10" role="main" aria-labelledby="page-title">
+        <h1 id="page-title" class="text-4xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">Your Profile</h1>
         <p class="mt-2 text-lg text-gray-300">Keep your application details up-to-date for seamless job hunting.</p>
     </div>
 
@@ -18,19 +18,19 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label for="full_name" class="block text-sm font-medium text-gray-300">Full Name</label>
-                <input type="text" name="full_name" id="full_name" value="{{ user_details.full_name if user_details else '' }}" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
+                <input type="text" name="full_name" id="full_name" value="{{ user_details.full_name if user_details else '' }}" autocomplete="name" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
             </div>
             <div>
                 <label for="email" class="block text-sm font-medium text-gray-300">Email</label>
-                <input type="email" name="email" id="email" value="{{ user_details.email if user_details else '' }}" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
+                <input type="email" name="email" id="email" value="{{ user_details.email if user_details else '' }}" autocomplete="email" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
             </div>
             <div>
                 <label for="phone" class="block text-sm font-medium text-gray-300">Phone</label>
-                <input type="tel" name="phone" id="phone" value="{{ user_details.phone if user_details else '' }}" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
+                <input type="tel" name="phone" id="phone" value="{{ user_details.phone if user_details else '' }}" autocomplete="tel" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
             </div>
             <div>
                 <label for="address" class="block text-sm font-medium text-gray-300">Address</label>
-                <input type="text" name="address" id="address" value="{{ user_details.address if user_details else '' }}" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
+                <input type="text" name="address" id="address" value="{{ user_details.address if user_details else '' }}" autocomplete="street-address" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
             </div>
         </div>
 
@@ -38,15 +38,15 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
                 <label for="linkedin_url" class="block text-sm font-medium text-gray-300">LinkedIn URL</label>
-                <input type="url" name="linkedin_url" id="linkedin_url" value="{{ user_details.linkedin_url if user_details else '' }}" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
+                <input type="url" name="linkedin_url" id="linkedin_url" value="{{ user_details.linkedin_url if user_details else '' }}" autocomplete="url" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
             </div>
             <div>
                 <label for="github_url" class="block text-sm font-medium text-gray-300">GitHub URL</label>
-                <input type="url" name="github_url" id="github_url" value="{{ user_details.github_url if user_details else '' }}" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
+                <input type="url" name="github_url" id="github_url" value="{{ user_details.github_url if user_details else '' }}" autocomplete="url" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
             </div>
             <div>
                 <label for="portfolio_url" class="block text-sm font-medium text-gray-300">Portfolio URL</label>
-                <input type="url" name="portfolio_url" id="portfolio_url" value="{{ user_details.portfolio_url if user_details else '' }}" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
+                <input type="url" name="portfolio_url" id="portfolio_url" value="{{ user_details.portfolio_url if user_details else '' }}" autocomplete="url" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
             </div>
         </div>
 
@@ -56,7 +56,7 @@
             <div id="resume-drop-zone" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-indigo-500/30 border-dashed rounded-lg bg-gray-900/40 backdrop-blur-md shadow-inner shadow-black/20 transition-colors duration-200">
                 <div class="space-y-1 text-center">
                     <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" />
                     </svg>
                     <div class="flex text-sm text-gray-400">
                         <label for="resume" class="relative cursor-pointer bg-gray-900 rounded-md font-medium text-indigo-400 hover:text-indigo-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-offset-gray-900 focus-within:ring-indigo-500">
@@ -78,7 +78,7 @@
             <div id="new-file-display" class="hidden mt-3 text-center">
                 <p id="new-file-name" class="text-lg text-cyan-300 font-semibold"></p>
                 <!-- New dedicated upload button that appears when a new file is selected -->
-                <div id="upload-new-resume-container" class="mt-4">
+                <div id="upload-new-resume-container" class="mt-4" role="status" aria-live="polite">
                     <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors shadow-lg">
                         <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M9.25 13.25a.75.75 0 0 0 1.5 0V4.636l2.955 3.129a.75.75 0 0 0 1.09-1.03l-4.25-4.5a.75.75 0 0 0-1.09 0l-4.25 4.5a.75.75 0 1 0 1.09 1.03L9.25 4.636v8.614Z" /><path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" /></svg>
                         Upload and Save New Resume
@@ -90,9 +90,9 @@
             {% if user_details and user_details.resume_parsed_data %}
                 {% set parsed_resume = user_details.resume_parsed_data | fromjson %}
                 {% if parsed_resume and parsed_resume.skills %}
-                <div id="ai-ready-status" class="mt-4 p-4 bg-green-900/50 border border-green-500/30 rounded-lg text-center">
+                <div id="ai-ready-status" class="mt-4 p-4 bg-green-900/50 border border-green-500/30 rounded-lg text-center" role="status">
                     <div class="flex items-center justify-center gap-2 text-green-300 font-semibold">
-                        <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd" /></svg>
+                        <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd" /></svg>
                         <span>Resume is AI-Ready</span>
                     </div>
                     <p class="text-xs text-gray-400 mt-1">The AI has identified the following skills to help write your cover letter:</p>
@@ -108,14 +108,14 @@
             <div class="flex justify-between items-center">
                 <label for="cover_letter_template" class="block text-sm font-medium text-gray-300">Cover Letter Template</label>
                 <div class="flex items-center gap-2">
-                    <button type="button" onclick='generateAICoverLetter({{ user_details | tojson | safe }})' class="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-md text-cyan-300 bg-cyan-900/50 border border-cyan-500/30 hover:bg-cyan-900/80 transition-colors">
-                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <button type="button" onclick='generateAICoverLetter({{ user_details | tojson | safe }})' class="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-md text-cyan-300 bg-cyan-900/50 border border-cyan-500/30 hover:bg-cyan-900/80 transition-colors" aria-label="Generate cover letter with AI">
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                             <path d="M12.965 2.084a1 1 0 0 0-1.93 0l-1.113 4.023a1 1 0 0 1-.949.691l-4.023 1.113a1 1 0 0 0 0 1.93l4.023 1.113a1 1 0 0 1 .949.691l1.113 4.023a1 1 0 0 0 1.93 0l1.113-4.023a1 1 0 0 1 .949-.691l4.023-1.113a1 1 0 0 0 0-1.93l-4.023-1.113a1 1 0 0 1-.949-.691L12.965 2.084ZM5 14a1 1 0 0 0-1.93 0l-.523 1.887a1 1 0 0 1-.95.691l-1.887.523a1 1 0 0 0 0 1.93l1.887.523a1 1 0 0 1 .95.691l.523 1.887a1 1 0 0 0 1.93 0l.523-1.887a1 1 0 0 1 .95-.691l1.887-.523a1 1 0 0 0 0-1.93l-1.887-.523a1 1 0 0 1-.95-.691L5 14Z" />
                         </svg>
                         AI Generate
                     </button>
-                    <button type="button" id="copy-cover-letter-btn" onclick="copyCoverLetterToClipboard()" class="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-md text-green-300 bg-green-900/50 border border-green-500/30 hover:bg-green-900/80 transition-colors">
-                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <button type="button" id="copy-cover-letter-btn" onclick="copyCoverLetterToClipboard()" class="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-md text-green-300 bg-green-900/50 border border-green-500/30 hover:bg-green-900/80 transition-colors" aria-label="Copy cover letter to clipboard">
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path d="M7 3.5A1.5 1.5 0 0 1 8.5 2h3A1.5 1.5 0 0 1 13 3.5v1A1.5 1.5 0 0 1 11.5 6v0h-3A1.5 1.5 0 0 1 7 4.5v-1Z" />
                             <path d="M5.5 4.5A1.5 1.5 0 0 1 7 3h6a1.5 1.5 0 0 1 1.5 1.5v7A1.5 1.5 0 0 1 13 13h-1a.5.5 0 0 1 0-1h1a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.5-.5H7a.5.5 0 0 0-.5.5v1.586l.293.293a.5.5 0 0 1 0 .707l-.293.293V11.5a.5.5 0 0 0 .5.5h1a.5.5 0 0 1 0 1h-1A1.5 1.5 0 0 1 5.5 11.5v-7Z" />
                             <path d="M4 10a1.5 1.5 0 0 1 1.5-1.5h6A1.5 1.5 0 0 1 13 10v6a1.5 1.5 0 0 1-1.5 1.5h-6A1.5 1.5 0 0 1 4 16v-6Zm1.5-.5a.5.5 0 0 0-.5.5v6a.5.5 0 0 0 .5.5h6a.5.5 0 0 0 .5-.5v-6a.5.5 0 0 0-.5-.5h-6Z" />
@@ -125,18 +125,6 @@
                 </div>
             </div>
             <textarea id="cover_letter_template" name="cover_letter_template" rows="6" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200" placeholder="Enter a default cover letter template here. Use placeholders like [Job Title], [Company Name]... to personalize it.">{{ user_details.cover_letter_template if user_details else '' }}</textarea>
-        </div>
-
-        <!-- Assisted Apply Settings -->
-        <div>
-            <label for="browser_profile_path" class="block text-sm font-medium text-gray-300">Browser Profile Path (for Assisted Apply)</label>
-            <input type="text" name="browser_profile_path" id="browser_profile_path" value="{{ user_details.browser_profile_path if user_details else '' }}" class="mt-1 block w-full rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-100 placeholder-gray-400 transition-all duration-200">
-            <p class="mt-2 text-xs text-gray-400">
-                <strong>Optional:</strong> Makes "Assisted Apply" use your logged-in browser session to avoid re-logging in.<br>
-                On Edge/Chrome, go to <code class="text-cyan-400">edge://version</code> or <code class="text-cyan-400">chrome://version</code>. Copy the "Profile Path".<br>
-                <strong>Important:</strong> If the path ends with `\Default` or `\Profile 1`, remove that last part. The correct path should end in <code class="text-cyan-400">User Data</code>.<br>
-                This is a folder path, NOT the path to the `msedge.exe` file.
-            </p>
         </div>
 
         <!-- Additional Questions -->
@@ -174,6 +162,103 @@
             </fieldset>
         </div>
 
+        <!-- Ease In Q&A -->
+        <div>
+            <h3 class="text-lg font-medium text-gray-200 border-b border-indigo-500/20 pb-2 mb-3">Ease In Q&A</h3>
+            <div class="space-y-3" x-data="{ open: '' }">
+                {% macro question_accordion(id, title, questions, custom_answers) %}
+                <div class="rounded-lg bg-gray-900/40 border border-indigo-500/20 shadow-inner shadow-black/20 backdrop-blur-md overflow-hidden transition-colors duration-300 ease-in-out" :class="{ 'border-indigo-400': open === '{{ id }}' }">
+                    <button type="button" @click="open = open === '{{ id }}' ? '' : '{{ id }}'" class="w-full flex justify-between items-center py-3 px-4 text-left hover:bg-gray-800/50 transition-colors duration-200" style="will-change: background-color;">
+                        <span class="font-medium text-gray-200">{{ title }}</span>
+                        <svg class="w-5 h-5 text-gray-400 transition-transform duration-300 ease-in-out" :class="{ 'rotate-180': open === '{{ id }}' }" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style="will-change: transform;">
+                            <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div x-show="open === '{{ id }}'" x-collapse class="px-4 pb-4 pt-2 border-t border-indigo-500/20 bg-gray-800/30" style="will-change: height;">
+                        <div class="space-y-3">
+                            {% for q_key, q_text, q_default in questions %}
+                            <div>
+                                <label for="custom_answer_{{ q_key }}" class="block text-sm font-medium text-gray-300">{{ q_text }}</label>
+                                <textarea name="custom_answer_{{ q_key }}" id="custom_answer_{{ q_key }}" rows="3" class="mt-1 block w-full rounded-lg bg-gray-800/60 border border-indigo-500/30 shadow-inner shadow-black/20 focus:border-indigo-400 focus:ring-indigo-500/50 text-gray-200 placeholder-gray-400 transition-all duration-200">{{ custom_answers.get(q_key, q_default) }}</textarea>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endmacro %}
+
+                {{ question_accordion(
+                    'general', 
+                    'General Questions', 
+                    [
+                        ('about_me', 'Tell me about yourself.', 'I am a passionate and results-oriented professional with [Number] years of experience in [Your Industry/Field]. My expertise lies in [Your Key Skill 1], [Your Key Skill 2], and [Your Key Skill 3]. I thrive in collaborative environments and am dedicated to driving impactful outcomes.'),
+                        ('why_work_here', 'Why do you want to work at [Company Name]?', 'I have long admired [Company Name]\'s commitment to [Company Value or Product]. The opportunity to contribute to a team that is making a significant impact in [Industry] is incredibly exciting. I am particularly drawn to the [Job Title] role because it aligns perfectly with my skills in [Relevant Skill] and my passion for [Your Interest].'),
+                        ('strengths_weaknesses', 'What are your strengths and weaknesses?', 'My greatest strength is my ability to [Your Strength, e.g., solve complex problems under pressure]. I am highly analytical and enjoy finding efficient solutions. As for a weakness, I sometimes get too focused on the details of a project. I\'ve learned to mitigate this by setting clear priorities and time-boxing tasks to ensure I maintain a balance between detail and the bigger picture.'),
+                        ('challenge', 'Describe a time you faced a challenge and how you overcame it.', 'In my previous role, we faced a critical deadline on a project with unexpected technical hurdles. I took the initiative to organize a brainstorming session, where we identified an alternative approach. By reallocating tasks and working collaboratively, we not only met the deadline but also delivered a more robust solution. This experience taught me the value of adaptability and teamwork.'),
+                        ('prioritize', 'How do you prioritize tasks when working on multiple projects?', 'I use a combination of the Eisenhower Matrix (urgent/important) and project management tools like Jira or Trello. I start each day by identifying the top 1-3 critical tasks that align with our team\'s goals. I communicate with stakeholders to manage expectations and ensure my efforts are focused on the highest-impact work.'),
+                        ('feedback', 'How do you handle feedback or criticism?', 'I view feedback as a valuable opportunity for growth. I listen actively to understand the other person\'s perspective, ask clarifying questions, and thank them for their input. I then focus on the actionable insights to improve my performance and processes.'),
+                        ('teamwork', 'Tell me about a time you worked in a team.', 'On the [Project Name] project, I collaborated with a cross-functional team of designers, developers, and marketers. My role was to [Your Role]. Through regular stand-ups and open communication, we successfully launched the project ahead of schedule, achieving a [Metric, e.g., 15% increase in user engagement].'),
+                        ('leadership', 'Describe a situation where you showed leadership.', 'When our team lead was unexpectedly out, I stepped up to coordinate our sprint planning. I facilitated the discussion, helped the team resolve dependencies, and ensured we had a clear plan. This proactive approach kept the team on track and demonstrated my ability to take ownership in challenging situations.'),
+                        ('industry_trends', 'How do you stay updated with industry trends?', 'I am an avid reader of industry blogs like [Blog 1] and [Blog 2]. I also follow key thought leaders on LinkedIn and attend webinars and virtual conferences. Additionally, I enjoy experimenting with new tools and technologies in my personal projects to stay hands-on.')
+                    ],
+                    custom_answers
+                ) }}
+
+                {{ question_accordion(
+                    'technical',
+                    '💻 Technical Role Questions',
+                    [
+                        ('tech_project', 'Explain a technical project you worked on and your role in it.', 'I was the lead developer on a project to build a real-time analytics dashboard using React, Node.js, and WebSocket. I designed the front-end architecture, developed key components, and mentored junior developers. The project resulted in a 30% reduction in data processing time for our users.'),
+                        ('debugging', 'How do you approach debugging a complex issue?', 'I start by reproducing the issue consistently. Then, I use a combination of browser developer tools, logging, and targeted breakpoints to isolate the problem area. I work backward from the point of failure, examining the state and data flow until I find the root cause. I also believe in writing a regression test after fixing the bug to prevent it from recurring.'),
+                        ('favorite_tools', 'What are your favorite tools or technologies and why?', 'I am a big fan of TypeScript for its ability to catch errors at compile time and improve code maintainability. I also enjoy working with Docker for creating consistent development and production environments, which significantly simplifies deployment.'),
+                        ('optimization', 'Describe a time you optimized a system or process.', 'I noticed our application\'s initial load time was slow. After profiling, I identified that large image assets were the main bottleneck. I implemented lazy loading for images and used a modern image format like WebP, which reduced the load time by 60% and improved our Lighthouse performance score.'),
+                        ('code_quality', 'How do you ensure code quality and scalability?', 'I advocate for a multi-faceted approach: writing clean, modular code; conducting thorough code reviews; implementing a comprehensive suite of unit and integration tests; and using static analysis tools and linters. For scalability, I focus on designing loosely coupled components and considering factors like database indexing and caching strategies early in the development process.'),
+                        ('git_experience', 'What’s your experience with version control systems like Git?', 'I have extensive experience with Git and workflows like GitFlow. I am comfortable with branching, merging, handling merge conflicts, and using interactive rebase to maintain a clean commit history. I also have experience setting up CI/CD pipelines with GitHub Actions.'),
+                        ('technical_debt', 'How do you handle technical debt?', 'I believe in addressing technical debt proactively. I advocate for allocating a portion of each sprint (e.g., 10-15%) to refactoring and paying down debt. When introducing new code, I document any necessary trade-offs and create a ticket in the backlog to address it later, ensuring it doesn\'t get forgotten.')
+                    ],
+                    custom_answers
+                ) }}
+
+                {{ question_accordion(
+                    'system_design',
+                    '🧠 System Design Questions',
+                    [
+                        ('design_notification', 'Design a scalable notification system.', 'I would design a microservices-based system. A `Notification Service` would accept requests via an API Gateway. It would place messages into a message queue like RabbitMQ or Kafka for durability. Worker services would consume from the queue, fetch user preferences from a `User Service`, and send notifications via different channels (email, push, SMS) using dedicated `Dispatcher Services`.'),
+                        ('design_feed', 'How would you architect LinkedIn’s feed?', 'I\'d use a fan-out-on-write approach for most users. When a user posts, the content is pushed to the Redis feeds of their active followers. For celebrities with millions of followers, I\'d use a fan-out-on-read approach, where the feed is generated at request time by pulling from the people they follow. The feed itself would be a mix of content from a graph database (for connections) and a search index like Elasticsearch for ranking and relevance.'),
+                        ('design_messaging', 'What trade-offs would you consider in designing a messaging platform?', 'Key trade-offs include consistency vs. availability (CAP theorem), latency vs. feature richness, and cost vs. performance. For example, ensuring end-to-end encryption increases security but adds computational overhead. Storing message history indefinitely is great for users but increases storage costs. I would prioritize reliability and low latency for the core messaging experience.'),
+                        ('data_consistency', 'How do you handle data consistency in distributed systems?', 'The approach depends on the requirement. For strong consistency, I would use a two-phase commit (2PC) protocol, though it can be slow. For eventual consistency, which is often acceptable, I would use asynchronous replication and techniques like CRDTs (Conflict-free Replicated Data Types) or last-write-wins. Sagas are another excellent pattern for managing long-running transactions across services.'),
+                        ('monolith_microservices', 'Explain the difference between monolithic and microservices architecture.', 'A monolithic architecture builds all functionality into a single, unified application. It\'s simpler to develop and deploy initially but can become difficult to scale and maintain. A microservices architecture breaks the application into a collection of small, independent services, each responsible for a specific business capability. This approach offers better scalability, resilience, and flexibility but introduces complexity in deployment, monitoring, and inter-service communication.')
+                    ],
+                    custom_answers
+                ) }}
+
+                {{ question_accordion(
+                    'data_analytics',
+                    '📊 Data & Analytics Role Questions',
+                    [
+                        ('clean_data', 'How do you clean and preprocess large datasets?', 'My process involves several steps: first, I handle missing values through imputation (mean, median) or removal, depending on the context. Then, I identify and correct inconsistencies and outliers. I normalize or standardize data to bring features to a similar scale. Finally, I use scripts (Python with Pandas) to automate this pipeline for reproducibility.'),
+                        ('job_metrics', 'What metrics would you track for LinkedIn job recommendations?', 'I would track both engagement and quality metrics. Engagement metrics include Click-Through Rate (CTR) on recommended jobs and Application Rate. Quality metrics would include the relevance score of applied jobs, the percentage of recommendations that are viewed for more than a few seconds, and long-term metrics like interview and offer rates from recommended jobs.'),
+                        ('data_influence', 'Explain a time you used data to influence a business decision.', 'I analyzed user behavior data and found that users who completed their profile to 100% were twice as likely to receive a response from recruiters. I presented this finding to the product team, which led to a new feature that gamified profile completion. This resulted in a 25% increase in fully completed profiles and a measurable lift in user engagement with recruiters.'),
+                        ('missing_data', 'How do you handle missing or inconsistent data?', 'For missing data, I assess the percentage and pattern of missingness. If it\'s small, I might use mean/median/mode imputation. For time-series data, I might use forward-fill. For inconsistent data (e.g., "NY" vs "New York"), I use data cleaning scripts to standardize the values based on a defined mapping.'),
+                        ('sql_viz_experience', 'What’s your experience with SQL and data visualization tools?', 'I have extensive experience writing complex SQL queries, including joins, window functions, and CTEs, to extract and aggregate data. For visualization, I am proficient with tools like Tableau and Power BI to create interactive dashboards that communicate insights effectively to both technical and non-technical stakeholders.')
+                    ],
+                    custom_answers
+                ) }}
+
+                {{ question_accordion(
+                    'product_design',
+                    '🎯 Product & Design Role Questions',
+                    [
+                        ('improve_flow', 'How would you improve LinkedIn’s job application flow?', 'I would focus on reducing friction. First, I\'d implement a "Profile Snapshot" feature that lets users select which parts of their profile are sent with an application, reducing the need for a separate resume. Second, I\'d create a unified "Application Tracker" that shows the status of all applications (applied, viewed, rejected) in one place, even for jobs that redirect to external sites, by using a browser extension.'),
+                        ('user_research', 'What’s your process for user research?', 'My process starts with defining clear research goals. I then choose the appropriate methodology, which could be qualitative (user interviews, usability tests) or quantitative (surveys, A/B tests). I recruit a representative sample of users, conduct the research, and then synthesize the findings into actionable insights and personas to share with the team.'),
+                        ('admired_product', 'Describe a product you admire and why.', 'I greatly admire Figma. It solved a critical problem for design collaboration by being web-native and real-time. Its intuitive interface, powerful component system, and vibrant community plugin ecosystem demonstrate a deep understanding of user needs and a commitment to continuous improvement.'),
+                        ('prioritize_features', 'How do you prioritize features in a roadmap?', 'I use a framework like RICE (Reach, Impact, Confidence, Effort) to score potential features objectively. This data-informed approach is balanced with strategic goals, customer feedback, and input from engineering on technical feasibility. This ensures we are working on features that deliver the most value to both the user and the business.')
+                    ],
+                    custom_answers
+                ) }}
+            </div>
+        </div>
+
         <!-- Submit Button -->
         <div class="pt-8 mt-8 border-t border-indigo-500/20">
             <div class="flex justify-between items-center">
@@ -190,6 +275,7 @@
 
 <!-- Toast Notification Placeholder -->
 <div id="toast-container" class="fixed top-6 right-6 z-[1000]"></div>
+<script src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
 
 <script>
     /**
@@ -197,6 +283,7 @@
      * It uses the user's profile details and parsed resume skills to populate a template.
      */
     function generateAICoverLetter(userDetails) {
+        const templates = [];
         const coverLetterTextarea = document.getElementById('cover_letter_template');
         const generateBtn = document.querySelector("button[onclick^='generateAICoverLetter']");
         const copyBtn = document.getElementById('copy-cover-letter-btn');
@@ -231,7 +318,8 @@
             skillsParagraph = `I am proficient in a variety of technologies and methodologies, including ${skillsList}. My experience in these areas has prepared me to tackle the challenges of this position and contribute effectively to your team.`;
         }
 
-        const template = `Dear [Hiring Manager Name],
+        // --- Template 1: The Professional ---
+        templates.push(`Dear [Hiring Manager Name],
 
 I am writing to express my enthusiastic interest in the [Job Title] position at [Company Name], which I discovered on [Platform, e.g., LinkedIn]. Having followed [Company Name]'s work for some time, I am deeply impressed by your commitment to [Company Value or Product], and I am confident that my skills and experience align perfectly with the requirements of this role.
 
@@ -244,41 +332,109 @@ Thank you for considering my application. I have attached my resume for your rev
 Sincerely,
 ${fullName}
 ${email}
-${phone}`;
+${phone}`);
+
+        // --- Template 2: The Storyteller ---
+        templates.push(`Dear [Hiring Manager Name],
+
+It is with great excitement that I submit my application for the [Job Title] role at [Company Name]. For years, I have admired your company's impact in the [Industry] space, particularly your work on [Specific Project or Product]. Your dedication to [Company Mission/Value] resonates deeply with my own professional values.
+
+My background in [Your Key Experience Area] and my hands-on experience with skills such as ${skills.slice(0, 3).join(', ')} have prepared me to not only meet but exceed the expectations for this role. I am a collaborative problem-solver who is passionate about building solutions that make a difference.
+
+The opportunity to contribute to your team would be a privilege. I am eager to learn more about how I can help [Company Name] achieve its future goals.
+
+Thank you for your time and consideration.
+
+Best regards,
+${fullName}
+${email}
+${phone}`);
+
+        // --- Template 3: The Achiever ---
+        templates.push(`Dear [Hiring Manager Name],
+
+I am writing to apply for the [Job Title] position at [Company Name]. With a proven track record of delivering results in [Your Field], I was immediately drawn to this opportunity to leverage my skills to drive success for your team.
+
+In my previous role at [Previous Company], I was responsible for [Your Key Responsibility], where I successfully [Quantifiable Achievement, e.g., increased efficiency by 20% or led a project that generated $50k in revenue]. My expertise in ${skills.slice(0, 4).join(', ')} would allow me to make a direct and immediate impact at [Company Name].
+
+I am confident that my results-oriented approach and dedication to excellence would make me a valuable asset to your organization.
+
+I have attached my resume for your detailed review and look forward to discussing this exciting opportunity with you further.
+
+Sincerely,
+${fullName}
+${email}
+${phone}`);
+
+        // --- Template 4: The Enthusiast ---
+        templates.push(`Dear [Hiring Manager Name],
+
+I was thrilled to see the opening for a [Job Title] at [Company Name] and am submitting my application with great enthusiasm.
+
+My experience in [Your Key Experience Area] and skills in ${skills.slice(0, 3).join(', ')} are a strong match for the responsibilities outlined in the job description. I am a proactive and adaptable professional, always eager to learn and contribute to a forward-thinking team.
+
+The prospect of joining [Company Name] is incredibly appealing, and I am confident I have the drive and expertise to excel in this role.
+
+Thank you for your consideration. I hope to speak with you soon.
+
+Best,
+${fullName}
+${email}
+${phone}`);
+
+        // Randomly select one of the templates
+        const template = templates[Math.floor(Math.random() * templates.length)];
 
         // --- AI Animation Logic ---
         generateBtn.disabled = true;
         copyBtn.disabled = true;
+        coverLetterTextarea.readOnly = true; // Prevent user input during animation
         coverLetterTextarea.value = '';
-        coverLetterTextarea.placeholder = '🤖 AI is thinking...';
+        coverLetterTextarea.placeholder = '🤖 AI is crafting a new cover letter...';
 
         // 1. "Thinking" phase
-        setTimeout(() => {
+        const thinkingTimeout = setTimeout(() => {
             coverLetterTextarea.placeholder = '✍️ Generating your cover letter...';
             
             // 2. "Typing" phase
             let i = 0;
-            const typingSpeed = 10; // milliseconds per character
+            const typingSpeed = 8; // milliseconds per character, slightly faster
             const typingInterval = setInterval(() => {
                 if (i < template.length) {
-                    coverLetterTextarea.value += template.charAt(i);
+                    // Use requestAnimationFrame for smoother rendering
+                    const char = template.charAt(i);
+                    requestAnimationFrame(() => {
+                        coverLetterTextarea.value += char;
+                        // Only scroll when needed to reduce layout calculations
+                        if (coverLetterTextarea.scrollHeight > coverLetterTextarea.clientHeight) {
+                            coverLetterTextarea.scrollTop = coverLetterTextarea.scrollHeight;
+                        }
+                    });
                     i++;
-                    coverLetterTextarea.scrollTop = coverLetterTextarea.scrollHeight;
                 } else {
                     clearInterval(typingInterval);
                     generateBtn.disabled = false;
                     copyBtn.disabled = false;
+                    coverLetterTextarea.readOnly = false;
 
                     // 3. "Finished" glow effect
-                    coverLetterTextarea.style.transition = 'box-shadow 0.3s ease-in-out';
-                    coverLetterTextarea.style.boxShadow = '0 0 15px rgba(0, 255, 255, 0.5)';
-                    setTimeout(() => {
-                        coverLetterTextarea.style.boxShadow = '';
-                    }, 1500);
+                    coverLetterTextarea.classList.add('glow-effect');
+                    setTimeout(() => coverLetterTextarea.classList.remove('glow-effect'), 1500);
                 }
             }, typingSpeed);
         }, 700); // Delay for "thinking"
     }
+
+    // Add a CSS class for the glow effect to keep styles separate
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .glow-effect {
+            transition: box-shadow 0.3s ease-in-out;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+        }
+    `;
+    document.head.appendChild(style);
+
 
     function copyCoverLetterToClipboard() {
         const textarea = document.getElementById('cover_letter_template');
@@ -393,6 +549,56 @@ ${phone}`;
                         showToast('An error occurred. Please try again.', 'danger');
                     });
                 }
+            });
+        }
+
+        // --- Test Connection Logic ---
+        const testConnectionBtn = document.getElementById('testConnectionBtn');
+        const testResultDiv = document.getElementById('test-connection-result');
+        if(testConnectionBtn) {
+            testConnectionBtn.addEventListener('click', function() {
+                testResultDiv.innerHTML = `
+                    <div class="flex items-center gap-2 text-cyan-300">
+                        <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <span>Testing connection...</span>
+                    </div>`;
+                
+                fetch("{{ url_for('test_assisted_apply_connection') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        testResultDiv.innerHTML = `<div class="p-3 rounded-md bg-green-900/50 text-green-300 border border-green-500/30">${data.message}</div>`;
+                    } else {
+                        testResultDiv.innerHTML = `<div class="p-3 rounded-md bg-red-900/50 text-red-300 border border-red-500/30">${data.message}</div>`;
+                    }
+                })
+                .catch(error => {
+                    testResultDiv.innerHTML = `<div class="p-3 rounded-md bg-red-900/50 text-red-300 border border-red-500/30">An error occurred while testing.</div>`;
+                    console.error('Error:', error);
+                });
+            });
+        }
+
+        // --- Open Browser Session Logic ---
+        const openBrowserBtn = document.getElementById('openBrowserBtn');
+        if (openBrowserBtn) {
+            openBrowserBtn.addEventListener('click', function() {
+                showToast('Opening browser session...', 'info');
+                fetch("{{ url_for('open_browser_session') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showToast(data.message, 'success');
+                    } else {
+                        showToast(data.message, 'danger');
+                    }
+                }).catch(error => showToast('An error occurred.', 'danger'));
             });
         }
 

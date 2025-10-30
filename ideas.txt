@@ -1,0 +1,18 @@
+Implementation Left:
+
+Start with SendGrid or Mailgun for reliable email delivery and built-in tracking
+Use Gemini API for tone adjustment (generous free tier)
+Implement webhook endpoints to capture email events in real-time
+Create a unified dashboard showing campaign performance across all sequences
+
+outreach dashboard:
+    Active Campaigns
+    0
+
+    Avg. Reply Rate
+    --%
+
+ADMIN SIDE - PASS ENCRYPTED 
+http://127.0.0.1:5000/admin/upload_contacts
+
+***ranking in the area 

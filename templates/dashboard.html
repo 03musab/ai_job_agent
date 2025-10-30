@@ -1,10 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
-<!-- Full-screen fixed background -->
-<div class="fixed inset-0 bg-cover bg-center -z-10" style="background-image: url({{ url_for('static', filename='assets/temporalbg.jpg') }});">
-    <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-[4px]"></div>
+<!-- Full Page Loader -->
+<div id="page-loader" class="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center z-[9999] transition-opacity duration-300 ease-in-out">
+    <div class="loader-spinner"></div>
+    <p class="mt-4 text-lg text-gray-400">Loading Dashboard...</p>
 </div>
 
+<div id="dashboard-content" class="opacity-0">
 <div class="flex flex-col lg:flex-row gap-8">
     <!-- Left Sidebar: Search & Profiles -->
     <div class="w-full lg:w-1/3 p-6 bg-gradient-to-b from-gray-800/90 to-gray-900/90 backdrop-blur-lg rounded-xl shadow-xl border border-indigo-500/20 space-y-8">
@@ -13,7 +15,7 @@
             <div class="absolute inset-0 bg-gradient-to-r from-indigo-600/10 to-purple-600/10 rounded-lg"></div>
             <div class="relative p-6">
                 <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text">New Job Search</h2>
-                <form id="search-form" class="space-y-4">
+                <form id="search-form" class="space-y-4" aria-labelledby="new-job-search-heading">
                     <div class="relative">
                         <label for="search_terms" class="block text-sm font-medium text-gray-300">Keywords (e.g., Python, AI, Data Science)</label>
                         <input type="text" name="search_terms" id="search_terms" placeholder="Keywords" required
@@ -45,8 +47,8 @@
                     </div>
                     <div class="flex gap-4">
                         <button type="submit" id="scrape-btn"
-                            class="w-full btn-temporal inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md shadow-sm">
-                            Start Search
+                            class="w-full btn-temporal inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md shadow-sm" style="will-change: transform, box-shadow;">
+                            <span class="button-text">Start Search</span>
                         </button>
                         <button type="button" id="save-profile-btn"
                             class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 backdrop-blur-sm transition-all duration-200">
@@ -54,11 +56,57 @@
                         </button>
                     </div>
                 </form>
-                <div id="progress-container" class="mt-4 hidden">
-                    <div class="text-sm font-medium text-gray-300">Progress: <span id="task-status" class="text-cyan-400"></span></div>
-                    <div class="w-full bg-gray-700 rounded-full h-2.5 mt-1">
-                        <div id="progress-bar" class="progress-bar h-2.5 rounded-full" style="width: 0%;"></div>
+            </div>
+        </div>
+
+        <!-- Real-time Progress Bar Section -->
+        <div id="progress-container" class="hidden relative">
+            <div class="absolute inset-0 bg-gradient-to-r from-teal-600/10 to-sky-600/10 rounded-lg"></div>
+            <div class="relative p-6">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-lg font-bold text-transparent bg-gradient-to-r from-teal-400 to-sky-400 bg-clip-text">Search Progress</h3>
+                    <span id="progress-percentage" class="text-sm font-semibold text-sky-300">0%</span>
+                </div>
+                <div class="w-full bg-gray-700/50 rounded-full h-2.5 border border-sky-500/20">
+                    <div id="progress-bar" class="bg-gradient-to-r from-teal-400 to-sky-500 h-full rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between items-center mt-2 text-xs text-gray-400">
+                    <span id="progress-status">Initializing...</span>
+                    <div id="progress-milestones" class="flex gap-1">
+                        <div id="milestone-init" class="w-2 h-2 rounded-full bg-gray-600" title="Initializing"></div>
+                        <div id="milestone-scrape" class="w-2 h-2 rounded-full bg-gray-600" title="Scraping"></div>
+                        <div id="milestone-save" class="w-2 h-2 rounded-full bg-gray-600" title="Saving"></div>
+                        <div id="milestone-report" class="w-2 h-2 rounded-full bg-gray-600" title="Reporting"></div>
                     </div>
+                </div>
+                <div id="progress-error" class="hidden mt-2 text-sm text-red-400 bg-red-900/50 border border-red-500/30 rounded-md p-2">
+                    <!-- Error messages will appear here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-time Progress Bar Section -->
+        <div id="progress-container" class="hidden mt-6 relative">
+            <div class="absolute inset-0 bg-gradient-to-r from-teal-600/10 to-sky-600/10 rounded-lg"></div>
+            <div class="relative p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-lg font-bold text-transparent bg-gradient-to-r from-teal-400 to-sky-400 bg-clip-text">Search Progress</h3>
+                    <span id="progress-percentage" class="text-sm font-semibold text-sky-300">0%</span>
+                </div>
+                <div class="w-full bg-gray-700/50 rounded-full h-2.5 border border-sky-500/20">
+                    <div id="progress-bar" class="bg-gradient-to-r from-teal-400 to-sky-500 h-full rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between items-center mt-2 text-xs text-gray-400">
+                    <span id="progress-status">Initializing...</span>
+                    <div id="progress-milestones" class="flex gap-1">
+                        <div id="milestone-init" class="w-2 h-2 rounded-full bg-gray-600" title="Initializing"></div>
+                        <div id="milestone-scrape" class="w-2 h-2 rounded-full bg-gray-600" title="Scraping"></div>
+                        <div id="milestone-save" class="w-2 h-2 rounded-full bg-gray-600" title="Saving"></div>
+                        <div id="milestone-report" class="w-2 h-2 rounded-full bg-gray-600" title="Reporting"></div>
+                    </div>
+                </div>
+                <div id="progress-error" class="hidden mt-2 text-sm text-red-400 bg-red-900/50 border border-red-500/30 rounded-md p-2">
+                    <!-- Error messages will appear here -->
                 </div>
             </div>
         </div>
@@ -71,7 +119,7 @@
                 <div class="space-y-4">
                     {% if saved_profiles %}
                     {% for profile in saved_profiles %}
-                    <div class="bg-gray-800/60 p-4 rounded-lg flex items-center justify-between shadow-sm border border-gray-700/50 backdrop-blur-sm hover:bg-gray-800/80 transition-all duration-200">
+                    <div class="bg-gray-800/60 p-4 rounded-lg flex items-center justify-between shadow-sm border border-gray-700/50 backdrop-blur-sm hover:bg-gray-800/80 transition-colors duration-200">
                         <div>
                             <h3 class="font-semibold text-gray-100">{{ profile.profile_name }}</h3>
                             <p class="text-xs text-gray-400">{{ profile.search_terms }}</p>
@@ -109,22 +157,13 @@
                             class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100 placeholder-gray-400 backdrop-blur-sm"
                             value="{{ user_settings.email_recipients if user_settings else '' }}">
                     </div>
-                    <div>
-                        <label for="email_frequency" class="block text-sm font-medium text-gray-300">Frequency</label>
-                        <select name="email_frequency" id="email_frequency"
-                            class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100">
-                            <option value="daily" {% if user_settings and user_settings.email_frequency=='daily' %}selected{% endif %}>Daily</option>
-                            <option value="weekly" {% if user_settings and user_settings.email_frequency=='weekly' %}selected{% endif %}>Weekly</option>
-                            <option value="monthly" {% if user_settings and user_settings.email_frequency=='monthly' %}selected{% endif %}>Monthly</option>
-                        </select>
-                    </div>
                     <div class="flex items-center">
                         <input id="send_excel_attachment" name="send_excel_attachment" type="checkbox"
                             class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-600 rounded bg-gray-700" {% if user_settings and user_settings.send_excel_attachment %}checked{% endif %}>
                         <label for="send_excel_attachment" class="ml-2 block text-sm text-gray-300">Send Excel attachment</label>
                     </div>
                     <button type="submit"
-                        class="w-full btn-temporal inline-flex justify-center py-2 px-4 text-sm font-medium rounded-md shadow-sm">
+                        class="w-full btn-temporal inline-flex justify-center py-2 px-4 text-sm font-medium rounded-md shadow-sm" style="will-change: transform, box-shadow;">
                         Save Settings
                     </button>
                 </form>
@@ -224,10 +263,10 @@
     </div>
 
     <!-- Right Content: Job Listings & Filters -->
-    <div class="w-full lg:w-2/3 p-6 bg-gradient-to-b from-gray-800/90 to-gray-900/90 backdrop-blur-lg rounded-xl shadow-xl border border-indigo-500/20">
+    <main class="w-full lg:w-2/3 p-6 bg-gradient-to-b from-gray-800/90 to-gray-900/90 backdrop-blur-lg rounded-xl shadow-xl border border-indigo-500/20" aria-labelledby="job-listings-heading">
         <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
             <div class="flex items-center gap-4">
-                <h1 class="text-3xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">Your Jobs ({{ total_jobs }})</h1>
+                <h1 id="job-listings-heading" class="text-3xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">Your Jobs ({{ total_jobs }})</h1>
             </div>
             <form action="{{ url_for('delete_all_jobs') }}" method="POST"
                 onsubmit="return confirm('Are you sure you want to delete ALL jobs? This cannot be undone.');">
@@ -237,12 +276,12 @@
         </div>
 
         <!-- Job Status Chart -->
-        <div class="mb-8 bg-gradient-to-r from-gray-800/60 to-gray-900/60 rounded-2xl shadow-xl border border-indigo-500/20 overflow-hidden backdrop-blur-lg">
+        <div class="mb-8 bg-gradient-to-r from-gray-800/60 to-gray-900/60 rounded-2xl shadow-xl border border-indigo-500/20 overflow-hidden backdrop-blur-lg" aria-labelledby="chart-heading">
             <!-- Chart Header -->
             <div class="bg-gradient-to-r from-gray-700/30 to-gray-800/30 px-6 py-5 border-b border-indigo-500/20 backdrop-blur-sm">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-3">
-                        <div class="p-2 bg-gradient-to-r from-indigo-600/30 to-purple-600/30 rounded-lg backdrop-blur-sm">
+                        <div class="p-2 bg-gradient-to-r from-indigo-600/30 to-purple-600/30 rounded-lg backdrop-blur-sm" aria-hidden="true">
                             <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
@@ -250,7 +289,7 @@
                             </svg>
                         </div>
                         <div>
-                            <h2 class="text-xl font-semibold text-gray-100">Application Status Overview</h2>
+                            <h2 id="chart-heading" class="text-xl font-semibold text-gray-100">Application Status Overview</h2>
                             <p class="text-sm text-gray-400">Track your job application progress</p>
                         </div>
                     </div>
@@ -268,13 +307,18 @@
                 <div class="flex flex-col lg:flex-row items-center gap-8">
                     <!-- Chart Container -->
                     <div class="flex-shrink-0">
-                        <div class="relative w-80 h-80">
+                        <div class="relative w-80 h-80" role="img" aria-label="A doughnut chart showing the distribution of job application statuses.">
                             <canvas id="jobStatusChart"></canvas>
+                            <!-- Fallback content for screen readers -->
+                            <div id="chart-fallback" class="sr-only">
+                                <!-- This will be populated with a table by JavaScript -->
+                            </div>
                         </div>
                     </div>
 
                     <!-- Chart Legend & Stats -->
-                    <div class="flex-1 space-y-4">
+                    <div class="flex-1 space-y-4" aria-live="polite">
+                        <h3 class="sr-only">Chart Data</h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="chartStats">
                             <!-- Stats will be populated by JavaScript -->
                         </div>
@@ -306,12 +350,12 @@
         </div>
 
         <!-- Enhanced Filter Form -->
-        <div class="mb-8 bg-gradient-to-r from-gray-800/60 to-gray-900/60 rounded-2xl shadow-xl border border-indigo-500/20 overflow-hidden backdrop-blur-lg">
+        <div class="mb-8 bg-gradient-to-r from-gray-800/60 to-gray-900/60 rounded-2xl shadow-xl border border-indigo-500/20 overflow-hidden backdrop-blur-lg" aria-labelledby="filter-heading">
             <!-- Filter Header -->
             <div class="bg-gradient-to-r from-indigo-600/20 to-purple-600/20 px-6 py-4 border-b border-indigo-500/20 backdrop-blur-sm">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-3">
-                        <div class="p-2 bg-gradient-to-r from-indigo-600/30 to-purple-600/30 rounded-lg backdrop-blur-sm">
+                        <div class="p-2 bg-gradient-to-r from-indigo-600/30 to-purple-600/30 rounded-lg backdrop-blur-sm" aria-hidden="true">
                             <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z">
@@ -319,13 +363,13 @@
                             </svg>
                         </div>
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-100">Filter & Sort Jobs</h3>
+                            <h3 id="filter-heading" class="text-lg font-semibold text-gray-100">Filter & Sort Jobs</h3>
                             <p class="text-sm text-gray-400">Refine your job search results</p>
                         </div>
                     </div>
                     <button type="button" id="toggle-filters"
-                        class="lg:hidden p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 rounded-lg transition-colors">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        class="lg:hidden p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 rounded-lg transition-colors" aria-label="Toggle filters" aria-expanded="true">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="will-change: transform;">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
                     </button>
@@ -339,7 +383,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                         <!-- Search Keywords -->
                         <div class="space-y-2">
-                            <label for="search_query" class="flex items-center text-sm font-medium text-gray-300">
+                            <label for="search_query" class="flex items-center text-sm font-medium text-gray-300" id="search-query-label">
                                 <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -349,7 +393,7 @@
                             <div class="relative">
                                 <input type="text" id="search_query" name="search_query"
                                     placeholder="Job title, company, skills..."
-                                    class="w-full pl-10 pr-4 py-3 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-500 bg-gray-700/50 text-gray-100 placeholder-gray-400 backdrop-blur-sm"
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-500 bg-gray-700/50 text-gray-100 placeholder-gray-400 backdrop-blur-sm" aria-labelledby="search-query-label"
                                     value="{{ search_query }}">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -362,7 +406,7 @@
 
                         <!-- Location -->
                         <div class="space-y-2">
-                            <label for="location_filter" class="flex items-center text-sm font-medium text-gray-300">
+                            <label for="location_filter" class="flex items-center text-sm font-medium text-gray-300" id="location-filter-label">
                                 <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
@@ -375,7 +419,7 @@
                             <div class="relative">
                                 <input type="text" id="location_filter" name="location_filter"
                                     placeholder="City, state, or 'Remote'"
-                                    class="w-full pl-10 pr-4 py-3 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-500 bg-gray-700/50 text-gray-100 placeholder-gray-400 backdrop-blur-sm"
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-500 bg-gray-700/50 text-gray-100 placeholder-gray-400 backdrop-blur-sm" aria-labelledby="location-filter-label"
                                     value="{{ location_filter }}">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -390,14 +434,14 @@
                         </div>
                         
                         <div class="space-y-2">
-                            <label for="status_filter" class="flex items-center text-sm font-medium text-gray-300">
+                            <label for="status_filter" class="flex items-center text-sm font-medium text-gray-300" id="status-filter-label">
                                 <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                                 Application Status
                             </label>
-                            <select id="status_filter" name="status_filter"
+                            <select id="status_filter" name="status_filter" aria-labelledby="status-filter-label"
                                 class="w-full px-4 py-3 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-500 bg-gray-700/50 text-gray-100 placeholder-gray-400 backdrop-blur-sm">
                                 <option value="">All Statuses</option>
                                 <option value="new" {% if status_filter=='new' %}selected{% endif %}>New</option>
@@ -414,15 +458,15 @@
                     <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-700/50">
                         <!-- Left side: Sort controls -->
                         <div class="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
-                            <label for="sort_by" class="text-sm font-medium text-gray-400 hidden sm:block">Sort by:</label>
+                            <label for="sort_by" class="text-sm font-medium text-gray-400 hidden sm:block" id="sort-by-label">Sort by:</label>
                             <div class="w-full flex gap-2">
-                                <select id="sort_by" name="sort_by"
+                                <select id="sort_by" name="sort_by" aria-labelledby="sort-by-label"
                                     class="w-full px-4 py-2 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-500 bg-gray-700/50 text-gray-100 backdrop-blur-sm">
                                     <option value="found_date" {% if sort_by=='found_date' %}selected{% endif %}>Date Added</option>
                                     <option value="title" {% if sort_by=='title' %}selected{% endif %}>Title</option>
                                     <option value="relevance_score" {% if sort_by=='relevance_score' %}selected{% endif %}>Relevance</option>
                                 </select>
-                                <select id="sort_order" name="sort_order"
+                                <select id="sort_order" name="sort_order" aria-label="Sort order"
                                     class="w-full px-4 py-2 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-500 bg-gray-700/50 text-gray-100 backdrop-blur-sm">
                                     <option value="desc" {% if sort_order=='desc' %}selected{% endif %}>Descending</option>
                                     <option value="asc" {% if sort_order=='asc' %}selected{% endif %}>Ascending</option>
@@ -448,7 +492,7 @@
 <div id="job-listings" class="space-y-6">
     {% if jobs %}
     {% for job in jobs %}
-    <div
+    <article
         class="job-item bg-gray-800/60 p-6 rounded-2xl shadow-lg border border-gray-700/50 backdrop-blur-sm hover:border-indigo-500/50 transition-all duration-300">
         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 gap-4">
             <div class="flex-1">
@@ -456,18 +500,18 @@
                 <span class="px-2 py-0.5 text-xs font-semibold rounded-full uppercase status-badge status-{{ job.status }} border">
                     {{ job.status }}</span>
                     <h3 class="text-xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text">
-                        {{ job.title }}
+                        <a href="{{ job.link }}" target="_blank" class="hover:underline focus:underline">{{ job.title }}</a>
                     </h3>
                 </div>
                 <div class="flex items-center text-gray-300 text-sm mb-2 gap-2">
-                    <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                         <path fill-rule="evenodd"
                             d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.549l-.079.052A2 2 0 0115.584 14H14.5a.5.5 0 01-.5-.5V12a1.5 1.5 0 00-1.5-1.5h-3A1.5 1.5 0 008 12v1.5a.5.5 0 01-.5.5H4.416a2 2 0 01-1.937-2.4l-.079-.053V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5z"
                             clip-rule="evenodd"></path>
                     </svg>
                     <span>{{ job.company }}</span>
                     <span class="text-gray-500">•</span>
-                    <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                         <path fill-rule="evenodd"
                             d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
                             clip-rule="evenodd"></path>
@@ -475,7 +519,7 @@
                     <span>{{ job.location }}</span>
                     {% if job.experience %}
                     <span class="text-gray-500">•</span>
-                    <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                         <path fill-rule="evenodd"
                             d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
                     </svg>
@@ -498,21 +542,30 @@
         <div class="flex flex-wrap items-center gap-2 mt-4 text-xs text-gray-400">
             <button type="button" onclick='openDetailsModal({{ job | tojson | safe }})'
                 class="inline-flex items-center px-2 py-1 rounded-md border border-gray-600 hover:bg-gray-700 transition-colors">
-                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                 View Details
             </button>
             <button type="button" onclick="analyzeTraffic({{ job.id }})"
                 class="inline-flex items-center px-2 py-1 rounded-md border transition-colors btn-analysis">
-                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                 </svg>
                 Analyze Traffic
             </button>
+            <button type="button" onclick="openApplyModal({{ job.id }}, '{{ job.link }}')"
+                class="inline-flex items-center px-2 py-1 rounded-md border transition-colors btn-assisted-apply">
+                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.562L16.25 21.75l-.648-1.188a2.25 2.25 0 01-1.476-1.476L12.938 18l1.188-.648a2.25 2.25 0 011.476-1.476L16.25 15l.648 1.188a2.25 2.25 0 011.476 1.476L19.562 18l-1.188.648a2.25 2.25 0 01-1.476 1.476z">
+                    </path>
+                </svg>
+                Assisted Apply
+            </button>
             <form action="{{ url_for('delete_job', job_id=job.id) }}" method="POST"
                 onsubmit="return confirm('Are you sure you want to delete this job?');" class="inline-block">
                 <button type="submit"
-                    class="inline-flex items-center px-2 py-1 rounded-md border border-gray-600 hover:bg-gray-700 transition-colors">
-                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="inline-flex items-center px-2 py-1 rounded-md border border-gray-600 hover:bg-gray-700 transition-colors" aria-label="Delete job: {{ job.title }}">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
                         </path>
@@ -521,7 +574,7 @@
                 </button>
             </form>
         </div>
-    </div>
+    </article>
     {% endfor %}
     {% else %}
     <div class="bg-gray-800/60 p-6 rounded-2xl text-center text-gray-400 backdrop-blur-sm">
@@ -553,16 +606,16 @@
             <!-- Previous Button -->
             {% if current_page > 1 %}
             <a href="{{ url_for('dashboard', page=current_page-1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
-                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800/50 border border-gray-600 rounded-lg hover:bg-gray-700/50 transition-colors duration-200">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800/50 border border-gray-600 rounded-lg hover:bg-gray-700/50 transition-colors duration-200" style="will-change: background-color, border-color;" aria-label="Go to previous page">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
                 Previous
             </a>
             {% else %}
             <span
-                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-gray-800 border border-gray-700 rounded-lg cursor-not-allowed">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-gray-800 border border-gray-700 rounded-lg cursor-not-allowed" aria-disabled="true">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
                 Previous
@@ -574,13 +627,13 @@
                 {% if pagination_pages %}
                 {% for p in pagination_pages %}
                 {% if p == current_page %}
-                <span
+                <span aria-current="page"
                     class="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-md">
                     {{ p }}
                 </span>
                 {% else %}
-                <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
-                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800/50 border border-gray-600 rounded-lg hover:bg-gray-700/50 hover:border-indigo-500/50 transition-colors duration-200">
+                <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}" aria-label="Go to page {{ p }}"
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800/50 border border-gray-600 rounded-lg hover:bg-gray-700/50 hover:border-indigo-500/50 transition-colors duration-200" style="will-change: background-color, border-color;">
                     {{ p }}
                 </a>
                 {% endif %}
@@ -588,13 +641,13 @@
                 {% else %}
                 {% for p in range(1, total_pages + 1) %}
                 {% if p == current_page %}
-                <span
+                <span aria-current="page"
                     class="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-md">
                     {{ p }}
                 </span>
                 {% else %}
-                <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
-                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800/50 border border-gray-600 rounded-lg hover:bg-gray-700/50 hover:border-indigo-500/50 transition-colors duration-200">
+                <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}" aria-label="Go to page {{ p }}"
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800/50 border border-gray-600 rounded-lg hover:bg-gray-700/50 hover:border-indigo-500/50 transition-colors duration-200" style="will-change: background-color, border-color;">
                     {{ p }}
                 </a>
                 {% endif %}
@@ -605,17 +658,17 @@
             <!-- Next Button -->
             {% if current_page < total_pages %}
             <a href="{{ url_for('dashboard', page=current_page+1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
-                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800/50 border border-gray-600 rounded-lg hover:bg-gray-700/50 transition-colors duration-200">
+                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800/50 border border-gray-600 rounded-lg hover:bg-gray-700/50 transition-colors duration-200" style="will-change: background-color, border-color;" aria-label="Go to next page">
                 Next
-                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                 </svg>
             </a>
             {% else %}
             <span
-                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-gray-800 border border-gray-700 rounded-lg cursor-not-allowed">
+                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-gray-800 border border-gray-700 rounded-lg cursor-not-allowed" aria-disabled="true">
                 Next
-                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                 </svg>
             </span>
@@ -628,7 +681,7 @@
     <div class="flex justify-center mt-4">
         <div class="flex items-center space-x-2 text-sm text-gray-400">
             <span>Jump to page:</span>
-            <select
+            <select aria-label="Jump to page"
                 onchange="window.location.href='{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}&page=' + this.value"
                 class="px-3 py-1 border border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700/50 text-gray-200">
                 {% for p in range(1, total_pages + 1) %}
@@ -641,12 +694,12 @@
 </div>
 {% endif %}
 
-</div>
+</main>
 </div>
 
 <!-- Modal for Job Details -->
-<div id="details-modal" class="fixed inset-0 bg-black bg-opacity-80 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm flex items-center justify-center p-4">
-    <div id="details-modal-content" class="relative w-full max-w-3xl shadow-2xl rounded-2xl bg-gradient-to-b from-gray-800 to-gray-900 border border-indigo-500/30 transform transition-all duration-300 scale-95 opacity-0">
+<div id="details-modal" class="fixed inset-0 bg-black bg-opacity-80 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div id="details-modal-content" class="relative w-full max-w-3xl shadow-2xl rounded-2xl bg-gradient-to-b from-gray-800 to-gray-900 border border-indigo-500/30 transform transition-transform,opacity duration-300 scale-95 opacity-0" style="will-change: transform, opacity;">
         <!-- Modal Header -->
         <div class="px-6 py-5 border-b border-gray-700/50 flex justify-between items-start">
             <div>
@@ -655,8 +708,8 @@
             </div>
             <div class="flex items-center gap-4">
                 <span id="modal-relevance" class="px-3 py-1 text-sm font-semibold rounded-full"></span>
-                <button onclick="closeDetailsModal()" class="text-gray-400 hover:text-white transition-colors">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <button onclick="closeDetailsModal()" class="text-gray-400 hover:text-white transition-colors" aria-label="Close details modal">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
         </div>
@@ -716,7 +769,7 @@
 </div>
 
 <!-- Modal for Job Status Update -->
-<div id="status-modal" class="fixed inset-0 bg-black bg-opacity-70 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm">
+<div id="status-modal" class="fixed inset-0 bg-black bg-opacity-70 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="status-modal-title">
     <div class="relative top-20 mx-auto p-6 border border-gray-700 w-96 shadow-lg rounded-xl bg-gray-800">
         <h3 class="text-lg font-bold text-gray-100 mb-4">Update Job Status</h3>
         <form id="status-form" action="{{ url_for('update_job_status') }}" method="POST">
@@ -759,7 +812,7 @@
 </div>
 
 <!-- Modal for Assisted Apply -->
-<div id="apply-modal" class="fixed inset-0 bg-black bg-opacity-70 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm">
+<div id="apply-modal" class="fixed inset-0 bg-black bg-opacity-70 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="apply-modal-title">
     <div class="relative top-20 mx-auto p-6 border border-gray-700 w-96 shadow-lg rounded-xl bg-gray-800 text-center">
         <h3 class="text-lg font-bold text-gray-100 mb-4">Assisted Apply</h3>
         <p class="text-gray-300 mb-4">This will start an automated browser session to fill out the form for you.</p>
@@ -777,21 +830,21 @@
 </div>
 
 <!-- Modal for Traffic Analysis -->
-<div id="traffic-analysis-modal" class="fixed inset-0 bg-black bg-opacity-80 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm flex items-center justify-center p-4">
-    <div id="traffic-analysis-modal-content" class="relative w-full max-w-2xl shadow-2xl rounded-2xl bg-gradient-to-b from-gray-800 to-gray-900 border border-sky-500/30 transform transition-all duration-300 scale-95 opacity-0">
+<div id="traffic-analysis-modal" class="fixed inset-0 bg-black bg-opacity-80 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="traffic-modal-title">
+    <div id="traffic-analysis-modal-content" class="relative w-full max-w-2xl shadow-2xl rounded-2xl bg-gradient-to-b from-gray-800 to-gray-900 border border-sky-500/30 transform transition-transform,opacity duration-300 scale-95 opacity-0" style="will-change: transform, opacity;">
         <!-- Modal Header -->
         <div class="px-6 py-5 border-b border-gray-700/50 flex justify-between items-center">
             <div>
-                <h3 class="text-2xl font-bold text-transparent bg-gradient-to-r from-sky-400 to-cyan-400 bg-clip-text">Company Traffic Analysis</h3>
+                <h3 id="traffic-modal-title" class="text-2xl font-bold text-transparent bg-gradient-to-r from-sky-400 to-cyan-400 bg-clip-text">Company Traffic Analysis</h3>
                 <p id="traffic-modal-company" class="text-lg text-gray-300">Company Name</p>
             </div>
-            <button onclick="closeTrafficAnalysisModal()" class="text-gray-400 hover:text-white transition-colors">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            <button onclick="closeTrafficAnalysisModal()" class="text-gray-400 hover:text-white transition-colors" aria-label="Close traffic analysis modal">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
 
         <!-- Modal Body -->
-        <div id="traffic-modal-body" class="p-6 max-h-[70vh] overflow-y-auto space-y-6">
+        <div id="traffic-modal-body" class="p-6 max-h-[70vh] overflow-y-auto space-y-6" role="status">
             <!-- Loading/Error State -->
             <div id="traffic-modal-placeholder" class="text-center py-8">
                 <svg class="animate-spin mx-auto h-8 w-8 text-sky-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -821,9 +874,9 @@
     document.addEventListener('DOMContentLoaded', function () {
         // Handle New Search button
         const searchForm = document.getElementById('search-form');
-        const progressContainer = document.getElementById('progress-container');
-        const progressBar = document.getElementById('progress-bar');
-        const taskStatus = document.getElementById('task-status');
+        const scrapeBtn = document.getElementById('scrape-btn');
+        const scrapeBtnText = scrapeBtn.querySelector('.button-text');
+        const originalBtnText = scrapeBtnText.textContent;
 
         if (searchForm) {
             searchForm.addEventListener('submit', async function (e) {
@@ -831,12 +884,11 @@
                 const formData = new FormData(searchForm);
                 const params = new URLSearchParams(formData).toString();
 
-                progressContainer.classList.remove('hidden');
-                taskStatus.textContent = 'Starting search...';
-                progressBar.style.width = '0%';
+                scrapeBtn.classList.add('button-loading');
+                scrapeBtnText.textContent = 'Searching...';
 
                 try {
-                    const response = await fetch('/search_jobs', {
+                    const response = await fetch("{{ url_for('start_scrape') }}", {
                         method: 'POST',
                         body: params,
                         headers: {
@@ -845,17 +897,20 @@
                     });
                     const data = await response.json();
                     if (data.status === 'success') {
-                        checkTaskStatus(data.task_id);
+                        // The task has started, we can just reload after a delay
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
                     } else {
-                        taskStatus.textContent = data.message;
-                        progressBar.style.width = '100%';
-                        progressBar.classList.add('bg-red-500');
+                        alert('starting search: ' + data.message);
+                        scrapeBtn.classList.remove('button-loading');
+                        scrapeBtnText.textContent = originalBtnText;
                     }
                 } catch (error) {
                     console.error('Error starting task:', error);
-                    taskStatus.textContent = 'Failed to connect to backend.';
-                    progressBar.style.width = '100%';
-                    progressBar.classList.add('bg-red-500');
+                    alert('Failed to connect to backend.');
+                    scrapeBtn.classList.remove('button-loading');
+                    scrapeBtnText.textContent = originalBtnText;
                 }
             });
         }
@@ -945,33 +1000,6 @@
             });
         });
 
-        // Function to check task status
-        function checkTaskStatus(taskId) {
-            const interval = setInterval(async () => {
-                const response = await fetch(`/task_status/${taskId}`);
-                const data = await response.json();
-
-                if (data.state === 'SUCCESS') {
-                    clearInterval(interval);
-                    taskStatus.textContent = data.status;
-                    progressBar.style.width = '100%';
-                    progressBar.classList.remove('bg-red-500');
-                    progressBar.classList.add('bg-green-500');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                } else if (data.state === 'FAILURE') {
-                    clearInterval(interval);
-                    taskStatus.textContent = data.status;
-                    progressBar.style.width = '100%';
-                    progressBar.classList.add('bg-red-500');
-                } else {
-                    taskStatus.textContent = data.status;
-                    progressBar.style.width = `${data.progress}%`;
-                }
-            }, 2000); // Poll every 2 seconds
-        }
-
         // Modals Logic
         const statusModal = document.getElementById('status-modal');
         const applyModal = document.getElementById('apply-modal');
@@ -980,6 +1008,9 @@
         const trafficAnalysisModal = document.getElementById('traffic-analysis-modal');
         const trafficAnalysisModalContent = document.getElementById('traffic-analysis-modal-content');
 
+        // Store the element that triggered the modal
+        let activeModalTrigger = null;
+
         window.openStatusModal = function (jobId, status, notes) {
             document.getElementById('status-job-id').value = jobId;
             document.getElementById('status').value = status;
@@ -987,21 +1018,31 @@
             statusModal.classList.remove('hidden');
         };
 
-        window.closeStatusModal = function () {
-            statusModal.classList.add('hidden');
-        };
+        // --- Accessible Modal Logic ---
+        function openModal(modal, triggerElement) {
+            activeModalTrigger = triggerElement;
+            modal.classList.remove('hidden');
+            // Focus the first focusable element in the modal, e.g., the close button or first input
+            const firstFocusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+            if (firstFocusable) {
+                firstFocusable.focus();
+            }
+        }
 
-        window.openApplyModal = function (jobId, jobLink) {
-            const startApplyBtn = document.getElementById('start-apply-btn');
-            startApplyBtn.onclick = function () {
-                startApplyProcess(jobId);
-                closeApplyModal();
-            };
-            applyModal.classList.remove('hidden');
+        function closeModal(modal) {
+            modal.classList.add('hidden');
+            if (activeModalTrigger) {
+                activeModalTrigger.focus(); // Return focus to the element that opened the modal
+                activeModalTrigger = null;
+            }
+        }
+
+        window.closeStatusModal = function () {
+            closeModal(statusModal);
         };
 
         window.closeApplyModal = function () {
-            applyModal.classList.add('hidden');
+            closeModal(applyModal);
         };
 
         function openTrafficAnalysisModal() {
@@ -1020,6 +1061,7 @@
 
         // New Modal Logic for Job Details
         window.openDetailsModal = function (job) {
+            openModal(detailsModal, document.activeElement);
             const notSpecified = '<span class="text-gray-500">Not specified</span>';
 
             // Populate text content
@@ -1076,17 +1118,24 @@
             document.getElementById('modal-apply-link').href = job.link || '#';
 
             // Show modal with animation
-            detailsModal.classList.remove('hidden');
             setTimeout(() => {
                 detailsModalContent.classList.remove('scale-95', 'opacity-0');
             }, 10);
         };
-
         window.closeDetailsModal = function () {
             detailsModalContent.classList.add('scale-95', 'opacity-0');
             setTimeout(() => {
                 detailsModal.classList.add('hidden');
             }, 300);
+        };
+
+        window.openApplyModal = function (jobId, jobLink) {
+            openModal(applyModal, document.activeElement);
+            const startApplyBtn = document.getElementById('start-apply-btn');
+            startApplyBtn.onclick = function () {
+                startApplyProcess(jobId);
+                closeApplyModal();
+            };
         };
 
         async function startApplyProcess(jobId) {
@@ -1164,92 +1213,77 @@
         });
 
         // Chart.js Logic
-        async function renderJobStatusChart() {
-            try {
-                const response = await fetch('/api/job_status_data');
-                if (!response.ok) {
-                    console.error('Failed to fetch chart data');
-                    return;
-                }
-                const data = await response.json();
+        function renderJobStatusChart() {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const response = await fetch('/api/job_status_data');
+                    if (!response.ok) {
+                        // Explicitly reject the promise on a bad response
+                        reject(new Error(`Failed to fetch chart data: ${response.statusText}`));
+                        return;
+                    }
+                    const data = await response.json();
+                    const fallbackContainer = document.getElementById('chart-fallback');
 
-                const totalJobsForChart = Object.values(data).reduce((a, b) => a + b, 0);
-                if (totalJobsForChart === 0) {
-                    document.getElementById('jobStatusChart').parentElement.innerHTML = '<div class="text-center py-8"><div class="text-4xl mb-3">🤷‍♀️</div><p class="text-gray-400 font-medium">No job data yet!</p><p class="text-sm text-gray-500">Start your job hunt to see the magic ✨</p></div>';
-                    return;
-                }
+                    let fallbackTable = '<table><caption>Job Status Distribution</caption><thead><tr><th>Status</th><th>Count</th></tr></thead><tbody>';
+                    Object.entries(data).forEach(([status, count]) => {
+                        fallbackTable += `<tr><td>${status}</td><td>${count}</td></tr>`;
+                    });
+                    fallbackTable += '</tbody></table>';
+                    fallbackContainer.innerHTML = fallbackTable;
 
-                const statusEmojis = {
-                    'new': 'New Applications',
-                    'applied': 'Applications Sent',
-                    'interview': 'Interview Stage',
-                    'rejected': 'Not Selected',
-                    'offered': 'Job Offers',
-                    'archived': 'Archived'
-                };
+                    const totalJobsForChart = Object.values(data).reduce((a, b) => a + b, 0);
+                    if (totalJobsForChart === 0) {
+                        document.getElementById('jobStatusChart').parentElement.innerHTML = '<div class="text-center py-8"><div class="text-4xl mb-3">🤷‍♀️</div><p class="text-gray-400 font-medium">No job data yet!</p><p class="text-sm text-gray-500">Start your job hunt to see the magic ✨</p></div>';
+                        resolve(); // Resolve even if there's no data to show
+                        return;
+                    }
 
-                populateChartStats(data, totalJobsForChart);
+                    const statusEmojis = {
+                        'new': 'New Applications', 'applied': 'Applications Sent', 'interview': 'Interview Stage',
+                        'rejected': 'Not Selected', 'offered': 'Job Offers', 'archived': 'Archived'
+                    };
 
-                const chartData = {
-                    labels: Object.keys(data).map(status => statusEmojis[status] || status),
-                    datasets: [{
-                        label: 'Job Statuses',
-                        data: Object.values(data),
-                        backgroundColor: [
-                        '#3B82F6',  // New - Blue
-                        '#10B981',  // Applied - Emerald
-                            '#F59E0B',  // Interview - Amber
-                            '#8B5CF6',   // Offered - Purple
-                            '#EF4444',  // Rejected - Red
-                            '#6B7280'   // Archived - Gray
-                        ],
-                        borderColor: '#0f172a', // Match dark bg
-                        borderWidth: 3,
-                        hoverBorderWidth: 4,
-                        hoverBorderColor: '#94a3b8'
-                    }]
-                };
+                    populateChartStats(data, totalJobsForChart);
 
-                const ctx = document.getElementById('jobStatusChart').getContext('2d');
+                    const chartData = {
+                        labels: Object.keys(data).map(status => statusEmojis[status] || status),
+                        datasets: [{
+                            label: 'Job Statuses',
+                            data: Object.values(data),
+                            backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#6B7280'],
+                            borderColor: '#0f172a', borderWidth: 3, hoverBorderWidth: 4, hoverBorderColor: '#94a3b8'
+                        }]
+                    };
 
-                new Chart(ctx, {
-                    type: 'doughnut',
-                    data: chartData,
-                    options: {
-                        responsive: true,
-                        cutout: '60%',
-                        plugins: {
-                            legend: {
-                                display: false // Legend is handled by the stats section
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                                titleColor: '#FFFFFF',
-                                bodyColor: '#e2e8f0',
-                                borderColor: '#4f46e5',
-                                borderWidth: 1,
-                                cornerRadius: 8,
-                                displayColors: false,
-                                callbacks: {
-                                    label: function (context) {
-                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        const percentage = ((context.parsed / total) * 100).toFixed(1);
-                                        return `${context.label}: ${context.parsed} jobs (${percentage}%)`;
+                    const ctx = document.getElementById('jobStatusChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'doughnut', data: chartData,
+                        options: {
+                            responsive: true, cutout: '60%',
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: 'rgba(15, 23, 42, 0.9)', titleColor: '#FFFFFF', bodyColor: '#e2e8f0',
+                                    borderColor: '#4f46e5', borderWidth: 1, cornerRadius: 8, displayColors: false,
+                                    callbacks: {
+                                        label: function (context) {
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                            return `${context.label}: ${context.parsed} jobs (${percentage}%)`;
+                                        }
                                     }
                                 }
-                            }
-                        },
-                        animation: {
-                            animateRotate: true,
-                            animateScale: true,
-                            duration: 1500,
-                            easing: 'easeOutQuart'
+                            },
+                            animation: { animateRotate: true, animateScale: true, duration: 1500, easing: 'easeOutQuart' }
                         }
-                    }
-                });
-            } catch (error) {
-                console.error('Error rendering chart:', error);
-            }
+                    });
+                    resolve(); // Resolve after the chart is created
+                } catch (error) {
+                    console.error('Error rendering chart:', error);
+                    reject(error); // Reject the promise on any exception
+                }
+            });
         }
 
         function populateChartStats(data, total) {
@@ -1303,15 +1337,44 @@
         const filterContent = document.getElementById('filter-content');
 
         if (toggleFilters && filterContent) {
-            toggleFilters.addEventListener('click', function () {
-                filterContent.classList.toggle('hidden');
+            toggleFilters.addEventListener('click', function() {
+                const isHidden = filterContent.classList.toggle('hidden');
+                toggleFilters.setAttribute('aria-expanded', !isHidden);
                 const icon = toggleFilters.querySelector('svg');
-                icon.style.transform = filterContent.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+                icon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
             });
         }
 
         const filterForm = document.getElementById('filter-form');
-        const submitButton = filterForm.querySelector('button[type="submit"]');
+        if (filterForm) {
+            filterForm.addEventListener('submit', function() {
+                const jobListingsContainer = document.getElementById('job-listings');
+                if (jobListingsContainer) {
+                    jobListingsContainer.innerHTML = generateSkeletonJobs(3); // Show 3 skeleton cards
+                }
+            });
+        }
+
+        function generateSkeletonJobs(count) {
+            const skeletonCard = `
+                <div class="job-item bg-gray-800/60 p-6 rounded-2xl shadow-lg border border-gray-700/50 backdrop-blur-sm">
+                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 gap-4">
+                        <div class="flex-1 w-full">
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="skeleton h-5 w-16 rounded-full"></div>
+                                <div class="skeleton h-6 w-3/4 rounded-md"></div>
+                            </div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="skeleton h-4 w-1/4 rounded-md"></div>
+                                <div class="skeleton h-4 w-1/4 rounded-md"></div>
+                            </div>
+                            <div class="skeleton h-3 w-1/5 rounded-md"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            return Array(count).fill(skeletonCard).join('');
+        }
 
         filterForm.addEventListener('submit', function () {
             submitButton.innerHTML = `
@@ -1330,7 +1393,7 @@
         const eventsList = document.getElementById('events-list');
         const noEventsMsg = document.getElementById('no-events');
         const eventsLoading = document.getElementById('events-loading');
-        let autoRefreshInterval = null;
+        let autoRefreshInterval = null; // Keep this for potential re-enabling
 
         async function loadCalendarEvents(showLoading = true) {
             if (showLoading) {
@@ -1374,9 +1437,6 @@
                     </div>
                 `).join('');
 
-                    if (!autoRefreshInterval) {
-                        startAutoRefresh();
-                    }
                 } else {
                     noEventsMsg.classList.remove('hidden');
                     if (autoRefreshInterval) {
@@ -1391,18 +1451,6 @@
                 eventsList.innerHTML = `<div class="text-red-400 text-center py-4">Failed to load events: ${error.message}</div>`;
             }
         }
-
-        function startAutoRefresh() {
-            autoRefreshInterval = setInterval(() => {
-                loadCalendarEvents(false);
-            }, 30000);
-        }
-
-        window.addEventListener('beforeunload', () => {
-            if (autoRefreshInterval) {
-                clearInterval(autoRefreshInterval);
-            }
-        });
 
         if (loadEventsBtn) {
             loadEventsBtn.addEventListener('click', function () {
@@ -1438,8 +1486,13 @@
 
                 if (data.success) {
                     if (eventElement) {
-                        eventElement.style.opacity = '0';
-                        setTimeout(() => eventElement.remove(), 300);
+                        eventElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        requestAnimationFrame(() => {
+                            eventElement.style.opacity = '0';
+                            eventElement.style.transform = 'translateX(-20px)';
+                        });
+                        
+                        setTimeout(() => eventElement.remove(), 310);
                     }
                 } else {
                     alert('Failed to delete event: ' + (data.error || 'Unknown error'));
@@ -1448,6 +1501,195 @@
                 alert('Failed to delete event: ' + error.message);
             }
         };
+
+        // --- Enhanced Full Page Loader Logic ---
+        async function loadDashboard() {
+            const loader = document.getElementById('page-loader');
+            const content = document.getElementById('dashboard-content');
+            let isLoading = true; // Centralized flag
+
+            try {
+                // Promise to wait for the window to be fully loaded (styles, images, etc.)
+                const windowLoadPromise = new Promise(resolve => { window.onload = resolve; });
+
+                // Promise to wait for the chart data to be fetched and rendered
+                const chartRenderPromise = renderJobStatusChart();
+
+                // Wait for all critical loading tasks to complete
+                await Promise.all([windowLoadPromise, chartRenderPromise]);
+
+            } catch (error) {
+                console.error("An error occurred during the dashboard loading process:", error);
+            } finally {
+                // This block ALWAYS runs, ensuring the loader is never stuck.
+                isLoading = false; // Set loading to false
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => { loader.style.display = 'none'; }, 300);
+                }
+                if (content) {
+                    content.classList.remove('opacity-0');
+                    content.classList.add('content-fade-in');
+                }
+            }
+        }
+        loadDashboard();
+    });
+
+    // --- Real-time Progress Bar Logic ---
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchForm = document.getElementById('search-form');
+        const scrapeBtn = document.getElementById('scrape-btn');
+        const scrapeBtnText = scrapeBtn.querySelector('.button-text');
+        const originalBtnText = scrapeBtnText.textContent;
+
+        // Progress Bar Elements
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const progressPercentage = document.getElementById('progress-percentage');
+        const progressStatus = document.getElementById('progress-status');
+        const progressError = document.getElementById('progress-error');
+
+        // Milestone Elements
+        const milestoneInit = document.getElementById('milestone-init');
+        const milestoneScrape = document.getElementById('milestone-scrape');
+        const milestoneSave = document.getElementById('milestone-save');
+        const milestoneReport = document.getElementById('milestone-report');
+
+        let eventSource = null;
+
+        function resetProgressBar() {
+            progressContainer.classList.add('hidden');
+            progressBar.style.width = '0%';
+            progressPercentage.textContent = '0%';
+            progressStatus.textContent = 'Ready to start...';
+            progressError.classList.add('hidden');
+            progressError.textContent = '';
+            // Reset milestone colors
+            [milestoneInit, milestoneScrape, milestoneSave, milestoneReport].forEach(el => {
+                el.className = 'w-2 h-2 rounded-full bg-gray-600';
+            });
+            // Reset button state
+            scrapeBtn.classList.remove('button-loading');
+            scrapeBtnText.textContent = originalBtnText;
+            scrapeBtn.disabled = false;
+            // Reset progress bar color
+            progressBar.classList.remove('from-green-400', 'to-emerald-500', 'from-red-500', 'to-orange-500');
+            progressBar.classList.add('from-teal-400', 'to-sky-500');
+        }
+
+        function updateMilestones(percent) {
+            // Milestones are based on the progress percentages from the backend
+            if (percent >= 5) {
+                milestoneInit.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse';
+            }
+            if (percent >= 15) { // Scraping starts around 15%
+                milestoneInit.className = 'w-2 h-2 rounded-full bg-green-400'; // Mark previous as complete
+                milestoneScrape.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse';
+            }
+            if (percent >= 90) { // Saving starts around 90%
+                milestoneScrape.className = 'w-2 h-2 rounded-full bg-green-400';
+                milestoneSave.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse';
+            }
+            if (percent >= 95) { // Reporting starts around 95%
+                milestoneSave.className = 'w-2 h-2 rounded-full bg-green-400';
+                milestoneReport.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse';
+            }
+            if (percent >= 100) { // Task complete
+                milestoneReport.className = 'w-2 h-2 rounded-full bg-green-400';
+            }
+        }
+
+        function listenForProgress(taskId) {
+            eventSource = new EventSource(`/task_progress_stream/${taskId}`);
+
+            eventSource.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                
+                // Update UI
+                progressBar.style.width = `${data.percent}%`;
+                progressPercentage.textContent = `${data.percent}%`;
+                progressStatus.textContent = data.message || data.state;
+
+                updateMilestones(data.percent);
+
+                if (data.state === 'SUCCESS') {
+                    progressStatus.textContent = 'Complete! Reloading dashboard...';
+                    progressBar.classList.remove('from-teal-400', 'to-sky-500');
+                    progressBar.classList.add('from-green-400', 'to-emerald-500'); // Green for success
+                    eventSource.close();
+                    setTimeout(() => {
+                        window.location.reload(); // Reload dashboard to show new jobs
+                    }, 1500);
+                } else if (data.state === 'FAILURE') {
+                    progressStatus.textContent = 'Task Failed!';
+                    progressError.textContent = `Error: ${data.message || 'An unknown error occurred.'}`;
+                    progressError.classList.remove('hidden');
+                    progressBar.classList.remove('from-teal-400', 'to-sky-500');
+                    progressBar.classList.add('from-red-500', 'to-orange-500'); // Red for failure
+                    eventSource.close();
+                    scrapeBtn.disabled = false;
+                    scrapeBtn.classList.remove('button-loading');
+                    scrapeBtnText.textContent = 'Try Again';
+                }
+            };
+
+            eventSource.onerror = function () {
+                console.error("EventSource failed.");
+                progressStatus.textContent = 'Connection lost. Please wait...';
+                eventSource.close();
+                // Optionally, you can try to reconnect after a delay or show a persistent error
+            };
+        }
+
+        // Override the existing form submission logic to integrate progress bar
+        if (searchForm) {
+            const originalFormSubmit = searchForm.addEventListener('submit', async function (e) {
+                e.preventDefault(); // Prevent default form submission
+                
+                resetProgressBar(); // Reset any previous progress state
+                progressContainer.classList.remove('hidden'); // Show the progress bar
+
+                const formData = new FormData(searchForm);
+                const params = new URLSearchParams(formData).toString();
+
+                scrapeBtn.classList.add('button-loading');
+                scrapeBtnText.textContent = 'Searching...';
+
+                try {
+                    const response = await fetch("{{ url_for('start_scrape') }}", {
+                        method: 'POST',
+                        body: params,
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        }
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.task_id) {
+                        // Task started successfully, now listen for progress.
+                        listenForProgress(data.task_id);
+                    } else {
+                        // Handle actual errors from the backend
+                        progressStatus.textContent = 'Error starting search!';
+                        progressError.textContent = `Error: ${data.message || data.error || 'Unknown error.'}`;
+                        progressError.classList.remove('hidden');
+                        progressBar.classList.remove('from-teal-400', 'to-sky-500');
+                        progressBar.classList.add('from-red-500', 'to-orange-500');
+                        scrapeBtn.classList.remove('button-loading');
+                        scrapeBtnText.textContent = originalBtnText;
+                    }
+                } catch (error) {
+                    console.error('Error starting task:', error);
+                    progressStatus.textContent = 'Connection Error!';
+                    progressError.textContent = 'Failed to connect to the backend. The server might be down.';
+                    progressError.classList.remove('hidden');
+                    progressBar.classList.remove('from-teal-400', 'to-sky-500');
+                    progressBar.classList.add('from-red-500', 'to-orange-500');
+                    scrapeBtn.classList.remove('button-loading');
+                    scrapeBtnText.textContent = originalBtnText;
+                }
+            });
+        }
     });
 </script>
 </div>

@@ -93,17 +93,19 @@
         body { 
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-            background: radial-gradient(ellipse at top, #1a1a2e 0%, #0a0a0f 60%, #000000 100%);
+            background-color: #0f172a; /* bg-gray-900 */
             color: #e2e8f0;
             line-height: 1.6;
             min-height: 100vh;
             position: relative;
-            /* New Stuff: Add a subtle panning animation to the background */
-            background-size: 150% 150%;
-            animation: background-pan 45s linear infinite;
+            overflow-x: hidden; /* Prevent horizontal scrollbars */
+            scroll-behavior: smooth; /* Enable smooth scrolling */
         }
 
-        /* Temporal grid overlay */
+        /* Optimized Panning Background */
+        body::after { display: none; }
+
+        /* Temporal grid overlay (remains the same) */
         body::before {
             content: '';
             position: fixed;
@@ -119,11 +121,11 @@
             z-index: 1;
         }
 
-        /* New Stuff: Keyframes for the background animation */
+        /* Keyframes for the optimized background animation */
         @keyframes background-pan {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+            0% { transform: translateX(-10%) translateY(5%); }
+            50% { transform: translateX(10%) translateY(-5%); }
+            100% { transform: translateX(-10%) translateY(5%); }
         }
 
         /* Temporal glow effects */
@@ -143,6 +145,7 @@
             transition: opacity 0.3s ease;
             z-index: -1;
             animation: temporalPulse 3s ease-in-out infinite alternate;
+            will-change: opacity; /* Hint for GPU acceleration */
         }
         .temporal-glow:hover::before {
             opacity: 0.7;
@@ -169,7 +172,9 @@
             backdrop-filter: blur(12px);
             animation: slideInRight 0.3s ease-out, fadeout 4s 1s forwards;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            will-change: transform, opacity;
         }
+
         .flash-success { 
             background: linear-gradient(135deg, rgba(16, 185, 129, 0.9) 0%, rgba(5, 150, 105, 0.9) 100%);
             border-left: 4px solid #10b981;
@@ -221,13 +226,14 @@
             left: 50%;
             transform: translateX(-50%);
             opacity: 0;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             font-size: 0.75rem;
             font-weight: 500;
             white-space: nowrap;
             box-shadow: var(--shadow-dark-lg);
             border: 1px solid rgba(99, 102, 241, 0.2);
             backdrop-filter: blur(8px);
+            will-change: transform, opacity;
         }
         .tooltip .tooltiptext::after {
             content: "";
@@ -247,11 +253,13 @@
         
         /* Enhanced UX Styles - Dark Theme */
         .job-item {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             background: rgba(26, 26, 46, 0.8);
             border: 1px solid rgba(99, 102, 241, 0.1);
             backdrop-filter: blur(8px);
+            will-change: transform, box-shadow;
         }
+
         .job-item:hover {
             transform: translateY(-4px);
             box-shadow: var(--shadow-dark-lg), var(--shadow-neon);
@@ -301,14 +309,8 @@
             animation: slideIn 0.3s ease-out;
         }
         @keyframes slideIn {
-            from { opacity: 0; transform: translateY(20px); }
+            from { opacity: 0; transform: translateY(30px); }
             to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .progress-bar {
-            background: linear-gradient(90deg, var(--color-neon-cyan) 0%, var(--color-neon-purple) 100%);
-            transition: width 0.3s ease;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
         }
         
         .button-loading {
@@ -393,13 +395,14 @@
             background: rgba(10, 10, 15, 0.8);
             border-bottom: 1px solid rgba(99, 102, 241, 0.2);
             backdrop-filter: blur(16px);
+            will-change: transform; /* For smooth sticky behavior */
         }
 
         .btn-temporal {
             background: linear-gradient(135deg, rgba(99, 102, 241, 0.8) 0%, rgba(79, 70, 229, 0.8) 100%);
-            border: 1px solid rgba(99, 102, 241, 0.3);
+            border: 1px solid rgba(99, 102, 241, 0.4);
             color: white;
-            transition: all 0.3s ease;
+            transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease, text-shadow 0.3s ease;
             position: relative;
             overflow: hidden;
         }
@@ -407,7 +410,7 @@
         .btn-temporal:hover {
             box-shadow: var(--shadow-neon);
             border-color: rgba(99, 102, 241, 0.9);
-            transform: translateY(-2px);
+            transform: translateY(-3px); /* Slightly more pronounced effect */
             /* New Stuff: Add a subtle glow to the button text on hover */
             text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
         }
@@ -420,7 +423,7 @@
             width: 100%;
             height: 100%;
             background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            transition: left 0.5s;
+            transition: left 0.6s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         .btn-temporal:hover::before {
@@ -434,24 +437,43 @@
             background-clip: text;
         }
 
+        /* Page Loader Spinner */
+        .loader-spinner {
+            width: 56px; /* w-14 */
+            height: 56px; /* h-14 */
+            border: 5px solid rgba(99, 102, 241, 0.2); /* border-indigo-500/20 */
+            border-top-color: #a855f7; /* neon-purple */
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
         /* Mobile menu dark theme */
         .mobile-menu-dark {
             background: rgba(10, 10, 15, 0.95);
             border-top: 1px solid rgba(99, 102, 241, 0.2);
             backdrop-filter: blur(16px);
         }
+
+        /* Content fade-in animation */
+        .content-fade-in {
+            animation: fadeInAnimation 0.7s ease-in-out forwards;
+        }
+        @keyframes fadeInAnimation {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
-<body class="h-full">
+<body class="h-full {% block body_class %}{% endblock %}" style="{% block body_style %}{% endblock %}">
     <div class="min-h-full relative z-10">
-        <nav class="nav-glass sticky top-0 z-50 shadow-lg">
+        <nav class="nav-glass sticky top-0 z-50 shadow-lg" role="navigation" aria-label="Main menu">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
                     <div class="flex items-center">
                         <a href="{{ url_for('dashboard') }}" class="flex items-center space-x-3 group">
                             <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-lg transition-all duration-200 temporal-glow">
                                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" aria-hidden="true"></path>
                                 </svg>
                             </div>
                             <h1 class="text-white text-xl font-semibold hidden sm:block text-temporal">
@@ -463,7 +485,7 @@
                                 {% if current_user.is_authenticated %}
                                 <a href="{{ url_for('dashboard') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200">Dashboard</a>
                                 <a href="{{ url_for('profile') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200">Profile</a>
-                                <a href="{{ url_for('cold_base') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200">Cold Base</a>
+                                <a href="{{ url_for('outreach_studio') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200">Outreach Studio</a>
                                 {% endif %}
                             </div>
                         </div>
@@ -488,10 +510,10 @@
                         <div class="md:hidden">
                             <button type="button" id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-lg text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors" aria-controls="mobile-menu" aria-expanded="false">
                                 <span class="sr-only">Open main menu</span>
-                                <svg class="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg class="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                                 </svg>
-                                <svg class="hidden h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg class="hidden h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
@@ -501,11 +523,12 @@
             </div>
 
             <!-- Mobile menu -->
-            <div class="md:hidden hidden mobile-menu-dark" id="mobile-menu">
+            <div class="md:hidden hidden mobile-menu-dark" id="mobile-menu" role="navigation" aria-label="Mobile menu">
                 <div class="px-4 pt-2 pb-3 space-y-1">
                     {% if current_user.is_authenticated %}
                     <a href="{{ url_for('dashboard') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block rounded-lg px-3 py-2 text-base font-medium">Dashboard</a>
                     <a href="{{ url_for('profile') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block rounded-lg px-3 py-2 text-base font-medium">Profile</a>
+                    <a href="{{ url_for('outreach_studio') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block rounded-lg px-3 py-2 text-base font-medium">Outreach Studio</a>
                     <div class="border-t border-gray-700 pt-2 mt-2">
                         <a href="{{ url_for('logout') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block rounded-lg px-3 py-2 text-base font-medium">Sign out</a>
                     </div>
@@ -525,12 +548,14 @@
         </div>
         {% endif %}
         {% endwith %}
-        <main class="flex-1">
+        <main class="flex-1" id="main-content">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {% block content %}{% endblock %}
             </div>
         </main>
     </div>
+    <!-- Alpine.js Core -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
         const mobileMenuButton = document.getElementById('mobile-menu-button');
         const mobileMenu = document.getElementById('mobile-menu');

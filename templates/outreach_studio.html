@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block content %}
+<!-- Full-screen fixed background -->
+<div class="fixed inset-0 bg-cover bg-center -z-10" style="background-image: url({{ url_for('static', filename='assets/temporalbg.jpg') }});">
+    <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-[4px]"></div>
+</div>
+
+<div class="relative">
+    <!-- Blurred Background Content -->
+    <div class="p-6 bg-gradient-to-b from-gray-800/90 to-gray-900/90 backdrop-blur-lg rounded-xl shadow-xl border border-indigo-500/20 blur-lg pointer-events-none">
+        <!-- Header Section -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+            <div>
+                <h1 class="text-4xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">Outreach Studio</h1>
+                <p class="mt-1 text-gray-400">Your central command for cold outreach and networking.</p>
+            </div>
+            <div class="mt-4 sm:mt-0 flex items-center gap-2 px-3 py-1.5 bg-green-900/50 border border-green-500/30 rounded-full text-sm text-green-300">
+                <div class="w-2 h-2 bg-green-400 rounded-full pulse-dot"></div>
+                <span>Live Sync: <time datetime="{{ last_scan_time }}">{{ last_scan_time.split(' ')[1] }}</time></span>
+            </div>
+        </div>
+
+        <!-- Stats Dashboard -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Total Contacts -->
+            <div class="p-6 bg-gray-800/50 rounded-lg border border-gray-700/50 backdrop-blur-sm text-center">
+                <h3 class="text-sm font-medium text-gray-400">Total Contacts</h3>
+                <p class="text-4xl font-bold text-cyan-400 mt-2">{{ stats.contact_count | default(0) }}</p>
+            </div>
+            <!-- Active Campaigns -->
+            <div class="p-6 bg-gray-800/50 rounded-lg border border-gray-700/50 backdrop-blur-sm text-center">
+                <h3 class="text-sm font-medium text-gray-400">Active Campaigns</h3>
+                <p class="text-4xl font-bold text-purple-400 mt-2">{{ stats.campaign_count | default(0) }}</p>
+            </div>
+            <!-- Reply Rate (Placeholder) -->
+            <div class="p-6 bg-gray-800/50 rounded-lg border border-gray-700/50 backdrop-blur-sm text-center">
+                <h3 class="text-sm font-medium text-gray-400">Avg. Reply Rate</h3>
+                <p class="text-4xl font-bold text-pink-400 mt-2">--%</p>
+            </div>
+        </div>
+
+        <!-- Main Actions (CTAs) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <a href="{{ url_for('message_vault') }}" class="group block p-6 bg-gradient-to-br from-indigo-600/30 to-purple-600/30 rounded-lg border border-indigo-500/40 hover:border-indigo-400 hover:bg-indigo-600/40 transition-all duration-300 transform hover:-translate-y-1">
+                <h3 class="text-xl font-bold text-white">Compose Message</h3>
+                <p class="text-sm text-gray-300 mt-2">Draft new emails or messages using your saved templates.</p>
+            </a>
+            <a href="{{ url_for('people_radar') }}" class="group block p-6 bg-gradient-to-br from-cyan-600/30 to-blue-600/30 rounded-lg border border-cyan-500/40 hover:border-cyan-400 hover:bg-cyan-600/40 transition-all duration-300 transform hover:-translate-y-1">
+                <h3 class="text-xl font-bold text-white">View Contacts</h3>
+                <p class="text-sm text-gray-300 mt-2">Manage your list of recruiters, hiring managers, and founders.</p>
+            </a>
+            <a href="{{ url_for('signal_board') }}" class="group block p-6 bg-gradient-to-br from-pink-600/30 to-red-600/30 rounded-lg border border-pink-500/40 hover:border-pink-400 hover:bg-pink-600/40 transition-all duration-300 transform hover:-translate-y-1">
+                <h3 class="text-xl font-bold text-white">Track Campaigns</h3>
+                <p class="text-sm text-gray-300 mt-2">Monitor the performance of your outreach sequences.</p>
+            </a>
+        </div>
+
+        <!-- Contact Scraping Section -->
+        <div class="p-6 bg-gray-800/50 rounded-lg border border-gray-700/50 backdrop-blur-sm">
+            <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-green-400 to-teal-400 bg-clip-text">Find New Contacts</h2>
+            <p class="text-sm text-gray-400 mb-4">
+                Use the AI agent to find relevant people on LinkedIn, X, and other platforms based on hiring signals.
+            </p>
+            <form id="scrape-contacts-form" class="flex flex-col sm:flex-row gap-4">
+                <input type="text" name="keywords" id="scrape-keywords" placeholder="e.g., 'AI recruiter', 'founder hiring python', 'tech hiring manager'" required
+                    class="flex-grow rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-green-500 focus:ring-green-500 text-gray-100 placeholder-gray-400 backdrop-blur-sm">
+                <button type="submit" id="scrape-contacts-btn"
+                    class="btn-temporal inline-flex items-center justify-center px-6 py-2 text-sm font-medium rounded-md shadow-sm bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700">
+                    
+                    Scrape Contacts
+                </button>
+            </form>
+            <div id="scrape-status-container" class="mt-4 text-sm text-center text-gray-400 hidden">
+                <p id="scrape-status-text">Starting contact scraping...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- "Coming Soon" Overlay -->
+    <div class="absolute inset-0 flex flex-col items-center justify-center text-center z-10">
+        <div class="bg-gray-900/60 backdrop-blur-md p-10 rounded-2xl border border-indigo-500/30 shadow-2xl max-w-lg mx-auto">
+            <h2 class="text-5xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text mb-4">
+                Coming Soon
+            </h2>
+            <p class="text-lg text-gray-300 mb-6">
+                The Outreach Studio is currently under construction. This powerful new feature will help you automate and track your networking efforts.
+            </p>
+            <a href="{{ url_for('dashboard') }}" class="btn-temporal inline-flex items-center justify-center px-6 py-2.5 text-base font-medium rounded-md shadow-sm">
+                Return to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // The script for contact scraping is now disabled as the feature is "Coming Soon".
+    // You can re-enable it by moving the original script content back here when the feature is ready.
+});
+</script>
+{% endblock %}

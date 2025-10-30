@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}People Radar{% endblock %}
+{% block body_class %}bg-gray-900{% endblock %}
+
+{% block body_style %}{% endblock %}
+
+{% block content %}
+<style>
+    @keyframes techno-grid-pan {
+        0% { background-position: 0 0; }
+        100% { background-position: 50px 50px; }
+    }
+
+    .techno-background {
+        background-color: #0a0a0f; /* Very dark base color */
+        background-image: 
+            linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px), /* Blue grid lines */
+            linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+        background-size: 50px 50px;
+        animation: techno-grid-pan 4s linear infinite;
+    }
+</style>
+
+<div class="techno-background min-h-screen -mx-4 -my-8 sm:-mx-6 lg:-mx-8">
+    <div class="bg-black/60 backdrop-blur-sm min-h-screen px-4 sm:px-6 lg:px-8 py-8">
+        <div class="container mx-auto relative z-10 pt-12">
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-100">People Radar</h1>
+                <p class="text-gray-400">Manage your network of recruiters, hiring managers, and founders.</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <form action="{{ url_for('delete_all_personal_contacts') }}" method="post" onsubmit="return confirm('Are you absolutely sure you want to delete ALL of your personal contacts? This action cannot be undone.');">
+                    <button type="submit" class="text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5">
+                        <i class="fas fa-trash-alt mr-2"></i>Delete All
+                    </button>
+                </form>
+                <a href="{{ url_for('outreach_studio') }}" class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Outreach Studio
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter Input -->
+        <div class="mb-8">
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <input type="text" id="contact-filter" placeholder="Filter by name, title, or company..." 
+                       class="block w-full pl-10 pr-3 py-2 border border-gray-600 rounded-md leading-5 bg-gray-700/50 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm backdrop-blur-sm">
+            </div>
+        </div>
+
+
+    {% if not contacts %}
+    <div class="text-center bg-gray-800/50 backdrop-blur-md p-8 rounded-lg shadow-md border border-gray-700/50">
+        <i class="fas fa-user-slash fa-3x text-gray-500 mb-4"></i>
+        <h2 class="text-xl font-semibold text-gray-200">No Contacts Found</h2>
+        <p class="text-gray-400 mt-2">Use the "Find New Contacts" tool in the Outreach Studio to start building your network.</p>
+    </div>
+    {% else %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- Skeleton Loader Cards - These will be replaced by the actual content below -->
+        {% if not contacts %}
+            {% for i in range(8) %}
+            <div class="bg-gray-800/50 backdrop-blur-md rounded-lg shadow-lg p-5 flex flex-col justify-between border border-gray-700/50">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full skeleton mr-4"></div>
+                        <div class="flex-1">
+                            <div class="h-5 w-3/4 rounded skeleton mb-2"></div>
+                            <div class="h-3 w-1/2 rounded skeleton"></div>
+                        </div>
+                    </div>
+                    <div class="h-4 w-5/6 rounded skeleton mb-3"></div>
+                    <div class="h-3 w-1/3 rounded skeleton mb-4"></div>
+                    <div class="h-4 w-full rounded skeleton"></div>
+                </div>
+                <div class="mt-4 pt-4 border-t border-gray-700 flex gap-2">
+                    <div class="h-9 w-1/2 rounded-lg skeleton"></div>
+                    <div class="h-9 w-1/2 rounded-lg skeleton"></div>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        {% for contact in contacts %}
+        <div class="contact-card bg-gray-800/50 backdrop-blur-md rounded-lg shadow-lg p-5 flex flex-col justify-between border border-gray-700/50 transition-all duration-300 hover:border-sky-400/50 hover:shadow-sky-400/10 hover:shadow-2xl">
+            <div>
+                <div class="flex items-center mb-3">
+                    <div class="flex-grow">
+                        <h3 class="text-lg font-bold text-gray-100">{{ contact.full_name or 'No Name' }}</h3>
+                        <p class="text-sm text-gray-400">{{ contact.title or 'No Title' }}</p>
+                    </div>
+                    <form action="{{ url_for('delete_contact', contact_id=contact.id) }}" method="post" onsubmit="return confirm('Are you sure you want to delete this contact?');" class="ml-2">
+                        <button type="submit" class="text-gray-500 hover:text-red-400 transition-colors" title="Delete Contact">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+                <p class="text-sm text-gray-300 font-medium mb-2">{{ contact.company or 'No Company' }}</p>
+                <div class="flex items-center text-xs text-gray-400 mb-4">
+                    <span class="bg-green-900 text-green-300 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full">Personal</span>
+                    <p>Status: <span class="font-semibold">{{ contact.status }}</span></p>
+                </div>
+                {% if contact.email %}
+                <p class="text-sm text-gray-400 break-all"><i class="fas fa-envelope mr-2"></i>{{ contact.email }}</p>
+                {% endif %}
+            </div>
+            <div class="mt-4 pt-4 border-t border-gray-700 flex flex-wrap gap-2">
+                <button 
+                    class="flex-1 text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center"
+                    onclick="openSendMessageModal('{{ contact.full_name }}', '{{ contact.email }}')"
+                    {% if not contact.email %}disabled title="No email available for this contact"{% endif %}>
+                    <i class="fas fa-paper-plane mr-1"></i> Send Message
+                </button>
+                <button class="flex-1 text-gray-300 bg-gray-700 border border-gray-600 hover:bg-gray-600 focus:ring-4 focus:ring-gray-500 font-medium rounded-lg text-sm px-4 py-2">
+                    <i class="fas fa-sticky-note mr-1"></i> Add Note
+                </button>
+                {% if contact.linkedin_url %}
+                <a href="{{ contact.linkedin_url }}" target="_blank" class="w-full mt-2 text-center text-white bg-gray-700 hover:bg-gray-600 focus:ring-4 focus:ring-gray-500 font-medium rounded-lg text-sm px-4 py-2">
+                    <i class="fab fa-linkedin mr-1"></i> View Profile
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+</div>
+
+<!-- Send Message Modal -->
+<div id="sendMessageModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-gray-900 bg-opacity-70 backdrop-blur-sm" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6 w-full max-w-lg">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-white" id="modal-title">Send Message</h3>
+            <button onclick="closeSendMessageModal()" class="text-gray-400 hover:text-white">
+                <span class="sr-only">Close</span>
+                <i class="fas fa-times fa-lg"></i>
+            </button>
+        </div>
+        <form id="sendMessageForm">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-300">To:</label>
+                <p id="recipientName" class="mt-1 text-md font-semibold text-white"></p>
+                <p id="recipientEmail" class="text-sm text-gray-400"></p>
+            </div>
+            <div class="mb-4">
+                <label for="templateSelect" class="block text-sm font-medium text-gray-300">Choose a Template</label>
+                <select id="templateSelect" name="template_id" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-gray-700 text-white">
+                    <option value="">-- Select a template --</option>
+                    {% for template in templates %}
+                        {% if template.type == 'email' %}
+                        <option value="{{ template.id }}" data-subject="{{ template.subject }}" data-body="{{ template.body }}">{{ template.template_name }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-4">
+                <label for="emailSubject" class="block text-sm font-medium text-gray-300">Subject</label>
+                <input type="text" id="emailSubject" name="subject" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-600 rounded-md bg-gray-700 text-white">
+            </div>
+            <div class="mb-4">
+                <label for="emailBody" class="block text-sm font-medium text-gray-300">Body</label>
+                <textarea id="emailBody" name="body" rows="10" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-600 rounded-md bg-gray-700 text-white"></textarea>
+            </div>
+            <div class="flex justify-end">
+                <button type="button" onclick="closeSendMessageModal()" class="bg-gray-600 py-2 px-4 border border-gray-500 rounded-md shadow-sm text-sm font-medium text-gray-200 hover:bg-gray-700">Cancel</button>
+                <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    <i class="fas fa-paper-plane mr-2"></i>Send Email
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterInput = document.getElementById('contact-filter');
+        const contactCards = document.querySelectorAll('.contact-card');
+
+        filterInput.addEventListener('keyup', function() {
+            const filterValue = filterInput.value.toLowerCase();
+
+            contactCards.forEach(function(card) {
+                const name = card.querySelector('h3').textContent.toLowerCase();
+                const title = card.querySelector('p.text-sm.text-gray-400').textContent.toLowerCase();
+                const company = card.querySelector('p.text-sm.text-gray-300').textContent.toLowerCase();
+
+                if (name.includes(filterValue) || title.includes(filterValue) || company.includes(filterValue)) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
+
+<script>
+    const modal = document.getElementById('sendMessageModal');
+    const recipientNameEl = document.getElementById('recipientName');
+    const recipientEmailEl = document.getElementById('recipientEmail');
+    const templateSelect = document.getElementById('templateSelect');
+    const emailSubjectEl = document.getElementById('emailSubject');
+    const emailBodyEl = document.getElementById('emailBody');
+    const sendMessageForm = document.getElementById('sendMessageForm');
+
+    function openSendMessageModal(name, email) {
+        if (!email) {
+            alert('This contact does not have an email address.');
+            return;
+        }
+        recipientNameEl.textContent = name;
+        recipientEmailEl.textContent = email;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeSendMessageModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        sendMessageForm.reset();
+        emailSubjectEl.value = '';
+        emailBodyEl.value = '';
+    }
+
+    templateSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const subject = selectedOption.getAttribute('data-subject') || '';
+        const body = selectedOption.getAttribute('data-body') || '';
+        const contactName = recipientNameEl.textContent.split(' ')[0]; // Get first name
+
+        emailSubjectEl.value = subject.replace(/\[Contact Name\]/gi, contactName);
+        emailBodyEl.value = body.replace(/\[Contact Name\]/gi, contactName);
+    });
+
+    sendMessageForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const formData = {
+            contact_email: recipientEmailEl.textContent,
+            contact_name: recipientNameEl.textContent,
+            subject: emailSubjectEl.value,
+            body: emailBodyEl.value
+        };
+
+        fetch('/api/send_message', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Email sent successfully!');
+                closeSendMessageModal();
+            } else {
+                alert('Error sending email: ' + data.message);
+            }
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            alert('An unexpected error occurred.');
+        });
+    });
+
+    // Close modal on escape key
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            closeSendMessageModal();
+        }
+    });
+</script>
+{% endblock %}
