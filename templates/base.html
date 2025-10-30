@@ -582,6 +582,82 @@
                 });
             });
         });
+
+        // --- Dynamic Toast Notification System ---
+        function showToast(message, type = 'info', triggerElement = null) {
+            // Remove any existing toasts
+            const existingToast = document.getElementById('dynamic-toast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+
+            // 1. Create the toast element
+            const toast = document.createElement('div');
+            toast.id = 'dynamic-toast';
+            toast.setAttribute('role', 'status');
+            toast.setAttribute('aria-live', 'polite');
+
+            // Base classes
+            let classes = 'fixed z-[1001] px-4 py-3 rounded-lg shadow-2xl text-sm font-semibold transition-all duration-300 ease-out-cubic';
+            
+            // Type-specific classes
+            const typeStyles = {
+                success: 'bg-gradient-to-br from-green-500 to-emerald-600 text-white border border-green-400/50',
+                error: 'bg-gradient-to-br from-red-500 to-rose-600 text-white border border-red-400/50',
+                warning: 'bg-gradient-to-br from-amber-500 to-orange-600 text-white border border-amber-400/50',
+                info: 'bg-gradient-to-br from-sky-500 to-indigo-600 text-white border border-sky-400/50'
+            };
+            toast.className = `${classes} ${typeStyles[type] || typeStyles.info}`;
+            toast.textContent = message;
+
+            // Initial state for animation
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(20px) scale(0.95)';
+
+            document.body.appendChild(toast);
+
+            // 2. Position the toast
+            if (triggerElement) {
+                const rect = triggerElement.getBoundingClientRect();
+                const toastRect = toast.getBoundingClientRect();
+
+                // Position it above and centered on the trigger element
+                let top = rect.top - toastRect.height - 10; // 10px spacing
+                let left = rect.left + (rect.width / 2) - (toastRect.width / 2);
+
+                // Adjust if it goes off-screen
+                if (top < 10) { // If too close to the top, show below
+                    top = rect.bottom + 10;
+                }
+                if (left < 10) { // If too close to the left edge
+                    left = 10;
+                }
+                if (left + toastRect.width > window.innerWidth - 10) { // If too close to the right edge
+                    left = window.innerWidth - toastRect.width - 10;
+                }
+
+                toast.style.top = `${top}px`;
+                toast.style.left = `${left}px`;
+            } else {
+                // Fallback to center of the screen if no element is provided
+                toast.style.top = '50%';
+                toast.style.left = '50%';
+                toast.style.transform = 'translate(-50%, -50%) scale(0.95)';
+            }
+
+            // 3. Animate in
+            requestAnimationFrame(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = triggerElement ? 'translateY(0) scale(1)' : 'translate(-50%, -50%) scale(1)';
+            });
+
+            // 4. Animate out and remove
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = triggerElement ? 'translateY(-20px) scale(0.95)' : 'translate(-50%, -50%) scale(0.95)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500); // Toast visible for 3.5 seconds
+        }
     </script>
 </body>
 </html>
