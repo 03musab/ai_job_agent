@@ -493,10 +493,12 @@
     {% if jobs %}
     {% for job in jobs %}
     <article
-        class="job-item bg-gray-800/60 p-6 rounded-2xl shadow-lg border border-gray-700/50 backdrop-blur-sm hover:border-indigo-500/50 transition-all duration-300">
+        class="job-item relative bg-gray-800/60 p-6 rounded-2xl shadow-lg border border-gray-700/50 backdrop-blur-sm hover:border-indigo-500/50 transition-all duration-300"
         data-job-id="{{ job.id }}">
         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 gap-4">
             <div class="flex-1">
+                <div class="absolute top-4 right-4 text-xs font-mono text-gray-500 bg-gray-900/50 px-2 py-1 rounded-md border border-gray-700">
+                    ID: {{ job.id }}</div>
                 <div class="flex items-center gap-2 mb-1">
                 <span class="px-2 py-0.5 text-xs font-semibold rounded-full uppercase status-badge status-{{ job.status }} border">
                     {{ job.status }}</span>
@@ -700,29 +702,29 @@
 
 <!-- Modal for Job Details -->
 <div id="details-modal" class="fixed inset-0 bg-black bg-opacity-80 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div id="details-modal-content" class="relative w-full max-w-3xl shadow-2xl rounded-2xl bg-gradient-to-b from-gray-800 to-gray-900 border border-indigo-500/30 transform transition-transform,opacity duration-300 scale-95 opacity-0" style="will-change: transform, opacity;">
+    <div id="details-modal-content" class="relative w-full max-w-2xl shadow-2xl rounded-2xl bg-gradient-to-b from-gray-800 to-gray-900 border border-indigo-500/30 transform transition-transform,opacity duration-300 scale-95 opacity-0" style="will-change: transform, opacity;">
         <!-- Modal Header -->
-        <div class="px-6 py-5 border-b border-gray-700/50 flex justify-between items-start">
+        <div class="px-6 py-4 border-b border-gray-700/50 flex justify-between items-center">
             <div>
-                <h3 id="modal-title" class="text-2xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">Job Title</h3>
-                <p id="modal-company" class="text-lg text-gray-300">Company Name</p>
+                <h3 id="modal-title" class="text-xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">Job Title</h3>
+                <p id="modal-company" class="text-md text-gray-300">Company Name</p>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
                 <span id="modal-relevance" class="px-3 py-1 text-sm font-semibold rounded-full"></span>
                 <button onclick="closeDetailsModal()" class="text-gray-400 hover:text-white transition-colors" aria-label="Close details modal">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
         </div>
 
         <!-- Modal Body -->
-        <div class="p-6 max-h-[70vh] overflow-y-auto space-y-6">
+        <div class="p-6 max-h-[75vh] overflow-y-auto space-y-5">
             <!-- Key Info Section -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Location</div><div id="modal-location" class="font-semibold text-gray-200"></div></div>
-                <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Salary</div><div id="modal-salary" class="font-semibold text-gray-200"></div></div>
-                <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Experience</div><div id="modal-experience" class="font-semibold text-gray-200"></div></div>
-                <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Job Type</div><div id="modal-job-type" class="font-semibold text-gray-200"></div></div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                <div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Location</div><div id="modal-location" class="font-semibold text-gray-200 text-sm truncate"></div></div>
+                <div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Salary</div><div id="modal-salary" class="font-semibold text-gray-200 text-sm truncate"></div></div>
+                <div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Experience</div><div id="modal-experience" class="font-semibold text-gray-200 text-sm truncate"></div></div>
+                <div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Job Type</div><div id="modal-job-type" class="font-semibold text-gray-200 text-sm truncate"></div></div>
             </div>
 
             <!-- Description Section -->
@@ -732,29 +734,29 @@
             </div>
 
             <!-- Skills & Keywords Section -->
-            <div class="space-y-4">
+            <div class="space-y-3">
                 <div id="modal-skills-container" class="hidden">
-                    <h4 class="text-lg font-semibold text-gray-200 mb-2">Skills</h4>
+                    <h4 class="text-md font-semibold text-gray-200 mb-2">Skills</h4>
                     <div id="modal-skills" class="flex flex-wrap gap-2"></div>
                 </div>
                 <div id="modal-tools-container" class="hidden">
-                    <h4 class="text-lg font-semibold text-gray-200 mb-2">Tools & Platforms</h4>
+                    <h4 class="text-md font-semibold text-gray-200 mb-2">Tools & Platforms</h4>
                     <div id="modal-tools" class="flex flex-wrap gap-2"></div>
                 </div>
                 <div id="modal-soft-skills-container" class="hidden">
-                    <h4 class="text-lg font-semibold text-gray-200 mb-2">Soft Skills</h4>
+                    <h4 class="text-md font-semibold text-gray-200 mb-2">Soft Skills</h4>
                     <div id="modal-soft-skills" class="flex flex-wrap gap-2"></div>
                 </div>
             </div>
 
             <!-- Other Details Section -->
             <div>
-                <h4 class="text-lg font-semibold text-gray-200 mb-2">Additional Information</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><span class="text-gray-400">Posted:</span> <span id="modal-posted-date" class="font-medium text-gray-200"></span></div>
-                    <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><span class="text-gray-400">Source:</span> <span id="modal-source" class="font-medium text-gray-200"></span></div>
-                    <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><span class="text-gray-400">Deadline:</span> <span id="modal-deadline" class="font-medium text-gray-200"></span></div>
-                    <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><span class="text-gray-400">Experience Range:</span> <span id="modal-exp-range" class="font-medium text-gray-200"></span></div>
+                <h4 class="text-md font-semibold text-gray-200 mb-2">Additional Information</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><span class="text-gray-400">Posted:</span> <span id="modal-posted-date" class="font-medium text-gray-200"></span></div>
+                    <div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><span class="text-gray-400">Source:</span> <span id="modal-source" class="font-medium text-gray-200"></span></div>
+                    <div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><span class="text-gray-400">Deadline:</span> <span id="modal-deadline" class="font-medium text-gray-200"></span></div>
+                    <div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><span class="text-gray-400">Experience Range:</span> <span id="modal-exp-range" class="font-medium text-gray-200"></span></div>
                 </div>
             </div>
         </div>
@@ -770,8 +772,8 @@
 </div>
 
 <!-- Modal for Job Status Update -->
-<div id="status-modal" class="fixed inset-0 bg-black bg-opacity-70 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="status-modal-title">
-    <div class="relative top-20 mx-auto p-6 border border-gray-700 w-96 shadow-lg rounded-xl bg-gray-800">
+<div id="status-modal" class="fixed inset-0 bg-black bg-opacity-70 h-full w-full hidden z-50 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="status-modal-title">
+    <div class="relative mx-auto p-6 border border-gray-700 w-full max-w-md shadow-lg rounded-xl bg-gray-800">
         <h3 class="text-lg font-bold text-gray-100 mb-4">Update Job Status</h3>
         <form id="status-form" action="{{ url_for('update_job_status') }}" method="POST">
             <input type="hidden" name="job_id" id="status-job-id">
@@ -832,20 +834,20 @@
 
 <!-- Modal for Traffic Analysis -->
 <div id="traffic-analysis-modal" class="fixed inset-0 bg-black bg-opacity-80 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="traffic-modal-title">
-    <div id="traffic-analysis-modal-content" class="relative w-full max-w-2xl shadow-2xl rounded-2xl bg-gradient-to-b from-gray-800 to-gray-900 border border-sky-500/30 transform transition-transform,opacity duration-300 scale-95 opacity-0" style="will-change: transform, opacity;">
+    <div id="traffic-analysis-modal-content" class="relative w-full max-w-lg shadow-2xl rounded-2xl bg-gradient-to-b from-gray-800 to-gray-900 border border-sky-500/30 transform transition-transform,opacity duration-300 scale-95 opacity-0" style="will-change: transform, opacity;">
         <!-- Modal Header -->
-        <div class="px-6 py-5 border-b border-gray-700/50 flex justify-between items-center">
+        <div class="px-6 py-4 border-b border-gray-700/50 flex justify-between items-center">
             <div>
-                <h3 id="traffic-modal-title" class="text-2xl font-bold text-transparent bg-gradient-to-r from-sky-400 to-cyan-400 bg-clip-text">Company Traffic Analysis</h3>
-                <p id="traffic-modal-company" class="text-lg text-gray-300">Company Name</p>
+                <h3 id="traffic-modal-title" class="text-xl font-bold text-transparent bg-gradient-to-r from-sky-400 to-cyan-400 bg-clip-text">Company Traffic Analysis</h3>
+                <p id="traffic-modal-company" class="text-md text-gray-300">Company Name</p>
             </div>
             <button onclick="closeTrafficAnalysisModal()" class="text-gray-400 hover:text-white transition-colors" aria-label="Close traffic analysis modal">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
 
         <!-- Modal Body -->
-        <div id="traffic-modal-body" class="p-6 max-h-[70vh] overflow-y-auto space-y-6" role="status">
+        <div id="traffic-modal-body" class="p-6 max-h-[75vh] overflow-y-auto space-y-5" role="status">
             <!-- Loading/Error State -->
             <div id="traffic-modal-placeholder" class="text-center py-8">
                 <svg class="animate-spin mx-auto h-8 w-8 text-sky-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -859,7 +861,7 @@
                 <p class="text-sm text-gray-400 bg-yellow-900/50 border border-yellow-600/50 rounded-lg p-3">
                     <strong>Disclaimer:</strong> This is a placeholder feature. The data shown below is for demonstration purposes only and is not real.
                 </p>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-center"><div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Monthly Visits</div><div id="traffic-visits" class="font-semibold text-2xl text-sky-300">--</div></div><div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Bounce Rate</div><div id="traffic-bounce-rate" class="font-semibold text-2xl text-sky-300">--</div></div><div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Pages per Visit</div><div id="traffic-pages-per-visit" class="font-semibold text-2xl text-sky-300">--</div></div></div><div id="traffic-message" class="text-gray-300"></div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-center"><div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Monthly Visits</div><div id="traffic-visits" class="font-semibold text-xl text-sky-300">--</div></div><div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Bounce Rate</div><div id="traffic-bounce-rate" class="font-semibold text-xl text-sky-300">--</div></div><div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Pages per Visit</div><div id="traffic-pages-per-visit" class="font-semibold text-xl text-sky-300">--</div></div></div><div id="traffic-message" class="text-gray-300"></div>
             </div>
         </div>
 

@@ -582,81 +582,112 @@
                 });
             });
         });
-
+        
         // --- Dynamic Toast Notification System ---
         function showToast(message, type = 'info', triggerElement = null) {
-            // Remove any existing toasts
+            // --- Card Background Highlight ---
+            let cardBackdrop = null;
+            const jobCard = triggerElement ? triggerElement.closest('.job-item') : null;
+
+            // Remove any existing toast
             const existingToast = document.getElementById('dynamic-toast');
             if (existingToast) {
                 existingToast.remove();
             }
-
-            // 1. Create the toast element
+            const existingBackdrop = document.querySelector('.toast-card-backdrop');
+            if (existingBackdrop) {
+                existingBackdrop.remove();
+            }
+            
+            // Create the toast element
             const toast = document.createElement('div');
             toast.id = 'dynamic-toast';
             toast.setAttribute('role', 'status');
             toast.setAttribute('aria-live', 'polite');
 
-            // Base classes
-            let classes = 'fixed z-[1001] px-4 py-3 rounded-lg shadow-2xl text-sm font-semibold transition-all duration-300 ease-out-cubic';
+            // Base classes for a minimalistic design
+            let classes = 'absolute z-[1001] px-4 py-2.5 rounded-md shadow-lg text-sm font-medium transition-all duration-300 ease-in-out';
             
             // Type-specific classes
             const typeStyles = {
-                success: 'bg-gradient-to-br from-green-500 to-emerald-600 text-white border border-green-400/50',
-                error: 'bg-gradient-to-br from-red-500 to-rose-600 text-white border border-red-400/50',
-                warning: 'bg-gradient-to-br from-amber-500 to-orange-600 text-white border border-amber-400/50',
-                info: 'bg-gradient-to-br from-sky-500 to-indigo-600 text-white border border-sky-400/50'
+                success: 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20',
+                error: 'bg-red-500/10 text-red-300 border border-red-500/20',
+                warning: 'bg-amber-500/10 text-amber-300 border border-amber-500/20',
+                info: 'bg-sky-500/10 text-sky-300 border border-sky-500/20'
             };
             toast.className = `${classes} ${typeStyles[type] || typeStyles.info}`;
             toast.textContent = message;
 
             // Initial state for animation
             toast.style.opacity = '0';
-            toast.style.transform = 'translateY(20px) scale(0.95)';
+            toast.style.transform = 'translateY(10px)';
 
             document.body.appendChild(toast);
 
-            // 2. Position the toast
-            if (triggerElement) {
-                const rect = triggerElement.getBoundingClientRect();
-                const toastRect = toast.getBoundingClientRect();
-
-                // Position it above and centered on the trigger element
-                let top = rect.top - toastRect.height - 10; // 10px spacing
-                let left = rect.left + (rect.width / 2) - (toastRect.width / 2);
-
-                // Adjust if it goes off-screen
-                if (top < 10) { // If too close to the top, show below
-                    top = rect.bottom + 10;
-                }
-                if (left < 10) { // If too close to the left edge
-                    left = 10;
-                }
-                if (left + toastRect.width > window.innerWidth - 10) { // If too close to the right edge
-                    left = window.innerWidth - toastRect.width - 10;
-                }
-
-                toast.style.top = `${top}px`;
-                toast.style.left = `${left}px`;
-            } else {
-                // Fallback to center of the screen if no element is provided
-                toast.style.top = '50%';
-                toast.style.left = '50%';
-                toast.style.transform = 'translate(-50%, -50%) scale(0.95)';
+            // --- Create and animate card backdrop if a job card is found ---
+            if (jobCard) {
+                cardBackdrop = document.createElement('div');
+                cardBackdrop.className = 'toast-card-backdrop fixed bg-indigo-500/10 rounded-2xl z-[1] transition-all duration-300 ease-in-out';
+                const cardRect = jobCard.getBoundingClientRect();
+                cardBackdrop.style.top = `${cardRect.top + window.scrollY}px`;
+                cardBackdrop.style.left = `${cardRect.left + window.scrollX}px`;
+                cardBackdrop.style.width = `${cardRect.width}px`;
+                cardBackdrop.style.height = `${cardRect.height}px`;
+                cardBackdrop.style.opacity = '0';
+                cardBackdrop.style.transform = 'scale(0.98)';
+                document.body.appendChild(cardBackdrop);
+                requestAnimationFrame(() => {
+                    cardBackdrop.style.opacity = '1';
+                    cardBackdrop.style.transform = 'scale(1)';
+                });
             }
 
-            // 3. Animate in
+            // Position the toast
+            if (triggerElement) {
+                const rect = triggerElement.getBoundingClientRect();
+                const toastHeight = toast.offsetHeight;
+                const toastWidth = toast.offsetWidth;
+                const spaceAbove = rect.top;
+
+                let topPosition;
+                // Prefer to show above if there's enough space (toast height + 15px margin), otherwise show below.
+                if (spaceAbove > toastHeight + 15) {
+                    topPosition = rect.top + window.scrollY - toastHeight - 10;
+                } else {
+                    topPosition = rect.bottom + window.scrollY + 10;
+                }
+                toast.style.top = `${topPosition}px`;
+
+                // Center horizontally, but clamp to viewport edges to prevent overflow.
+                let leftPosition = rect.left + (rect.width / 2) - (toastWidth / 2);
+                leftPosition = Math.max(10, leftPosition); // Ensure it's not off-screen to the left
+                leftPosition = Math.min(leftPosition, window.innerWidth - toastWidth - 10); // Ensure it's not off-screen to the right
+                toast.style.left = `${leftPosition}px`;
+            } else {
+                // Fallback to top-center of the viewport
+                toast.style.top = '20px';
+                toast.style.left = '50%';
+                toast.style.transform = 'translateX(-50%) translateY(10px)';
+                toast.style.position = 'fixed'; // Fallback to fixed if no trigger
+            }
+
+            // Animate in
             requestAnimationFrame(() => {
                 toast.style.opacity = '1';
-                toast.style.transform = triggerElement ? 'translateY(0) scale(1)' : 'translate(-50%, -50%) scale(1)';
+                toast.style.transform = triggerElement ? 'translateY(0)' : 'translateX(-50%) translateY(0)';
             });
 
-            // 4. Animate out and remove
-            setTimeout(() => {
+            // Animate out and remove
+            const hideToast = () => {
                 toast.style.opacity = '0';
-                toast.style.transform = triggerElement ? 'translateY(-20px) scale(0.95)' : 'translate(-50%, -50%) scale(0.95)';
-                setTimeout(() => toast.remove(), 300);
-            }, 3500); // Toast visible for 3.5 seconds
+                toast.style.transform = triggerElement ? 'translateY(-10px)' : 'translateX(-50%) translateY(-10px)';
+                setTimeout(() => {
+                    toast.remove();
+                    if (cardBackdrop) cardBackdrop.remove();
+                }, 350); // Slightly longer to match backdrop fade
+            };
+
+            setTimeout(hideToast, 3500); // Toast visible for 3.5 seconds
         }
     </script>
 </body>
