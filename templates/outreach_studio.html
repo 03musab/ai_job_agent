@@ -7,7 +7,7 @@
 
 <div class="relative">
     <!-- Blurred Background Content -->
-    <div class="p-6 bg-gradient-to-b from-gray-800/90 to-gray-900/90 backdrop-blur-lg rounded-xl shadow-xl border border-indigo-500/20 blur-lg pointer-events-none">
+    <div class="p-6 bg-gradient-to-b from-gray-800/90 to-gray-900/90 backdrop-blur-lg rounded-xl shadow-xl border border-indigo-500/20">
         <!-- Header Section -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
             <div>
@@ -76,26 +76,40 @@
         </div>
     </div>
 
-    <!-- "Coming Soon" Overlay -->
-    <div class="absolute inset-0 flex flex-col items-center justify-center text-center z-10">
-        <div class="bg-gray-900/60 backdrop-blur-md p-10 rounded-2xl border border-indigo-500/30 shadow-2xl max-w-lg mx-auto">
-            <h2 class="text-5xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text mb-4">
-                Coming Soon
-            </h2>
-            <p class="text-lg text-gray-300 mb-6">
-                The Outreach Studio is currently under construction. This powerful new feature will help you automate and track your networking efforts.
-            </p>
-            <a href="{{ url_for('dashboard') }}" class="btn-temporal inline-flex items-center justify-center px-6 py-2.5 text-base font-medium rounded-md shadow-sm">
-                Return to Dashboard
-            </a>
-        </div>
-    </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // The script for contact scraping is now disabled as the feature is "Coming Soon".
-    // You can re-enable it by moving the original script content back here when the feature is ready.
+    const scrapeForm = document.getElementById('scrape-contacts-form');
+    const statusContainer = document.getElementById('scrape-status-container');
+    const statusText = document.getElementById('scrape-status-text');
+
+    if (scrapeForm) {
+        scrapeForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const keywords = document.getElementById('scrape-keywords').value;
+            
+            statusContainer.classList.remove('hidden');
+            statusText.textContent = "Initiating search for: " + keywords + "...";
+            
+            fetch('/scrape_contacts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ keywords: keywords })
+            })
+            .then(response => response.json())
+            .then(data => {
+                statusText.textContent = "Scraping initiated! Please wait for results.";
+                setTimeout(() => location.reload(), 3000);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                statusText.textContent = "Error initiating scrape. Please try again.";
+            });
+        });
+    }
 });
 </script>
 {% endblock %}
