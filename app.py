@@ -14,6 +14,8 @@ import signal
 import sqlite3
 import sys
 import threading
+import smtplib
+import socket
 import time
 import traceback
 from collections import Counter
@@ -25,10 +27,10 @@ from email.mime.text import MIMEText
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import unquote_plus
 from urllib.parse import quote_plus, urljoin
+from io import BytesIO
 
 # --- Third-Party Imports ---
 import docx
-import fitz  # PyMuPDF
 import gevent.monkey
 import pandas as pd
 import requests
@@ -59,12 +61,39 @@ from selenium.webdriver.edge.service import Service as EdgeService
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.firefox.service import Service as FirefoxService
 from werkzeug.security import check_password_hash, generate_password_hash
-from flask import send_from_directory
+from flask import send_from_directory, send_file
 from werkzeug.utils import secure_filename
 
+# Try to import ReportLab for PDF generation
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    HAS_REPORTLAB = True
+except ImportError:
+    HAS_REPORTLAB = False
+
+# Try to import dns.resolver for SMTP checks
+try:
+    import dns.resolver
+except ImportError:
+    logger.warning("dnspython module not found. SMTP email verification will be limited.")
 
 import threading
 import traceback
+
+# Set Cerebras API Key
+os.environ['CEREBRAS_API_KEY'] = "csk-yjmhny5wcyh5dmt4wf9f5mp3k6w4cvkerw2vrh4ceyxh46vr"
+
+# --- Local Imports ---
+from resume_service import ResumeParsingService
+from skill_gap_service import SkillGapService
+from roadmap_service import RoadmapService
+from ai_utils import safe_ai_request
+from learning_models import LearningPath, LearningModule, UserLearningProgress
+from extensions import db
 
 if os.environ.get('ENABLE_GEVENT_PATCH', '0') == '1':
     gevent.monkey.patch_all(ssl=False)
@@ -131,9 +160,29 @@ def make_celery(app):
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
+# Database Configuration for Learning Paths (SQLite for now, switch to Postgres later)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///learning_paths.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db.init_app(app)
+with app.app_context():
+    db.create_all()
+    # Migration check for topics_data column in learning_modules
+    try:
+        with db.engine.connect() as conn:
+            try:
+                conn.execute(db.text("SELECT topics_data FROM learning_modules LIMIT 1"))
+            except Exception:
+                logger.info("Migrating learning_modules: adding topics_data column")
+                conn.execute(db.text("ALTER TABLE learning_modules ADD COLUMN topics_data JSON"))
+                conn.commit()
+    except Exception as e:
+        logger.warning(f"Migration check failed: {e}")
+
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True) # Ensure the upload folder exists
+CSV_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, 'csv_repository')
+os.makedirs(CSV_UPLOAD_FOLDER, exist_ok=True)
 
 # Use new style Celery config keys (lowercase without CELERY_ prefix), with fallback to old env vars
 broker_url = os.environ.get('broker_url') or os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
@@ -1284,7 +1333,7 @@ class OutreachDatabase:
         conn.close()
         logger.info("Outreach database schema check/update complete.")
 
-    def get_outreach_stats(self, user_id: int) -> Dict[str, int]:
+    def get_outreach_stats(self, user_id: int) -> Dict[str, Any]:
         """Retrieves key statistics for the outreach dashboard."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -1293,9 +1342,53 @@ class OutreachDatabase:
             # Only count the user's personal contacts for their dashboard.
             cursor.execute("SELECT COUNT(*) FROM contacts WHERE user_id = ?", (user_id,))
             stats['contact_count'] = cursor.fetchone()[0]
-            cursor.execute("SELECT COUNT(*) FROM campaigns WHERE user_id = ?", (user_id,))
-            stats['campaign_count'] = cursor.fetchone()[0]
+
             return stats
+        finally:
+            conn.close()
+
+    def add_campaign(self, user_id: int, data: Dict) -> Optional[int]:
+        """Adds a new campaign to the database."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                INSERT INTO campaigns (user_id, campaign_name, description, status, created_date)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (
+                user_id,
+                data['campaign_name'],
+                data.get('description', ''),
+                data.get('status', 'draft'),
+                datetime.datetime.now().isoformat()
+            ))
+            conn.commit()
+            return cursor.lastrowid
+        except sqlite3.IntegrityError:
+            logger.warning(f"Campaign '{data['campaign_name']}' already exists for user {user_id}.")
+            return None
+        finally:
+            conn.close()
+
+    def update_campaign_status(self, campaign_id: int, user_id: int, status: str) -> bool:
+        """Updates the status of a campaign (e.g., to 'active')."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute("UPDATE campaigns SET status = ? WHERE id = ? AND user_id = ?", (status, campaign_id, user_id))
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            conn.close()
+
+    def delete_campaign(self, campaign_id: int, user_id: int) -> bool:
+        """Deletes a campaign."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM campaigns WHERE id = ? AND user_id = ?", (campaign_id, user_id))
+            conn.commit()
+            return cursor.rowcount > 0
         finally:
             conn.close()
 
@@ -1555,61 +1648,6 @@ class OutreachDatabase:
             return campaigns
         finally:
             conn.close()
-
-
-class ResumeParser:
-    """Parses resume files to extract structured data for automated form filling."""
-    def parse(self, file_path: str) -> Dict:
-        """Parses a resume file (PDF, DOCX) and extracts structured data."""
-        text = ""
-        try:
-            if file_path.lower().endswith('.pdf'):
-                text = self._parse_pdf(file_path)
-            elif file_path.lower().endswith('.docx'):
-                text = self._parse_docx(file_path)
-            else:
-                logger.warning(f"Unsupported resume file format: {file_path}")
-                return {}
-        except Exception as e:
-            logger.error(f"Failed to parse resume file {file_path}: {e}")
-            return {}
-
-        # NOTE: The following are simple heuristic-based extractions.
-        # A production system would benefit from a more advanced NLP model.
-        work_experience = self._extract_work_experience(text)
-        skills = self._extract_skills(text)
-
-        return {
-            'raw_text': text,
-            'skills': skills,
-            'work_experience': work_experience,
-        }
-
-    def _parse_pdf(self, file_path: str) -> str:
-        with fitz.open(file_path) as doc:
-            text = "".join(page.get_text() for page in doc)
-        return text
-
-    def _parse_docx(self, file_path: str) -> str:
-        doc = docx.Document(file_path)
-        return "\n".join([para.text for para in doc.paragraphs])
-
-    def _extract_skills(self, text: str) -> List[str]:
-        known_skills = ['python', 'java', 'c++', 'javascript', 'react', 'angular', 'vue', 'sql', 'nosql', 'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'html', 'css', 'typescript']
-        found_skills = []
-        text_lower = text.lower()
-        for skill in known_skills:
-            if re.search(r'\b' + re.escape(skill) + r'\b', text_lower):
-                found_skills.append(skill)
-        return list(set(found_skills))
-
-    def _extract_work_experience(self, text: str) -> List[Dict]:
-        # This is a simplified regex for demonstration. It looks for "Title at Company (Date - Date)".
-        experiences = []
-        pattern = re.compile(r'([\w\s]+)\s+at\s+([\w\s]+)\s+\(([\w\s]+)\s*-\s*([\w\s]+)\)', re.IGNORECASE)
-        for match in pattern.finditer(text):
-            experiences.append({'title': match.group(1).strip(),'company': match.group(2).strip(),'start_date': match.group(3).strip(),'end_date': match.group(4).strip(),'description': ''})
-        return experiences
 
 
 class EnhancedJobScraper:
@@ -4249,7 +4287,7 @@ def scheduled_job_hunt_for_all_users():
 def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))  # Logged-in users go to dashboard
-    return render_template('login.html', now=datetime.datetime.now())  # Show login page for logged-out users
+    return redirect("https://aijobsnap.vercel.app")
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -4331,8 +4369,8 @@ def profile():
                 file.save(file_path)
                 resume_path = file_path # Update with the new path
 
-                # NEW: Parse the resume and store the structured data as JSON
-                parser = ResumeParser()
+                # Parse the resume using the new service
+                parser = ResumeParsingService()
                 parsed_data = parser.parse(file_path)
                 resume_parsed_data = json.dumps(parsed_data) if parsed_data else None
         
@@ -4370,6 +4408,12 @@ def outreach_studio():
     last_scan_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     stats = outreach_db.get_outreach_stats(current_user.id)
     return render_template('outreach_studio.html', last_scan_time=last_scan_time, stats=stats)
+
+@app.route('/learning_path')
+@login_required
+def learning_path():
+    """Renders the Learning Path page."""
+    return render_template('learning_path.html')
 
 @app.route('/setup_assisted_apply')
 @login_required
@@ -4572,9 +4616,17 @@ def admin_upload_contacts():
         if file and file.filename.endswith('.csv'):
             try:
                 # --- New Robust Approach using standard `csv` library ---
-                # Decode the file stream and read it as text
-                file.stream.seek(0)
-                csv_text = file.stream.read().decode("utf-8")
+                # Save the file to the repository for persistence and scraper access
+                filename = secure_filename(file.filename)
+                timestamp = int(time.time())
+                save_path = os.path.join(CSV_UPLOAD_FOLDER, f"admin_{timestamp}_{filename}")
+                file.save(save_path)
+                logger.info(f"Saved admin upload CSV to {save_path}")
+
+                # Read from the saved file
+                with open(save_path, 'r', encoding='utf-8-sig') as f:
+                    csv_text = f.read()
+
                 reader = csv.DictReader(csv_text.splitlines())
                 
                 # --- Smarter Header Mapping ---
@@ -4592,7 +4644,10 @@ def admin_upload_contacts():
                 for row in reader:
                     processed_row = {}
                     # Normalize the keys from the uploaded file once
-                    normalized_input_row = {key.lower().replace(' ', '_'): value for key, value in row.items()}
+                    normalized_input_row = {}
+                    for key, value in row.items():
+                        if key:
+                            normalized_input_row[key.lower().strip().replace(' ', '_')] = value
 
                     # Map the flexible headers to our standard database columns
                     for db_key, possible_headers in header_map.items():
@@ -4601,11 +4656,17 @@ def admin_upload_contacts():
                                 processed_row[db_key] = normalized_input_row[header]
                                 break # Move to the next db_key once found
                     
-                    # Add metadata
-                    processed_row['source'] = 'Uploaded CSV'
-                    processed_row['added_date'] = datetime.datetime.now().isoformat()
-                    
-                    contacts_to_add.append(processed_row)
+                    # Generate LinkedIn URL if missing but Email exists (to prevent duplicates)
+                    if not processed_row.get('linkedin_url') and processed_row.get('email'):
+                        email_hash = hashlib.md5(processed_row['email'].lower().encode()).hexdigest()
+                        processed_row['linkedin_url'] = f"csv-upload-{email_hash}"
+
+                    # Only add if we have at least a name or email
+                    if processed_row.get('full_name') or processed_row.get('email'):
+                        # Add metadata
+                        processed_row['source'] = 'Uploaded CSV'
+                        processed_row['added_date'] = datetime.datetime.now().isoformat()
+                        contacts_to_add.append(processed_row)
 
                 # --- Diagnostic Check ---
                 if contacts_to_add:
@@ -4705,6 +4766,43 @@ def delete_template(template_id):
         return jsonify({'success': True, 'message': 'Template deleted!'})
     return jsonify({'success': False, 'message': 'Delete failed. Template not found.'}), 404
 
+@app.route('/api/campaigns', methods=['POST'])
+@login_required
+def create_campaign():
+    """API endpoint to create a new campaign."""
+    data = request.get_json()
+    if not data or not data.get('campaign_name'):
+        return jsonify({'success': False, 'message': 'Campaign name is required.'}), 400
+    
+    outreach_db = OutreachDatabase()
+    campaign_id = outreach_db.add_campaign(current_user.id, data)
+    if campaign_id:
+        return jsonify({'success': True, 'message': 'Campaign created successfully.', 'campaign_id': campaign_id})
+    return jsonify({'success': False, 'message': 'Failed to create campaign. Name might be duplicate.'}), 400
+
+@app.route('/api/campaigns/<int:campaign_id>/status', methods=['POST'])
+@login_required
+def update_campaign_status_route(campaign_id):
+    """API endpoint to update campaign status (e.g., set to 'active')."""
+    data = request.get_json()
+    status = data.get('status')
+    if status not in ['draft', 'active', 'completed', 'paused']:
+        return jsonify({'success': False, 'message': 'Invalid status.'}), 400
+        
+    outreach_db = OutreachDatabase()
+    if outreach_db.update_campaign_status(campaign_id, current_user.id, status):
+        return jsonify({'success': True, 'message': f'Campaign status updated to {status}.'})
+    return jsonify({'success': False, 'message': 'Campaign not found.'}), 404
+
+@app.route('/api/campaigns/<int:campaign_id>', methods=['DELETE'])
+@login_required
+def delete_campaign_route(campaign_id):
+    """API endpoint to delete a campaign."""
+    outreach_db = OutreachDatabase()
+    if outreach_db.delete_campaign(campaign_id, current_user.id):
+        return jsonify({'success': True, 'message': 'Campaign deleted.'})
+    return jsonify({'success': False, 'message': 'Campaign not found.'}), 404
+
 
 @app.route('/clear_profile', methods=['POST'])
 @login_required
@@ -4768,32 +4866,307 @@ HR_SEARCH_TERMS_MAP = {
     "development": ["Learning & Development HR"],
 }
 
+def search_csv_repository_for_contacts(user_id: int, keywords: List[str]) -> int:
+    """
+    Iterates through all CSV files in the repository and adds matching contacts.
+    """
+    added_count = 0
+    outreach_db = OutreachDatabase()
+    
+    if not os.path.exists(CSV_UPLOAD_FOLDER):
+        logger.warning(f"CSV repository folder not found: {CSV_UPLOAD_FOLDER}")
+        return 0
+
+    # Flexible header mapping
+    header_map = {
+        'full_name': ['full_name', 'name', 'contact name', 'contact', 'full name', 'customer name', 'first name', 'last name'],
+        'title': ['title', 'job title', 'position', 'role', 'job_title', 'job position'],
+        'company': ['company', 'company name', 'organization', 'employer', 'business', 'corp'],
+        'email': ['email', 'email address', 'e-mail', 'mail', 'email_address', 'contact email'],
+        'linkedin_url': ['linkedin_url', 'linkedin', 'linkedin profile', 'profile url', 'linkedin_profile', 'social profile']
+    }
+
+    logger.info(f"Searching CSV repository for keywords: {keywords}")
+
+    for filename in os.listdir(CSV_UPLOAD_FOLDER):
+        if not filename.endswith('.csv'):
+            continue
+            
+        filepath = os.path.join(CSV_UPLOAD_FOLDER, filename)
+        try:
+            with open(filepath, 'r', encoding='utf-8-sig', errors='replace') as f:
+                reader = csv.DictReader(f)
+                
+                file_headers = reader.fieldnames
+                if not file_headers:
+                    continue
+                    
+                # Create a mapping for this specific file
+                file_map = {}
+                normalized_headers = {h.lower().strip().replace(' ', '_'): h for h in file_headers}
+                
+                for db_key, possible_matches in header_map.items():
+                    for match in possible_matches:
+                        if match in normalized_headers:
+                            file_map[db_key] = normalized_headers[match]
+                            break
+                
+                has_split_name = 'full_name' not in file_map and \
+                                 ('first_name' in normalized_headers or 'last_name' in normalized_headers)
+                
+                for row in reader:
+                    contact_data = {}
+                    for db_key, file_header in file_map.items():
+                        if file_header in row and row[file_header]:
+                            contact_data[db_key] = row[file_header].strip()
+                    
+                    if 'full_name' not in contact_data and has_split_name:
+                        first = row.get(normalized_headers.get('first_name', ''), '').strip()
+                        last = row.get(normalized_headers.get('last_name', ''), '').strip()
+                        if first or last:
+                            contact_data['full_name'] = f"{first} {last}".strip()
+
+                    search_text = f"{contact_data.get('full_name', '')} {contact_data.get('title', '')} {contact_data.get('company', '')}".lower()
+                    
+                    if any(k.lower() in search_text for k in keywords):
+                        if contact_data.get('full_name') or contact_data.get('email'):
+                            if not contact_data.get('linkedin_url'):
+                                if contact_data.get('email'):
+                                    email_hash = hashlib.md5(contact_data['email'].lower().encode()).hexdigest()
+                                    contact_data['linkedin_url'] = f"csv-repo-{email_hash}"
+                                else:
+                                    unique_str = f"{contact_data.get('full_name')}-{contact_data.get('company')}"
+                                    unique_hash = hashlib.md5(unique_str.encode()).hexdigest()
+                                    contact_data['linkedin_url'] = f"csv-repo-noemail-{unique_hash}"
+                            
+                            contact_data['source'] = f'CSV Repo: {filename}'
+                            if outreach_db.add_contact(user_id, contact_data):
+                                added_count += 1
+        except Exception as e:
+            logger.error(f"Error searching CSV {filename}: {e}")
+            continue
+    return added_count
+
 # --- Celery Tasks for Outreach ---
 @celery.task(bind=True, name='app.scrape_contacts_task')
 def scrape_contacts_task(self, user_id: int, keywords: List[str]):
     """Celery task to scrape contacts from various platforms."""
     logger.info(f"Celery task {self.request.id} started for user {user_id} to find contacts with keywords: {keywords}.")
     try:
-        self.update_state(state='PROGRESS', meta={'status': 'Searching internal database...', 'progress': 50})
-        
         outreach_db = OutreachDatabase()
-        added_count = outreach_db.search_and_copy_global_contacts(user_id, keywords)
+        
+        # 1. Search Internal Database
+        self.update_state(state='PROGRESS', meta={'status': 'Searching internal database...', 'progress': 20})
+        internal_count = outreach_db.search_and_copy_global_contacts(user_id, keywords)
 
-        message = f"Search complete. Added {added_count} new contact(s) to your People Radar."
+        # 2. Search CSV Repository
+        self.update_state(state='PROGRESS', meta={'status': 'Searching CSV repository...', 'progress': 30})
+        csv_count = search_csv_repository_for_contacts(user_id, keywords)
+
+        # 3. Research External Sources (Public Directories & Career Pages)
+        self.update_state(state='PROGRESS', meta={'status': 'Researching public sources...', 'progress': 50})
+        researcher = LegalContactResearcher(user_id, task=self)
+        
+        # Use keywords to drive the external research
+        search_query = " ".join(keywords)
+        # Note: In a real scenario, you might extract company names from keywords to pass to 'companies' arg
+        external_results = researcher.run(keywords=search_query)
+        
+        external_count = 0
+        if external_results.get('contacts'):
+            # Process found contacts
+            for contact in external_results['contacts']:
+                # Map scraper result to DB schema
+                emails = contact.get('contact_info', {}).get('emails', [])
+                if emails:
+                    contact_data = {
+                        'full_name': 'HR Contact', # Placeholder as scraper might not get names
+                        'title': 'Recruiter / HR',
+                        'company': contact.get('company', 'Unknown'),
+                        'email': emails[0],
+                        'linkedin_url': contact.get('source_url', f"scraped-{time.time()}"),
+                        'source': contact.get('source_type', 'External Research')
+                    }
+                    if outreach_db.add_contact(user_id, contact_data):
+                        external_count += 1
+
+        total_count = internal_count + csv_count + external_count
+        message = f"Search complete. Found {internal_count} internal, {csv_count} from CSVs, and {external_count} external contacts."
         logger.info(message)
         
-        return {'status': 'Complete', 'message': message, 'progress': 100, 'added_count': added_count}
+        return {'status': 'Complete', 'message': message, 'progress': 100, 'added_count': total_count}
     except Exception as e:
         logger.error(f"Celery task {self.request.id} failed for user {user_id}: {e}", exc_info=True)
         self.update_state(state='FAILURE', meta={'status': 'Task failed!', 'error': str(e), 'progress': 100})
         raise
 
-@app.route('/api/scrape_contacts', methods=['POST'])
+@app.route('/scrape_contacts', methods=['POST'])
 @login_required
-def api_scrape_contacts():
-    keywords = [term.strip() for term in request.form.get('keywords', '').split(',') if term.strip()]
+def scrape_contacts():
+    data = request.get_json()
+    keywords_str = data.get('keywords', '') if data else ''
+    keywords = [term.strip() for term in keywords_str.split(',') if term.strip()]
     task = scrape_contacts_task.delay(current_user.id, keywords)
     return jsonify({'success': True, 'task_id': task.id})
+
+@app.route('/verify_email', methods=['POST'])
+@login_required
+def verify_email():
+    """Verifies if an email address exists using SMTP checks."""
+    data = request.get_json()
+    email = data.get('email')
+    
+    if not email:
+        return jsonify({'exists': False, 'message': 'Email is required.'}), 400
+
+    # 1. Basic Syntax Check
+    if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+        return jsonify({'exists': False, 'message': 'Invalid email format.'})
+
+    # 2. SMTP Verification
+    try:
+        if 'dns.resolver' not in sys.modules:
+             # Fallback if dnspython is missing
+             return jsonify({'exists': True, 'message': 'Syntax valid (SMTP check skipped - dnspython missing).'})
+
+        domain = email.split('@')[-1]
+        
+        # Get MX Record
+        try:
+            records = dns.resolver.resolve(domain, 'MX')
+            mx_record = str(records[0].exchange)
+        except Exception:
+            return jsonify({'exists': False, 'message': f'Could not resolve MX records for {domain}.'})
+
+        # Connect to SMTP Server
+        # Note: Port 25 is often blocked by residential ISPs.
+        server = smtplib.SMTP(timeout=5)
+        server.set_debuglevel(0)
+        
+        server.connect(mx_record)
+        server.helo(server.local_hostname or 'localhost')
+        server.mail('verify@example.com') # Use a generic sender
+        code, message = server.rcpt(email)
+        server.quit()
+
+        if code == 250:
+            return jsonify({'exists': True, 'message': 'Email address is valid and deliverable.'})
+        else:
+            return jsonify({'exists': False, 'message': f'Email rejected by server (Code {code}).'})
+            
+    except Exception as e:
+        logger.warning(f"SMTP verification failed for {email}: {e}")
+        return jsonify({'exists': False, 'message': f'Verification failed: {str(e)}'})
+
+@app.route('/add_contact', methods=['POST'])
+@login_required
+def add_contact():
+    """Manually adds a contact to the database."""
+    data = request.get_json()
+    
+    if not data or not data.get('name') or not data.get('email'):
+        return jsonify({'success': False, 'message': 'Name and Email are required.'}), 400
+
+    outreach_db = OutreachDatabase()
+    
+    # Generate a placeholder LinkedIn URL if not provided (DB requires uniqueness)
+    linkedin_url = data.get('linkedin_url')
+    if not linkedin_url:
+        email_hash = hashlib.md5(data['email'].lower().encode()).hexdigest()
+        linkedin_url = f"manual-entry-{email_hash}"
+
+    contact_data = {
+        'full_name': data['name'],
+        'title': data.get('role', ''),
+        'company': data.get('company', ''),
+        'email': data['email'],
+        'linkedin_url': linkedin_url,
+        'source': 'Manual Entry'
+    }
+
+    if outreach_db.add_contact(current_user.id, contact_data):
+        return jsonify({'success': True, 'message': 'Contact added successfully.'})
+    else:
+        return jsonify({'success': False, 'message': 'Failed to add contact. It may already exist.'})
+
+@app.route('/import_contacts', methods=['POST'])
+@login_required
+def import_contacts():
+    """Bulk imports contacts from a CSV file for the current user."""
+    if 'contacts_csv' not in request.files:
+        return jsonify({'success': False, 'message': 'No file uploaded.'}), 400
+    
+    file = request.files['contacts_csv']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No file selected.'}), 400
+
+    if not file.filename.endswith('.csv'):
+        return jsonify({'success': False, 'message': 'File must be a CSV.'}), 400
+
+    try:
+        # Save the file to the repository
+        filename = secure_filename(file.filename)
+        timestamp = int(time.time())
+        save_path = os.path.join(CSV_UPLOAD_FOLDER, f"import_{timestamp}_{filename}")
+        file.save(save_path)
+        logger.info(f"Saved user import CSV to {save_path}")
+
+        with open(save_path, 'r', encoding='utf-8-sig') as f:
+            csv_text = f.read()
+
+        reader = csv.DictReader(csv_text.splitlines())
+        
+        header_map = {
+            'full_name': ['full_name', 'name', 'contact name', 'contact', 'full name', 'customer name'],
+            'title': ['title', 'job title', 'position', 'role', 'job_title', 'job position'],
+            'company': ['company', 'company name', 'organization', 'employer', 'business', 'corp'],
+            'email': ['email', 'email address', 'e-mail', 'mail', 'email_address', 'contact email'],
+            'linkedin_url': ['linkedin_url', 'linkedin', 'linkedin profile', 'profile url', 'linkedin_profile', 'social profile']
+        }
+
+        outreach_db = OutreachDatabase()
+        added_count = 0
+        global_contacts_to_add = []
+        
+        for row in reader:
+            processed_row = {}
+            normalized_row = {k.lower().strip().replace(' ', '_'): v.strip() for k, v in row.items() if k}
+            
+            for db_key, possible_headers in header_map.items():
+                for header in possible_headers:
+                    if header in normalized_row:
+                        processed_row[db_key] = normalized_row[header]
+                        break
+            
+            if 'full_name' not in processed_row:
+                first = normalized_row.get('first_name', '')
+                last = normalized_row.get('last_name', '')
+                if first or last: processed_row['full_name'] = f"{first} {last}".strip()
+
+            if processed_row.get('full_name'):
+                if not processed_row.get('linkedin_url') and processed_row.get('email'):
+                    email_hash = hashlib.md5(processed_row['email'].lower().encode()).hexdigest()
+                    processed_row['linkedin_url'] = f"csv-import-{email_hash}"
+                
+                processed_row['source'] = 'CSV Import'
+                if outreach_db.add_contact(current_user.id, processed_row):
+                    added_count += 1
+                
+                # Prepare for global database update
+                global_entry = processed_row.copy()
+                global_entry['added_date'] = datetime.datetime.now().isoformat()
+                global_contacts_to_add.append(global_entry)
+
+        # Update the original database (global_hiring_contacts)
+        if global_contacts_to_add:
+            global_count = outreach_db.add_global_contacts(global_contacts_to_add)
+            logger.info(f"Imported {global_count} new contacts to global database from user upload.")
+
+        return jsonify({'success': True, 'message': f'Successfully imported {added_count} contacts.'})
+
+    except Exception as e:
+        logger.error(f"CSV Import Error: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Error processing CSV: {str(e)}'}), 500
 
 @app.route('/dashboard')
 @login_required
@@ -5608,7 +5981,558 @@ def jobs():
         logger.error(f"Failed to fetch jobs: {e}")
         return jsonify({'error': 'Failed to fetch jobs'}), 500
 
+@app.route('/api/analyze_skill_gap', methods=['POST'])
+@login_required
+def analyze_skill_gap():
+    try:
+        data = request.get_json()
+        target_role = data.get('target_role')
+        
+        if not target_role:
+            return jsonify({'error': 'Target role is required'}), 400
+            
+        # Fetch user resume from DB
+        db = JobDatabase()
+        user_details = db.get_user_details(current_user.id)
+        resume_text = ""
+        if user_details:
+            # Try parsed data first
+            if user_details.get('resume_parsed_data'):
+                try:
+                    parsed = json.loads(user_details['resume_parsed_data'])
+                    resume_text = json.dumps(parsed)
+                except:
+                    resume_text = user_details['resume_parsed_data']
+        
+        if not resume_text:
+             resume_text = "No resume data found. Please upload a resume in your profile."
 
+        system_prompt = """
+        You are an expert Career Coach. Analyze the gap between the candidate's resume and the target job role.
+        Return a JSON object with exactly these keys:
+        - readiness_score: (integer 0-100)
+        - strong_skills: (list of matching skills)
+        - missing_skills: (list of critical skills missing)
+        """
+        
+        user_prompt = f"TARGET ROLE: {target_role}\nRESUME:\n{resume_text}"
+        
+        result = safe_ai_request(system_prompt, user_prompt)
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error in analyze_skill_gap: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/learning-path/generate', methods=['POST'])
+@login_required
+def generate_roadmap():
+    try:
+        data = request.get_json()
+        target_role = data.get('target_role')
+        missing_skills = data.get('missing_skills')
+        current_skill_level = data.get('current_skill_level', 'Beginner')
+        availability_hours = data.get('availability_hours', 10)
+        learning_style = data.get('learning_style', 'Project-based')
+
+        try:
+            availability_hours = int(availability_hours)
+        except (ValueError, TypeError):
+            availability_hours = 10
+
+        service = RoadmapService()
+        result = service.generate(target_role, current_skill_level, missing_skills, availability_hours, learning_style)
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error in generate_roadmap: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/save_roadmap', methods=['POST'])
+@login_required
+def save_roadmap():
+    try:
+        data = request.get_json()
+        target_role = data.get('target_role')
+        roadmap_data = data.get('roadmap')
+        path_id = data.get('path_id')
+
+        if not target_role or not roadmap_data:
+            return jsonify({'error': 'Target role and roadmap data are required'}), 400
+
+        weekly_breakdown = roadmap_data.get('weekly_breakdown', [])
+
+        if path_id:
+            # Update existing path
+            path = LearningPath.query.filter_by(id=path_id, user_id=current_user.id).first()
+            if not path:
+                return jsonify({'error': 'Path not found'}), 404
+            
+            path.last_accessed = datetime.datetime.utcnow()
+            
+            # Update progress for existing modules
+            for idx, week in enumerate(weekly_breakdown):
+                module = LearningModule.query.filter_by(path_id=path.id, order_index=idx).first()
+                if module:
+                    module.topics_data = week # Save granular progress
+                    # Determine completion: All topics AND mini-project must be done
+                    mini_project = week.get('mini_project', {})
+                    is_project_completed = mini_project.get('completed', False) if isinstance(mini_project, dict) else False
+                    
+                    focus_topics = week.get('focus_topics', [])
+                    all_topics_completed = True
+                    if isinstance(focus_topics, list):
+                        for t in focus_topics:
+                            if isinstance(t, dict) and not t.get('completed'):
+                                all_topics_completed = False
+                                break
+                    
+                    is_completed = is_project_completed and all_topics_completed
+                    
+                    progress = UserLearningProgress.query.filter_by(user_id=current_user.id, module_id=module.id).first()
+                    if not progress:
+                        progress = UserLearningProgress(user_id=current_user.id, module_id=module.id)
+                        db.session.add(progress)
+                    
+                    progress.is_completed = is_completed
+                    if is_completed and not progress.completed_at:
+                        progress.completed_at = datetime.datetime.utcnow()
+                    elif not is_completed:
+                        progress.completed_at = None
+            
+            db.session.commit()
+            return jsonify({'success': True, 'path_id': path.id})
+
+        else:
+            # Create New Path
+            new_path = LearningPath(
+                user_id=current_user.id,
+                target_role=target_role,
+                last_accessed=datetime.datetime.utcnow()
+            )
+            db.session.add(new_path)
+            db.session.flush()
+
+            for idx, week in enumerate(weekly_breakdown):
+                week_num = week.get('week_number', idx + 1)
+                focus_topics = week.get('focus_topics', [])
+                
+                # Handle focus_topics whether they are strings or objects
+                topics_list = []
+                if isinstance(focus_topics, list):
+                    for t in focus_topics:
+                        if isinstance(t, dict):
+                            topics_list.append(t.get('title', ''))
+                        else:
+                            topics_list.append(str(t))
+                topics = ", ".join(topics_list)
+                
+                title = f"Week {week_num}: {topics}"
+                if len(title) > 255:
+                    title = title[:252] + "..."
+                
+                # Handle mini_project
+                mini_project = week.get('mini_project', {})
+                project_title = mini_project.get('title', '') if isinstance(mini_project, dict) else str(mini_project)
+                    
+                description = f"Why it matters: {week.get('why_this_matters', '')}\n\nProject: {project_title}"
+                
+                new_module = LearningModule(
+                    path_id=new_path.id,
+                    title=title,
+                    description=description,
+                    order_index=idx,
+                    topics_data=week # Save initial state
+                )
+                db.session.add(new_module)
+                db.session.flush() # Get ID for progress
+
+                # Check initial completion status
+                is_project_completed = mini_project.get('completed', False) if isinstance(mini_project, dict) else False
+                all_topics_completed = True
+                if isinstance(focus_topics, list):
+                    for t in focus_topics:
+                        if isinstance(t, dict) and not t.get('completed'):
+                            all_topics_completed = False
+                            break
+                
+                if is_project_completed and all_topics_completed:
+                    prog = UserLearningProgress(user_id=current_user.id, module_id=new_module.id, is_completed=True, completed_at=datetime.datetime.utcnow())
+                    db.session.add(prog)
+        
+            db.session.commit()
+            return jsonify({'success': True, 'path_id': new_path.id})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error saving roadmap: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/analyze_job_match', methods=['POST'])
+@login_required
+def analyze_job_match():
+    try:
+        data = request.get_json()
+        job_description = data.get('job_description')
+
+        if not job_description:
+            return jsonify({'error': 'Job description is required'}), 400
+
+        # Fetch user resume from DB
+        db = JobDatabase()
+        user_details = db.get_user_details(current_user.id)
+        resume_text = ""
+        if user_details:
+            if user_details.get('resume_parsed_data'):
+                try:
+                    parsed = json.loads(user_details['resume_parsed_data'])
+                    resume_text = json.dumps(parsed)
+                except:
+                    resume_text = user_details['resume_parsed_data']
+        
+        if not resume_text:
+             resume_text = "No resume data found. Please upload a resume in your profile."
+
+        system_prompt = """
+        You are an expert ATS (Applicant Tracking System) scanner. 
+        Compare the Resume against the Job Description.
+        Return a JSON object with exactly these keys:
+        - match_score: (integer 0-100)
+        - matched_skills: (list of strings)
+        - missing_skills: (list of strings)
+        - missing_keywords: (list of strings found in JD but missing in resume)
+        - resume_improvement_suggestions: (list of actionable strings)
+        """
+
+        user_prompt = f"RESUME:\n{resume_text}\n\nJOB DESCRIPTION:\n{job_description}"
+
+        result = safe_ai_request(system_prompt, user_prompt)
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error in analyze_job_match: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+# --- Learning Path APIs ---
+
+@app.route('/learning-path/save', methods=['POST'])
+@login_required
+def save_learning_path():
+    try:
+        data = request.get_json()
+        target_role = data.get('target_role')
+        modules_data = data.get('modules', []) # Expecting list of {title, description}
+
+        if not target_role or not modules_data:
+            return jsonify({'error': 'Target role and modules are required'}), 400
+
+        # Create Path
+        new_path = LearningPath(
+            user_id=current_user.id,
+            target_role=target_role,
+            last_accessed=datetime.datetime.utcnow()
+        )
+        db.session.add(new_path)
+        db.session.flush() # Get ID
+
+        # Create Modules
+        for idx, mod in enumerate(modules_data):
+            new_module = LearningModule(
+                path_id=new_path.id,
+                title=mod.get('title'),
+                description=mod.get('description', ''),
+                order_index=idx
+            )
+            db.session.add(new_module)
+        
+        db.session.commit()
+        return jsonify({'success': True, 'path_id': new_path.id})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error saving learning path: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/learning-paths', methods=['GET'])
+@login_required
+def get_learning_paths():
+    try:
+        paths = LearningPath.query.filter_by(user_id=current_user.id).order_by(LearningPath.last_accessed.desc()).all()
+        result = []
+        
+        for path in paths:
+            total_modules = len(path.modules)
+            
+            # Get completed modules for this path
+            completed_progress = UserLearningProgress.query.join(LearningModule).filter(
+                UserLearningProgress.user_id == current_user.id,
+                UserLearningProgress.is_completed == True,
+                LearningModule.path_id == path.id
+            ).all()
+            
+            completed_module_ids = {p.module_id for p in completed_progress}
+            completed_count = len(completed_module_ids)
+            
+            progress = (completed_count / total_modules * 100) if total_modules > 0 else 0
+            
+            # Determine the next module to learn (Resume feature)
+            next_module = None
+            for mod in path.modules:
+                if mod.id not in completed_module_ids:
+                    next_module = {
+                        'id': mod.id,
+                        'title': mod.title,
+                        'description': mod.description
+                    }
+                    break
+            
+            result.append({
+                'path_id': path.id,
+                'target_role': path.target_role,
+                'progress': round(progress),
+                'total_modules': total_modules,
+                'completed_modules': completed_count,
+                'last_accessed': path.last_accessed.isoformat(),
+                'next_module': next_module,
+                'is_completed': completed_count == total_modules and total_modules > 0
+            })
+            
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error fetching paths: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/learning-path/resume', methods=['GET'])
+@login_required
+def resume_learning():
+    """
+    Resume the most recently accessed learning path.
+    Returns the path details and the specific module to continue with.
+    """
+    try:
+        # Find the last accessed path
+        last_path = LearningPath.query.filter_by(user_id=current_user.id).order_by(LearningPath.last_accessed.desc()).first()
+        
+        if not last_path:
+            return jsonify({'has_path': False, 'message': 'No learning paths started yet.'})
+            
+        # Calculate progress to find next module
+        completed_progress = UserLearningProgress.query.join(LearningModule).filter(
+            UserLearningProgress.user_id == current_user.id,
+            UserLearningProgress.is_completed == True,
+            LearningModule.path_id == last_path.id
+        ).all()
+        
+        completed_module_ids = {p.module_id for p in completed_progress}
+        
+        next_module = None
+        for mod in last_path.modules:
+            if mod.id not in completed_module_ids:
+                next_module = {
+                    'id': mod.id,
+                    'title': mod.title,
+                    'description': mod.description
+                }
+                break
+        
+        return jsonify({
+            'has_path': True,
+            'path_id': last_path.id,
+            'target_role': last_path.target_role,
+            'next_module': next_module,
+            'is_completed': next_module is None
+        })
+        
+    except Exception as e:
+        logger.error(f"Error resuming learning: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/learning-path/<int:path_id>', methods=['DELETE'])
+@login_required
+def delete_learning_path(path_id):
+    try:
+        path = LearningPath.query.filter_by(id=path_id, user_id=current_user.id).first_or_404()
+        
+        # Manually delete progress records first to avoid foreign key constraints
+        # if the database schema doesn't have ON DELETE CASCADE configured.
+        module_ids = [m.id for m in path.modules]
+        if module_ids:
+            UserLearningProgress.query.filter(UserLearningProgress.module_id.in_(module_ids)).delete(synchronize_session=False)
+            
+        db.session.delete(path)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Learning path deleted successfully'})
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting learning path {path_id}: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/learning-path/<int:path_id>', methods=['GET'])
+@login_required
+def get_learning_path_detail(path_id):
+    path = LearningPath.query.filter_by(id=path_id, user_id=current_user.id).first_or_404()
+    
+    # Update last accessed
+    path.last_accessed = datetime.datetime.utcnow()
+    db.session.commit()
+
+    modules_data = []
+    for mod in path.modules:
+        progress = UserLearningProgress.query.filter_by(user_id=current_user.id, module_id=mod.id).first()
+        modules_data.append({
+            'id': mod.id,
+            'title': mod.title,
+            'description': mod.description,
+            'is_completed': progress.is_completed if progress else False,
+            'topics_data': mod.topics_data
+        })
+
+    return jsonify({
+        'path_id': path.id,
+        'target_role': path.target_role,
+        'modules': modules_data
+    })
+
+@app.route('/learning-path/<int:path_id>/progress', methods=['POST'])
+@login_required
+def update_path_progress(path_id):
+    data = request.get_json()
+    module_id = data.get('module_id')
+    is_completed = data.get('is_completed')
+
+    # Verify ownership via path
+    module = LearningModule.query.join(LearningPath).filter(
+        LearningModule.id == module_id,
+        LearningPath.id == path_id,
+        LearningPath.user_id == current_user.id
+    ).first_or_404()
+
+    progress = UserLearningProgress.query.filter_by(user_id=current_user.id, module_id=module_id).first()
+    
+    if not progress:
+        progress = UserLearningProgress(user_id=current_user.id, module_id=module_id)
+        db.session.add(progress)
+    
+    progress.is_completed = is_completed
+    progress.completed_at = datetime.datetime.utcnow() if is_completed else None
+    
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/learning-path/<int:path_id>/export', methods=['GET'])
+@login_required
+def export_learning_path(path_id):
+    fmt = request.args.get('format', 'md')
+    path = LearningPath.query.filter_by(id=path_id, user_id=current_user.id).first_or_404()
+    
+    if fmt == 'certificate':
+        if not HAS_REPORTLAB:
+            return jsonify({'error': 'PDF generation library (reportlab) not installed.'}), 501
+            
+        # Check completion
+        total_modules = len(path.modules)
+        completed_progress = UserLearningProgress.query.join(LearningModule).filter(
+            UserLearningProgress.user_id == current_user.id,
+            UserLearningProgress.is_completed == True,
+            LearningModule.path_id == path.id
+        ).count()
+        
+        if total_modules == 0 or completed_progress < total_modules:
+             return jsonify({'error': 'Cannot generate certificate. Learning path is not 100% complete.'}), 400
+
+        from reportlab.lib.pagesizes import landscape
+        from reportlab.lib.units import inch
+        
+        buffer = BytesIO()
+        c = canvas.Canvas(buffer, pagesize=landscape(letter))
+        width, height = landscape(letter)
+        
+        # Decorative Border
+        c.setStrokeColorRGB(0.25, 0.25, 0.7)
+        c.setLineWidth(4)
+        c.rect(0.5*inch, 0.5*inch, width-1*inch, height-1*inch)
+        c.setStrokeColorRGB(0.8, 0.8, 0.8)
+        c.setLineWidth(1)
+        c.rect(0.6*inch, 0.6*inch, width-1.2*inch, height-1.2*inch)
+
+        # Content
+        c.setFillColorRGB(0.2, 0.2, 0.2)
+        c.setFont("Helvetica-Bold", 42)
+        c.drawCentredString(width/2, height - 2.5*inch, "Certificate of Completion")
+        
+        c.setFont("Helvetica", 20)
+        c.drawCentredString(width/2, height - 3.5*inch, "This is to certify that")
+        
+        # User Name
+        user_name = current_user.username
+        try:
+            db_instance = JobDatabase()
+            user_details = db_instance.get_user_details(current_user.id)
+            if user_details and user_details.get('full_name'):
+                user_name = user_details.get('full_name')
+        except: pass
+            
+        c.setFont("Helvetica-Bold", 32)
+        c.setFillColorRGB(0.1, 0.1, 0.6)
+        c.drawCentredString(width/2, height - 4.5*inch, user_name)
+        
+        c.setFillColorRGB(0.2, 0.2, 0.2)
+        c.setFont("Helvetica", 20)
+        c.drawCentredString(width/2, height - 5.5*inch, "has successfully completed the learning path")
+        
+        c.setFont("Helvetica-Bold", 28)
+        c.drawCentredString(width/2, height - 6.5*inch, path.target_role)
+        
+        # Footer
+        c.setFont("Helvetica", 12)
+        date_str = datetime.datetime.now().strftime("%B %d, %Y")
+        c.drawString(1.5*inch, 1.5*inch, f"Date: {date_str}")
+        c.drawRightString(width - 1.5*inch, 1.5*inch, "AI Job Agent Platform")
+        
+        c.showPage()
+        c.save()
+        
+        buffer.seek(0)
+        return send_file(buffer, as_attachment=True, download_name=f"Certificate_{path.target_role.replace(' ', '_')}.pdf", mimetype='application/pdf')
+
+    if fmt == 'pdf':
+        if not HAS_REPORTLAB:
+            return jsonify({'error': 'PDF generation library (reportlab) not installed. Please install it or export as Markdown.'}), 501
+        
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        styles = getSampleStyleSheet()
+        story = []
+        
+        # Title
+        story.append(Paragraph(f"Learning Path: {path.target_role}", styles['Title']))
+        story.append(Spacer(1, 12))
+        
+        # Modules
+        for mod in path.modules:
+            story.append(Paragraph(f"Module {mod.order_index + 1}: {mod.title}", styles['Heading2']))
+            # Simple handling of newlines for PDF
+            desc_text = mod.description.replace('\n', '<br/>') if mod.description else ""
+            story.append(Paragraph(desc_text, styles['BodyText']))
+            story.append(Spacer(1, 12))
+            
+        doc.build(story)
+        buffer.seek(0)
+        return send_file(buffer, as_attachment=True, download_name=f"learning_path_{path.id}.pdf", mimetype='application/pdf')
+        
+    else:
+        # Markdown Export
+        content = f"# Learning Path: {path.target_role}\n\n"
+        for mod in path.modules:
+            content += f"## Module {mod.order_index + 1}: {mod.title}\n\n"
+            if mod.description:
+                content += f"{mod.description}\n\n"
+            content += "---\n\n"
+        
+        buffer = BytesIO()
+        buffer.write(content.encode('utf-8'))
+        buffer.seek(0)
+        return send_file(buffer, as_attachment=True, download_name=f"learning_path_{path.id}.md", mimetype='text/markdown')
 
 # This part runs the Flask app if executed directly
 if __name__ == "__main__":

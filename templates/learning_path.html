@@ -1,0 +1,650 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto" x-data="learningPath()">
+    
+    <!-- Toast Notifications -->
+    <div class="fixed top-4 right-4 z-50 space-y-2">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div x-show="toast.visible" 
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 transform translate-x-8"
+                 x-transition:enter-end="opacity-100 transform translate-x-0"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100 transform translate-x-0"
+                 x-transition:leave-end="opacity-0 transform translate-x-8"
+                 class="px-4 py-3 rounded-lg shadow-lg border flex items-center gap-3 min-w-[300px]"
+                 :class="toast.type === 'error' ? 'bg-red-900/90 border-red-500/50 text-white' : 'bg-green-900/90 border-green-500/50 text-white'">
+                <span x-text="toast.message"></span>
+            </div>
+        </template>
+    </div>
+
+    <!-- Header -->
+    <div class="mb-8 text-center">
+        <h1 class="text-4xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text mb-2">
+            Skill Gap & Learning Path
+        </h1>
+        <p class="text-gray-400 mb-6">Analyze your profile against industry standards and generate a custom roadmap.</p>
+        
+        <div class="flex justify-center gap-4">
+            <button @click="startNewPath" :class="viewMode === 'generate' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-gray-200 border border-gray-700/50'" class="px-6 py-2 rounded-full font-medium transition-all duration-300">
+                Generate New
+            </button>
+            <button @click="loadMyPaths" :class="viewMode === 'list' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-gray-200 border border-gray-700/50'" class="px-6 py-2 rounded-full font-medium transition-all duration-300">
+                My Saved Paths
+            </button>
+        </div>
+    </div>
+
+    <div x-show="viewMode === 'generate'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform scale-95" x-transition:enter-end="opacity-100 transform scale-100">
+    <!-- Role Selection Card -->
+    <div x-show="!roadmap" class="bg-gray-800/60 border border-gray-700/50 rounded-xl p-6 mb-8 backdrop-blur-sm shadow-lg">
+        <div class="flex flex-col md:flex-row gap-4 items-end">
+            <div class="w-full md:w-1/2">
+                <label class="block text-sm font-medium text-gray-300 mb-2">Target Job Role</label>
+                <select x-model="targetRole" class="w-full bg-gray-900/50 border border-gray-600 rounded-lg px-4 py-2.5 text-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="" disabled>Select a role...</option>
+                    <option value="Frontend Developer">Frontend Developer</option>
+                    <option value="Backend Developer">Backend Developer</option>
+                    <option value="Full Stack Developer">Full Stack Developer</option>
+                    <option value="Data Analyst">Data Analyst</option>
+                    <option value="UI/UX Designer">UI/UX Designer</option>
+                </select>
+            </div>
+            <div class="w-full md:w-auto">
+                <button @click="analyzeGap" :disabled="!targetRole || loading" class="w-full md:w-auto btn-temporal px-6 py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span x-show="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                    <span x-text="loading ? 'Analyzing...' : 'Analyze Skill Gap'"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Results -->
+    <div x-show="analysis && !roadmap" x-transition.opacity.duration.500ms class="space-y-8" style="display: none;">
+        
+        <!-- 1. Skill Gap Summary & 2. Readiness Progress -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Readiness Score -->
+            <div class="md:col-span-1 bg-gradient-to-br from-gray-800 to-gray-900 border border-indigo-500/20 rounded-xl p-6 flex flex-col items-center justify-center relative overflow-hidden">
+                <div class="absolute inset-0 bg-indigo-500/5"></div>
+                <h3 class="text-gray-400 font-medium mb-4 relative z-10">Job Readiness</h3>
+                <div class="relative w-32 h-32 flex items-center justify-center">
+                    <!-- Circular Progress SVG -->
+                    <svg class="w-full h-full transform -rotate-90">
+                        <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="12" fill="transparent" class="text-gray-700" />
+                        <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="12" fill="transparent" 
+                            :class="getScoreColor(analysis?.readiness_score)"
+                            :stroke-dasharray="351.86"
+                            :stroke-dashoffset="351.86 - (351.86 * (analysis?.readiness_score || 0) / 100)"
+                            class="transition-all duration-1000 ease-out" />
+                    </svg>
+                    <span class="absolute text-3xl font-bold text-white" x-text="(analysis?.readiness_score || 0) + '%'"></span>
+                </div>
+                <p class="mt-4 text-sm text-center text-gray-400 relative z-10" x-text="getReadinessText(analysis?.readiness_score)"></p>
+            </div>
+
+            <!-- Summary Stats -->
+            <div class="md:col-span-2 grid grid-cols-2 gap-4">
+                <div class="bg-gray-800/40 border border-green-500/20 rounded-xl p-5 flex flex-col justify-between">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-sm text-gray-400">Strong Skills</p>
+                            <h4 class="text-2xl font-bold text-green-400 mt-1" x-text="analysis?.strong_skills?.length || 0"></h4>
+                        </div>
+                        <div class="p-2 bg-green-500/10 rounded-lg">
+                            <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <template x-for="skill in (analysis?.strong_skills || []).slice(0, 3)">
+                            <span class="text-xs px-2 py-1 rounded bg-green-500/10 text-green-300 border border-green-500/20" x-text="skill"></span>
+                        </template>
+                        <span x-show="(analysis?.strong_skills?.length || 0) > 3" class="text-xs px-2 py-1 text-gray-500" x-text="'+' + (analysis.strong_skills.length - 3) + ' more'"></span>
+                    </div>
+                </div>
+
+                <div class="bg-gray-800/40 border border-red-500/20 rounded-xl p-5 flex flex-col justify-between">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-sm text-gray-400">Missing Skills</p>
+                            <h4 class="text-2xl font-bold text-red-400 mt-1" x-text="analysis?.missing_skills?.length || 0"></h4>
+                        </div>
+                        <div class="p-2 bg-red-500/10 rounded-lg">
+                            <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <p class="text-xs text-gray-400">Critical gaps to bridge for this role.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Accordion for Missing Skills -->
+        <div class="bg-gray-800/60 border border-gray-700/50 rounded-xl overflow-hidden backdrop-blur-sm">
+            <div class="px-6 py-4 border-b border-gray-700/50">
+                <h3 class="text-lg font-semibold text-white">Skill Gap Details</h3>
+            </div>
+            <div class="divide-y divide-gray-700/50">
+                <template x-for="(skill, index) in analysis?.missing_skills" :key="index">
+                    <div x-data="{ expanded: false }" class="group">
+                        <button @click="expanded = !expanded" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-700/30 transition-colors text-left">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 rounded-full bg-red-400"></div>
+                                <span class="font-medium text-gray-200" x-text="skill"></span>
+                            </div>
+                            <svg class="w-5 h-5 text-gray-500 transform transition-transform duration-200" :class="{'rotate-180': expanded}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="expanded" x-collapse class="px-6 pb-4 bg-gray-900/30">
+                            <p class="text-sm text-gray-400 mb-3">Recommended actions to acquire this skill:</p>
+                            <div class="flex gap-3">
+                                <a :href="'https://www.google.com/search?q=learn+' + skill" target="_blank" class="text-xs bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-3 py-1.5 rounded-md hover:bg-indigo-500/20 transition-colors">
+                                    Search Resources
+                                </a>
+                                <a :href="'https://www.youtube.com/results?search_query=' + skill + '+tutorial'" target="_blank" class="text-xs bg-red-500/10 text-red-300 border border-red-500/20 px-3 py-1.5 rounded-md hover:bg-red-500/20 transition-colors">
+                                    Video Tutorials
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <div x-show="!analysis?.missing_skills?.length" class="px-6 py-8 text-center text-gray-400">
+                    <p>No missing skills identified! You are well matched.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Generate Roadmap Button -->
+        <div class="flex justify-center pt-4 pb-12">
+            <button @click="generateRoadmap" :disabled="roadmapLoading" class="group relative inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full overflow-hidden shadow-lg hover:shadow-indigo-500/30 transition-all duration-300 hover:scale-105 disabled:opacity-70 disabled:scale-100">
+                <div class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer"></div>
+                <svg x-show="!roadmapLoading" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0121 18.382V7.618a1 1 0 01-1.447-.894L15 7m0 13V7"></path></svg>
+                <svg x-show="roadmapLoading" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <span x-text="roadmapLoading ? 'Generating Plan...' : 'Generate Personalized Roadmap'"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 5. Generated Roadmap Display -->
+    <div x-show="roadmap" x-ref="roadmapContainer" x-transition.opacity class="space-y-6 pb-12" style="display: none;">
+        <div class="border-t border-gray-700/50 pt-8">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                        <span class="text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text">Your Personalized Roadmap</span>
+                        <span class="text-sm font-normal text-gray-500 bg-gray-800 px-3 py-1 rounded-full border border-gray-700" x-text="roadmap?.total_weeks + ' Weeks'"></span>
+                        <button @click="saveRoadmap" x-show="!saved" :disabled="isSaving" class="ml-2 text-xs font-medium px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 transition-colors flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                            Save Roadmap
+                        </button>
+                    </h2>
+                    <div class="flex items-center gap-4">
+                        <div class="flex flex-col items-end mr-2">
+                            <span class="text-xs text-gray-400 mb-1">Progress</span>
+                            <div class="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
+                                <div class="h-full bg-green-500 transition-all duration-500" :style="'width: ' + progress + '%'"></div>
+                            </div>
+                        </div>
+                        <a x-show="saved && pathId && progress === 100" 
+                           :href="'/learning-path/' + pathId + '/export?format=certificate'" 
+                           target="_blank"
+                           class="text-sm px-4 py-2 rounded-lg bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-white font-medium transition-colors flex items-center gap-2 shadow-lg shadow-yellow-500/20">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Get Certificate
+                        </a>
+                        <a x-show="saved && pathId" 
+                           :href="'/learning-path/' + pathId + '/export?format=pdf'" 
+                           target="_blank"
+                           class="text-sm px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-medium transition-colors flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Export PDF
+                        </a>
+                        <button @click="saveRoadmap" :disabled="isSaving" class="text-sm px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-colors flex items-center gap-2 disabled:opacity-50">
+                            <svg x-show="!isSaving && !saved" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                            <svg x-show="isSaving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <svg x-show="saved && !isSaving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span x-text="saved ? 'Saved' : (isSaving ? 'Saving...' : 'Save Progress')"></span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <template x-for="(week, wIndex) in roadmap?.weekly_breakdown" :key="week.week_number">
+                        <div class="bg-gray-800/40 border border-gray-700/50 rounded-xl p-6 hover:border-indigo-500/30 transition-colors">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
+                                <h3 class="text-lg font-semibold text-indigo-300" x-text="'Week ' + week.week_number"></h3>
+                                <div class="flex flex-wrap gap-2">
+                                    <template x-for="(topic, tIndex) in week.focus_topics" :key="tIndex">
+                                        <button @click="toggleTopic(wIndex, tIndex)" 
+                                                class="text-xs px-2 py-1 rounded border transition-all duration-200 cursor-pointer select-none"
+                                                :class="topic.completed ? 'bg-green-500/20 text-green-300 border-green-500/30 hover:bg-green-500/30' : 'bg-indigo-500/10 text-indigo-200 border-indigo-500/20 hover:bg-indigo-500/20'">
+                                            <span x-text="topic.title"></span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-2 gap-6">
+                                <div>
+                                    <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Why this matters</h4>
+                                    <p class="text-gray-300 text-sm leading-relaxed" x-text="week.why_this_matters"></p>
+                                </div>
+                                <div>
+                                    <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Mini Project / Task</h4>
+                                    <div @click="toggleProject(wIndex)" class="bg-gray-900/50 rounded-lg p-3 border border-gray-700/50 cursor-pointer hover:border-indigo-500/30 transition-colors group">
+                                        <div class="flex items-start gap-3">
+                                            <div class="mt-0.5 min-w-[16px]">
+                                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors"
+                                                     :class="week.mini_project.completed ? 'bg-green-500 border-green-500' : 'border-gray-500 group-hover:border-indigo-400'">
+                                                    <svg x-show="week.mini_project.completed" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium transition-colors" 
+                                                   :class="week.mini_project.completed ? 'text-gray-400 line-through' : 'text-gray-200'"
+                                                   x-text="week.mini_project.title"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saved Paths List View -->
+    <div x-show="viewMode === 'list'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform scale-95" x-transition:enter-end="opacity-100 transform scale-100" style="display: none;">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <template x-for="path in savedPaths" :key="path.path_id">
+                <div class="bg-gray-800/40 border border-gray-700/50 rounded-xl p-6 hover:border-indigo-500/30 transition-all duration-300 group relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-xl font-bold text-white group-hover:text-indigo-300 transition-colors" x-text="path.target_role"></h3>
+                            <span class="px-2 py-1 rounded text-xs font-medium" 
+                                  :class="path.is_completed ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'"
+                                  x-text="path.is_completed ? 'Completed' : 'In Progress'"></span>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Progress</span>
+                                <span x-text="path.progress + '%'"></span>
+                            </div>
+                            <div class="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                                <div class="h-full bg-indigo-500 transition-all duration-500" :style="'width: ' + path.progress + '%'"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center mt-4">
+                            <span class="text-xs text-gray-500" x-text="'Last accessed: ' + new Date(path.last_accessed).toLocaleDateString()"></span>
+                            <div class="flex items-center gap-2">
+                                <button @click="deletePath(path.path_id)" class="text-sm px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-colors" title="Delete Path">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                                <button @click="resumePath(path.path_id)" class="text-sm px-4 py-2 rounded-lg bg-gray-700 hover:bg-indigo-600 text-white transition-colors">
+                                    Resume
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+            
+            <div x-show="savedPaths.length === 0 && !loadingPaths" class="col-span-full text-center py-12 text-gray-500">
+                <p>No saved paths found. Generate one to get started!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function learningPath() {
+        return {
+            targetRole: '',
+            loading: false,
+            roadmapLoading: false,
+            analysis: null,
+            roadmap: null,
+            progress: 0,
+            saved: false,
+            isSaving: false,
+            toasts: [],
+            pathId: null,
+            viewMode: 'generate', // 'generate' or 'list'
+            savedPaths: [],
+            loadingPaths: false,
+            
+            startNewPath() {
+                this.viewMode = 'generate';
+                this.roadmap = null;
+                this.analysis = null;
+                this.saved = false;
+                this.targetRole = '';
+                this.pathId = null;
+                this.progress = 0;
+            },
+
+            async analyzeGap() {
+                if (!this.targetRole) return;
+                this.loading = true;
+                this.analysis = null; // Reset previous analysis
+                
+                try {
+                    const response = await fetch('/api/analyze_skill_gap', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            target_role: this.targetRole
+                        })
+                    });
+                    
+                    let data;
+                    try {
+                        data = await response.json();
+                    } catch (e) {
+                        throw new Error(`Server Error: ${response.status} ${response.statusText}`);
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Unknown error');
+                    }
+
+                    this.analysis = data;
+                    this.roadmap = null; // Reset roadmap on new analysis
+                    // Scroll to results
+                    this.$nextTick(() => {
+                        window.scrollTo({ top: 300, behavior: 'smooth' });
+                    });
+                    this.showToast('Analysis complete!', 'success');
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    this.showToast(error.message || 'Failed to connect to analysis service.', 'error');
+                } finally {
+                    this.loading = false;
+                }
+            },
+            
+            async generateRoadmap() {
+                if (!this.analysis || !this.analysis.missing_skills || this.analysis.missing_skills.length === 0) {
+                    this.showToast('No missing skills to generate a roadmap for!', 'error');
+                    return;
+                }
+
+                this.roadmapLoading = true;
+                
+                try {
+                    const response = await fetch('/learning-path/generate', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            target_role: this.targetRole,
+                            missing_skills: this.analysis.missing_skills,
+                            // Optional: Add UI controls for these later
+                            availability_hours: 10, 
+                            learning_style: 'Project-based'
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (response.ok) {
+                        this.roadmap = this.processRoadmapData(data);
+                        this.calculateProgress();
+                        this.saved = false;
+                        this.showToast('Roadmap generated successfully!', 'success');
+                    } else {
+                        this.showToast('Failed to generate roadmap: ' + (data.error || 'Unknown error'), 'error');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    this.showToast('Failed to connect to roadmap service.', 'error');
+                }
+                this.roadmapLoading = false;
+            },
+
+            // Helper to transform raw API data into stateful objects
+            processRoadmapData(data) {
+                if (!data || !data.weekly_breakdown) return data;
+                
+                // Deep copy to avoid mutation issues if re-processing
+                const processed = JSON.parse(JSON.stringify(data));
+                
+                processed.weekly_breakdown.forEach(week => {
+                    // Transform string topics to objects
+                    if (week.focus_topics) {
+                        week.focus_topics = week.focus_topics.map(t => ({
+                            title: typeof t === 'string' ? t : t.title,
+                            completed: (typeof t === 'object' && t.completed) || false
+                        }));
+                    }
+                    
+                    // Transform project string to object
+                    const projectTitle = week.mini_project || week.practice_task;
+                    if (typeof projectTitle === 'string') {
+                        week.mini_project = {
+                            title: projectTitle,
+                            completed: false
+                        };
+                    }
+                });
+                return processed;
+            },
+
+            calculateProgress() {
+                if (!this.roadmap) return;
+                let total = 0;
+                let completed = 0;
+                
+                this.roadmap.weekly_breakdown.forEach(week => {
+                    if (week.focus_topics) {
+                        total += week.focus_topics.length;
+                        completed += week.focus_topics.filter(t => t.completed).length;
+                    }
+                    if (week.mini_project) {
+                        total += 1;
+                        if (week.mini_project.completed) completed += 1;
+                    }
+                });
+                
+                this.progress = total === 0 ? 0 : Math.round((completed / total) * 100);
+            },
+
+            toggleTopic(wIndex, tIndex) {
+                this.roadmap.weekly_breakdown[wIndex].focus_topics[tIndex].completed = !this.roadmap.weekly_breakdown[wIndex].focus_topics[tIndex].completed;
+                this.calculateProgress();
+                if (this.saved) this.saveRoadmap(); // Auto-update if already saved
+            },
+
+            toggleProject(wIndex) {
+                this.roadmap.weekly_breakdown[wIndex].mini_project.completed = !this.roadmap.weekly_breakdown[wIndex].mini_project.completed;
+                this.calculateProgress();
+                if (this.saved) this.saveRoadmap(); // Auto-update if already saved
+            },
+
+            async saveRoadmap() {
+                this.isSaving = true;
+                try {
+                    const response = await fetch('/api/save_roadmap', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            roadmap: this.roadmap, 
+                            progress: this.progress,
+                            target_role: this.targetRole,
+                            path_id: this.pathId
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
+                        this.saved = true;
+                        this.pathId = data.path_id;
+                        this.showToast('Progress saved successfully!', 'success');
+                    } else {
+                        this.showToast('Failed to save progress: ' + (data.error || 'Unknown error'), 'error');
+                    }
+                } catch (error) {
+                    console.error('Error saving roadmap:', error);
+                    this.showToast('Network error while saving.', 'error');
+                } finally {
+                    this.isSaving = false;
+                }
+            },
+
+            async loadMyPaths() {
+                this.viewMode = 'list';
+                this.loadingPaths = true;
+                try {
+                    const response = await fetch('/learning-paths');
+                    if (response.ok) {
+                        this.savedPaths = await response.json();
+                    } else {
+                        this.showToast('Failed to load saved paths', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error loading paths:', error);
+                    this.showToast('Network error loading paths', 'error');
+                } finally {
+                    this.loadingPaths = false;
+                }
+            },
+
+            async resumePath(pathId) {
+                try {
+                    const response = await fetch(`/learning-path/${pathId}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        
+                        // Map the detailed module structure back to the roadmap structure with better parsing
+                        this.roadmap = {
+                            total_weeks: data.modules.length,
+                            weekly_breakdown: data.modules.map((mod, index) => {
+                                // Use stored granular data if available (preserves checkboxes)
+                                if (mod.topics_data) {
+                                    return mod.topics_data;
+                                }
+
+                                let desc = mod.description || '';
+                                let projectTitle = 'Complete Module Task';
+                                
+                                // Extract Project title from description if present
+                                const projMatch = desc.match(/Project:\s*(.+)$/s);
+                                if (projMatch) {
+                                    projectTitle = projMatch[1].trim();
+                                    desc = desc.replace(/Project:\s*.+$/s, '').trim();
+                                }
+                                
+                                // Clean up 'Why it matters:' prefix
+                                desc = desc.replace(/^Why it matters:\s*/i, '').trim();
+
+                                // Parse title to extract topics
+                                // Format saved: "Week {num}: {topic1}, {topic2}"
+                                let topics = [];
+                                let titleContent = mod.title;
+                                // Remove "Week X: " prefix if present
+                                titleContent = titleContent.replace(/^Week\s+\d+:\s*/i, '');
+                                
+                                if (titleContent) {
+                                    // Split by comma and trim
+                                    topics = titleContent.split(',').map(t => ({
+                                        title: t.trim(),
+                                        completed: mod.is_completed
+                                    }));
+                                } else {
+                                    topics = [{ title: mod.title, completed: mod.is_completed }];
+                                }
+
+                                return {
+                                    week_number: index + 1,
+                                    focus_topics: topics,
+                                    why_this_matters: desc, 
+                                    mini_project: { title: projectTitle, completed: mod.is_completed } 
+                                };
+                            })
+                        };
+                        this.targetRole = data.target_role;
+                        this.pathId = data.path_id;
+                        this.saved = true;
+                        this.calculateProgress();
+                        this.viewMode = 'generate';
+                        this.analysis = null; // Hide analysis view when resuming
+                        
+                        // Scroll to roadmap view
+                        this.$nextTick(() => {
+                            if (this.$refs.roadmapContainer) {
+                                this.$refs.roadmapContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error resuming path:', error);
+                    this.showToast('Failed to resume path', 'error');
+                }
+            },
+
+            async deletePath(pathId) {
+                if (!confirm('Are you sure you want to delete this learning path? This action cannot be undone.')) return;
+                
+                try {
+                    const response = await fetch(`/learning-path/${pathId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        this.showToast('Learning path deleted successfully', 'success');
+                        this.loadMyPaths(); // Refresh the list
+                    } else {
+                        const data = await response.json();
+                        this.showToast(data.error || 'Failed to delete path', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error deleting path:', error);
+                    this.showToast('Network error deleting path', 'error');
+                }
+            },
+
+            showToast(message, type = 'success') {
+                const id = Date.now();
+                this.toasts.push({ id, message, type, visible: true });
+                setTimeout(() => {
+                    const index = this.toasts.findIndex(t => t.id === id);
+                    if (index > -1) this.toasts.splice(index, 1);
+                }, 3000);
+            },
+            
+            getScoreColor(score) {
+                if (score >= 80) return 'text-green-500';
+                if (score >= 50) return 'text-yellow-500';
+                return 'text-red-500';
+            },
+            
+            getReadinessText(score) {
+                if (score >= 80) return 'Job Ready! Polish your portfolio.';
+                if (score >= 50) return 'Getting there. Focus on critical gaps.';
+                return 'Significant gaps. Structured learning needed.';
+            }
+        }
+    }
+</script>
+
+<style>
+    @keyframes shimmer {
+        100% { transform: translateX(100%); }
+    }
+    .animate-shimmer {
+        animation: shimmer 2s infinite;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,27 @@
+{
+    "Frontend Developer": {
+        "core_skills": ["HTML5", "CSS3", "JavaScript", "React", "TypeScript", "Responsive Design"],
+        "secondary_skills": ["SEO", "Web Accessibility (WCAG)", "Performance Optimization", "SASS/LESS", "State Management (Redux/Context)"],
+        "tools": ["VS Code", "Chrome DevTools", "Git", "Webpack", "npm/yarn", "Figma"]
+    },
+    "Backend Developer": {
+        "core_skills": ["Python", "Node.js", "SQL", "RESTful APIs", "Authentication (OAuth/JWT)", "Server-side Logic"],
+        "secondary_skills": ["Docker", "Redis", "Microservices Architecture", "GraphQL", "Message Queues (RabbitMQ/Kafka)"],
+        "tools": ["Postman", "Docker", "Git", "AWS", "Database Clients", "Kubernetes"]
+    },
+    "Full Stack Developer": {
+        "core_skills": ["JavaScript/TypeScript", "React", "Node.js", "Python", "SQL", "NoSQL", "API Development"],
+        "secondary_skills": ["CI/CD Pipelines", "Unit Testing (Jest)", "System Design", "Cloud Infrastructure", "Security Best Practices"],
+        "tools": ["VS Code", "Git", "Docker", "Postman", "Jira", "GitHub Actions"]
+    },
+    "Data Analyst": {
+        "core_skills": ["SQL", "Python", "Data Visualization", "Statistical Analysis", "Excel/Google Sheets", "Data Cleaning"],
+        "secondary_skills": ["Machine Learning Basics", "R", "ETL Processes", "A/B Testing", "Business Intelligence"],
+        "tools": ["Tableau", "Power BI", "Jupyter Notebooks", "Pandas", "NumPy", "Matplotlib/Seaborn"]
+    },
+    "UI/UX Designer": {
+        "core_skills": ["Wireframing", "Prototyping", "User Research", "Interaction Design", "Visual Design", "Information Architecture"],
+        "secondary_skills": ["HTML/CSS Basics", "Accessibility Standards", "Design Systems", "Usability Testing", "Copywriting"],
+        "tools": ["Figma", "Adobe XD", "Sketch", "Miro", "InVision", "Zeplin"]
+    }
+}

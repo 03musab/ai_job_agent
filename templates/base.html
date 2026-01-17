@@ -86,6 +86,8 @@
             --radius-xl: 1rem;
         }
         
+        [x-cloak] { display: none !important; }
+        
         * {
             box-sizing: border-box;
         }
@@ -466,7 +468,7 @@
 </head>
 <body class="h-full {% block body_class %}{% endblock %}" style="{% block body_style %}{% endblock %}">
     <div class="min-h-full relative z-10">
-        <nav class="nav-glass sticky top-0 z-50 shadow-lg" role="navigation" aria-label="Main menu">
+        <nav class="nav-glass sticky top-0 z-50 shadow-lg" role="navigation" aria-label="Main menu" x-data="{ mobileMenuOpen: false }">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
                     <div class="flex items-center">
@@ -486,6 +488,7 @@
                                 <a href="{{ url_for('dashboard') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200">Dashboard</a>
                                 <a href="{{ url_for('profile') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200">Profile</a>
                                 <a href="{{ url_for('outreach_studio') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200">Outreach Studio</a>
+                                <a href="{{ url_for('learning_path') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200">Learning Path</a>
                                 {% endif %}
                             </div>
                         </div>
@@ -508,12 +511,12 @@
                         </div>
                         {% endif %}
                         <div class="md:hidden">
-                            <button type="button" id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-lg text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors" aria-controls="mobile-menu" aria-expanded="false">
+                            <button type="button" @click="mobileMenuOpen = !mobileMenuOpen" class="inline-flex items-center justify-center p-2 rounded-lg text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors" aria-controls="mobile-menu" :aria-expanded="mobileMenuOpen">
                                 <span class="sr-only">Open main menu</span>
-                                <svg class="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <svg class="h-6 w-6" :class="{'hidden': mobileMenuOpen, 'block': !mobileMenuOpen}" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                                 </svg>
-                                <svg class="hidden h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <svg class="h-6 w-6" :class="{'block': mobileMenuOpen, 'hidden': !mobileMenuOpen}" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" x-cloak>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
@@ -523,12 +526,13 @@
             </div>
 
             <!-- Mobile menu -->
-            <div class="md:hidden hidden mobile-menu-dark" id="mobile-menu" role="navigation" aria-label="Mobile menu">
+            <div class="md:hidden mobile-menu-dark" id="mobile-menu" role="navigation" aria-label="Mobile menu" x-show="mobileMenuOpen" x-transition x-cloak>
                 <div class="px-4 pt-2 pb-3 space-y-1">
                     {% if current_user.is_authenticated %}
                     <a href="{{ url_for('dashboard') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block rounded-lg px-3 py-2 text-base font-medium">Dashboard</a>
                     <a href="{{ url_for('profile') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block rounded-lg px-3 py-2 text-base font-medium">Profile</a>
                     <a href="{{ url_for('outreach_studio') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block rounded-lg px-3 py-2 text-base font-medium">Outreach Studio</a>
+                    <a href="{{ url_for('learning_path') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block rounded-lg px-3 py-2 text-base font-medium">Learning Path</a>
                     <div class="border-t border-gray-700 pt-2 mt-2">
                         <a href="{{ url_for('logout') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block rounded-lg px-3 py-2 text-base font-medium">Sign out</a>
                     </div>
@@ -557,21 +561,6 @@
     <!-- Alpine.js Core -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
-        const mobileMenuButton = document.getElementById('mobile-menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const openIcon = mobileMenuButton.querySelector('svg.block');
-        const closeIcon = mobileMenuButton.querySelector('svg.hidden');
-
-        mobileMenuButton.addEventListener('click', () => {
-            const isExpanded = mobileMenuButton.getAttribute('aria-expanded') === 'true';
-            mobileMenuButton.setAttribute('aria-expanded', !isExpanded);
-            mobileMenu.classList.toggle('hidden');
-            openIcon.classList.toggle('hidden');
-            openIcon.classList.toggle('block');
-            closeIcon.classList.toggle('hidden');
-            closeIcon.classList.toggle('block');
-        });
-
         // Add temporal hover effects to interactive elements
         document.addEventListener('DOMContentLoaded', function() {
             const interactiveElements = document.querySelectorAll('button, .btn-temporal, a');

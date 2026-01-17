@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+    html { scroll-behavior: smooth; }
+</style>
 <!-- Full Page Loader -->
 <div id="page-loader" class="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center z-[9999] transition-opacity duration-300 ease-in-out">
     <div class="loader-spinner"></div>
@@ -56,32 +59,6 @@
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
-
-        <!-- Real-time Progress Bar Section -->
-        <div id="progress-container" class="hidden relative">
-            <div class="absolute inset-0 bg-gradient-to-r from-teal-600/10 to-sky-600/10 rounded-lg"></div>
-            <div class="relative p-6">
-                <div class="flex justify-between items-center mb-2">
-                    <h3 class="text-lg font-bold text-transparent bg-gradient-to-r from-teal-400 to-sky-400 bg-clip-text">Search Progress</h3>
-                    <span id="progress-percentage" class="text-sm font-semibold text-sky-300">0%</span>
-                </div>
-                <div class="w-full bg-gray-700/50 rounded-full h-2.5 border border-sky-500/20">
-                    <div id="progress-bar" class="bg-gradient-to-r from-teal-400 to-sky-500 h-full rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
-                </div>
-                <div class="flex justify-between items-center mt-2 text-xs text-gray-400">
-                    <span id="progress-status">Initializing...</span>
-                    <div id="progress-milestones" class="flex gap-1">
-                        <div id="milestone-init" class="w-2 h-2 rounded-full bg-gray-600" title="Initializing"></div>
-                        <div id="milestone-scrape" class="w-2 h-2 rounded-full bg-gray-600" title="Scraping"></div>
-                        <div id="milestone-save" class="w-2 h-2 rounded-full bg-gray-600" title="Saving"></div>
-                        <div id="milestone-report" class="w-2 h-2 rounded-full bg-gray-600" title="Reporting"></div>
-                    </div>
-                </div>
-                <div id="progress-error" class="hidden mt-2 text-sm text-red-400 bg-red-900/50 border border-red-500/30 rounded-md p-2">
-                    <!-- Error messages will appear here -->
-                </div>
             </div>
         </div>
 
@@ -872,876 +849,463 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Handle New Search button
-        const searchForm = document.getElementById('search-form');
-        const scrapeBtn = document.getElementById('scrape-btn');
-        const scrapeBtnText = scrapeBtn.querySelector('.button-text');
-        const originalBtnText = scrapeBtnText.textContent;
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM Elements Cache ---
+        const els = {
+            searchForm: document.getElementById('search-form'),
+            scrapeBtn: document.getElementById('scrape-btn'),
+            saveProfileBtn: document.getElementById('save-profile-btn'),
+            statusModal: document.getElementById('status-modal'),
+            applyModal: document.getElementById('apply-modal'),
+            detailsModal: document.getElementById('details-modal'),
+            detailsModalContent: document.getElementById('details-modal-content'),
+            trafficModal: document.getElementById('traffic-analysis-modal'),
+            trafficModalContent: document.getElementById('traffic-analysis-modal-content'),
+            statusForm: document.getElementById('status-form'),
+            progress: {
+                container: document.getElementById('progress-container'),
+                bar: document.getElementById('progress-bar'),
+                pct: document.getElementById('progress-percentage'),
+                status: document.getElementById('progress-status'),
+                error: document.getElementById('progress-error'),
+                milestones: {
+                    init: document.getElementById('milestone-init'),
+                    scrape: document.getElementById('milestone-scrape'),
+                    save: document.getElementById('milestone-save'),
+                    report: document.getElementById('milestone-report')
+                }
+            }
+        };
+        
+        const scrapeBtnText = els.scrapeBtn ? els.scrapeBtn.querySelector('.button-text') : null;
+        const originalBtnText = scrapeBtnText ? scrapeBtnText.textContent : '';
 
-        if (searchForm) {
-            searchForm.addEventListener('submit', async function (e) {
+        // --- Search & Progress Logic ---
+        let eventSource = null;
+
+        function resetProgressBar() {
+            els.progress.container.classList.add('hidden');
+            els.progress.bar.style.width = '0%';
+            els.progress.pct.textContent = '0%';
+            els.progress.status.textContent = 'Ready to start...';
+            els.progress.error.classList.add('hidden');
+            els.progress.error.textContent = '';
+            Object.values(els.progress.milestones).forEach(el => el.className = 'w-2 h-2 rounded-full bg-gray-600');
+            
+            if(els.scrapeBtn) {
+                els.scrapeBtn.classList.remove('button-loading');
+                els.scrapeBtn.disabled = false;
+                if(scrapeBtnText) scrapeBtnText.textContent = originalBtnText;
+            }
+            
+            els.progress.bar.classList.remove('from-green-400', 'to-emerald-500', 'from-red-500', 'to-orange-500');
+            els.progress.bar.classList.add('from-teal-400', 'to-sky-500');
+        }
+
+        function updateMilestones(percent) {
+            const m = els.progress.milestones;
+            if (percent >= 5) m.init.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse';
+            if (percent >= 15) { m.init.className = 'w-2 h-2 rounded-full bg-green-400'; m.scrape.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse'; }
+            if (percent >= 90) { m.scrape.className = 'w-2 h-2 rounded-full bg-green-400'; m.save.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse'; }
+            if (percent >= 95) { m.save.className = 'w-2 h-2 rounded-full bg-green-400'; m.report.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse'; }
+            if (percent >= 100) m.report.className = 'w-2 h-2 rounded-full bg-green-400';
+        }
+
+        if (els.searchForm) {
+            els.searchForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const formData = new FormData(searchForm);
+                resetProgressBar();
+                els.progress.container.classList.remove('hidden');
+                
+                const formData = new FormData(els.searchForm);
                 const params = new URLSearchParams(formData).toString();
 
-                scrapeBtn.classList.add('button-loading');
-                scrapeBtnText.textContent = 'Searching...';
+                if(els.scrapeBtn) {
+                    els.scrapeBtn.classList.add('button-loading');
+                    if(scrapeBtnText) scrapeBtnText.textContent = 'Searching...';
+                }
 
                 try {
                     const response = await fetch("{{ url_for('start_scrape') }}", {
                         method: 'POST',
                         body: params,
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        }
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
                     });
                     const data = await response.json();
-                    if (data.status === 'success') {
-                        // The task has started, we can just reload after a delay
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
+                    
+                    if (response.ok && data.task_id) {
+                        eventSource = new EventSource(`/task_progress_stream/${data.task_id}`);
+                        eventSource.onmessage = (event) => {
+                            const d = JSON.parse(event.data);
+                            els.progress.bar.style.width = `${d.percent}%`;
+                            els.progress.pct.textContent = `${d.percent}%`;
+                            els.progress.status.textContent = d.message || d.state;
+                            updateMilestones(d.percent);
+
+                            if (d.state === 'SUCCESS') {
+                                els.progress.status.textContent = 'Complete! Reloading...';
+                                els.progress.bar.classList.replace('from-teal-400', 'from-green-400');
+                                els.progress.bar.classList.replace('to-sky-500', 'to-emerald-500');
+                                eventSource.close();
+                                setTimeout(() => window.location.reload(), 1500);
+                            } else if (d.state === 'FAILURE') {
+                                handleSearchError(d.message || 'Unknown error');
+                            }
+                        };
+                        eventSource.onerror = () => {
+                            console.error("EventSource failed.");
+                            eventSource.close();
+                            handleSearchError('Connection lost.');
+                        };
                     } else {
-                        alert('starting search: ' + data.message);
-                        scrapeBtn.classList.remove('button-loading');
-                        scrapeBtnText.textContent = originalBtnText;
+                        handleSearchError(data.message || data.error || 'Unknown error.');
                     }
                 } catch (error) {
-                    console.error('Error starting task:', error);
-                    alert('Failed to connect to backend.');
-                    scrapeBtn.classList.remove('button-loading');
-                    scrapeBtnText.textContent = originalBtnText;
+                    handleSearchError('Failed to connect to backend.');
                 }
             });
         }
 
-        // Handle Save Profile button
-        const saveProfileBtn = document.getElementById('save-profile-btn');
-        if (saveProfileBtn) {
-            saveProfileBtn.addEventListener('click', function (e) {
+        function handleSearchError(msg) {
+            els.progress.status.textContent = 'Task Failed!';
+            els.progress.error.textContent = `Error: ${msg}`;
+            els.progress.error.classList.remove('hidden');
+            els.progress.bar.classList.replace('from-teal-400', 'from-red-500');
+            els.progress.bar.classList.replace('to-sky-500', 'to-orange-500');
+            if(eventSource) eventSource.close();
+            if(els.scrapeBtn) {
+                els.scrapeBtn.disabled = false;
+                els.scrapeBtn.classList.remove('button-loading');
+                if(scrapeBtnText) scrapeBtnText.textContent = 'Try Again';
+            }
+        }
+
+        // --- Save Profile ---
+        if (els.saveProfileBtn) {
+            els.saveProfileBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-
-                const searchTerms = document.getElementById('search_terms').value.trim();
-                const location = document.getElementById('location').value.trim();
-                const experience = document.getElementById('experience').value.trim();
-                const jobType = document.getElementById('job_type').value.trim();
-
-                if (!searchTerms) {
-                    alert('Please enter search terms before saving the profile.');
-                    return;
-                }
-
+                const fields = ['search_terms', 'location', 'experience', 'job_type'];
+                const values = fields.map(id => document.getElementById(id).value.trim());
+                
+                if (!values[0]) return alert('Please enter search terms.');
+                
                 const profileName = prompt('Enter a name for this search profile:');
-                if (!profileName || !profileName.trim()) {
-                    return;
-                }
+                if (!profileName || !profileName.trim()) return;
 
                 const formData = new FormData();
                 formData.append('profile_name', profileName.trim());
-                formData.append('search_terms', searchTerms);
-                formData.append('location', location);
-                formData.append('experience', experience);
-                formData.append('job_type', jobType);
+                fields.forEach((f, i) => formData.append(f, values[i]));
 
-                fetch('/save_profile', {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then(response => {
-                        if (response.ok) {
-                            alert('Profile saved successfully!');
-                            window.location.reload();
-                        } else {
-                            alert('Failed to save profile. It may already exist.');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error saving profile:', error);
-                        alert('An error occurred while saving the profile.');
-                    });
+                fetch('/save_profile', { method: 'POST', body: formData })
+                    .then(r => r.ok ? (alert('Saved!'), window.location.reload()) : alert('Failed to save. May exist.'))
+                    .catch(() => alert('Error saving profile.'));
             });
         }
 
-        // Handle Saved Profile "Apply" button
-        const applyProfileForms = document.querySelectorAll('.apply-profile-form');
-        applyProfileForms.forEach(form => {
-            form.addEventListener('submit', async function (e) {
+        // --- Apply Profile ---
+        document.querySelectorAll('.apply-profile-form').forEach(form => {
+            form.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const url = form.action;
-
                 try {
-                    const response = await fetch(url, {
-                        method: 'POST'
-                    });
-                    const data = await response.json();
+                    const res = await fetch(form.action, { method: 'POST' });
+                    const data = await res.json();
                     if (data.success && data.profile) {
-                        // Populate the search form with the profile data
-                        document.getElementById('search_terms').value = data.profile.search_terms;
-                        document.getElementById('location').value = data.profile.location;
-                        document.getElementById('experience').value = data.profile.experience;
-                        document.getElementById('job_type').value = data.profile.job_type;
-                        
-                        // Provide visual feedback
-                        const searchBox = document.querySelector('#search-form').parentElement.parentElement;
-                        searchBox.style.transition = 'box-shadow 0.3s ease-in-out';
-                        searchBox.style.boxShadow = '0 0 20px rgba(79, 70, 229, 0.7)';
+                        ['search_terms', 'location', 'experience', 'job_type'].forEach(k => {
+                            const el = document.getElementById(k);
+                            if(el) el.value = data.profile[k];
+                        });
+                        const box = els.searchForm.parentElement.parentElement;
+                        box.style.transition = 'box-shadow 0.3s ease';
+                        box.style.boxShadow = '0 0 20px rgba(79, 70, 229, 0.7)';
                         window.scrollTo({ top: 0, behavior: 'smooth' });
-                        setTimeout(() => {
-                            searchBox.style.boxShadow = '';
-                        }, 2000);
-
+                        setTimeout(() => box.style.boxShadow = '', 2000);
                     } else {
-                        alert('Error applying profile: ' + (data.error || 'Unknown error'));
+                        alert('Error: ' + (data.error || 'Unknown'));
                     }
-                } catch (error) {
-                    console.error('Error applying profile:', error);
-                    alert('Failed to connect to backend to apply profile.');
-                }
+                } catch (e) { alert('Connection failed.'); }
             });
         });
 
-        // Modals Logic
-        const statusModal = document.getElementById('status-modal');
-        const applyModal = document.getElementById('apply-modal');
-        const detailsModal = document.getElementById('details-modal');
-        const detailsModalContent = document.getElementById('details-modal-content');
-        const trafficAnalysisModal = document.getElementById('traffic-analysis-modal');
-        const trafficAnalysisModalContent = document.getElementById('traffic-analysis-modal-content');
+        // --- Modals ---
+        let activeTrigger = null;
+        const openModal = (modal, trigger) => {
+            activeTrigger = trigger;
+            modal.classList.remove('hidden');
+            const focusable = modal.querySelector('button, [href], input, select, textarea');
+            if (focusable) focusable.focus();
+        };
+        const closeModal = (modal) => {
+            modal.classList.add('hidden');
+            if (activeTrigger) { activeTrigger.focus(); activeTrigger = null; }
+        };
 
-        // Store the element that triggered the modal
-        let activeModalTrigger = null;
-
-        window.openStatusModal = function (jobId, status, notes) {
+        // Global functions for HTML onclick attributes
+        window.openStatusModal = (jobId, status, notes) => {
             document.getElementById('status-job-id').value = jobId;
             document.getElementById('status').value = status;
             document.getElementById('notes').value = notes;
-            statusModal.classList.remove('hidden');
+            openModal(els.statusModal, document.activeElement);
         };
-
-        // --- Accessible Modal Logic ---
-        function openModal(modal, triggerElement) {
-            activeModalTrigger = triggerElement;
-            modal.classList.remove('hidden');
-            // Focus the first focusable element in the modal, e.g., the close button or first input
-            const firstFocusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-            if (firstFocusable) {
-                firstFocusable.focus();
-            }
-        }
-
-        function closeModal(modal) {
-            modal.classList.add('hidden');
-            if (activeModalTrigger) {
-                activeModalTrigger.focus(); // Return focus to the element that opened the modal
-                activeModalTrigger = null;
-            }
-        }
-
-        window.closeStatusModal = function () {
-            closeModal(statusModal);
-        };
-
-        window.closeApplyModal = function () {
-            closeModal(applyModal);
-        };
-
-        function openTrafficAnalysisModal() {
-            trafficAnalysisModal.classList.remove('hidden');
-            setTimeout(() => {
-                trafficAnalysisModalContent.classList.remove('scale-95', 'opacity-0');
-            }, 10);
-        }
-
-        window.closeTrafficAnalysisModal = function () {
-            trafficAnalysisModalContent.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                trafficAnalysisModal.classList.add('hidden');
-            }, 300);
-        };
-
-        // New Modal Logic for Job Details
-        window.openDetailsModal = function (job) {
-            openModal(detailsModal, document.activeElement);
-            const notSpecified = '<span class="text-gray-500">Not specified</span>';
-
-            // Populate text content
-            document.getElementById('modal-title').textContent = job.title || 'No Title';
-            document.getElementById('modal-company').textContent = job.company || 'No Company';
-            document.getElementById('modal-location').innerHTML = job.location || notSpecified;
-            document.getElementById('modal-salary').innerHTML = job.salary || notSpecified;
-            document.getElementById('modal-experience').innerHTML = job.experience || notSpecified;
-            document.getElementById('modal-job-type').innerHTML = job.job_type || notSpecified;
-            document.getElementById('modal-description').textContent = job.description || 'No description provided.';
-            document.getElementById('modal-posted-date').innerHTML = job.posted_date || notSpecified;
-            document.getElementById('modal-source').innerHTML = job.source || notSpecified;
-            document.getElementById('modal-deadline').innerHTML = job.deadline || notSpecified;
-
-            // Experience Range
-            let expRange = notSpecified;
-            const minExp = job.min_experience_years;
-            const maxExp = job.max_experience_years;
-
-            if (minExp != null && maxExp != null) {
-                expRange = (minExp === maxExp) ? `${minExp} years` : `${minExp} - ${maxExp} years`;
-            } else if (minExp != null) {
-                expRange = `${minExp}+ years`;
-            } else if (maxExp != null) {
-                expRange = `Up to ${maxExp} years`;
-            }
-            document.getElementById('modal-exp-range').innerHTML = expRange;
-
-            // Populate tag-based fields
-            const createTags = (items, containerId) => {
-                const container = document.getElementById(containerId);
-                const parentContainer = document.getElementById(containerId + '-container');
-                if (items && items.trim()) {
-                    container.innerHTML = items.split(',').map(item => `<span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-700 text-gray-300">${item.trim()}</span>`).join('');
-                    parentContainer.classList.remove('hidden');
-                } else {
-                    parentContainer.classList.add('hidden');
-                }
-            };
-            createTags(job.skills, 'modal-skills');
-            createTags(job.extracted_tools, 'modal-tools');
-            createTags(job.extracted_soft_skills, 'modal-soft-skills');
-
-            // Relevance Score Badge
-            const relevanceBadge = document.getElementById('modal-relevance');
-            const score = job.relevance_score || 0;
-            relevanceBadge.textContent = `${Math.round(score)}% Match`;
-            relevanceBadge.className = 'px-3 py-1 text-sm font-semibold rounded-full'; // Reset classes
-            if (score >= 60) relevanceBadge.classList.add('bg-green-500/20', 'text-green-300');
-            else if (score >= 30) relevanceBadge.classList.add('bg-yellow-500/20', 'text-yellow-300');
-            else relevanceBadge.classList.add('bg-red-500/20', 'text-red-300');
-
-            // Apply link
-            document.getElementById('modal-apply-link').href = job.link || '#';
-
-            // Show modal with animation
-            setTimeout(() => {
-                detailsModalContent.classList.remove('scale-95', 'opacity-0');
-            }, 10);
-        };
-        window.closeDetailsModal = function () {
-            detailsModalContent.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                detailsModal.classList.add('hidden');
-            }, 300);
-        };
-
-        window.openApplyModal = function (jobId, jobLink) {
-            openModal(applyModal, document.activeElement);
-            const startApplyBtn = document.getElementById('start-apply-btn');
-            startApplyBtn.onclick = function () {
+        window.closeStatusModal = () => closeModal(els.statusModal);
+        
+        window.openApplyModal = (jobId, link) => {
+            openModal(els.applyModal, document.activeElement);
+            document.getElementById('start-apply-btn').onclick = () => {
                 startApplyProcess(jobId);
-                closeApplyModal();
+                closeModal(els.applyModal);
             };
         };
+        window.closeApplyModal = () => closeModal(els.applyModal);
 
-        async function startApplyProcess(jobId) {
-            try {
-                const response = await fetch(`/assisted_apply/${jobId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                const data = await response.json();
-                if (data.status === 'success') {
-                    alert(data.message); // Using native alert here for a quick, non-disruptive feedback. You should replace this with a custom modal.
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            } catch (error) {
-                console.error('Error triggering assisted apply:', error);
-                alert('An error occurred. Please check the console.');
-            }
-        }
+        window.openDetailsModal = (job) => {
+            openModal(els.detailsModal, document.activeElement);
+            const setTxt = (id, txt) => document.getElementById(id).textContent = txt || '';
+            const setHtml = (id, html) => document.getElementById(id).innerHTML = html || '<span class="text-gray-500">Not specified</span>';
+            
+            setTxt('modal-title', job.title);
+            setTxt('modal-company', job.company);
+            setHtml('modal-location', job.location);
+            setHtml('modal-salary', job.salary);
+            setHtml('modal-experience', job.experience);
+            setHtml('modal-job-type', job.job_type);
+            setTxt('modal-description', job.description || 'No description.');
+            setHtml('modal-posted-date', job.posted_date);
+            setHtml('modal-source', job.source);
+            setHtml('modal-deadline', job.deadline);
+            
+            // Exp Range
+            let range = 'Not specified';
+            if (job.min_experience_years != null) range = job.max_experience_years != null ? (job.min_experience_years === job.max_experience_years ? `${job.min_experience_years} years` : `${job.min_experience_years} - ${job.max_experience_years} years`) : `${job.min_experience_years}+ years`;
+            else if (job.max_experience_years != null) range = `Up to ${job.max_experience_years} years`;
+            document.getElementById('modal-exp-range').innerHTML = range === 'Not specified' ? '<span class="text-gray-500">Not specified</span>' : range;
 
-        window.analyzeTraffic = async function (jobId) {
-            console.log(`Analyzing traffic for job ID: ${jobId}`);
+            // Tags
+            const setTags = (items, id) => {
+                const c = document.getElementById(id);
+                const p = document.getElementById(id + '-container');
+                if (items && items.trim()) {
+                    c.innerHTML = items.split(',').map(i => `<span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-700 text-gray-300">${i.trim()}</span>`).join('');
+                    p.classList.remove('hidden');
+                } else p.classList.add('hidden');
+            };
+            setTags(job.skills, 'modal-skills');
+            setTags(job.extracted_tools, 'modal-tools');
+            setTags(job.extracted_soft_skills, 'modal-soft-skills');
 
-            // 1. Open modal and show loading state
-            openTrafficAnalysisModal();
-            document.getElementById('traffic-modal-placeholder').classList.remove('hidden');
-            document.getElementById('traffic-modal-results').classList.add('hidden');
+            // Relevance
+            const badge = document.getElementById('modal-relevance');
+            const score = Math.round(job.relevance_score || 0);
+            badge.textContent = `${score}% Match`;
+            badge.className = `px-3 py-1 text-sm font-semibold rounded-full ${score >= 60 ? 'bg-green-500/20 text-green-300' : score >= 30 ? 'bg-yellow-500/20 text-yellow-300' : 'bg-red-500/20 text-red-300'}`;
+            
+            document.getElementById('modal-apply-link').href = job.link || '#';
+            setTimeout(() => els.detailsModalContent.classList.remove('scale-95', 'opacity-0'), 10);
+        };
+        window.closeDetailsModal = () => {
+            els.detailsModalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => els.detailsModal.classList.add('hidden'), 300);
+        };
+
+        // Traffic Analysis
+        window.analyzeTraffic = async (jobId) => {
+            els.trafficModal.classList.remove('hidden');
+            setTimeout(() => els.trafficModalContent.classList.remove('scale-95', 'opacity-0'), 10);
+            
+            const ph = document.getElementById('traffic-modal-placeholder');
+            const resDiv = document.getElementById('traffic-modal-results');
+            ph.classList.remove('hidden');
+            resDiv.classList.add('hidden');
             document.getElementById('traffic-modal-company').textContent = 'Loading...';
 
             try {
-                const response = await fetch(`/analyze_traffic/${jobId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                const data = await response.json();
-
-                // 2. Hide loading and show results
-                document.getElementById('traffic-modal-placeholder').classList.add('hidden');
-                document.getElementById('traffic-modal-results').classList.remove('hidden');
-
-                if (response.ok && data.status === 'success') {
-                    // 3. Populate modal with data
+                const res = await fetch(`/analyze_traffic/${jobId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                const data = await res.json();
+                ph.classList.add('hidden');
+                resDiv.classList.remove('hidden');
+                
+                if (res.ok && data.status === 'success') {
                     document.getElementById('traffic-modal-company').textContent = data.company_name || 'N/A';
                     document.getElementById('traffic-visits').textContent = data.analysis.monthly_visits || '--';
                     document.getElementById('traffic-bounce-rate').textContent = data.analysis.bounce_rate || '--';
                     document.getElementById('traffic-pages-per-visit').textContent = data.analysis.pages_per_visit || '--';
                     document.getElementById('traffic-message').textContent = data.message || '';
                 } else {
-                    // Handle error case
-                    document.getElementById('traffic-modal-company').textContent = 'Error';
-                    document.getElementById('traffic-message').innerHTML = `<p class="text-red-400">${data.message || 'An unknown error occurred.'}</p>`;
+                    throw new Error(data.message);
                 }
-
-            } catch (error) {
-                console.error('Error analyzing traffic:', error);
-                document.getElementById('traffic-modal-placeholder').classList.add('hidden');
-                document.getElementById('traffic-modal-results').classList.remove('hidden');
+            } catch (e) {
+                ph.classList.add('hidden');
+                resDiv.classList.remove('hidden');
                 document.getElementById('traffic-modal-company').textContent = 'Error';
-                document.getElementById('traffic-message').innerHTML = `<p class="text-red-400">A network error occurred while analyzing traffic.</p>`;
+                document.getElementById('traffic-message').innerHTML = `<p class="text-red-400">${e.message || 'Network error.'}</p>`;
             }
-        }
+        };
+        window.closeTrafficAnalysisModal = () => {
+            els.trafficModalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => els.trafficModal.classList.add('hidden'), 300);
+        };
 
-        // Close details modal if clicking on the backdrop
-        detailsModal.addEventListener('click', (event) => {
-            if (event.target === detailsModal) {
-                closeDetailsModal();
-            }
-        });
+        // Close modals on backdrop click
+        [els.detailsModal, els.trafficModal].forEach(m => m.addEventListener('click', e => { if (e.target === m) closeModal(m); }));
 
-        // Close traffic modal if clicking on the backdrop
-        trafficAnalysisModal.addEventListener('click', (event) => {
-            if (event.target === trafficAnalysisModal) {
-                closeTrafficAnalysisModal();
-            }
-        });
+        // --- Status Update ---
+        if (els.statusForm) {
+            els.statusForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(els.statusForm);
+                const jobId = formData.get('job_id');
+                const jobCard = document.querySelector(`article[data-job-id="${jobId}"]`);
+                const btn = jobCard ? jobCard.querySelector('button[onclick*="openStatusModal"]') : null;
 
-        // Chart.js Logic
-        function renderJobStatusChart() {
-            return new Promise(async (resolve, reject) => {
                 try {
-                    const response = await fetch('/api/job_status_data');
-                    if (!response.ok) {
-                        // Explicitly reject the promise on a bad response
-                        reject(new Error(`Failed to fetch chart data: ${response.statusText}`));
-                        return;
-                    }
-                    const data = await response.json();
-                    const fallbackContainer = document.getElementById('chart-fallback');
-
-                    let fallbackTable = '<table><caption>Job Status Distribution</caption><thead><tr><th>Status</th><th>Count</th></tr></thead><tbody>';
-                    Object.entries(data).forEach(([status, count]) => {
-                        fallbackTable += `<tr><td>${status}</td><td>${count}</td></tr>`;
-                    });
-                    fallbackTable += '</tbody></table>';
-                    fallbackContainer.innerHTML = fallbackTable;
-
-                    const totalJobsForChart = Object.values(data).reduce((a, b) => a + b, 0);
-                    if (totalJobsForChart === 0) {
-                        document.getElementById('jobStatusChart').parentElement.innerHTML = '<div class="text-center py-8"><div class="text-4xl mb-3">🤷‍♀️</div><p class="text-gray-400 font-medium">No job data yet!</p><p class="text-sm text-gray-500">Start your job hunt to see the magic ✨</p></div>';
-                        resolve(); // Resolve even if there's no data to show
-                        return;
-                    }
-
-                    const statusEmojis = {
-                        'new': 'New Applications', 'applied': 'Applications Sent', 'interview': 'Interview Stage',
-                        'rejected': 'Not Selected', 'offered': 'Job Offers', 'archived': 'Archived'
-                    };
-
-                    populateChartStats(data, totalJobsForChart);
-
-                    const chartData = {
-                        labels: Object.keys(data).map(status => statusEmojis[status] || status),
-                        datasets: [{
-                            label: 'Job Statuses',
-                            data: Object.values(data),
-                            backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#6B7280'],
-                            borderColor: '#0f172a', borderWidth: 3, hoverBorderWidth: 4, hoverBorderColor: '#94a3b8'
-                        }]
-                    };
-
-                    const ctx = document.getElementById('jobStatusChart').getContext('2d');
-                    new Chart(ctx, {
-                        type: 'doughnut', data: chartData,
-                        options: {
-                            responsive: true, cutout: '60%',
-                            plugins: {
-                                legend: { display: false },
-                                tooltip: {
-                                    backgroundColor: 'rgba(15, 23, 42, 0.9)', titleColor: '#FFFFFF', bodyColor: '#e2e8f0',
-                                    borderColor: '#4f46e5', borderWidth: 1, cornerRadius: 8, displayColors: false,
-                                    callbacks: {
-                                        label: function (context) {
-                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                            const percentage = ((context.parsed / total) * 100).toFixed(1);
-                                            return `${context.label}: ${context.parsed} jobs (${percentage}%)`;
-                                        }
-                                    }
-                                }
-                            },
-                            animation: { animateRotate: true, animateScale: true, duration: 1500, easing: 'easeOutQuart' }
+                    const res = await fetch(els.statusForm.action, { method: 'POST', body: formData, headers: { 'Accept': 'application/json' } });
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        showToast(data.message, 'success', btn);
+                        if (jobCard && data.job) {
+                            const badge = jobCard.querySelector('.status-badge');
+                            if (badge) {
+                                badge.className = `px-2 py-0.5 text-xs font-semibold rounded-full uppercase status-badge status-${data.job.status} border`;
+                                badge.textContent = data.job.status;
+                            }
                         }
-                    });
-                    resolve(); // Resolve after the chart is created
-                } catch (error) {
-                    console.error('Error rendering chart:', error);
-                    reject(error); // Reject the promise on any exception
-                }
+                    } else showToast(data.error || 'Failed.', 'error', btn);
+                } catch (e) { showToast('Network error.', 'error', btn); }
+                closeModal(els.statusModal);
             });
         }
 
-        function populateChartStats(data, total) {
-            const statsContainer = document.getElementById('chartStats');
-            if (!statsContainer) return;
-
-            const statusConfig = {
-                'new': { color: 'blue', label: 'New' },
-                'applied': { color: 'emerald', label: 'Applied' },
-                'interview': { color: 'amber', label: 'Interview' },
-                'offered': { color: 'purple', label: 'Offered' },
-                'rejected': { color: 'red', label: 'Rejected' },
-                'archived': { color: 'gray', label: 'Archived' }
-            };
-
-            let statsHTML = '';
-            Object.entries(data).forEach(([status, count]) => {
-                    const config = statusConfig[status] || { color: 'gray', label: status };
-                    const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
-
-                    statsHTML += `
-                        <div class="bg-gray-800/50 border border-gray-700/50 rounded-lg p-4 backdrop-blur-sm">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-2">
-                                    <div class="chart-legend-dot chart-legend-${config.color}"></div>
-                                    <span class="text-sm font-medium text-gray-300">${config.label}</span>
-                                </div>
-                                <div class="text-right">
-                                    <div class="text-xl font-bold text-gray-100">${count}</div>
-                                    <div class="text-xs text-gray-400">${percentage}%</div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-            });
-
-            statsContainer.innerHTML = statsHTML;
-        }
-
-        window.filterByStatus = function (status) {
-            const statusFilter = document.getElementById('status_filter');
-            if (statusFilter) {
-                statusFilter.value = status;
-                document.getElementById('filter-form').submit();
-            }
-        }
-
-        renderJobStatusChart();
-
-        const toggleFilters = document.getElementById('toggle-filters');
-        const filterContent = document.getElementById('filter-content');
-
-        if (toggleFilters && filterContent) {
-            toggleFilters.addEventListener('click', function() {
-                const isHidden = filterContent.classList.toggle('hidden');
-                toggleFilters.setAttribute('aria-expanded', !isHidden);
-                const icon = toggleFilters.querySelector('svg');
-                icon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
-            });
-        }
-
-        const filterForm = document.getElementById('filter-form');
-        if (filterForm) {
-            filterForm.addEventListener('submit', function() {
-                const jobListingsContainer = document.getElementById('job-listings');
-                if (jobListingsContainer) {
-                    jobListingsContainer.innerHTML = generateSkeletonJobs(3); // Show 3 skeleton cards
-                }
-            });
-        }
-
-        function generateSkeletonJobs(count) {
-            const skeletonCard = `
-                <div class="job-item bg-gray-800/60 p-6 rounded-2xl shadow-lg border border-gray-700/50 backdrop-blur-sm">
-                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 gap-4">
-                        <div class="flex-1 w-full">
-                            <div class="flex items-center gap-2 mb-2">
-                                <div class="skeleton h-5 w-16 rounded-full"></div>
-                                <div class="skeleton h-6 w-3/4 rounded-md"></div>
-                            </div>
-                            <div class="flex items-center gap-2 mb-2">
-                                <div class="skeleton h-4 w-1/4 rounded-md"></div>
-                                <div class="skeleton h-4 w-1/4 rounded-md"></div>
-                            </div>
-                            <div class="skeleton h-3 w-1/5 rounded-md"></div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            return Array(count).fill(skeletonCard).join('');
-        }
-
-        filterForm.addEventListener('submit', function () {
-            submitButton.innerHTML = `
-                <svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Filtering...
-            `;
-            submitButton.disabled = true;
-        });
-
-        // Calendar Events Management
-        const loadEventsBtn = document.getElementById('load-events-btn');
-        const eventsContainer = document.getElementById('calendar-events-container');
-        const eventsList = document.getElementById('events-list');
-        const noEventsMsg = document.getElementById('no-events');
-        const eventsLoading = document.getElementById('events-loading');
-        let autoRefreshInterval = null; // Keep this for potential re-enabling
-
-        async function loadCalendarEvents(showLoading = true) {
-            if (showLoading) {
-                eventsContainer.classList.remove('hidden');
-                eventsLoading.classList.remove('hidden');
-                noEventsMsg.classList.add('hidden');
-                eventsList.innerHTML = '';
-            }
-
+        async function startApplyProcess(jobId) {
             try {
-                const response = await fetch('/calendar_events');
-                const data = await response.json();
+                const res = await fetch(`/assisted_apply/${jobId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                const data = await res.json();
+                alert(data.status === 'success' ? data.message : 'Error: ' + data.message);
+            } catch (e) { alert('Error occurred.'); }
+        }
 
-                if (showLoading) {
-                    eventsLoading.classList.add('hidden');
-                }
+        // --- Chart.js ---
+        async function renderJobStatusChart() {
+            try {
+                const res = await fetch('/api/job_status_data');
+                if (!res.ok) throw new Error('Failed to fetch data');
+                const data = await res.json();
+                const total = Object.values(data).reduce((a, b) => a + b, 0);
+                
+                // Fallback
+                let tbl = '<table><caption>Status</caption><thead><tr><th>Status</th><th>Count</th></tr></thead><tbody>';
+                Object.entries(data).forEach(([k, v]) => tbl += `<tr><td>${k}</td><td>${v}</td></tr>`);
+                document.getElementById('chart-fallback').innerHTML = tbl + '</tbody></table>';
 
-                if (data.error) {
-                    eventsList.innerHTML = `<div class="text-red-400 text-center py-4">Error: ${data.error}</div>`;
+                if (total === 0) {
+                    document.getElementById('jobStatusChart').parentElement.innerHTML = '<div class="text-center py-8"><div class="text-4xl mb-3">🤷‍♀️</div><p class="text-gray-400">No data yet!</p></div>';
                     return;
                 }
 
-                if (data.events && data.events.length > 0) {
-                    eventsList.innerHTML = data.events.map(event => `
-                    <div class="bg-gray-900/50 border border-gray-700/50 rounded-lg p-3 shadow-sm" data-event-id="${event.id}">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <h4 class="font-medium text-gray-200 text-sm">${event.summary}</h4>
-                                <p class="text-xs text-gray-400 mt-1">📅 ${event.start}</p>
-                                ${event.description ? `<p class="text-xs text-gray-500 mt-1 line-clamp-2">${event.description.substring(0, 100)}${event.description.length > 100 ? '...' : ''}</p>` : ''}
-                            </div>
-                            <div class="flex gap-1 ml-2">
-                                <a href="${event.htmlLink}" target="_blank" class="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 bg-blue-600/20 rounded">
-                                    View
-                                </a>
-                                <button onclick="deleteCalendarEvent('${event.id}')" class="text-red-400 hover:text-red-300 text-xs px-2 py-1 bg-red-600/20 rounded">
-                                    Delete
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
+                // Stats
+                const config = { 'new': {c:'blue',l:'New'}, 'applied': {c:'emerald',l:'Applied'}, 'interview': {c:'amber',l:'Interview'}, 'offered': {c:'purple',l:'Offered'}, 'rejected': {c:'red',l:'Rejected'}, 'archived': {c:'gray',l:'Archived'} };
+                document.getElementById('chartStats').innerHTML = Object.entries(data).map(([k, v]) => {
+                    const c = config[k] || {c:'gray',l:k};
+                    return `<div class="bg-gray-800/50 border border-gray-700/50 rounded-lg p-4 backdrop-blur-sm"><div class="flex justify-between"><div class="flex items-center gap-2"><div class="chart-legend-dot chart-legend-${c.c}"></div><span class="text-sm font-medium text-gray-300">${c.l}</span></div><div class="text-right"><div class="text-xl font-bold text-gray-100">${v}</div><div class="text-xs text-gray-400">${(v/total*100).toFixed(1)}%</div></div></div></div>`;
+                }).join('');
 
-                } else {
-                    noEventsMsg.classList.remove('hidden');
-                    if (autoRefreshInterval) {
-                        clearInterval(autoRefreshInterval);
-                        autoRefreshInterval = null;
-                    }
-                }
-            } catch (error) {
-                if (showLoading) {
-                    eventsLoading.classList.add('hidden');
-                }
-                eventsList.innerHTML = `<div class="text-red-400 text-center py-4">Failed to load events: ${error.message}</div>`;
-            }
-        }
-
-        if (loadEventsBtn) {
-            loadEventsBtn.addEventListener('click', function () {
-                loadCalendarEvents(true);
-            });
-        }
-
-        const refreshEventsBtn = document.getElementById('refresh-events-btn');
-        if (refreshEventsBtn) {
-            refreshEventsBtn.addEventListener('click', function () {
-                refreshEventsBtn.innerHTML = 'Syncing...';
-                refreshEventsBtn.disabled = true;
-
-                loadCalendarEvents(false).then(() => {
-                    refreshEventsBtn.innerHTML = 'Refresh';
-                    refreshEventsBtn.disabled = false;
+                // Chart
+                new Chart(document.getElementById('jobStatusChart').getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(data).map(k => config[k]?.l || k),
+                        datasets: [{ data: Object.values(data), backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#6B7280'], borderColor: '#0f172a', borderWidth: 3 }]
+                    },
+                    options: { responsive: true, cutout: '60%', plugins: { legend: { display: false } }, animation: { animateScale: true } }
                 });
+            } catch (e) { console.error('Chart error:', e); }
+        }
+
+        // --- Filters ---
+        window.filterByStatus = (status) => {
+            const el = document.getElementById('status_filter');
+            if (el) { el.value = status; document.getElementById('filter-form').submit(); }
+        };
+        
+        const toggleFilters = document.getElementById('toggle-filters');
+        if (toggleFilters) {
+            toggleFilters.addEventListener('click', () => {
+                const content = document.getElementById('filter-content');
+                const isHidden = content.classList.toggle('hidden');
+                toggleFilters.setAttribute('aria-expanded', !isHidden);
+                toggleFilters.querySelector('svg').style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+            });
+        }
+        
+        const filterForm = document.getElementById('filter-form');
+        if (filterForm) {
+            filterForm.addEventListener('submit', () => {
+                const list = document.getElementById('job-listings');
+                if (list) list.innerHTML = Array(3).fill('<div class="job-item bg-gray-800/60 p-6 rounded-2xl shadow-lg border border-gray-700/50 backdrop-blur-sm animate-pulse"><div class="h-4 bg-gray-700 rounded w-3/4 mb-4"></div><div class="h-4 bg-gray-700 rounded w-1/2"></div></div>').join('');
+                const btn = filterForm.querySelector('button[type="submit"]');
+                if(btn) { btn.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2 inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Filtering...'; btn.disabled = true; }
             });
         }
 
-        window.deleteCalendarEvent = async function (eventId) {
-            if (!confirm('Are you sure you want to delete this calendar event?')) {
-                return;
-            }
-
-            const eventElement = document.querySelector(`[data-event-id="${eventId}"]`);
+        // --- Calendar ---
+        const loadEventsBtn = document.getElementById('load-events-btn');
+        const refreshEventsBtn = document.getElementById('refresh-events-btn');
+        
+        async function loadCalendarEvents(showLoading = true) {
+            const container = document.getElementById('calendar-events-container');
+            const list = document.getElementById('events-list');
+            const loading = document.getElementById('events-loading');
+            const noEvents = document.getElementById('no-events');
+            
+            if (showLoading) { container.classList.remove('hidden'); loading.classList.remove('hidden'); noEvents.classList.add('hidden'); list.innerHTML = ''; }
             
             try {
-                const response = await fetch(`/delete_calendar_event/${eventId}`, {
-                    method: 'DELETE'
-                });
-                const data = await response.json();
+                const res = await fetch('/calendar_events');
+                const data = await res.json();
+                if (showLoading) loading.classList.add('hidden');
+                
+                if (data.error) { list.innerHTML = `<div class="text-red-400 text-center py-4">Error: ${data.error}</div>`; return; }
+                
+                if (data.events?.length) {
+                    list.innerHTML = data.events.map(e => `
+                        <div class="bg-gray-900/50 border border-gray-700/50 rounded-lg p-3 shadow-sm" data-event-id="${e.id}">
+                            <div class="flex justify-between items-start"><div class="flex-1"><h4 class="font-medium text-gray-200 text-sm">${e.summary}</h4><p class="text-xs text-gray-400 mt-1">📅 ${e.start}</p></div>
+                            <div class="flex gap-1 ml-2"><a href="${e.htmlLink}" target="_blank" class="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 bg-blue-600/20 rounded">View</a><button onclick="deleteCalendarEvent('${e.id}')" class="text-red-400 hover:text-red-300 text-xs px-2 py-1 bg-red-600/20 rounded">Delete</button></div></div>
+                        </div>`).join('');
+                } else noEvents.classList.remove('hidden');
+            } catch (e) { if (showLoading) loading.classList.add('hidden'); list.innerHTML = `<div class="text-red-400 text-center py-4">Failed: ${e.message}</div>`; }
+        }
 
-                if (data.success) {
-                    if (eventElement) {
-                        eventElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                        requestAnimationFrame(() => {
-                            eventElement.style.opacity = '0';
-                            eventElement.style.transform = 'translateX(-20px)';
-                        });
-                        
-                        setTimeout(() => eventElement.remove(), 310);
-                    }
-                } else {
-                    alert('Failed to delete event: ' + (data.error || 'Unknown error'));
-                }
-            } catch (error) {
-                alert('Failed to delete event: ' + error.message);
-            }
+        if (loadEventsBtn) loadEventsBtn.addEventListener('click', () => loadCalendarEvents(true));
+        if (refreshEventsBtn) refreshEventsBtn.addEventListener('click', () => {
+            refreshEventsBtn.innerHTML = 'Syncing...'; refreshEventsBtn.disabled = true;
+            loadCalendarEvents(false).then(() => { refreshEventsBtn.innerHTML = 'Refresh'; refreshEventsBtn.disabled = false; });
+        });
+
+        window.deleteCalendarEvent = async (id) => {
+            if (!confirm('Delete event?')) return;
+            const el = document.querySelector(`[data-event-id="${id}"]`);
+            try {
+                const res = await fetch(`/delete_calendar_event/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success && el) {
+                    el.style.transition = 'opacity 0.3s, transform 0.3s';
+                    el.style.opacity = '0'; el.style.transform = 'translateX(-20px)';
+                    setTimeout(() => el.remove(), 310);
+                } else alert('Failed: ' + (data.error || 'Unknown'));
+            } catch (e) { alert('Failed: ' + e.message); }
         };
 
-        // --- Enhanced Full Page Loader Logic ---
-        async function loadDashboard() {
-            const loader = document.getElementById('page-loader');
-            const content = document.getElementById('dashboard-content');
-            let isLoading = true; // Centralized flag
-
-            try {
-                // Promise to wait for the window to be fully loaded (styles, images, etc.)
-                const windowLoadPromise = new Promise(resolve => { window.onload = resolve; });
-
-                // Promise to wait for the chart data to be fetched and rendered
-                const chartRenderPromise = renderJobStatusChart();
-
-                // Wait for all critical loading tasks to complete
-                await Promise.all([windowLoadPromise, chartRenderPromise]);
-
-            } catch (error) {
-                console.error("An error occurred during the dashboard loading process:", error);
-            } finally {
-                // This block ALWAYS runs, ensuring the loader is never stuck.
-                isLoading = false; // Set loading to false
-                if (loader) {
-                    loader.style.opacity = '0';
-                    setTimeout(() => { loader.style.display = 'none'; }, 300);
-                }
-                if (content) {
-                    content.classList.remove('opacity-0');
-                    content.classList.add('content-fade-in');
-                }
-            }
-        }
-        loadDashboard();
-    });
-
-    // --- Intercept Status Update Form for Dynamic Toast ---
-    document.addEventListener('DOMContentLoaded', function() {
-        const statusForm = document.getElementById('status-form');
-        if (statusForm) {
-            statusForm.addEventListener('submit', async function(e) {
-                e.preventDefault(); // Prevent the default form submission
-
-                const formData = new FormData(statusForm);
-                const jobId = formData.get('job_id');
-                const status = formData.get('status');
-                const jobCard = document.querySelector(`article[data-job-id="${jobId}"]`);
-                const updateButton = jobCard ? jobCard.querySelector('button[onclick*="openStatusModal"]') : null;
-
-                try {
-                    const response = await fetch(statusForm.action, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'Accept': 'application/json' // Important: Tell the backend we want JSON back
-                        }
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok && data.success) {
-                        showToast(data.message, 'success', updateButton);
-
-                        // Update the UI dynamically without a full page reload
-                        if (jobCard && data.job) {
-                            const statusBadge = jobCard.querySelector('.status-badge');
-                            if (statusBadge) {
-                                statusBadge.className = `px-2 py-0.5 text-xs font-semibold rounded-full uppercase status-badge status-${data.job.status} border`;
-                                statusBadge.textContent = data.job.status;
-                            }
-                        }
-                    } else {
-                        showToast(data.error || 'Failed to update status.', 'error', updateButton);
-                    }
-                } catch (error) {
-                    console.error('Error updating job status:', error);
-                    showToast('Network error. Could not update status.', 'error', updateButton);
-                } finally {
-                    // Close the modal after submission
-                    closeStatusModal();
-                }
-            });
-        }
-    });
-
-    // --- Real-time Progress Bar Logic ---
-    document.addEventListener('DOMContentLoaded', function () {
-        const searchForm = document.getElementById('search-form');
-        const scrapeBtn = document.getElementById('scrape-btn');
-        const scrapeBtnText = scrapeBtn.querySelector('.button-text');
-        const originalBtnText = scrapeBtnText.textContent;
-
-        // Progress Bar Elements
-        const progressContainer = document.getElementById('progress-container');
-        const progressBar = document.getElementById('progress-bar');
-        const progressPercentage = document.getElementById('progress-percentage');
-        const progressStatus = document.getElementById('progress-status');
-        const progressError = document.getElementById('progress-error');
-
-        // Milestone Elements
-        const milestoneInit = document.getElementById('milestone-init');
-        const milestoneScrape = document.getElementById('milestone-scrape');
-        const milestoneSave = document.getElementById('milestone-save');
-        const milestoneReport = document.getElementById('milestone-report');
-
-        let eventSource = null;
-
-        function resetProgressBar() {
-            progressContainer.classList.add('hidden');
-            progressBar.style.width = '0%';
-            progressPercentage.textContent = '0%';
-            progressStatus.textContent = 'Ready to start...';
-            progressError.classList.add('hidden');
-            progressError.textContent = '';
-            // Reset milestone colors
-            [milestoneInit, milestoneScrape, milestoneSave, milestoneReport].forEach(el => {
-                el.className = 'w-2 h-2 rounded-full bg-gray-600';
-            });
-            // Reset button state
-            scrapeBtn.classList.remove('button-loading');
-            scrapeBtnText.textContent = originalBtnText;
-            scrapeBtn.disabled = false;
-            // Reset progress bar color
-            progressBar.classList.remove('from-green-400', 'to-emerald-500', 'from-red-500', 'to-orange-500');
-            progressBar.classList.add('from-teal-400', 'to-sky-500');
-        }
-
-        function updateMilestones(percent) {
-            // Milestones are based on the progress percentages from the backend
-            if (percent >= 5) {
-                milestoneInit.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse';
-            }
-            if (percent >= 15) { // Scraping starts around 15%
-                milestoneInit.className = 'w-2 h-2 rounded-full bg-green-400'; // Mark previous as complete
-                milestoneScrape.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse';
-            }
-            if (percent >= 90) { // Saving starts around 90%
-                milestoneScrape.className = 'w-2 h-2 rounded-full bg-green-400';
-                milestoneSave.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse';
-            }
-            if (percent >= 95) { // Reporting starts around 95%
-                milestoneSave.className = 'w-2 h-2 rounded-full bg-green-400';
-                milestoneReport.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse';
-            }
-            if (percent >= 100) { // Task complete
-                milestoneReport.className = 'w-2 h-2 rounded-full bg-green-400';
-            }
-        }
-
-        function listenForProgress(taskId) {
-            eventSource = new EventSource(`/task_progress_stream/${taskId}`);
-
-            eventSource.onmessage = function (event) {
-                const data = JSON.parse(event.data);
-                
-                // Update UI
-                progressBar.style.width = `${data.percent}%`;
-                progressPercentage.textContent = `${data.percent}%`;
-                progressStatus.textContent = data.message || data.state;
-
-                updateMilestones(data.percent);
-
-                if (data.state === 'SUCCESS') {
-                    progressStatus.textContent = 'Complete! Reloading dashboard...';
-                    progressBar.classList.remove('from-teal-400', 'to-sky-500');
-                    progressBar.classList.add('from-green-400', 'to-emerald-500'); // Green for success
-                    eventSource.close();
-                    setTimeout(() => {
-                        window.location.reload(); // Reload dashboard to show new jobs
-                    }, 1500);
-                } else if (data.state === 'FAILURE') {
-                    progressStatus.textContent = 'Task Failed!';
-                    progressError.textContent = `Error: ${data.message || 'An unknown error occurred.'}`;
-                    progressError.classList.remove('hidden');
-                    progressBar.classList.remove('from-teal-400', 'to-sky-500');
-                    progressBar.classList.add('from-red-500', 'to-orange-500'); // Red for failure
-                    eventSource.close();
-                    scrapeBtn.disabled = false;
-                    scrapeBtn.classList.remove('button-loading');
-                    scrapeBtnText.textContent = 'Try Again';
-                }
-            };
-
-            eventSource.onerror = function () {
-                console.error("EventSource failed.");
-                progressStatus.textContent = 'Connection lost. Please wait...';
-                eventSource.close();
-                // Optionally, you can try to reconnect after a delay or show a persistent error
-            };
-        }
-
-        // Override the existing form submission logic to integrate progress bar
-        if (searchForm) {
-            const originalFormSubmit = searchForm.addEventListener('submit', async function (e) {
-                e.preventDefault(); // Prevent default form submission
-                
-                resetProgressBar(); // Reset any previous progress state
-                progressContainer.classList.remove('hidden'); // Show the progress bar
-
-                const formData = new FormData(searchForm);
-                const params = new URLSearchParams(formData).toString();
-
-                scrapeBtn.classList.add('button-loading');
-                scrapeBtnText.textContent = 'Searching...';
-
-                try {
-                    const response = await fetch("{{ url_for('start_scrape') }}", {
-                        method: 'POST',
-                        body: params,
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        }
-                    });
-                    const data = await response.json();
-                    if (response.ok && data.task_id) {
-                        // Task started successfully, now listen for progress.
-                        listenForProgress(data.task_id);
-                    } else {
-                        // Handle actual errors from the backend
-                        progressStatus.textContent = 'Error starting search!';
-                        progressError.textContent = `Error: ${data.message || data.error || 'Unknown error.'}`;
-                        progressError.classList.remove('hidden');
-                        progressBar.classList.remove('from-teal-400', 'to-sky-500');
-                        progressBar.classList.add('from-red-500', 'to-orange-500');
-                        scrapeBtn.classList.remove('button-loading');
-                        scrapeBtnText.textContent = originalBtnText;
-                    }
-                } catch (error) {
-                    console.error('Error starting task:', error);
-                    progressStatus.textContent = 'Connection Error!';
-                    progressError.textContent = 'Failed to connect to the backend. The server might be down.';
-                    progressError.classList.remove('hidden');
-                    progressBar.classList.remove('from-teal-400', 'to-sky-500');
-                    progressBar.classList.add('from-red-500', 'to-orange-500');
-                    scrapeBtn.classList.remove('button-loading');
-                    scrapeBtnText.textContent = originalBtnText;
-                }
-            });
-        }
+        // --- Init ---
+        const loader = document.getElementById('page-loader');
+        const content = document.getElementById('dashboard-content');
+        
+        renderJobStatusChart(); // Async
+        
+        requestAnimationFrame(() => {
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }
+            if (content) { content.classList.remove('opacity-0'); content.classList.add('content-fade-in'); }
+        });
     });
 </script>
 </div>
