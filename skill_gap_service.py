@@ -28,6 +28,10 @@ class SkillGapService:
             logger.error(f"Error loading role map: {e}")
             return {}
 
+    def get_role_def(self, target_role: str) -> Dict:
+        """Retrieves the raw role definition from the map for external use."""
+        return next((self.role_map[r] for r in self.role_map if r.lower() == target_role.lower()), None)
+
     def analyze(self, target_role: str, resume_skills: List[str], user_selected_skills: List[str]) -> Dict[str, Any]:
         """
         Performs the gap analysis.

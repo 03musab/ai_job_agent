@@ -33,12 +33,12 @@
             <code class="bg-gray-200 dark:bg-gray-700 p-1 rounded text-sm">linkedin_url</code>.
         </p>
 
-        <form action="{{ url_for('admin_upload_contacts') }}" method="post" enctype="multipart/form-data">
+        <form action="{{ url_for('admin_upload_contacts') }}" method="post" enctype="multipart/form-data" id="upload-form">
             <div class="mb-4">
                 <label for="contacts_csv" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">CSV File</label>
                 <input type="file" name="contacts_csv" id="contacts_csv" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required>
             </div>
-            <button type="submit" class="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+            <button type="submit" id="upload-button" class="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
                 <i class="fas fa-cloud-upload-alt mr-2"></i>Upload and Process
             </button>
         </form>
@@ -89,4 +89,37 @@
         {% endfor %}
     {% endwith %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadForm = document.getElementById('upload-form');
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent immediate submission
+
+            const submitButton = document.getElementById('upload-button');
+            
+            submitButton.disabled = true;
+            let countdown = 5;
+            
+            const updateButtonText = () => {
+                submitButton.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>Please wait... ${countdown}s`;
+            };
+
+            updateButtonText();
+
+            const intervalId = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    updateButtonText();
+                } else {
+                    clearInterval(intervalId);
+                    submitButton.innerHTML = `<i class="fas fa-cloud-upload-alt mr-2"></i>Processing...`;
+                    uploadForm.submit(); // Now submit the form
+                }
+            }, 1000);
+        });
+    }
+});
+</script>
 {% endblock %}

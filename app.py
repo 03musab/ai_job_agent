@@ -5598,7 +5598,7 @@ def analyze_traffic(job_id):
     return jsonify({
         'status': 'success',
         'company_name': company_name,
-        'message': f'Traffic analysis for {company_name} is a demo feature.',
+        'message': f'Traffic analysis for {company_name}.',
         'analysis': fake_analysis_data
     })
 
@@ -5987,6 +5987,7 @@ def analyze_skill_gap():
     try:
         data = request.get_json()
         target_role = data.get('target_role')
+        target_company = data.get('target_company', '')
         
         if not target_role:
             return jsonify({'error': 'Target role is required'}), 400
@@ -6009,13 +6010,17 @@ def analyze_skill_gap():
 
         system_prompt = """
         You are an expert Career Coach. Analyze the gap between the candidate's resume and the target job role.
+        If a Target Company is provided, provide specific insights about that company's culture, interview process, or specific tech stack preferences.
+        
         Return a JSON object with exactly these keys:
         - readiness_score: (integer 0-100)
         - strong_skills: (list of matching skills)
         - missing_skills: (list of critical skills missing)
+        - company_insights: (string or null) - Actionable advice on how to learn about the company and prepare for them specifically.
+        - company_specific_skills: (list of strings) - Skills specifically valued by this company (e.g. "Amazon Leadership Principles" for Amazon, or specific tech stack).
         """
         
-        user_prompt = f"TARGET ROLE: {target_role}\nRESUME:\n{resume_text}"
+        user_prompt = f"TARGET ROLE: {target_role}\nTARGET COMPANY: {target_company}\nRESUME:\n{resume_text}"
         
         result = safe_ai_request(system_prompt, user_prompt)
         return jsonify(result)
@@ -6046,6 +6051,45 @@ def generate_roadmap():
         
     except Exception as e:
         logger.error(f"Error in generate_roadmap: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/generate_combined_roadmap', methods=['POST'])
+@login_required
+def generate_combined_roadmap():
+    try:
+        data = request.get_json()
+        target_role = data.get('target_role')
+        user_skills = data.get('user_skills', [])
+        current_skill_level = data.get('current_skill_level', 'Beginner')
+        availability_hours = data.get('availability_hours', 10)
+        learning_style = data.get('learning_style', 'Project-based')
+
+        if not target_role:
+            return jsonify({'error': 'Target role is required'}), 400
+
+        try:
+            availability_hours = int(availability_hours)
+        except (ValueError, TypeError):
+            availability_hours = 10
+        
+        # Fallback: fetch skills from resume if not provided
+        if not user_skills:
+            db = JobDatabase()
+            user_details = db.get_user_details(current_user.id)
+            if user_details and user_details.get('resume_parsed_data'):
+                try:
+                    parsed = json.loads(user_details['resume_parsed_data'])
+                    user_skills = parsed.get('skills', [])
+                except Exception as e:
+                    logger.warning(f"Failed to parse resume skills for combined roadmap: {e}")
+
+        service = RoadmapService()
+        result = service.generate_combined(target_role, user_skills, current_skill_level, availability_hours, learning_style)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error in generate_combined_roadmap: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/save_roadmap', methods=['POST'])

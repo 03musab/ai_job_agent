@@ -5,7 +5,7 @@ import logging
 from typing import List, Dict, Any, Union
 import docx
 from pdfminer.high_level import extract_text
-from cerebras.cloud.sdk import Cerebras
+from ai_utils import safe_ai_request
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +16,7 @@ class ResumeParsingService:
     """
     
     def __init__(self):
-        self.cerebras_api_key = os.environ.get("CEREBRAS_API_KEY")
-        self.client = Cerebras(api_key=self.cerebras_api_key) if self.cerebras_api_key else None
+        self.has_api_key = bool(os.environ.get("CEREBRAS_API_KEY"))
         
         # Fallback keywords if AI fails or is unavailable
         self.keyword_bank = {
@@ -87,23 +86,13 @@ class ResumeParsingService:
         found_skills = [skill for skill in self.keyword_bank if skill in text]
         
         # 2. AI Extraction
-        if self.client:
+        if self.has_api_key:
             try:
                 system_prompt = "You are an expert resume parser. Extract skills and work experience from the resume text provided. Return ONLY valid JSON."
                 user_prompt = f"Analyze the following resume text and extract:\n1. 'skills': A list of technical and soft skills.\n2. 'work_experience': A list of objects, each containing 'title', 'company', 'start_date', 'end_date', and 'description'.\n\nResume Text:\n{text[:4000]}"
-                full_prompt = f"{system_prompt}\n\n{user_prompt}"
 
-                response = self.client.chat.completions.create(
-                    model="llama-3.3-70b",
-                    messages=[
-                        {"role": "user", "content": full_prompt}
-                    ],
-                    response_format={"type": "json_object"},
-                    temperature=0.1
-                )
+                data = safe_ai_request(system_prompt, user_prompt, model="llama-3.3-70b")
                 
-                ai_content = response.choices[0].message.content
-                data = json.loads(ai_content)
                 
                 # Merge AI skills with keyword skills (deduplicate)
                 ai_skills = [s.lower() for s in data.get('skills', [])]
@@ -115,7 +104,7 @@ class ResumeParsingService:
                 }
 
             except Exception as e:
-                logger.error(f"Cerebras parsing failed: {e}")
+                logger.error(f"AI parsing failed: {e}")
         
         # Fallback if AI fails
         return {

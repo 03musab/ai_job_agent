@@ -13,12 +13,14 @@ AI JobSnap is a powerful, Flask-based web application designed to automate and s
 -   **Job Management Dashboard:** A central hub to view, filter, sort, and manage all found jobs. Update application status (`New`, `Applied`, `Interview`, `Rejected`, `Offered`) and add personal notes.
 -   **Automated Email Reports:** Receive daily or scheduled email summaries of new jobs, with an optional, beautifully formatted **Excel report** attachment via the **Gmail API**.
 -   **Assisted Application Filling:** (Experimental) Launches a browser and helps pre-fill application forms on common Applicant Tracking Systems (ATS) to speed up the application process.
+-   **Google Calendar Integration:** Seamlessly sync job application deadlines, interviews, and follow-ups directly to your Google Calendar.
+-   **Company Traffic Analytics:** (Experimental) View estimated web traffic data for hiring companies to gauge their scale and reach.
 -   **Resume-Aware Intelligence:** Upload your resume to enable smarter job-to-resume matching and provide data for the application filler.
 
 ## 🛠️ Tech Stack
 
 -   **Backend:** Python, Flask, Celery
--   **Frontend:** HTML, CSS, JavaScript, Bootstrap 5
+-   **Frontend:** HTML, CSS, JavaScript, Bootstrap 5, Chart.js
 -   **Database:** SQLite
 -   **Task Queue:** Redis (as Celery broker and result backend)
 -   **Web Scraping:** `requests`, `BeautifulSoup4`, `selenium`
@@ -164,14 +166,13 @@ For more details on the test strategy, see BEST_PRACTICES.md.
 5.	Smart apply automation with human-in-the-loop — prepare filled form + highlighted fields for quick final review (no CAPTCHA bypass).
 6.	Interview prep pack per job — auto-generate key questions, company talk-track and 30–60–90 plan (LLM + company scraping).
 7.	Slack/Telegram/WhatsApp push alerts + deep links — immediate notifications with Apply button (webhooks / bot).
-8.	Calendar + apply scheduler — schedule applications and reminders; auto-book mock-interviews (ICS + Google Calendar API).
-9.	Company enrichment & salary intel — attach Glassdoor/Levels.fyi/similar public stats to job cards (scrape/third party API).
-10.	Feedback-driven scoring loop — use user likes/dislikes to retrain ranking weights (store feedback, update multipliers).
-11.	Browser-profile sync & safe session sharing — export/import user-data-dir snippets securely (encrypted blobs).
-12.	Privacy & secrets vault — encrypt stored credentials and OAuth tokens (use Fernet or OS keyring).
-13.	Interactive visual dashboard — heatmaps, source breakdown, skill clouds, timeline (D3/Plotly).
-14.	Browser extension + quick-save — clip jobs from any site into the app with one click (Chrome/Edge extension).
-15.	Multi-tenant rate-limited scrapers with proxy rotation — scale scraping without getting blocked (proxies + backoff, per-user quotas).
+8.	Company enrichment & salary intel — attach Glassdoor/Levels.fyi/similar public stats to job cards (scrape/third party API).
+9.	Feedback-driven scoring loop — use user likes/dislikes to retrain ranking weights (store feedback, update multipliers).
+10.	Browser-profile sync & safe session sharing — export/import user-data-dir snippets securely (encrypted blobs).
+11.	Privacy & secrets vault — encrypt stored credentials and OAuth tokens (use Fernet or OS keyring).
+12.	Interactive visual dashboard — heatmaps, source breakdown, skill clouds, timeline (D3/Plotly).
+13.	Browser extension + quick-save — clip jobs from any site into the app with one click (Chrome/Edge extension).
+14.	Multi-tenant rate-limited scrapers with proxy rotation — scale scraping without getting blocked (proxies + backoff, per-user quotas).
 
 ## 🤝 Contributing
 

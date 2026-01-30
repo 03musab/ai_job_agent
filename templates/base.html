@@ -58,6 +58,12 @@
                     spacing: {
                         '18': '4.5rem',
                         '88': '22rem'
+                    },
+                    borderRadius: {
+                        'square-sm': '0.125rem',
+                        'square': '0',
+                        'sharp-md': '0.25rem',
+                        'sharp-lg': '0.5rem'
                     }
                 }
             }
@@ -80,10 +86,10 @@
             --shadow-dark-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
             --shadow-neon: 0 0 20px rgba(99, 102, 241, 0.3);
             --shadow-neon-cyan: 0 0 20px rgba(0, 255, 255, 0.2);
-            --radius-sm: 0.375rem;
-            --radius-md: 0.5rem;
-            --radius-lg: 0.75rem;
-            --radius-xl: 1rem;
+            --radius-sm: 0.125rem;
+            --radius-md: 0.25rem;
+            --radius-lg: 0.5rem;
+            --radius-xl: 0.75rem;
         }
         
         [x-cloak] { display: none !important; }
@@ -95,19 +101,18 @@
         body { 
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-            background-color: #0f172a; /* bg-gray-900 */
+            background-color: #0f172a;
             color: #e2e8f0;
             line-height: 1.6;
             min-height: 100vh;
             position: relative;
-            overflow-x: hidden; /* Prevent horizontal scrollbars */
-            scroll-behavior: smooth; /* Enable smooth scrolling */
+            overflow-x: hidden;
+            scroll-behavior: smooth;
         }
 
-        /* Optimized Panning Background */
         body::after { display: none; }
 
-        /* Temporal grid overlay (remains the same) */
+        /* Temporal grid overlay - Square based */
         body::before {
             content: '';
             position: fixed;
@@ -123,14 +128,13 @@
             z-index: 1;
         }
 
-        /* Keyframes for the optimized background animation */
         @keyframes background-pan {
             0% { transform: translateX(-10%) translateY(5%); }
             50% { transform: translateX(10%) translateY(-5%); }
             100% { transform: translateX(-10%) translateY(5%); }
         }
 
-        /* Temporal glow effects */
+        /* Square-based temporal glow effects */
         .temporal-glow {
             position: relative;
         }
@@ -142,12 +146,12 @@
             right: -2px;
             bottom: -2px;
             background: linear-gradient(45deg, var(--color-neon-cyan), var(--color-neon-purple), var(--color-neon-pink));
-            border-radius: inherit;
+            border-radius: 0;
             opacity: 0;
             transition: opacity 0.3s ease;
             z-index: -1;
             animation: temporalPulse 3s ease-in-out infinite alternate;
-            will-change: opacity; /* Hint for GPU acceleration */
+            will-change: opacity;
         }
         .temporal-glow:hover::before {
             opacity: 0.7;
@@ -158,14 +162,14 @@
             100% { opacity: 0.3; }
         }
         
-        /* Modern Flash Messages - Dark Theme */
+        /* Modern Flash Messages - Dark Theme with Square Boxes */
         .flash-message {
             position: fixed;
             top: 24px;
             right: 24px;
             z-index: 1000;
             padding: 16px 20px;
-            border-radius: var(--radius-lg);
+            border-radius: 0.25rem;
             box-shadow: var(--shadow-dark-lg);
             color: white;
             font-weight: 500;
@@ -179,23 +183,23 @@
 
         .flash-success { 
             background: linear-gradient(135deg, rgba(16, 185, 129, 0.9) 0%, rgba(5, 150, 105, 0.9) 100%);
-            border-left: 4px solid #10b981;
+            border-left: 3px solid #10b981;
             box-shadow: var(--shadow-dark-lg), 0 0 20px rgba(16, 185, 129, 0.3);
         }
         .flash-danger { 
             background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(220, 38, 38, 0.9) 100%);
-            border-left: 4px solid #ef4444;
+            border-left: 3px solid #ef4444;
             box-shadow: var(--shadow-dark-lg), 0 0 20px rgba(239, 68, 68, 0.3);
         }
         .flash-warning { 
             background: linear-gradient(135deg, rgba(245, 158, 11, 0.9) 0%, rgba(217, 119, 6, 0.9) 100%);
-            border-left: 4px solid #f59e0b;
+            border-left: 3px solid #f59e0b;
             color: #1f2937;
             box-shadow: var(--shadow-dark-lg), 0 0 20px rgba(245, 158, 11, 0.3);
         }
         .flash-info { 
             background: linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(79, 70, 229, 0.9) 100%);
-            border-left: 4px solid var(--color-primary);
+            border-left: 3px solid var(--color-primary);
             box-shadow: var(--shadow-dark-lg), var(--shadow-neon);
         }
         
@@ -209,7 +213,7 @@
             100% { opacity: 0; visibility: hidden; }
         }
         
-        /* Modern Tooltip System - Dark Theme */
+        /* Modern Tooltip System - Dark Theme with Square Boxes */
         .tooltip {
             position: relative;
             display: inline-block;
@@ -220,7 +224,7 @@
             background: rgba(15, 23, 42, 0.95);
             color: #e2e8f0;
             text-align: center;
-            border-radius: var(--radius-md);
+            border-radius: 0.25rem;
             padding: 8px 12px;
             position: absolute;
             z-index: 1000;
@@ -253,11 +257,12 @@
             transform: translateX(-50%) translateY(-4px);
         }
         
-        /* Enhanced UX Styles - Dark Theme */
+        /* Enhanced UX Styles - Square Boxes */
         .job-item {
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             background: rgba(26, 26, 46, 0.8);
             border: 1px solid rgba(99, 102, 241, 0.1);
+            border-radius: 0.25rem;
             backdrop-filter: blur(8px);
             will-change: transform, box-shadow;
         }
@@ -288,6 +293,7 @@
             max-width: 500px;
             transform: translateX(100%);
             transition: transform 0.3s ease-in-out;
+            border-radius: 0.25rem;
         }
         .toast.show {
             transform: translateX(0);
@@ -337,7 +343,10 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Status Badges */
+        /* Status Badges - Square Boxes */
+        .status-badge {
+            border-radius: 0.25rem;
+        }
         .status-badge.status-new {
             background-color: rgba(59, 130, 246, 0.15);
             color: #60a5fa;
@@ -371,9 +380,9 @@
 
         /* Chart Legend Dots */
         .chart-legend-dot {
-            width: 0.625rem; /* w-2.5 */
-            height: 0.625rem; /* h-2.5 */
-            border-radius: 9999px; /* rounded-full */
+            width: 0.625rem;
+            height: 0.625rem;
+            border-radius: 0;
         }
         .chart-legend-blue { background-color: #3B82F6; }
         .chart-legend-emerald { background-color: #10B981; }
@@ -383,26 +392,29 @@
         .chart-legend-gray { background-color: #6B7280; }
 
         .btn-analysis {
-            background-color: rgba(14, 165, 233, 0.1); /* sky-500/10 */
-            color: #38bdf8; /* sky-400 */
+            background-color: rgba(14, 165, 233, 0.1);
+            color: #38bdf8;
             border-color: rgba(14, 165, 233, 0.2);
+            border-radius: 0.25rem;
         }
         .btn-analysis:hover {
             background-color: rgba(14, 165, 233, 0.2);
-            color: #7dd3fc; /* sky-300 */
+            color: #7dd3fc;
         }
 
-        /* Temporal enhancements */
+        /* Temporal enhancements - Square Boxes */
         .nav-glass {
             background: rgba(10, 10, 15, 0.8);
             border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 0;
             backdrop-filter: blur(16px);
-            will-change: transform; /* For smooth sticky behavior */
+            will-change: transform;
         }
 
         .btn-temporal {
             background: linear-gradient(135deg, rgba(99, 102, 241, 0.8) 0%, rgba(79, 70, 229, 0.8) 100%);
             border: 1px solid rgba(99, 102, 241, 0.4);
+            border-radius: 0.25rem;
             color: white;
             transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease, text-shadow 0.3s ease;
             position: relative;
@@ -412,8 +424,7 @@
         .btn-temporal:hover {
             box-shadow: var(--shadow-neon);
             border-color: rgba(99, 102, 241, 0.9);
-            transform: translateY(-3px); /* Slightly more pronounced effect */
-            /* New Stuff: Add a subtle glow to the button text on hover */
+            transform: translateY(-3px);
             text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
         }
 
@@ -441,18 +452,19 @@
 
         /* Page Loader Spinner */
         .loader-spinner {
-            width: 56px; /* w-14 */
-            height: 56px; /* h-14 */
-            border: 5px solid rgba(99, 102, 241, 0.2); /* border-indigo-500/20 */
-            border-top-color: #a855f7; /* neon-purple */
-            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            border: 5px solid rgba(99, 102, 241, 0.2);
+            border-top-color: #a855f7;
+            border-radius: 0;
             animation: spin 1s linear infinite;
         }
 
-        /* Mobile menu dark theme */
+        /* Mobile menu dark theme - Square Boxes */
         .mobile-menu-dark {
             background: rgba(10, 10, 15, 0.95);
             border-top: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 0;
             backdrop-filter: blur(16px);
         }
 
@@ -473,7 +485,7 @@
                 <div class="flex items-center justify-between h-16">
                     <div class="flex items-center">
                         <a href="{{ url_for('dashboard') }}" class="flex items-center space-x-3 group">
-                            <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-lg transition-all duration-200 temporal-glow">
+                            <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm group-hover:shadow-lg transition-all duration-200 temporal-glow" style="border-radius: 0.25rem;">
                                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" aria-hidden="true"></path>
                                 </svg>
@@ -485,10 +497,10 @@
                         <div class="hidden md:block ml-10">
                             <div class="flex items-center space-x-1">
                                 {% if current_user.is_authenticated %}
-                                <a href="{{ url_for('dashboard') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200">Dashboard</a>
-                                <a href="{{ url_for('profile') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200">Profile</a>
-                                <a href="{{ url_for('outreach_studio') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200">Outreach Studio</a>
-                                <a href="{{ url_for('learning_path') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200">Learning Path</a>
+                                <a href="{{ url_for('dashboard') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 px-3 py-2 text-sm font-medium transition-all duration-200" style="border-radius: 0.25rem;">Dashboard</a>
+                                <a href="{{ url_for('profile') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 px-3 py-2 text-sm font-medium transition-all duration-200" style="border-radius: 0.25rem;">Profile</a>
+                                <a href="{{ url_for('outreach_studio') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 px-3 py-2 text-sm font-medium transition-all duration-200" style="border-radius: 0.25rem;">Outreach Studio</a>
+                                <a href="{{ url_for('learning_path') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 px-3 py-2 text-sm font-medium transition-all duration-200" style="border-radius: 0.25rem;">Learning Path</a>
                                 {% endif %}
                             </div>
                         </div>
@@ -498,20 +510,20 @@
                         {% if current_user.is_authenticated %}
                         <div class="hidden md:flex items-center space-x-3">
                             <div class="text-sm text-gray-400">Welcome back!</div>
-                            <a href="{{ url_for('logout') }}" class="inline-flex items-center px-3 py-2 border border-gray-600 shadow-sm text-sm font-medium rounded-lg text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 transition-colors">
+                            <a href="{{ url_for('logout') }}" class="inline-flex items-center px-3 py-2 border border-gray-600 shadow-sm text-sm font-medium text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 transition-colors" style="border-radius: 0.25rem;">
                                 Sign out
                             </a>
                         </div>
                         {% else %}
                         <div class="hidden md:flex items-center space-x-3">
                             <a href="{{ url_for('login') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">Sign in</a>
-                            <a href="{{ url_for('register') }}" class="btn-temporal inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg shadow-sm">
+                            <a href="{{ url_for('register') }}" class="btn-temporal inline-flex items-center px-4 py-2 text-sm font-medium shadow-sm">
                                 Get started
                             </a>
                         </div>
                         {% endif %}
                         <div class="md:hidden">
-                            <button type="button" @click="mobileMenuOpen = !mobileMenuOpen" class="inline-flex items-center justify-center p-2 rounded-lg text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors" aria-controls="mobile-menu" :aria-expanded="mobileMenuOpen">
+                            <button type="button" @click="mobileMenuOpen = !mobileMenuOpen" class="inline-flex items-center justify-center p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors" aria-controls="mobile-menu" :aria-expanded="mobileMenuOpen" style="border-radius: 0.25rem;">
                                 <span class="sr-only">Open main menu</span>
                                 <svg class="h-6 w-6" :class="{'hidden': mobileMenuOpen, 'block': !mobileMenuOpen}" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -529,16 +541,16 @@
             <div class="md:hidden mobile-menu-dark" id="mobile-menu" role="navigation" aria-label="Mobile menu" x-show="mobileMenuOpen" x-transition x-cloak>
                 <div class="px-4 pt-2 pb-3 space-y-1">
                     {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('dashboard') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block rounded-lg px-3 py-2 text-base font-medium">Dashboard</a>
-                    <a href="{{ url_for('profile') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block rounded-lg px-3 py-2 text-base font-medium">Profile</a>
-                    <a href="{{ url_for('outreach_studio') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block rounded-lg px-3 py-2 text-base font-medium">Outreach Studio</a>
-                    <a href="{{ url_for('learning_path') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block rounded-lg px-3 py-2 text-base font-medium">Learning Path</a>
+                    <a href="{{ url_for('dashboard') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block px-3 py-2 text-base font-medium" style="border-radius: 0.25rem;">Dashboard</a>
+                    <a href="{{ url_for('profile') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block px-3 py-2 text-base font-medium" style="border-radius: 0.25rem;">Profile</a>
+                    <a href="{{ url_for('outreach_studio') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block px-3 py-2 text-base font-medium" style="border-radius: 0.25rem;">Outreach Studio</a>
+                    <a href="{{ url_for('learning_path') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block px-3 py-2 text-base font-medium" style="border-radius: 0.25rem;">Learning Path</a>
                     <div class="border-t border-gray-700 pt-2 mt-2">
-                        <a href="{{ url_for('logout') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block rounded-lg px-3 py-2 text-base font-medium">Sign out</a>
+                        <a href="{{ url_for('logout') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block px-3 py-2 text-base font-medium" style="border-radius: 0.25rem;">Sign out</a>
                     </div>
                     {% else %}
-                    <a href="{{ url_for('login') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block rounded-lg px-3 py-2 text-base font-medium">Sign in</a>
-                    <a href="{{ url_for('register') }}" class="btn-temporal block rounded-lg px-3 py-2 text-base font-medium">Get started</a>
+                    <a href="{{ url_for('login') }}" class="text-gray-300 hover:text-white hover:bg-gray-800/50 block px-3 py-2 text-base font-medium" style="border-radius: 0.25rem;">Sign in</a>
+                    <a href="{{ url_for('register') }}" class="btn-temporal block px-3 py-2 text-base font-medium">Get started</a>
                     {% endif %}
                 </div>
             </div>
@@ -553,7 +565,8 @@
         {% endif %}
         {% endwith %}
         <main class="flex-1" id="main-content">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-4"
+>
                 {% block content %}{% endblock %}
             </div>
         </main>
@@ -574,11 +587,9 @@
         
         // --- Dynamic Toast Notification System ---
         function showToast(message, type = 'info', triggerElement = null) {
-            // --- Card Background Highlight ---
             let cardBackdrop = null;
             const jobCard = triggerElement ? triggerElement.closest('.job-item') : null;
 
-            // Remove any existing toast
             const existingToast = document.getElementById('dynamic-toast');
             if (existingToast) {
                 existingToast.remove();
@@ -588,16 +599,13 @@
                 existingBackdrop.remove();
             }
             
-            // Create the toast element
             const toast = document.createElement('div');
             toast.id = 'dynamic-toast';
             toast.setAttribute('role', 'status');
             toast.setAttribute('aria-live', 'polite');
 
-            // Base classes for a minimalistic design
-            let classes = 'absolute z-[1001] px-4 py-2.5 rounded-md shadow-lg text-sm font-medium transition-all duration-300 ease-in-out';
+            let classes = 'absolute z-[1001] px-4 py-2.5 shadow-lg text-sm font-medium transition-all duration-300 ease-in-out';
             
-            // Type-specific classes
             const typeStyles = {
                 success: 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20',
                 error: 'bg-red-500/10 text-red-300 border border-red-500/20',
@@ -605,18 +613,18 @@
                 info: 'bg-sky-500/10 text-sky-300 border border-sky-500/20'
             };
             toast.className = `${classes} ${typeStyles[type] || typeStyles.info}`;
+            toast.style.borderRadius = '0.25rem';
             toast.textContent = message;
 
-            // Initial state for animation
             toast.style.opacity = '0';
             toast.style.transform = 'translateY(10px)';
 
             document.body.appendChild(toast);
 
-            // --- Create and animate card backdrop if a job card is found ---
             if (jobCard) {
                 cardBackdrop = document.createElement('div');
-                cardBackdrop.className = 'toast-card-backdrop fixed bg-indigo-500/10 rounded-2xl z-[1] transition-all duration-300 ease-in-out';
+                cardBackdrop.className = 'toast-card-backdrop fixed bg-indigo-500/10 z-[1] transition-all duration-300 ease-in-out';
+                cardBackdrop.style.borderRadius = '0.25rem';
                 const cardRect = jobCard.getBoundingClientRect();
                 cardBackdrop.style.top = `${cardRect.top + window.scrollY}px`;
                 cardBackdrop.style.left = `${cardRect.left + window.scrollX}px`;
@@ -631,7 +639,6 @@
                 });
             }
 
-            // Position the toast
             if (triggerElement) {
                 const rect = triggerElement.getBoundingClientRect();
                 const toastHeight = toast.offsetHeight;
@@ -639,7 +646,6 @@
                 const spaceAbove = rect.top;
 
                 let topPosition;
-                // Prefer to show above if there's enough space (toast height + 15px margin), otherwise show below.
                 if (spaceAbove > toastHeight + 15) {
                     topPosition = rect.top + window.scrollY - toastHeight - 10;
                 } else {
@@ -647,36 +653,32 @@
                 }
                 toast.style.top = `${topPosition}px`;
 
-                // Center horizontally, but clamp to viewport edges to prevent overflow.
                 let leftPosition = rect.left + (rect.width / 2) - (toastWidth / 2);
-                leftPosition = Math.max(10, leftPosition); // Ensure it's not off-screen to the left
-                leftPosition = Math.min(leftPosition, window.innerWidth - toastWidth - 10); // Ensure it's not off-screen to the right
+                leftPosition = Math.max(10, leftPosition);
+                leftPosition = Math.min(leftPosition, window.innerWidth - toastWidth - 10);
                 toast.style.left = `${leftPosition}px`;
             } else {
-                // Fallback to top-center of the viewport
                 toast.style.top = '20px';
                 toast.style.left = '50%';
                 toast.style.transform = 'translateX(-50%) translateY(10px)';
-                toast.style.position = 'fixed'; // Fallback to fixed if no trigger
+                toast.style.position = 'fixed';
             }
 
-            // Animate in
             requestAnimationFrame(() => {
                 toast.style.opacity = '1';
                 toast.style.transform = triggerElement ? 'translateY(0)' : 'translateX(-50%) translateY(0)';
             });
 
-            // Animate out and remove
             const hideToast = () => {
                 toast.style.opacity = '0';
                 toast.style.transform = triggerElement ? 'translateY(-10px)' : 'translateX(-50%) translateY(-10px)';
                 setTimeout(() => {
                     toast.remove();
                     if (cardBackdrop) cardBackdrop.remove();
-                }, 350); // Slightly longer to match backdrop fade
+                }, 350);
             };
 
-            setTimeout(hideToast, 3500); // Toast visible for 3.5 seconds
+            setTimeout(hideToast, 3500);
         }
     </script>
 </body>
