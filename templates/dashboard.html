@@ -4,15 +4,15 @@
     html { scroll-behavior: smooth; }
 </style>
 <!-- Full Page Loader -->
-<div id="page-loader" class="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center z-[9999] transition-opacity duration-300 ease-in-out">
+<div id="page-loader" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-[9999] transition-opacity duration-300 ease-in-out">
     <div class="loader-spinner"></div>
-    <p class="mt-4 text-lg text-gray-400">Loading Dashboard...</p>
+    <p class="mt-4 text-lg text-gray-600">Loading Dashboard...</p>
 </div>
 
 <div id="dashboard-content" class="opacity-0">
 <div class="flex flex-col lg:flex-row gap-8">
     <!-- Left Sidebar: Search & Profiles -->
-    <div class="w-full lg:w-1/3 p-6 bg-gradient-to-b from-gray-800/90 to-gray-900/90 backdrop-blur-lg rounded-xl shadow-xl border border-indigo-500/20 space-y-8">
+    <div class="w-full lg:w-1/3 p-6 bg-white rounded-xl shadow-lg border border-gray-200 space-y-8">
         <!-- Search & Scrape Section -->
         <div class="relative">
             <div class="absolute inset-0 bg-gradient-to-r from-indigo-600/10 to-purple-600/10 rounded-lg"></div>
@@ -20,27 +20,27 @@
                 <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text">New Job Search</h2>
                 <form id="search-form" class="space-y-4" aria-labelledby="new-job-search-heading">
                     <div class="relative">
-                        <label for="search_terms" class="block text-sm font-medium text-gray-300">Keywords (e.g., Python, AI, Data Science)</label>
+                        <label for="search_terms" class="block text-sm font-medium text-gray-700">Keywords (e.g., Python, AI, Data Science)</label>
                         <input type="text" name="search_terms" id="search_terms" placeholder="Keywords" required
                             class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100 placeholder-gray-400 backdrop-blur-sm">
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label for="location" class="block text-sm font-medium text-gray-300">Location (e.g., Bengaluru)</label>
+                            <label for="location" class="block text-sm font-medium text-gray-700">Location (e.g., Bengaluru)</label>
                             <input type="text" name="location" id="location" placeholder="City or 'Remote'"
-                                class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100 placeholder-gray-400 backdrop-blur-sm">
+                                class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-500">
                         </div>
                         <div>
-                            <label for="experience" class="block text-sm font-medium text-gray-300">Experience (e.g., 2-5 years)</label>
+                            <label for="experience" class="block text-sm font-medium text-gray-700">Experience (e.g., 2-5 years)</label>
                             <input type="text" name="experience" id="experience"
                                 placeholder="e.g.'0','1','2-5'"
-                                class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100 placeholder-gray-400 backdrop-blur-sm">
+                                class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-500">
                         </div>
                     </div>
                     <div>
-                        <label for="job_type" class="block text-sm font-medium text-gray-300">Job Type</label>
+                        <label for="job_type" class="block text-sm font-medium text-gray-700">Job Type</label>
                         <select id="job_type" name="job_type"
-                            class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100">
+                            class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900">
                             <option value="">Any</option>
                             <option value="Full-time">Full-time</option>
                             <option value="Part-time">Part-time</option>
@@ -54,7 +54,7 @@
                             <span class="button-text">Start Search</span>
                         </button>
                         <button type="button" id="save-profile-btn"
-                            class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 backdrop-blur-sm transition-all duration-200">
+                            class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
                             Save Profile
                         </button>
                     </div>
@@ -73,7 +73,7 @@
                 <div class="w-full bg-gray-700/50 rounded-full h-2.5 border border-sky-500/20">
                     <div id="progress-bar" class="bg-gradient-to-r from-teal-400 to-sky-500 h-full rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
                 </div>
-                <div class="flex justify-between items-center mt-2 text-xs text-gray-400">
+                <div class="flex justify-between items-center mt-2 text-xs text-gray-600">
                     <span id="progress-status">Initializing...</span>
                     <div id="progress-milestones" class="flex gap-1">
                         <div id="milestone-init" class="w-2 h-2 rounded-full bg-gray-600" title="Initializing"></div>
@@ -96,10 +96,10 @@
                 <div class="space-y-4">
                     {% if saved_profiles %}
                     {% for profile in saved_profiles %}
-                    <div class="bg-gray-800/60 p-4 rounded-lg flex items-center justify-between shadow-sm border border-gray-700/50 backdrop-blur-sm hover:bg-gray-800/80 transition-colors duration-200">
+                    <div class="bg-white p-4 rounded-lg flex items-center justify-between shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors duration-200">
                         <div>
                             <h3 class="font-semibold text-gray-100">{{ profile.profile_name }}</h3>
-                            <p class="text-xs text-gray-400">{{ profile.search_terms }}</p>
+                            <p class="text-xs text-gray-600">{{ profile.search_terms }}</p>
                         </div>
                         <div class="flex gap-2">
                             <form action="{{ url_for('apply_profile', profile_id=profile.id) }}" method="POST"
@@ -116,7 +116,7 @@
                     </div>
                     {% endfor %}
                     {% else %}
-                    <p class="text-sm text-gray-400">No saved profiles. Save a search above!</p>
+                    <p class="text-sm text-gray-600">No saved profiles. Save a search above!</p>
                     {% endif %}
                 </div>
             </div>
@@ -129,15 +129,15 @@
                 <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-green-400 to-teal-400 bg-clip-text">Email Settings</h2>
                 <form action="{{ url_for('update_settings') }}" method="POST" class="space-y-4">
                     <div>
-                        <label for="email_recipients" class="block text-sm font-medium text-gray-300">Recipients (comma-separated)</label>
+                        <label for="email_recipients" class="block text-sm font-medium text-gray-700">Recipients (comma-separated)</label>
                         <input type="text" name="email_recipients" id="email_recipients"
-                            class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100 placeholder-gray-400 backdrop-blur-sm"
+                            class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-500"
                             value="{{ user_settings.email_recipients if user_settings else '' }}">
                     </div>
                     <div class="flex items-center">
                         <input id="send_excel_attachment" name="send_excel_attachment" type="checkbox"
-                            class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-600 rounded bg-gray-700" {% if user_settings and user_settings.send_excel_attachment %}checked{% endif %}>
-                        <label for="send_excel_attachment" class="ml-2 block text-sm text-gray-300">Send Excel attachment</label>
+                            class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded bg-white" {% if user_settings and user_settings.send_excel_attachment %}checked{% endif %}>
+                        <label for="send_excel_attachment" class="ml-2 block text-sm text-gray-700">Send Excel attachment</label>
                     </div>
                     <button type="submit"
                         class="w-full btn-temporal inline-flex justify-center py-2 px-4 text-sm font-medium rounded-md shadow-sm" style="will-change: transform, box-shadow;">
@@ -153,9 +153,9 @@
             <div class="relative p-6">
                 <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text">Calendar Integration</h2>
                 <div class="space-y-4">
-                    <div class="bg-gradient-to-r from-blue-600/20 to-cyan-600/20 border border-blue-500/30 rounded-lg p-4 backdrop-blur-sm">
-                        <h3 class="text-sm font-semibold text-blue-300 mb-2">Auto-Sync Features:</h3>
-                        <ul class="text-xs text-blue-200 space-y-1">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h3 class="text-sm font-semibold text-blue-900 mb-2">Auto-Sync Features:</h3>
+                        <ul class="text-xs text-blue-800 space-y-1">
                             <li>• Interview events when status changes</li>
                             <li>• Application deadline reminders</li>
                             <li>• Follow-up task scheduling</li>
@@ -166,7 +166,7 @@
                     <div class="flex flex-col gap-2">
                         <form action="{{ url_for('test_calendar') }}" method="POST" class="inline">
                             <button type="submit"
-                                class="w-full inline-flex justify-center py-2 px-4 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 backdrop-blur-sm transition-all duration-200">
+                                class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
                                 Test G-Calendar Connection
                             </button>
                         </form>
@@ -187,9 +187,9 @@
                         </form>
                     </div>
 
-                    <div class="text-xs text-gray-400 bg-gray-800/30 border border-gray-700/50 rounded p-2 backdrop-blur-sm">
+                    <div class="text-xs text-gray-700 bg-gray-100 border border-gray-200 rounded p-2">
                         <p><strong>Note:</strong> Requires Google Calendar API access. Make sure your
-                            <code class="text-cyan-400">credentials.json</code> file includes calendar permissions.
+                            <code class="text-indigo-600">credentials.json</code> file includes calendar permissions.
                         </p>
                     </div>
                 </div>
@@ -204,11 +204,11 @@
                 <div class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
                         <button id="load-events-btn"
-                            class="inline-flex justify-center py-2 px-3 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 backdrop-blur-sm transition-all duration-200">
+                            class="inline-flex justify-center py-2 px-3 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
                             Load Events
                         </button>
                         <button id="refresh-events-btn"
-                            class="inline-flex justify-center py-2 px-3 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 backdrop-blur-sm transition-all duration-200">
+                            class="inline-flex justify-center py-2 px-3 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200">
                             Refresh (events)
                         </button>
                         <a href="https://calendar.google.com" target="_blank"
@@ -217,19 +217,19 @@
                         </a>
                     </div>
 
-                    <div class="text-xs text-gray-400 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 border border-blue-500/30 rounded p-2 backdrop-blur-sm">
+                    <div class="text-xs text-gray-700 bg-blue-50 border border-blue-200 rounded p-2">
                         <p><strong>Auto-Sync:</strong> Events automatically refresh every 30 seconds to stay in sync with Google Calendar</p>
                     </div>
 
                     <div id="calendar-events-container" class="hidden">
-                        <div class="bg-gray-800/30 border border-gray-700/50 rounded-lg p-4 max-h-96 overflow-y-auto backdrop-blur-sm">
+                        <div class="bg-white border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto shadow-sm">
                             <div id="events-list" class="space-y-2">
                                 <!-- Events will be loaded here -->
                             </div>
-                            <div id="no-events" class="text-center text-gray-400 py-4 hidden">
+                            <div id="no-events" class="text-center text-gray-700 py-4 hidden">
                                 No job-related calendar events found.
                             </div>
-                            <div id="events-loading" class="text-center text-gray-400 py-4">
+                            <div id="events-loading" class="text-center text-gray-700 py-4">
                                 Loading calendar events...
                             </div>
                         </div>
@@ -240,7 +240,7 @@
     </div>
 
     <!-- Right Content: Job Listings & Filters -->
-    <main class="w-full lg:w-2/3 p-6 bg-gradient-to-b from-gray-800/90 to-gray-900/90 backdrop-blur-lg rounded-xl shadow-xl border border-indigo-500/20" aria-labelledby="job-listings-heading">
+    <main class="w-full lg:w-2/3 p-6 bg-white rounded-xl shadow-lg border border-gray-200" aria-labelledby="job-listings-heading">
         <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
             <div class="flex items-center gap-4">
                 <h1 id="job-listings-heading" class="text-3xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">Your Jobs ({{ total_jobs }})</h1>
