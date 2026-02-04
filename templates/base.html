@@ -476,6 +476,127 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        /* Light Theme Overrides */
+        body.light-theme { 
+            background-color: #ffffff;
+            color: #111827;
+        }
+
+        body.light-theme::before {
+            background-image: 
+                linear-gradient(rgba(99, 102, 241, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99, 102, 241, 0.02) 1px, transparent 1px);
+        }
+
+        .light-theme .nav-glass {
+            background: #ffffff !important;
+            border-bottom: 1px solid rgba(229,231,235,0.6) !important;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
+        }
+
+        .light-theme .bg-gray-800\/90,
+        .light-theme .bg-gray-800\/60,
+        .light-theme .bg-gray-800\/50,
+        .light-theme .bg-gray-800\/40,
+        .light-theme .bg-gray-900\/90,
+        .light-theme .bg-gray-900\/60,
+        .light-theme .bg-gray-900\/30 {
+            background-color: #ffffff !important;
+            color: #111827 !important;
+            border-color: rgba(229,231,235,0.6) !important;
+        }
+
+        .light-theme .text-gray-400,
+        .light-theme .text-gray-300,
+        .light-theme .text-gray-500 { 
+            color: #6b7280 !important; 
+        }
+
+        .light-theme .text-white { 
+            color: #111827 !important; 
+        }
+
+        .light-theme .text-gray-600 {
+            color: #4b5563 !important;
+        }
+
+        .light-theme .border-indigo-500\/20,
+        .light-theme .border-indigo-500\/30 { 
+            border-color: rgba(99,102,241,0.06) !important; 
+        }
+
+        .light-theme .btn-temporal {
+            background: linear-gradient(135deg,#2563eb 0%,#7c3aed 100%) !important;
+            color: #fff !important;
+            border-color: rgba(99,102,241,0.12) !important;
+            box-shadow: 0 4px 14px rgba(99,102,241,0.08);
+        }
+
+        .light-theme .job-item {
+            background: rgba(255, 255, 255, 0.95) !important;
+            border: 1px solid rgba(229, 231, 235, 0.6) !important;
+        }
+
+        .light-theme .job-item:hover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08), 0 0 20px rgba(99, 102, 241, 0.1) !important;
+            border-color: rgba(99, 102, 241, 0.2) !important;
+        }
+
+        .light-theme .mobile-menu-dark {
+            background: #ffffff !important;
+            border-top: 1px solid rgba(229,231,235,0.6) !important;
+        }
+
+        .light-theme .flash-message {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+        }
+
+        .light-theme .tooltip .tooltiptext {
+            background: rgba(255, 255, 255, 0.95) !important;
+            color: #111827 !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+            border: 1px solid rgba(229, 231, 235, 0.8) !important;
+        }
+
+        .light-theme .tooltip .tooltiptext::after {
+            border-color: rgba(255, 255, 255, 0.95) transparent transparent transparent !important;
+        }
+
+        .light-theme #page-loader {
+            background: rgba(255,255,255,0.95) !important;
+            color: #374151 !important;
+        }
+
+        /* Additional light theme text visibility fixes */
+        .light-theme .text-gray-200 {
+            color: #374151 !important;
+        }
+
+        .light-theme .text-gray-100 {
+            color: #1f2937 !important;
+        }
+
+        .light-theme input::placeholder {
+            color: #9ca3af !important;
+        }
+
+        .light-theme input::-webkit-input-placeholder {
+            color: #9ca3af !important;
+        }
+
+        .light-theme input::-moz-placeholder {
+            color: #9ca3af !important;
+        }
+
+        .light-theme input:-ms-input-placeholder {
+            color: #9ca3af !important;
+        }
+
+        .light-theme .placeholder-gray-400 {
+            --tw-placeholder-opacity: 1 !important;
+            color: rgb(156 163 175 / var(--tw-placeholder-opacity)) !important;
+        }
     </style>
 </head>
 <body class="h-full {% block body_class %}{% endblock %}" style="{% block body_style %}{% endblock %}">
@@ -565,8 +686,7 @@
         {% endif %}
         {% endwith %}
         <main class="flex-1" id="main-content">
-            <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-4"
->
+            <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-4">
                 {% block content %}{% endblock %}
             </div>
         </main>

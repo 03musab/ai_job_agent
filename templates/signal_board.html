@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block body_class %}light-theme{% endblock %}
 {% block content %}
 <style>
     @keyframes slide-in-up {
@@ -13,19 +14,120 @@
     }
     .campaign-card { animation: slide-in-up 0.5s ease-out forwards; }
 </style>
+
+<style>
+/* Light Theme Overrides for Signal Board */
+body {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+}
+
+body::before {
+    background-image: 
+        linear-gradient(rgba(99, 102, 241, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99, 102, 241, 0.02) 1px, transparent 1px);
+}
+
+.bg-gradient-to-b.from-gray-800 {
+    background: linear-gradient(to bottom, #ffffff, #f9fafb) !important;
+}
+
+.bg-gray-800\/90,
+.bg-gray-800\/80,
+.bg-gray-800\/60,
+.bg-gray-800\/50,
+.bg-gray-800\/40,
+.bg-gray-900\/90,
+.bg-gray-900\/80,
+.bg-gray-900\/60,
+.bg-gray-900\/30 {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border-color: rgba(229, 231, 235, 0.6) !important;
+}
+
+.text-gray-100,
+.text-gray-200 {
+    color: #111827 !important;
+}
+
+.text-gray-300,
+.text-gray-400,
+.text-gray-500 {
+    color: #6b7280 !important;
+}
+
+.text-white {
+    color: #111827 !important;
+}
+
+.border-gray-700\/50 {
+    border-color: rgba(229, 231, 235, 0.6) !important;
+}
+
+.border-indigo-500\/20,
+.border-indigo-500\/30 {
+    border-color: rgba(99, 102, 241, 0.1) !important;
+}
+
+.hover\:border-pink-500\/50:hover {
+    border-color: rgba(236, 72, 153, 0.3) !important;
+}
+
+.bg-gray-900\/30 {
+    background-color: #f9fafb !important;
+}
+
+.border-t.border-gray-700\/50 {
+    border-color: rgba(229, 231, 235, 0.6) !important;
+}
+
+.text-cyan-400 {
+    color: #0891b2 !important;
+}
+
+.text-green-400 {
+    color: #22c55e !important;
+}
+
+.text-pink-400 {
+    color: #ec4899 !important;
+}
+
+.text-indigo-400 {
+    color: #818cf8 !important;
+}
+
+.text-indigo-300 {
+    color: #a5b4fc !important;
+}
+
+.hover\:text-indigo-300:hover {
+    color: #818cf8 !important;
+}
+
+.text-gray-400 {
+    color: #6b7280 !important;
+}
+
+.hover\:text-white:hover {
+    color: #111827 !important;
+}
+</style>
+
 <!-- Full-screen fixed background -->
 <div class="fixed inset-0 bg-cover bg-center -z-10" style="background-image: url({{ url_for('static', filename='assets/temporalbg.jpg') }});">
-    <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-[4px]"></div>
+    <div class="absolute inset-0 bg-white/90 backdrop-blur-[4px]"></div>
 </div>
 
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
         <div>
-            <h1 class="text-4xl font-bold text-transparent bg-gradient-to-r from-pink-400 to-red-400 bg-clip-text">Signal Board</h1>
-            <p class="mt-1 text-gray-400">Monitor and analyze your outreach campaigns.</p>
+            <h1 class="text-4xl font-bold text-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text">Signal Board</h1>
+            <p class="mt-1 text-gray-600">Monitor and analyze your outreach campaigns.</p>
         </div>
-        <a href="{{ url_for('outreach_studio') }}" class="mt-4 sm:mt-0 inline-flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors">
+        <a href="{{ url_for('outreach_studio') }}" class="mt-4 sm:mt-0 inline-flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" /></svg>
             Back to Outreach Studio
         </a>
@@ -34,14 +136,14 @@
     <!-- Campaigns Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for campaign in campaigns %}
-        <div class="campaign-card bg-gradient-to-b from-gray-800/80 to-gray-900/80 backdrop-blur-lg rounded-xl shadow-xl border border-gray-700/50 transition-all duration-300 transform hover:-translate-y-1 hover:border-pink-500/50" style="animation-delay: {{ loop.index0 * 100 }}ms; opacity: 0;">
+        <div class="campaign-card bg-white border border-gray-200 shadow-md rounded-lg overflow-hidden transition-all duration-300 transform hover:-translate-y-1 hover:border-blue-300 hover:shadow-lg" style="animation-delay: {{ loop.index0 * 100 }}ms; opacity: 0;">
             <div class="p-6">
                 <div class="flex justify-between items-start mb-4">
                     <div>
-                        <h3 class="text-xl font-bold text-gray-100">{{ campaign.campaign_name }}</h3>
-                        <p class="text-xs text-gray-400">{{ campaign.description or 'No description' }}</p>
+                        <h3 class="text-xl font-bold text-gray-900">{{ campaign.campaign_name }}</h3>
+                        <p class="text-xs text-gray-500">{{ campaign.description or 'No description' }}</p>
                     </div>
-                    <span class="px-2 py-0.5 text-xs font-semibold rounded-full uppercase status-badge status-{{ campaign.status }} border">
+                    <span class="px-2 py-0.5 text-xs font-semibold rounded-full uppercase status-badge status-{{ campaign.status }} border" style="border-radius: 0.25rem;">
                         {{ campaign.status }}
                     </span>
                 </div>
@@ -49,33 +151,33 @@
                 <!-- Analytics -->
                 <div class="grid grid-cols-3 gap-4 text-center">
                     <div>
-                        <p class="text-2xl font-bold text-cyan-400">{{ campaign.analytics.total_sent }}</p>
-                        <p class="text-xs text-gray-400">Sent</p>
+                        <p class="text-2xl font-bold text-blue-600">{{ campaign.analytics.total_sent }}</p>
+                        <p class="text-xs text-gray-500">Sent</p>
                     </div>
                     <div>
-                        <p class="text-2xl font-bold text-green-400">{{ campaign.analytics.replied_count }}</p>
-                        <p class="text-xs text-gray-400">Replied</p>
+                        <p class="text-2xl font-bold text-green-600">{{ campaign.analytics.replied_count }}</p>
+                        <p class="text-xs text-gray-500">Replied</p>
                     </div>
                     <div>
-                        <p class="text-2xl font-bold text-pink-400">{{ '%.1f'|format(campaign.analytics.reply_rate) }}%</p>
-                        <p class="text-xs text-gray-400">Reply Rate</p>
+                        <p class="text-2xl font-bold text-pink-600">{{ '%.1f'|format(campaign.analytics.reply_rate) }}%</p>
+                        <p class="text-xs text-gray-500">Reply Rate</p>
                     </div>
                 </div>
             </div>
-            <div class="border-t border-gray-700/50 mt-4 px-6 py-4 bg-gray-900/30 rounded-b-xl">
+            <div class="border-t border-gray-200 mt-4 px-6 py-4 bg-gray-50 rounded-b-lg">
                 <div class="flex justify-end gap-3">
-                    <a href="#" class="text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors">View Timeline</a>
-                    <a href="#" class="text-sm font-medium text-gray-400 hover:text-white transition-colors">Edit Campaign</a>
+                    <a href="#" class="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">View Timeline</a>
+                    <a href="#" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Edit Campaign</a>
                 </div>
             </div>
         </div>
         {% else %}
-        <div class="md:col-span-2 lg:col-span-3 text-center py-16 bg-gray-800/50 rounded-xl border border-gray-700/50">
-            <svg class="mx-auto h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <div class="md:col-span-2 lg:col-span-3 text-center py-16 bg-white rounded-lg border border-gray-200">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
-            <h3 class="mt-2 text-lg font-semibold text-white">No Campaigns Found</h3>
-            <p class="mt-1 text-sm text-gray-400">Create your first campaign to start tracking outreach.</p>
+            <h3 class="mt-2 text-lg font-semibold text-gray-900">No Campaigns Found</h3>
+            <p class="mt-1 text-sm text-gray-500">Create your first campaign to start tracking outreach.</p>
         </div>
         {% endfor %}
     </div>

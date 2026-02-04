@@ -1,21 +1,150 @@
 {% extends "base.html" %}
+{% block body_class %}light-theme{% endblock %}
 {% block content %}
 <!-- Full-screen fixed background -->
 <div class="fixed inset-0 bg-cover bg-center -z-10" style="background-image: url({{ url_for('static', filename='assets/temporalbg.jpg') }});">
-    <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-[4px]"></div>
+    <div class="absolute inset-0 bg-white/90 backdrop-blur-[4px]"></div>
 </div>
+
+<style>
+/* Light Theme Overrides for Outreach Studio */
+body {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+}
+
+body::before {
+    background-image: 
+        linear-gradient(rgba(99, 102, 241, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99, 102, 241, 0.02) 1px, transparent 1px);
+}
+
+.bg-gray-800\/90,
+.bg-gray-800\/60,
+.bg-gray-800\/50,
+.bg-gray-800\/40,
+.bg-gray-900\/90,
+.bg-gray-900\/60,
+.bg-gray-900\/30 {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border-color: rgba(229, 231, 235, 0.6) !important;
+}
+
+.bg-gray-700\/50,
+.bg-gray-700 {
+    background-color: #f3f4f6 !important;
+    color: #111827 !important;
+}
+
+.text-gray-100,
+.text-gray-200 {
+    color: #111827 !important;
+}
+
+.text-gray-300,
+.text-gray-400,
+.text-gray-500 {
+    color: #6b7280 !important;
+}
+
+.text-white {
+    color: #111827 !important;
+}
+
+.border-indigo-500\/20,
+.border-indigo-500\/30,
+.border-indigo-500\/40 {
+    border-color: rgba(99, 102, 241, 0.1) !important;
+}
+
+.border-gray-600,
+.border-gray-700\/50 {
+    border-color: rgba(229, 231, 235, 0.6) !important;
+}
+
+.btn-temporal {
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.08);
+}
+
+.btn-temporal:hover {
+    box-shadow: 0 10px 20px rgba(99, 102, 241, 0.15);
+}
+
+.pulse-dot {
+    background-color: #10b981 !important;
+}
+
+/* Quick search buttons */
+.quick-search-btn {
+    background-color: #f3f4f6 !important;
+    border-color: rgba(99, 102, 241, 0.2) !important;
+    color: #2563eb !important;
+}
+
+.quick-search-btn:hover {
+    background-color: #e5e7eb !important;
+}
+
+/* File input styling */
+.file\:bg-gray-700 {
+    background-color: #e5e7eb !important;
+}
+
+.file\:text-gray-300 {
+    color: #6b7280 !important;
+}
+
+.hover\:file\:bg-gray-600:hover .file\:bg-gray-700 {
+    background-color: #d1d5db !important;
+}
+
+/* Input fields */
+input[type="text"],
+input[type="email"],
+input[type="file"] {
+    background-color: #f9fafb !important;
+    border-color: #e5e7eb !important;
+    color: #111827 !important;
+}
+
+input[type="text"]::placeholder,
+input[type="email"]::placeholder {
+    color: #9ca3af !important;
+}
+
+input:focus {
+    border-color: #2563eb !important;
+    background-color: #ffffff !important;
+}
+
+/* Status messages */
+.text-green-400 {
+    color: #059669 !important;
+}
+
+.text-red-400 {
+    color: #dc2626 !important;
+}
+
+.text-yellow-400 {
+    color: #ca8a04 !important;
+}
+</style>
 
 <div class="relative">
     <!-- Blurred Background Content -->
-    <div class="p-6 bg-gradient-to-b from-gray-800/90 to-gray-900/90 backdrop-blur-lg rounded-xl shadow-xl border border-indigo-500/20">
+    <div class="p-6 bg-white border border-gray-200 shadow-md backdrop-blur-lg rounded-xl overflow-hidden">
         <!-- Header Section -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
             <div>
-                <h1 class="text-4xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">Outreach Studio</h1>
-                <p class="mt-1 text-gray-400">Your central command for cold outreach and networking.</p>
+                <h1 class="text-4xl font-bold text-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text">Outreach Studio</h1>
+                <p class="mt-1 text-gray-600">Your central command for cold outreach and networking.</p>
             </div>
-            <div class="mt-4 sm:mt-0 flex items-center gap-2 px-3 py-1.5 bg-green-900/50 border border-green-500/30 rounded-full text-sm text-green-300">
-                <div class="w-2 h-2 bg-green-400 rounded-full pulse-dot"></div>
+            <div class="mt-4 sm:mt-0 flex items-center gap-2 px-3 py-1.5 bg-green-100 border border-green-300 rounded-full text-sm text-green-700">
+                <div class="w-2 h-2 bg-green-500 rounded-full pulse-dot"></div>
                 <span>Live Sync: <time datetime="{{ last_scan_time }}">{{ last_scan_time.split(' ')[1] }}</time></span>
             </div>
         </div>
@@ -23,90 +152,88 @@
         <!-- Stats Dashboard -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <!-- Total Contacts -->
-            <div class="p-6 bg-gray-800/50 rounded-lg border border-gray-700/50 backdrop-blur-sm text-center">
-                <h3 class="text-sm font-medium text-gray-400">Total Contacts</h3>
-                <p class="text-4xl font-bold text-cyan-400 mt-2">{{ stats.contact_count | default(0) }}</p>
+            <div class="p-6 bg-white rounded-lg border border-gray-200 shadow-sm text-center">
+                <h3 class="text-sm font-medium text-gray-600">Total Contacts</h3>
+                <p class="text-4xl font-bold text-blue-600 mt-2">{{ stats.contact_count | default(0) }}</p>
             </div>
         </div>
 
         <!-- Main Actions (CTAs) -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <a href="{{ url_for('message_vault') }}" class="group block p-6 bg-gradient-to-br from-indigo-600/30 to-purple-600/30 rounded-lg border border-indigo-500/40 hover:border-indigo-400 hover:bg-indigo-600/40 transition-all duration-300 transform hover:-translate-y-1">
-                <h3 class="text-xl font-bold text-white">Compose Message</h3>
-                <p class="text-sm text-gray-300 mt-2">Draft new emails or messages using your saved templates.</p>
+            <a href="{{ url_for('message_vault') }}" class="group block p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg border border-indigo-200 hover:border-indigo-300 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+                <h3 class="text-xl font-bold text-gray-900">Compose Message</h3>
+                <p class="text-sm text-gray-600 mt-2">Draft new emails or messages using your saved templates.</p>
             </a>
-            <a href="{{ url_for('people_radar') }}" class="group block p-6 bg-gradient-to-br from-cyan-600/30 to-blue-600/30 rounded-lg border border-cyan-500/40 hover:border-cyan-400 hover:bg-cyan-600/40 transition-all duration-300 transform hover:-translate-y-1">
-                <h3 class="text-xl font-bold text-white">View Contacts</h3>
-                <p class="text-sm text-gray-300 mt-2">Manage your list of recruiters, hiring managers, and founders.</p>
+            <a href="{{ url_for('people_radar') }}" class="group block p-6 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-lg border border-cyan-200 hover:border-cyan-300 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+                <h3 class="text-xl font-bold text-gray-900">View Contacts</h3>
+                <p class="text-sm text-gray-600 mt-2">Manage your list of recruiters, hiring managers, and founders.</p>
             </a>
-            
         </div>
 
         <!-- Contact Scraping Section -->
-        <div class="p-6 bg-gray-800/50 rounded-lg border border-gray-700/50 backdrop-blur-sm">
-            <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-green-400 to-teal-400 bg-clip-text">Find New Contacts</h2>
-            <p class="text-sm text-gray-400 mb-4">
+        <div class="p-6 bg-white rounded-lg border border-gray-200 shadow-sm">
+            <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text">Find New Contacts</h2>
+            <p class="text-sm text-gray-600 mb-4">
                 Use the AI agent to find relevant people on LinkedIn, X, and other platforms based on hiring signals.
             </p>
             <form id="scrape-contacts-form" class="flex flex-col sm:flex-row gap-4">
                 <input type="text" name="keywords" id="scrape-keywords" placeholder="e.g., 'AI recruiter', 'founder hiring python', 'tech hiring manager'" required
-                    class="flex-grow rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-green-500 focus:ring-green-500 text-gray-100 placeholder-gray-400 backdrop-blur-sm">
+                    class="flex-grow rounded-md bg-white border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400 backdrop-blur-sm" style="border-radius: 0.25rem;">
                 <button type="submit" id="scrape-contacts-btn"
-                    class="btn-temporal inline-flex items-center justify-center px-6 py-2 text-sm font-medium rounded-md shadow-sm bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700">
-                    
+                    class="btn-temporal inline-flex items-center justify-center px-6 py-2 text-sm font-medium rounded-md shadow-sm bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700" style="border-radius: 0.25rem;">
                     Scrape Contacts
                 </button>
             </form>
             <div class="mt-3 flex flex-wrap gap-2">
-                <span class="text-xs text-gray-400 self-center mr-2">Quick Search:</span>
-                <button type="button" class="quick-search-btn px-3 py-1 text-xs bg-gray-700/50 hover:bg-gray-600/50 rounded-full text-cyan-300 border border-cyan-500/30 transition-colors" data-term="HR Manager">HR Manager</button>
-                <button type="button" class="quick-search-btn px-3 py-1 text-xs bg-gray-700/50 hover:bg-gray-600/50 rounded-full text-purple-300 border border-purple-500/30 transition-colors" data-term="Technical Recruiter">Tech Recruiter</button>
-                <button type="button" class="quick-search-btn px-3 py-1 text-xs bg-gray-700/50 hover:bg-gray-600/50 rounded-full text-pink-300 border border-pink-500/30 transition-colors" data-term="Head of People">Head of People</button>
+                <span class="text-xs text-gray-600 self-center mr-2">Quick Search:</span>
+                <button type="button" class="quick-search-btn px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full text-blue-600 border border-blue-200 transition-colors" data-term="HR Manager" style="border-radius: 0.25rem;">HR Manager</button>
+                <button type="button" class="quick-search-btn px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full text-purple-600 border border-purple-200 transition-colors" data-term="Technical Recruiter" style="border-radius: 0.25rem;">Tech Recruiter</button>
+                <button type="button" class="quick-search-btn px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full text-pink-600 border border-pink-200 transition-colors" data-term="Head of People" style="border-radius: 0.25rem;">Head of People</button>
             </div>
             <div id="scrape-status-container" class="mt-4 hidden">
-                <div class="w-full bg-gray-700/50 rounded-full h-2 mb-2 overflow-hidden">
-                    <div id="scrape-progress-bar" class="bg-gradient-to-r from-green-400 to-teal-400 h-full rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                <div class="w-full bg-gray-200 rounded-full h-2 mb-2 overflow-hidden">
+                    <div id="scrape-progress-bar" class="bg-gradient-to-r from-green-400 to-teal-400 h-full rounded-full transition-all duration-500 ease-out" style="width: 0%; border-radius: 0.25rem;"></div>
                 </div>
-                <p id="scrape-status-text" class="text-sm text-center text-gray-400">Starting contact scraping...</p>
+                <p id="scrape-status-text" class="text-sm text-center text-gray-600">Starting contact scraping...</p>
             </div>
         </div>
 
         <!-- Manual Contact Entry Section -->
-        <div class="mt-8 pt-8 border-t border-gray-700/50">
-            <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text">Manually Add HR Contact</h2>
-            <p class="text-sm text-gray-400 mb-6">
+        <div class="mt-8 pt-8 border-t border-gray-200">
+            <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text">Manually Add HR Contact</h2>
+            <p class="text-sm text-gray-600 mb-6">
                 Enter contact details below. We will perform a deep verification to ensure the email address is deliverable.
             </p>
             <form id="manual-contact-form" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label for="contact-name" class="block text-sm font-medium text-gray-400 mb-1">Full Name</label>
+                        <label for="contact-name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                         <input type="text" id="contact-name" name="name" required 
-                            class="w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-100 placeholder-gray-400 backdrop-blur-sm">
+                            class="w-full rounded-md bg-white border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400 backdrop-blur-sm" style="border-radius: 0.25rem;">
                     </div>
                     <div>
-                        <label for="contact-role" class="block text-sm font-medium text-gray-400 mb-1">Role</label>
+                        <label for="contact-role" class="block text-sm font-medium text-gray-700 mb-1">Role</label>
                         <input type="text" id="contact-role" name="role" placeholder="e.g. HR Manager" required 
-                            class="w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-100 placeholder-gray-400 backdrop-blur-sm">
+                            class="w-full rounded-md bg-white border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400 backdrop-blur-sm" style="border-radius: 0.25rem;">
                     </div>
                     <div>
-                        <label for="contact-company" class="block text-sm font-medium text-gray-400 mb-1">Company</label>
+                        <label for="contact-company" class="block text-sm font-medium text-gray-700 mb-1">Company</label>
                         <input type="text" id="contact-company" name="company" required 
-                            class="w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-100 placeholder-gray-400 backdrop-blur-sm">
+                            class="w-full rounded-md bg-white border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400 backdrop-blur-sm" style="border-radius: 0.25rem;">
                     </div>
                     <div>
-                        <label for="contact-email" class="block text-sm font-medium text-gray-400 mb-1">Email Address</label>
+                        <label for="contact-email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
                         <div class="relative">
                             <input type="email" id="contact-email" name="email" required 
-                                class="w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-100 placeholder-gray-400 backdrop-blur-sm pr-10">
+                                class="w-full rounded-md bg-white border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400 backdrop-blur-sm pr-10" style="border-radius: 0.25rem;">
                             <div id="email-status-icon" class="absolute right-3 top-2.5 text-gray-400"></div>
                         </div>
                     </div>
                 </div>
                 <div class="flex items-center justify-end gap-4">
-                    <span id="manual-add-status" class="text-sm text-gray-400"></span>
+                    <span id="manual-add-status" class="text-sm text-gray-600"></span>
                     <button type="submit" id="add-contact-btn"
-                        class="btn-temporal inline-flex items-center justify-center px-6 py-2 text-sm font-medium rounded-md shadow-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
+                        class="btn-temporal inline-flex items-center justify-center px-6 py-2 text-sm font-medium rounded-md shadow-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white" style="border-radius: 0.25rem;">
                         Verify & Add Contact
                     </button>
                 </div>
@@ -114,20 +241,20 @@
         </div>
 
         <!-- Bulk Import Section -->
-        <div class="mt-8 pt-8 border-t border-gray-700/50">
-            <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text">Bulk Import Contacts</h2>
-            <p class="text-sm text-gray-400 mb-6">
+        <div class="mt-8 pt-8 border-t border-gray-200">
+            <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text">Bulk Import Contacts</h2>
+            <p class="text-sm text-gray-600 mb-6">
                 Upload a CSV file to add multiple contacts at once. Ensure columns like Name, Email, Role, Company are present.
             </p>
             <form id="bulk-import-form" class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                 <input type="file" name="contacts_csv" id="contacts_csv" accept=".csv" required
-                    class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-gray-300 hover:file:bg-gray-600 cursor-pointer">
+                    class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-200 file:text-gray-900 hover:file:bg-gray-300 cursor-pointer" style="border-radius: 0.25rem;">
                 <button type="submit" id="bulk-import-btn"
-                    class="btn-temporal inline-flex items-center justify-center px-6 py-2 text-sm font-medium rounded-md shadow-sm bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white whitespace-nowrap">
+                    class="btn-temporal inline-flex items-center justify-center px-6 py-2 text-sm font-medium rounded-md shadow-sm bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white whitespace-nowrap" style="border-radius: 0.25rem;">
                     Upload CSV
                 </button>
             </form>
-            <p id="bulk-import-status" class="mt-2 text-sm text-gray-400"></p>
+            <p id="bulk-import-status" class="mt-2 text-sm text-gray-600"></p>
         </div>
     </div>
 
@@ -190,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else if (data.state === 'FAILURE') {
                         clearInterval(pollInterval);
                         statusText.textContent = "Scraping failed: " + status;
-                        statusText.classList.add('text-red-400');
+                        statusText.classList.add('text-red-600');
                     }
                 })
                 .catch(error => {
@@ -230,7 +357,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 addBtn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Verifying...';
                 statusIcon.innerHTML = '';
                 manualStatus.textContent = "Checking email existence...";
-                manualStatus.className = "text-sm text-yellow-400";
+                manualStatus.className = "text-sm text-yellow-600";
 
                 try {
                     // Step 1: Verify Email
@@ -247,8 +374,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     // Step 2: Add Contact
                     manualStatus.textContent = "Email verified! Saving...";
-                    manualStatus.className = "text-sm text-green-400";
-                    statusIcon.innerHTML = '<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                    manualStatus.className = "text-sm text-green-600";
+                    statusIcon.innerHTML = '<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
 
                     const addResponse = await fetch('/add_contact', {
                         method: 'POST',
@@ -266,8 +393,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 } catch (error) {
                     console.error(error);
                     manualStatus.textContent = error.message;
-                    manualStatus.className = "text-sm text-red-400";
-                    statusIcon.innerHTML = '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                    manualStatus.className = "text-sm text-red-600";
+                    statusIcon.innerHTML = '<svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
                     addBtn.disabled = false;
                     addBtn.textContent = 'Verify & Add Contact';
                 }
@@ -288,14 +415,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (!fileInput.files.length) {
                     bulkStatus.textContent = "Please select a file.";
-                    bulkStatus.className = "mt-2 text-sm text-red-400";
+                    bulkStatus.className = "mt-2 text-sm text-red-600";
                     return;
                 }
 
                 bulkBtn.disabled = true;
                 bulkBtn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Uploading...';
                 bulkStatus.textContent = "Processing CSV...";
-                bulkStatus.className = "mt-2 text-sm text-yellow-400";
+                bulkStatus.className = "mt-2 text-sm text-yellow-600";
 
                 try {
                     const response = await fetch('/import_contacts', {
@@ -306,7 +433,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     if (data.success) {
                         bulkStatus.textContent = data.message;
-                        bulkStatus.className = "mt-2 text-sm text-green-400";
+                        bulkStatus.className = "mt-2 text-sm text-green-600";
                         setTimeout(() => location.reload(), 1500);
                     } else {
                         throw new Error(data.message || "Upload failed.");
@@ -314,7 +441,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } catch (error) {
                     console.error(error);
                     bulkStatus.textContent = error.message;
-                    bulkStatus.className = "mt-2 text-sm text-red-400";
+                    bulkStatus.className = "mt-2 text-sm text-red-600";
                     bulkBtn.disabled = false;
                     bulkBtn.textContent = 'Upload CSV';
                 }
