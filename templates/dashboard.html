@@ -1,12 +1,29 @@
 {% extends "base.html" %}
+{% block body_class %}light-theme{% endblock %}
 {% block content %}
 <style>
     html { scroll-behavior: smooth; }
+    
+    /* Light theme overrides for dashboard */
+    .bg-gray-800\/60 { background-color: rgba(248, 249, 250, 0.95) !important; border-color: rgba(229, 231, 235, 0.6) !important; }
+    .bg-gray-800\/50 { background-color: rgba(248, 249, 250, 0.95) !important; border-color: rgba(229, 231, 235, 0.6) !important; }
+    .bg-gray-800\/40 { background-color: rgba(248, 249, 250, 0.95) !important; border-color: rgba(229, 231, 235, 0.6) !important; }
+    .bg-gray-900\/90 { background-color: rgba(255, 255, 255, 0.95) !important; border-color: rgba(229, 231, 235, 0.6) !important; }
+    .bg-gray-900\/60 { background-color: rgba(255, 255, 255, 0.95) !important; border-color: rgba(229, 231, 235, 0.6) !important; }
+    .bg-gray-900\/30 { background-color: rgba(248, 249, 250, 0.9) !important; border-color: rgba(229, 231, 235, 0.4) !important; }
+    .bg-gray-900\/50 { background-color: rgba(248, 249, 250, 0.95) !important; border-color: rgba(229, 231, 235, 0.6) !important; }
+    .text-gray-300 { color: #374151 !important; }
+    .text-gray-400 { color: #6b7280 !important; }
+    .text-gray-600 { color: #4b5563 !important; }
+    .border-gray-700\/50 { border-color: rgba(229, 231, 235, 0.6) !important; }
+    .border-gray-600 { border-color: #cbd5e1 !important; }
+    .border-gray-700 { border-color: #e5e7eb !important; }
+    .bg-gray-100 { background-color: #f9fafb !important; }
 </style>
 <!-- Full Page Loader -->
 <div id="page-loader" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-[9999] transition-opacity duration-300 ease-in-out">
     <div class="loader-spinner"></div>
-    <p class="mt-4 text-lg text-gray-600">Loading Dashboard...</p>
+    <p class="mt-4 text-lg text-gray-700">Loading Dashboard...</p>
 </div>
 
 <div id="dashboard-content" class="opacity-0">
@@ -15,14 +32,14 @@
     <div class="w-full lg:w-1/3 p-6 bg-white rounded-xl shadow-lg border border-gray-200 space-y-8">
         <!-- Search & Scrape Section -->
         <div class="relative">
-            <div class="absolute inset-0 bg-gradient-to-r from-indigo-600/10 to-purple-600/10 rounded-lg"></div>
+            <div class="absolute inset-0 bg-blue-50 rounded-lg"></div>
             <div class="relative p-6">
-                <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text">New Job Search</h2>
+                <h2 class="text-2xl font-bold mb-4 text-gray-900">New Job Search</h2>
                 <form id="search-form" class="space-y-4" aria-labelledby="new-job-search-heading">
                     <div class="relative">
                         <label for="search_terms" class="block text-sm font-medium text-gray-700">Keywords (e.g., Python, AI, Data Science)</label>
                         <input type="text" name="search_terms" id="search_terms" placeholder="Keywords" required
-                            class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100 placeholder-gray-400 backdrop-blur-sm">
+                            class="mt-1 block w-full rounded-md bg-gray-50 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-500 backdrop-blur-sm">
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -64,25 +81,25 @@
 
         <!-- Real-time Progress Bar Section -->
         <div id="progress-container" class="hidden mt-6 relative">
-            <div class="absolute inset-0 bg-gradient-to-r from-teal-600/10 to-sky-600/10 rounded-lg"></div>
+            <div class="absolute inset-0 bg-blue-50 rounded-lg"></div>
             <div class="relative p-4">
                 <div class="flex justify-between items-center mb-2">
-                    <h3 class="text-lg font-bold text-transparent bg-gradient-to-r from-teal-400 to-sky-400 bg-clip-text">Search Progress</h3>
-                    <span id="progress-percentage" class="text-sm font-semibold text-sky-300">0%</span>
+                    <h3 class="text-lg font-bold text-blue-700">Search Progress</h3>
+                    <span id="progress-percentage" class="text-sm font-semibold text-blue-600">0%</span>
                 </div>
-                <div class="w-full bg-gray-700/50 rounded-full h-2.5 border border-sky-500/20">
-                    <div id="progress-bar" class="bg-gradient-to-r from-teal-400 to-sky-500 h-full rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div id="progress-bar" class="bg-blue-600 h-full rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
                 </div>
-                <div class="flex justify-between items-center mt-2 text-xs text-gray-600">
+                <div class="flex justify-between items-center mt-2 text-xs text-gray-700">
                     <span id="progress-status">Initializing...</span>
                     <div id="progress-milestones" class="flex gap-1">
-                        <div id="milestone-init" class="w-2 h-2 rounded-full bg-gray-600" title="Initializing"></div>
-                        <div id="milestone-scrape" class="w-2 h-2 rounded-full bg-gray-600" title="Scraping"></div>
-                        <div id="milestone-save" class="w-2 h-2 rounded-full bg-gray-600" title="Saving"></div>
-                        <div id="milestone-report" class="w-2 h-2 rounded-full bg-gray-600" title="Reporting"></div>
+                        <div id="milestone-init" class="w-2 h-2 rounded-full bg-gray-400" title="Initializing"></div>
+                        <div id="milestone-scrape" class="w-2 h-2 rounded-full bg-gray-400" title="Scraping"></div>
+                        <div id="milestone-save" class="w-2 h-2 rounded-full bg-gray-400" title="Saving"></div>
+                        <div id="milestone-report" class="w-2 h-2 rounded-full bg-gray-400" title="Reporting"></div>
                     </div>
                 </div>
-                <div id="progress-error" class="hidden mt-2 text-sm text-red-400 bg-red-900/50 border border-red-500/30 rounded-md p-2">
+                <div id="progress-error" class="hidden mt-2 text-sm text-red-700 bg-red-50 border border-red-300 rounded-md p-2">
                     <!-- Error messages will appear here -->
                 </div>
             </div>
@@ -90,27 +107,25 @@
 
         <!-- Saved Profiles Section -->
         <div id="saved-profiles-container" class="relative">
-            <div class="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 rounded-lg"></div>
+            <div class="absolute inset-0 bg-gray-50 rounded-lg"></div>
             <div class="relative p-6">
-                <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text">Saved Profiles</h2>
+                <h2 class="text-2xl font-bold mb-4 text-gray-900">Saved Profiles</h2>
                 <div class="space-y-4">
                     {% if saved_profiles %}
                     {% for profile in saved_profiles %}
-                    <div class="bg-white p-4 rounded-lg flex items-center justify-between shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors duration-200">
+                    <div class="bg-white p-4 rounded-lg flex items-center justify-between shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200">
                         <div>
-                            <h3 class="font-semibold text-gray-100">{{ profile.profile_name }}</h3>
+                            <h3 class="font-semibold text-gray-900">{{ profile.profile_name }}</h3>
                             <p class="text-xs text-gray-600">{{ profile.search_terms }}</p>
                         </div>
                         <div class="flex gap-2">
                             <form action="{{ url_for('apply_profile', profile_id=profile.id) }}" method="POST"
                                 class="inline-block apply-profile-form">
-                                <button type="submit"
-                                    class="text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors duration-200">Apply</button>
+                                <button type="submit" class="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors duration-200">Apply</button>
                             </form>
                             <form action="{{ url_for('delete_profile', profile_id=profile.id) }}" method="POST"
                                 onsubmit="return confirm('Are you sure you want to delete this profile?');">
-                                <button type="submit"
-                                    class="text-red-400 hover:text-red-300 text-sm font-medium transition-colors duration-200">Delete</button>
+                                <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium transition-colors duration-200">Delete</button>
                             </form>
                         </div>
                     </div>
@@ -124,9 +139,9 @@
 
         <!-- User Settings Section -->
         <div class="relative">
-            <div class="absolute inset-0 bg-gradient-to-r from-green-600/10 to-teal-600/10 rounded-lg"></div>
+            <div class="absolute inset-0 bg-gray-50 rounded-lg"></div>
             <div class="relative p-6">
-                <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-green-400 to-teal-400 bg-clip-text">Email Settings</h2>
+                <h2 class="text-2xl font-bold mb-4 text-gray-900">Email Settings</h2>
                 <form action="{{ url_for('update_settings') }}" method="POST" class="space-y-4">
                     <div>
                         <label for="email_recipients" class="block text-sm font-medium text-gray-700">Recipients (comma-separated)</label>
@@ -149,9 +164,9 @@
 
         <!-- Calendar Integration Section -->
         <div class="relative">
-            <div class="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-cyan-600/10 rounded-lg"></div>
+            <div class="absolute inset-0 bg-blue-50 rounded-lg"></div>
             <div class="relative p-6">
-                <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text">Calendar Integration</h2>
+                <h2 class="text-2xl font-bold mb-4 text-gray-900">Calendar Integration</h2>
                 <div class="space-y-4">
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <h3 class="text-sm font-semibold text-blue-900 mb-2">Auto-Sync Features:</h3>
@@ -173,7 +188,7 @@
 
                         <form action="{{ url_for('reauth_google') }}" method="POST" class="inline">
                             <button type="submit"
-                                class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all duration-200">
+                                class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
                                 Sign in with google account
                             </button>
                         </form>
@@ -181,7 +196,7 @@
                         <form action="{{ url_for('sync_calendar') }}" method="POST" class="inline"
                             onsubmit="return confirm('This will create calendar events for all your jobs. Continue?');">
                             <button type="submit"
-                                class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200">
+                                class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200">
                                 Sync All Status Jobs to Calendar
                             </button>
                         </form>
@@ -198,9 +213,9 @@
 
         <!-- Calendar Events Management -->
         <div class="relative">
-            <div class="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-indigo-600/10 rounded-lg"></div>
+            <div class="absolute inset-0 bg-gray-50 rounded-lg"></div>
             <div class="relative p-6">
-                <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text">My Calendar Events</h2>
+                <h2 class="text-2xl font-bold mb-4 text-gray-900">My Calendar Events</h2>
                 <div class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
                         <button id="load-events-btn"
@@ -212,7 +227,7 @@
                             Refresh (events)
                         </button>
                         <a href="https://calendar.google.com" target="_blank"
-                            class="inline-flex justify-center py-2 px-3 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
+                            class="inline-flex justify-center py-2 px-3 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
                             Open Calendar
                         </a>
                     </div>
@@ -243,109 +258,70 @@
     <main class="w-full lg:w-2/3 p-6 bg-white rounded-xl shadow-lg border border-gray-200" aria-labelledby="job-listings-heading">
         <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
             <div class="flex items-center gap-4">
-                <h1 id="job-listings-heading" class="text-3xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">Your Jobs ({{ total_jobs }})</h1>
+                <h1 id="job-listings-heading" class="text-3xl font-bold text-gray-900">Your Jobs ({{ total_jobs }})</h1>
             </div>
             <form action="{{ url_for('delete_all_jobs') }}" method="POST"
                 onsubmit="return confirm('Are you sure you want to delete ALL jobs? This cannot be undone.');">
                 <button type="submit"
-                    class="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium py-2 px-4 rounded-md shadow-sm transition-all duration-200">Delete All</button>
+                    class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md shadow-sm transition-all duration-200">Delete All</button>
             </form>
         </div>
 
-        <!-- Job Status Chart -->
-        <div class="mb-8 bg-gradient-to-r from-gray-800/60 to-gray-900/60 rounded-2xl shadow-xl border border-indigo-500/20 overflow-hidden backdrop-blur-lg" aria-labelledby="chart-heading">
-            <!-- Chart Header -->
-            <div class="bg-gradient-to-r from-gray-700/30 to-gray-800/30 px-6 py-5 border-b border-indigo-500/20 backdrop-blur-sm">
+        <!-- Application Status Overview -->
+        <div class="mb-8 bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden" aria-labelledby="chart-heading">
+            <!-- Overview Header -->
+            <div class="bg-gray-50 px-6 py-5 border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-3">
-                        <div class="p-2 bg-gradient-to-r from-indigo-600/30 to-purple-600/30 rounded-lg backdrop-blur-sm" aria-hidden="true">
-                            <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="p-2 bg-blue-100 rounded-lg" aria-hidden="true">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
                                 </path>
                             </svg>
                         </div>
                         <div>
-                            <h2 id="chart-heading" class="text-xl font-semibold text-gray-100">Application Status Overview</h2>
-                            <p class="text-sm text-gray-400">Track your job application progress</p>
-                        </div>
-                    </div>
-                    <div class="hidden sm:flex items-center space-x-4 text-sm text-gray-400">
-                        <div class="flex items-center">
-                            <div class="w-2 h-2 bg-green-500 rounded-full mr-2 pulse-dot"></div>
-                            <span>Active Applications</span>
+                            <h2 id="chart-heading" class="text-lg font-semibold text-gray-900">Application Status Overview</h2>
+                            <p class="text-sm text-gray-500">Track your application progress</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Chart Content -->
-            <div class="p-6">
-                <div class="flex flex-col lg:flex-row items-center gap-8">
-                    <!-- Chart Container -->
-                    <div class="flex-shrink-0">
-                        <div class="relative w-80 h-80" role="img" aria-label="A doughnut chart showing the distribution of job application statuses.">
-                            <canvas id="jobStatusChart"></canvas>
-                            <!-- Fallback content for screen readers -->
-                            <div id="chart-fallback" class="sr-only">
-                                <!-- This will be populated with a table by JavaScript -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Chart Legend & Stats -->
-                    <div class="flex-1 space-y-4" aria-live="polite">
-                        <h3 class="sr-only">Chart Data</h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="chartStats">
-                            <!-- Stats will be populated by JavaScript -->
-                        </div>
-
-                        <!-- Quick Actions -->
-                        <div class="pt-4 border-t border-gray-700/50">
-                            <h4 class="text-sm font-medium text-gray-300 mb-3">Quick Actions</h4>
-                            <div class="flex flex-wrap gap-2">
-                                <button onclick="filterByStatus('new')"
-                                    class="inline-flex items-center px-3 py-1.5 bg-blue-600/20 text-blue-300 text-xs font-medium rounded-lg hover:bg-blue-600/30 transition-colors border border-blue-500/30">
-                                    <div class="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
-                                    View New Jobs
-                                </button>
-                                <button onclick="filterByStatus('interview')"
-                                    class="inline-flex items-center px-3 py-1.5 bg-yellow-600/20 text-yellow-300 text-xs font-medium rounded-lg hover:bg-yellow-600/30 transition-colors border border-yellow-500/30">
-                                    <div class="w-2 h-2 bg-yellow-400 rounded-full mr-2"></div>
-                                    Interview Pipeline
-                                </button>
-                                <button onclick="filterByStatus('offered')"
-                                    class="inline-flex items-center px-3 py-1.5 bg-purple-600/20 text-purple-300 text-xs font-medium rounded-lg hover:bg-purple-600/30 transition-colors border border-purple-500/30">
-                                    <div class="w-2 h-2 bg-purple-400 rounded-full mr-2"></div>
-                                    Job Offers
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <!-- Quick Actions -->
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-3">
+                <button type="button" class="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium text-sm" onclick="filterByStatus('new')">
+                    <span class="inline-block mr-2">📥</span>View New Jobs
+                </button>
+                <button type="button" class="px-4 py-2 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium text-sm" onclick="filterByStatus('interview')">
+                    <span class="inline-block mr-2">🎤</span>Interview Pipeline
+                </button>
+                <button type="button" class="px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors font-medium text-sm" onclick="filterByStatus('offered')">
+                    <span class="inline-block mr-2">🎉</span>Job Offers
+                </button>
             </div>
         </div>
 
         <!-- Enhanced Filter Form -->
-        <div class="mb-8 bg-gradient-to-r from-gray-800/60 to-gray-900/60 rounded-2xl shadow-xl border border-indigo-500/20 overflow-hidden backdrop-blur-lg" aria-labelledby="filter-heading">
+        <div class="mb-8 bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden" aria-labelledby="filter-heading">
             <!-- Filter Header -->
-            <div class="bg-gradient-to-r from-indigo-600/20 to-purple-600/20 px-6 py-4 border-b border-indigo-500/20 backdrop-blur-sm">
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-3">
-                        <div class="p-2 bg-gradient-to-r from-indigo-600/30 to-purple-600/30 rounded-lg backdrop-blur-sm" aria-hidden="true">
-                            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="p-2 bg-blue-100 rounded-lg" aria-hidden="true">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z">
                                 </path>
                             </svg>
                         </div>
                         <div>
-                            <h3 id="filter-heading" class="text-lg font-semibold text-gray-100">Filter & Sort Jobs</h3>
-                            <p class="text-sm text-gray-400">Refine your job search results</p>
+                            <h3 id="filter-heading" class="text-lg font-semibold text-gray-900">Filter & Sort Jobs</h3>
+                            <p class="text-sm text-gray-500">Refine your job search results</p>
                         </div>
                     </div>
                     <button type="button" id="toggle-filters"
-                        class="lg:hidden p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 rounded-lg transition-colors" aria-label="Toggle filters" aria-expanded="true">
+                        class="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Toggle filters" aria-expanded="true">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="will-change: transform;">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
@@ -360,8 +336,8 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                         <!-- Search Keywords -->
                         <div class="space-y-2">
-                            <label for="search_query" class="flex items-center text-sm font-medium text-gray-300" id="search-query-label">
-                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <label for="search_query" class="flex items-center text-sm font-medium text-gray-700" id="search-query-label">
+                                <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                 </svg>
@@ -370,7 +346,7 @@
                             <div class="relative">
                                 <input type="text" id="search_query" name="search_query"
                                     placeholder="Job title, company, skills..."
-                                    class="w-full pl-10 pr-4 py-3 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-500 bg-gray-700/50 text-gray-100 placeholder-gray-400 backdrop-blur-sm" aria-labelledby="search-query-label"
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 placeholder-gray-400" aria-labelledby="search-query-label"
                                     value="{{ search_query }}">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -383,8 +359,8 @@
 
                         <!-- Location -->
                         <div class="space-y-2">
-                            <label for="location_filter" class="flex items-center text-sm font-medium text-gray-300" id="location-filter-label">
-                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <label for="location_filter" class="flex items-center text-sm font-medium text-gray-700" id="location-filter-label">
+                                <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
                                     </path>
@@ -396,7 +372,7 @@
                             <div class="relative">
                                 <input type="text" id="location_filter" name="location_filter"
                                     placeholder="City, state, or 'Remote'"
-                                    class="w-full pl-10 pr-4 py-3 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-500 bg-gray-700/50 text-gray-100 placeholder-gray-400 backdrop-blur-sm" aria-labelledby="location-filter-label"
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 placeholder-gray-400" aria-labelledby="location-filter-label"
                                     value="{{ location_filter }}">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -411,15 +387,15 @@
                         </div>
                         
                         <div class="space-y-2">
-                            <label for="status_filter" class="flex items-center text-sm font-medium text-gray-300" id="status-filter-label">
-                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <label for="status_filter" class="flex items-center text-sm font-medium text-gray-700" id="status-filter-label">
+                                <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                                 Application Status
                             </label>
                             <select id="status_filter" name="status_filter" aria-labelledby="status-filter-label"
-                                class="w-full px-4 py-3 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-500 bg-gray-700/50 text-gray-100 placeholder-gray-400 backdrop-blur-sm">
+                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900">
                                 <option value="">All Statuses</option>
                                 <option value="new" {% if status_filter=='new' %}selected{% endif %}>New</option>
                                 <option value="applied" {% if status_filter=='applied' %}selected{% endif %}>Applied</option>
@@ -432,19 +408,19 @@
                     </div>
 
                     <!-- New Stuff: Refactored filter actions for better responsiveness -->
-                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-700/50">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-200">
                         <!-- Left side: Sort controls -->
                         <div class="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
-                            <label for="sort_by" class="text-sm font-medium text-gray-400 hidden sm:block" id="sort-by-label">Sort by:</label>
+                            <label for="sort_by" class="text-sm font-medium text-gray-600 hidden sm:block" id="sort-by-label">Sort by:</label>
                             <div class="w-full flex gap-2">
                                 <select id="sort_by" name="sort_by" aria-labelledby="sort-by-label"
-                                    class="w-full px-4 py-2 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-500 bg-gray-700/50 text-gray-100 backdrop-blur-sm">
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900">
                                     <option value="found_date" {% if sort_by=='found_date' %}selected{% endif %}>Date Added</option>
                                     <option value="title" {% if sort_by=='title' %}selected{% endif %}>Title</option>
                                     <option value="relevance_score" {% if sort_by=='relevance_score' %}selected{% endif %}>Relevance</option>
                                 </select>
                                 <select id="sort_order" name="sort_order" aria-label="Sort order"
-                                    class="w-full px-4 py-2 border border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 hover:border-gray-500 bg-gray-700/50 text-gray-100 backdrop-blur-sm">
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900">
                                     <option value="desc" {% if sort_order=='desc' %}selected{% endif %}>Descending</option>
                                     <option value="asc" {% if sort_order=='asc' %}selected{% endif %}>Ascending</option>
                                 </select>
@@ -457,7 +433,7 @@
                                 Apply Filters
                             </button>
                             <a href="{{ url_for('dashboard') }}"
-                                class="flex-1 sm:flex-initial inline-flex justify-center py-2.5 px-5 border border-gray-600 shadow-sm text-sm font-medium rounded-xl text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 backdrop-blur-sm transition-all duration-200">
+                                class="flex-1 sm:flex-initial inline-flex justify-center py-2.5 px-5 border border-gray-300 shadow-sm text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
                                 Reset
                             </a>
                         </div>
@@ -469,95 +445,46 @@
 <div id="job-listings" class="space-y-6">
     {% if jobs %}
     {% for job in jobs %}
-    <article
-        class="job-item relative bg-gray-800/60 p-6 rounded-2xl shadow-lg border border-gray-700/50 backdrop-blur-sm hover:border-indigo-500/50 transition-all duration-300"
-        data-job-id="{{ job.id }}">
-        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 gap-4">
+    <article class="job-item relative bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300" data-job-id="{{ job.id }}">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div class="flex-1">
-                <div class="absolute top-4 right-4 text-xs font-mono text-gray-500 bg-gray-900/50 px-2 py-1 rounded-md border border-gray-700">
-                    ID: {{ job.id }}</div>
-                <div class="flex items-center gap-2 mb-1">
-                <span class="px-2 py-0.5 text-xs font-semibold rounded-full uppercase status-badge status-{{ job.status }} border">
-                    {{ job.status }}</span>
-                    <h3 class="text-xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text">
-                        <a href="{{ job.link }}" target="_blank" class="hover:underline focus:underline">{{ job.title }}</a>
-                    </h3>
-                </div>
-                <div class="flex items-center text-gray-300 text-sm mb-2 gap-2">
-                    <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                        <path fill-rule="evenodd"
-                            d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.549l-.079.052A2 2 0 0115.584 14H14.5a.5.5 0 01-.5-.5V12a1.5 1.5 0 00-1.5-1.5h-3A1.5 1.5 0 008 12v1.5a.5.5 0 01-.5.5H4.416a2 2 0 01-1.937-2.4l-.079-.053V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5z"
-                            clip-rule="evenodd"></path>
-                    </svg>
-                    <span>{{ job.company }}</span>
-                    <span class="text-gray-500">•</span>
-                    <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                        <path fill-rule="evenodd"
-                            d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                            clip-rule="evenodd"></path>
-                    </svg>
-                    <span>{{ job.location }}</span>
-                    {% if job.experience %}
-                    <span class="text-gray-500">•</span>
-                    <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                        <path fill-rule="evenodd"
-                            d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
-                    </svg>
-                    <span>{{ job.experience }}</span>
-                    {% endif %}
-                </div>
-                <p class="text-xs text-gray-400">Added: {{ job.found_date.split('T')[0] if job.found_date else 'N/A' }}</p>
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <a href="{{ job.link }}" target="_blank" class="hover:text-blue-600 transition-colors">{{ job.title }}</a>
+                </h3>
+                <p class="text-sm text-gray-600 mt-1">{{ job.company }}</p>
             </div>
-            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                <a href="{{ job.link }}" target="_blank"
-                    class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 transition-all duration-200">
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ job.link }}" target="_blank" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">
                     Apply Now
                 </a>
-                <button type="button" onclick="openStatusModal({{ job.id }}, '{{ job.status }}', '{{ job.notes | default('') }}')"
-                    class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
+                <button type="button" onclick="openStatusModal({{ job.id }}, '{{ job.status }}', '{{ job.notes | default('') }}')" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-all duration-200">
                     Update Status
                 </button>
-            </div>
-        </div>
-        <div class="flex flex-wrap items-center gap-2 mt-4 text-xs text-gray-600">
-            <button type="button" onclick='openDetailsModal({{ job | tojson | safe }})'
-                class="inline-flex items-center px-2 py-1 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors text-gray-700">
-                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                View Details
-            </button>
-            <button type="button" onclick="analyzeTraffic({{ job.id }})"
-                class="inline-flex items-center px-2 py-1 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors btn-analysis text-gray-700">
-                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                </svg>
-                Analyze Traffic
-            </button>
-            <button type="button" onclick="openApplyModal({{ job.id }}, '{{ job.link }}')"
-                class="inline-flex items-center px-2 py-1 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors btn-assisted-apply text-gray-700">
-                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.562L16.25 21.75l-.648-1.188a2.25 2.25 0 01-1.476-1.476L12.938 18l1.188-.648a2.25 2.25 0 011.476-1.476L16.25 15l.648 1.188a2.25 2.25 0 011.476 1.476L19.562 18l-1.188.648a2.25 2.25 0 01-1.476 1.476z">
-                    </path>
-                </svg>
-                Assisted Apply
-            </button>
-            <form action="{{ url_for('delete_job', job_id=job.id) }}" method="POST"
-                onsubmit="return confirm('Are you sure you want to delete this job?');" class="inline-block">
-                <button type="submit"
-                    class="inline-flex items-center px-2 py-1 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors text-gray-700" aria-label="Delete job: {{ job.title }}">
-                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
-                        </path>
-                    </svg>
-                    Delete
+                <button type="button" onclick='openDetailsModal({{ job | tojson | safe }})' class="inline-flex items-center px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50 text-sm text-gray-700">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    View Details
                 </button>
-            </form>
+                <button type="button" onclick="analyzeTraffic({{ job.id }})" class="inline-flex items-center px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50 text-sm text-gray-700 btn-analysis">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    Analyze
+                </button>
+                <button type="button" onclick="openApplyModal({{ job.id }}, '{{ job.link }}')" class="inline-flex items-center px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50 text-sm text-gray-700 btn-assisted-apply">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.562L16.25 21.75l-.648-1.188a2.25 2.25 0 01-1.476-1.476L12.938 18l1.188-.648a2.25 2.25 0 011.476-1.476L16.25 15l.648 1.188a2.25 2.25 0 011.476 1.476L19.562 18l-1.188.648a2.25 2.25 0 01-1.476 1.476z"></path></svg>
+                    Apply
+                </button>
+                <form action="{{ url_for('delete_job', job_id=job.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this job?');" class="inline">
+                    <button type="submit" class="inline-flex items-center px-3 py-2 rounded-md border border-gray-200 hover:bg-red-50 text-gray-700 transition-colors" aria-label="Delete job: {{ job.title }}">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                </form>
+            </div>
         </div>
     </article>
     {% endfor %}
     {% else %}
-    <div class="bg-white p-6 rounded-2xl text-center text-gray-600 border border-gray-200 shadow-sm">
+    <div class="bg-white p-6 rounded-2xl text-center text-gray-500 border border-gray-200 shadow-sm">
         <p>No jobs found. Try a new search!</p>
     </div>
     {% endif %}
@@ -608,12 +535,12 @@
                 {% for p in pagination_pages %}
                 {% if p == current_page %}
                 <span aria-current="page"
-                    class="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-md">
+                    class="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg shadow-md">
                     {{ p }}
                 </span>
                 {% else %}
                 <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}" aria-label="Go to page {{ p }}"
-                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-indigo-300 transition-colors duration-200" style="will-change: background-color, border-color;">
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-blue-300 transition-colors duration-200" style="will-change: background-color, border-color;">
                     {{ p }}
                 </a>
                 {% endif %}
@@ -622,12 +549,12 @@
                 {% for p in range(1, total_pages + 1) %}
                 {% if p == current_page %}
                 <span aria-current="page"
-                    class="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-md">
+                    class="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg shadow-md">
                     {{ p }}
                 </span>
                 {% else %}
                 <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}" aria-label="Go to page {{ p }}"
-                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-indigo-300 transition-colors duration-200" style="will-change: background-color, border-color;">
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-blue-300 transition-colors duration-200" style="will-change: background-color, border-color;">
                     {{ p }}
                 </a>
                 {% endif %}
@@ -663,7 +590,7 @@
             <span>Jump to page:</span>
             <select aria-label="Jump to page"
                 onchange="window.location.href='{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}&page=' + this.value"
-                class="px-3 py-1 border border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700/50 text-gray-200">
+                class="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900">
                 {% for p in range(1, total_pages + 1) %}
                 <option value="{{ p }}" {% if p==current_page %}selected{% endif %}>{{ p }}</option>
                 {% endfor %}
@@ -678,17 +605,18 @@
 </div>
 
 <!-- Modal for Job Details -->
-<div id="details-modal" class="fixed inset-0 bg-black bg-opacity-80 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div id="details-modal-content" class="relative w-full max-w-2xl shadow-2xl rounded-2xl bg-gradient-to-b from-gray-800 to-gray-900 border border-indigo-500/30 transform transition-transform,opacity duration-300 scale-95 opacity-0" style="will-change: transform, opacity;">
+<div id="details-modal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden z-50 w-full max-w-2xl p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="bg-black bg-opacity-50 fixed inset-0 -z-10 backdrop-blur-sm" onclick="closeDetailsModal()"></div>
+    <div id="details-modal-content" class="relative w-full shadow-2xl rounded-2xl bg-white border border-gray-200 transform transition-transform,opacity duration-300 scale-95 opacity-0" style="will-change: transform, opacity;">
         <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-gray-700/50 flex justify-between items-center">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
             <div>
-                <h3 id="modal-title" class="text-xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">Job Title</h3>
-                <p id="modal-company" class="text-md text-gray-300">Company Name</p>
+                <h3 id="modal-title" class="text-xl font-bold text-gray-900">Job Title</h3>
+                <p id="modal-company" class="text-md text-gray-500">Company Name</p>
             </div>
             <div class="flex items-center gap-3">
                 <span id="modal-relevance" class="px-3 py-1 text-sm font-semibold rounded-full"></span>
-                <button onclick="closeDetailsModal()" class="text-gray-400 hover:text-white transition-colors" aria-label="Close details modal">
+                <button onclick="closeDetailsModal()" class="text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close details modal">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
@@ -698,49 +626,49 @@
         <div class="p-6 max-h-[75vh] overflow-y-auto space-y-5">
             <!-- Key Info Section -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
-                <div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Location</div><div id="modal-location" class="font-semibold text-gray-200 text-sm truncate"></div></div>
-                <div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Salary</div><div id="modal-salary" class="font-semibold text-gray-200 text-sm truncate"></div></div>
-                <div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Experience</div><div id="modal-experience" class="font-semibold text-gray-200 text-sm truncate"></div></div>
-                <div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Job Type</div><div id="modal-job-type" class="font-semibold text-gray-200 text-sm truncate"></div></div>
+                <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><div class="text-xs text-gray-500">Location</div><div id="modal-location" class="font-semibold text-gray-900 text-sm truncate"></div></div>
+                <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><div class="text-xs text-gray-500">Salary</div><div id="modal-salary" class="font-semibold text-gray-900 text-sm truncate"></div></div>
+                <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><div class="text-xs text-gray-500">Experience</div><div id="modal-experience" class="font-semibold text-gray-900 text-sm truncate"></div></div>
+                <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><div class="text-xs text-gray-500">Job Type</div><div id="modal-job-type" class="font-semibold text-gray-900 text-sm truncate"></div></div>
             </div>
 
             <!-- Description Section -->
             <div>
-                <h4 class="text-lg font-semibold text-gray-200 mb-2">Job Description</h4>
-                <div id="modal-description" class="text-sm text-gray-300 bg-gray-900/50 p-4 rounded-lg border border-gray-700/50 max-h-60 overflow-y-auto whitespace-pre-wrap"></div>
+                <h4 class="text-lg font-semibold text-gray-900 mb-2">Job Description</h4>
+                <div id="modal-description" class="text-sm text-gray-600 bg-gray-50 p-4 rounded-lg border border-gray-200 max-h-60 overflow-y-auto whitespace-pre-wrap"></div>
             </div>
 
             <!-- Skills & Keywords Section -->
             <div class="space-y-3">
                 <div id="modal-skills-container" class="hidden">
-                    <h4 class="text-md font-semibold text-gray-200 mb-2">Skills</h4>
+                    <h4 class="text-md font-semibold text-gray-900 mb-2">Skills</h4>
                     <div id="modal-skills" class="flex flex-wrap gap-2"></div>
                 </div>
                 <div id="modal-tools-container" class="hidden">
-                    <h4 class="text-md font-semibold text-gray-200 mb-2">Tools & Platforms</h4>
+                    <h4 class="text-md font-semibold text-gray-900 mb-2">Tools & Platforms</h4>
                     <div id="modal-tools" class="flex flex-wrap gap-2"></div>
                 </div>
                 <div id="modal-soft-skills-container" class="hidden">
-                    <h4 class="text-md font-semibold text-gray-200 mb-2">Soft Skills</h4>
+                    <h4 class="text-md font-semibold text-gray-900 mb-2">Soft Skills</h4>
                     <div id="modal-soft-skills" class="flex flex-wrap gap-2"></div>
                 </div>
             </div>
 
             <!-- Other Details Section -->
             <div>
-                <h4 class="text-md font-semibold text-gray-200 mb-2">Additional Information</h4>
+                <h4 class="text-md font-semibold text-gray-900 mb-2">Additional Information</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                    <div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><span class="text-gray-400">Posted:</span> <span id="modal-posted-date" class="font-medium text-gray-200"></span></div>
-                    <div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><span class="text-gray-400">Source:</span> <span id="modal-source" class="font-medium text-gray-200"></span></div>
-                    <div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><span class="text-gray-400">Deadline:</span> <span id="modal-deadline" class="font-medium text-gray-200"></span></div>
-                    <div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><span class="text-gray-400">Experience Range:</span> <span id="modal-exp-range" class="font-medium text-gray-200"></span></div>
+                    <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><span class="text-gray-500">Posted:</span> <span id="modal-posted-date" class="font-medium text-gray-900"></span></div>
+                    <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><span class="text-gray-500">Source:</span> <span id="modal-source" class="font-medium text-gray-900"></span></div>
+                    <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><span class="text-gray-500">Deadline:</span> <span id="modal-deadline" class="font-medium text-gray-900"></span></div>
+                    <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><span class="text-gray-500">Experience Range:</span> <span id="modal-exp-range" class="font-medium text-gray-900"></span></div>
                 </div>
             </div>
         </div>
 
         <!-- Modal Footer -->
-        <div class="px-6 py-4 bg-gray-800/50 border-t border-gray-700/50 flex justify-end items-center gap-4 rounded-b-2xl">
-            <button onclick="closeDetailsModal()" class="inline-flex items-center justify-center px-4 py-2 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 transition-all duration-200">Close</button>
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end items-center gap-4 rounded-b-2xl">
+            <button onclick="closeDetailsModal()" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">Close</button>
             <a id="modal-apply-link" href="#" target="_blank" class="btn-temporal inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md shadow-sm">
                 Apply Now
             </a>
@@ -749,15 +677,16 @@
 </div>
 
 <!-- Modal for Job Status Update -->
-<div id="status-modal" class="fixed inset-0 bg-black bg-opacity-70 h-full w-full hidden z-50 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="status-modal-title">
-    <div class="relative mx-auto p-6 border border-gray-700 w-full max-w-md shadow-lg rounded-xl bg-gray-800">
-        <h3 class="text-lg font-bold text-gray-100 mb-4">Update Job Status</h3>
+<div id="status-modal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden z-50 w-full max-w-md p-4" role="dialog" aria-modal="true" aria-labelledby="status-modal-title">
+    <div class="bg-black bg-opacity-50 fixed inset-0 -z-10 backdrop-blur-sm" onclick="closeStatusModal()"></div>
+    <div class="relative mx-auto p-6 border border-gray-200 w-full shadow-lg rounded-xl bg-white">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Update Job Status</h3>
         <form id="status-form" action="{{ url_for('update_job_status') }}" method="POST">
             <input type="hidden" name="job_id" id="status-job-id">
             <div class="mb-4">
-                <label for="status" class="block text-sm font-medium text-gray-300">Status</label>
+                <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
                 <select id="status" name="status"
-                    class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100">
+                    class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900">
                     <option value="new">New</option>
                     <option value="applied">Applied</option>
                     <option value="interview">Interview</option>
@@ -767,15 +696,15 @@
                 </select>
             </div>
             <div class="mb-4">
-                <label for="notes" class="block text-sm font-medium text-gray-300">Notes</label>
+                <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
                 <textarea id="notes" name="notes" rows="4"
-                    class="mt-1 block w-full rounded-md bg-gray-700/50 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-100"></textarea>
+                    class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"></textarea>
             </div>
             <div class="mb-4">
                 <div class="flex items-center">
                     <input type="checkbox" id="sync_to_calendar" name="sync_to_calendar" value="1" checked
-                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-600 rounded bg-gray-700">
-                    <label for="sync_to_calendar" class="ml-2 block text-sm text-gray-300">
+                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded bg-white">
+                    <label for="sync_to_calendar" class="ml-2 block text-sm text-gray-700">
                         Sync to Google Calendar
                     </label>
                 </div>
@@ -783,42 +712,44 @@
             </div>
             <div class="flex justify-end space-x-4">
                 <button type="button" onclick="closeStatusModal()"
-                    class="px-4 py-2 bg-gray-700 text-gray-200 rounded-md hover:bg-gray-600">Cancel</button>
+                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Cancel</button>
                 <button type="submit"
-                    class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save</button>
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save</button>
             </div>
         </form>
     </div>
 </div>
 
 <!-- Modal for Assisted Apply -->
-<div id="apply-modal" class="fixed inset-0 bg-black bg-opacity-70 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="apply-modal-title">
-    <div class="relative top-20 mx-auto p-6 border border-gray-700 w-96 shadow-lg rounded-xl bg-gray-800 text-center">
-        <h3 class="text-lg font-bold text-gray-100 mb-4">Assisted Apply</h3>
-        <p class="text-gray-300 mb-4">This will start an automated browser session to fill out the form for you.</p>
+<div id="apply-modal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden z-50 w-full max-w-sm p-4" role="dialog" aria-modal="true" aria-labelledby="apply-modal-title">
+    <div class="bg-black bg-opacity-50 fixed inset-0 -z-10 backdrop-blur-sm" onclick="closeApplyModal()"></div>
+    <div class="relative mx-auto p-6 border border-gray-200 w-full max-w-sm shadow-lg rounded-xl bg-white text-center">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Assisted Apply</h3>
+        <p class="text-gray-600 mb-4">This will start an automated browser session to fill out the form for you.</p>
         <p class="text-sm text-red-400 mb-4 font-semibold">
             Warning: This feature requires a local Celery worker with Selenium configured correctly. A new browser
             window will open.
         </p>
         <div class="flex justify-center space-x-4">
             <button type="button" onclick="closeApplyModal()"
-                class="px-4 py-2 bg-gray-700 text-gray-200 rounded-md hover:bg-gray-600">Cancel</button>
+                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Cancel</button>
             <button type="button" id="start-apply-btn"
-                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Start Automation</button>
+                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Start Automation</button>
         </div>
     </div>
 </div>
 
 <!-- Modal for Traffic Analysis -->
-<div id="traffic-analysis-modal" class="fixed inset-0 bg-black bg-opacity-80 overflow-y-auto h-full w-full hidden z-50 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="traffic-modal-title">
-    <div id="traffic-analysis-modal-content" class="relative w-full max-w-lg shadow-2xl rounded-2xl bg-gradient-to-b from-gray-800 to-gray-900 border border-sky-500/30 transform transition-transform,opacity duration-300 scale-95 opacity-0" style="will-change: transform, opacity;">
+<div id="traffic-analysis-modal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden z-50 w-full max-w-lg p-4" role="dialog" aria-modal="true" aria-labelledby="traffic-modal-title">
+    <div class="bg-black bg-opacity-50 fixed inset-0 -z-10 backdrop-blur-sm" onclick="closeTrafficAnalysisModal()"></div>
+    <div id="traffic-analysis-modal-content" class="relative w-full shadow-2xl rounded-2xl bg-white border border-gray-200 transform transition-transform,opacity duration-300 scale-95 opacity-0" style="will-change: transform, opacity;">
         <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-gray-700/50 flex justify-between items-center">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
             <div>
-                <h3 id="traffic-modal-title" class="text-xl font-bold text-transparent bg-gradient-to-r from-sky-400 to-cyan-400 bg-clip-text">Company Traffic Analysis</h3>
-                <p id="traffic-modal-company" class="text-md text-gray-300">Company Name</p>
+                <h3 id="traffic-modal-title" class="text-xl font-bold text-gray-900">Company Traffic Analysis</h3>
+                <p id="traffic-modal-company" class="text-md text-gray-500">Company Name</p>
             </div>
-            <button onclick="closeTrafficAnalysisModal()" class="text-gray-400 hover:text-white transition-colors" aria-label="Close traffic analysis modal">
+            <button onclick="closeTrafficAnalysisModal()" class="text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close traffic analysis modal">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
@@ -827,21 +758,21 @@
         <div id="traffic-modal-body" class="p-6 max-h-[75vh] overflow-y-auto space-y-5" role="status">
             <!-- Loading/Error State -->
             <div id="traffic-modal-placeholder" class="text-center py-8">
-                <svg class="animate-spin mx-auto h-8 w-8 text-sky-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg class="animate-spin mx-auto h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <p class="mt-4 text-gray-400">Analyzing company traffic data...</p>
+                <p class="mt-4 text-gray-600">Analyzing company traffic data...</p>
             </div>
             <!-- Results Content (hidden by default) -->
             <div id="traffic-modal-results" class="hidden space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-center"><div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Monthly Visits</div><div id="traffic-visits" class="font-semibold text-xl text-sky-300">--</div></div><div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Bounce Rate</div><div id="traffic-bounce-rate" class="font-semibold text-xl text-sky-300">--</div></div><div class="bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50"><div class="text-xs text-gray-400">Pages per Visit</div><div id="traffic-pages-per-visit" class="font-semibold text-xl text-sky-300">--</div></div></div><div id="traffic-message" class="text-gray-300"></div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-center"><div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><div class="text-xs text-gray-500">Monthly Visits</div><div id="traffic-visits" class="stat-number text-xl text-blue-600">--</div></div><div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><div class="text-xs text-gray-500">Bounce Rate</div><div id="traffic-bounce-rate" class="stat-number text-xl text-blue-600">--</div></div><div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><div class="text-xs text-gray-500">Pages per Visit</div><div id="traffic-pages-per-visit" class="stat-number text-xl text-blue-600">--</div></div></div><div id="traffic-message" class="text-gray-600"></div>
             </div>
         </div>
 
         <!-- Modal Footer -->
-        <div class="px-6 py-4 bg-gray-800/50 border-t border-gray-700/50 flex justify-end items-center gap-4 rounded-b-2xl">
-            <button onclick="closeTrafficAnalysisModal()" class="inline-flex items-center justify-center px-4 py-2 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 transition-all duration-200">Close</button>
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end items-center gap-4 rounded-b-2xl">
+            <button onclick="closeTrafficAnalysisModal()" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">Close</button>
         </div>
     </div>
 </div>
@@ -1095,7 +1026,7 @@
             const badge = document.getElementById('modal-relevance');
             const score = Math.round(job.relevance_score || 0);
             badge.textContent = `${score}% Match`;
-            badge.className = `px-3 py-1 text-sm font-semibold rounded-full ${score >= 60 ? 'bg-green-500/20 text-green-300' : score >= 30 ? 'bg-yellow-500/20 text-yellow-300' : 'bg-red-500/20 text-red-300'}`;
+            badge.className = `px-3 py-1 text-sm font-semibold rounded-full ${score >= 60 ? 'bg-green-100 text-green-700' : score >= 30 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`;
             
             document.getElementById('modal-apply-link').href = job.link || '#';
             setTimeout(() => els.detailsModalContent.classList.remove('scale-95', 'opacity-0'), 10);
@@ -1203,7 +1134,7 @@
                 const config = { 'new': {c:'blue',l:'New'}, 'applied': {c:'emerald',l:'Applied'}, 'interview': {c:'amber',l:'Interview'}, 'offered': {c:'purple',l:'Offered'}, 'rejected': {c:'red',l:'Rejected'}, 'archived': {c:'gray',l:'Archived'} };
                 document.getElementById('chartStats').innerHTML = Object.entries(data).map(([k, v]) => {
                     const c = config[k] || {c:'gray',l:k};
-                    return `<div class="bg-gray-800/50 border border-gray-700/50 rounded-lg p-4 backdrop-blur-sm"><div class="flex justify-between"><div class="flex items-center gap-2"><div class="chart-legend-dot chart-legend-${c.c}"></div><span class="text-sm font-medium text-gray-300">${c.l}</span></div><div class="text-right"><div class="text-xl font-bold text-gray-100">${v}</div><div class="text-xs text-gray-400">${(v/total*100).toFixed(1)}%</div></div></div></div>`;
+                    return `<div class="bg-gray-50 border border-gray-200 rounded-lg p-4"><div class="flex justify-between"><div class="flex items-center gap-2"><div class="chart-legend-dot chart-legend-${c.c}"></div><span class="text-sm font-medium text-gray-700">${c.l}</span></div><div class="text-right"><div class="text-xl font-bold text-gray-900">${v}</div><div class="text-xs text-gray-500">${(v/total*100).toFixed(1)}%</div></div></div></div>`;
                 }).join('');
 
                 // Chart
@@ -1238,7 +1169,7 @@
         if (filterForm) {
             filterForm.addEventListener('submit', () => {
                 const list = document.getElementById('job-listings');
-                if (list) list.innerHTML = Array(3).fill('<div class="job-item bg-gray-800/60 p-6 rounded-2xl shadow-lg border border-gray-700/50 backdrop-blur-sm animate-pulse"><div class="h-4 bg-gray-700 rounded w-3/4 mb-4"></div><div class="h-4 bg-gray-700 rounded w-1/2"></div></div>').join('');
+                if (list) list.innerHTML = Array(3).fill('<div class="job-item bg-white p-6 rounded-2xl shadow-sm border border-gray-200 animate-pulse"><div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div><div class="h-4 bg-gray-200 rounded w-1/2"></div></div>').join('');
                 const btn = filterForm.querySelector('button[type="submit"]');
                 if(btn) { btn.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2 inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Filtering...'; btn.disabled = true; }
             });
@@ -1265,9 +1196,9 @@
                 
                 if (data.events?.length) {
                     list.innerHTML = data.events.map(e => `
-                        <div class="bg-gray-900/50 border border-gray-700/50 rounded-lg p-3 shadow-sm" data-event-id="${e.id}">
-                            <div class="flex justify-between items-start"><div class="flex-1"><h4 class="font-medium text-gray-200 text-sm">${e.summary}</h4><p class="text-xs text-gray-400 mt-1">📅 ${e.start}</p></div>
-                            <div class="flex gap-1 ml-2"><a href="${e.htmlLink}" target="_blank" class="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 bg-blue-600/20 rounded">View</a><button onclick="deleteCalendarEvent('${e.id}')" class="text-red-400 hover:text-red-300 text-xs px-2 py-1 bg-red-600/20 rounded">Delete</button></div></div>
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 shadow-sm" data-event-id="${e.id}">
+                            <div class="flex justify-between items-start"><div class="flex-1"><h4 class="font-medium text-gray-900 text-sm">${e.summary}</h4><p class="text-xs text-gray-500 mt-1">📅 ${e.start}</p></div>
+                            <div class="flex gap-1 ml-2"><a href="${e.htmlLink}" target="_blank" class="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 bg-blue-100 rounded">View</a><button onclick="deleteCalendarEvent('${e.id}')" class="text-red-600 hover:text-red-800 text-xs px-2 py-1 bg-red-100 rounded">Delete</button></div></div>
                         </div>`).join('');
                 } else noEvents.classList.remove('hidden');
             } catch (e) { if (showLoading) loading.classList.add('hidden'); list.innerHTML = `<div class="text-red-400 text-center py-4">Failed: ${e.message}</div>`; }

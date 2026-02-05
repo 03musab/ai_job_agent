@@ -1,149 +1,15 @@
 {% extends "base.html" %}
 {% block body_class %}light-theme{% endblock %}
 {% block content %}
-<!-- Full-screen fixed background -->
-<div class="fixed inset-0 bg-cover bg-center -z-10" style="background-image: url({{ url_for('static', filename='assets/temporalbg.jpg') }});">
-    <div class="absolute inset-0 bg-white/90 backdrop-blur-[4px]"></div>
-</div>
-
-<style>
-/* Light Theme Overrides for Outreach Studio */
-body {
-    background-color: #ffffff !important;
-    color: #111827 !important;
-}
-
-body::before {
-    background-image: 
-        linear-gradient(rgba(99, 102, 241, 0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(99, 102, 241, 0.02) 1px, transparent 1px);
-}
-
-.bg-gray-800\/90,
-.bg-gray-800\/60,
-.bg-gray-800\/50,
-.bg-gray-800\/40,
-.bg-gray-900\/90,
-.bg-gray-900\/60,
-.bg-gray-900\/30 {
-    background-color: #ffffff !important;
-    color: #111827 !important;
-    border-color: rgba(229, 231, 235, 0.6) !important;
-}
-
-.bg-gray-700\/50,
-.bg-gray-700 {
-    background-color: #f3f4f6 !important;
-    color: #111827 !important;
-}
-
-.text-gray-100,
-.text-gray-200 {
-    color: #111827 !important;
-}
-
-.text-gray-300,
-.text-gray-400,
-.text-gray-500 {
-    color: #6b7280 !important;
-}
-
-.text-white {
-    color: #111827 !important;
-}
-
-.border-indigo-500\/20,
-.border-indigo-500\/30,
-.border-indigo-500\/40 {
-    border-color: rgba(99, 102, 241, 0.1) !important;
-}
-
-.border-gray-600,
-.border-gray-700\/50 {
-    border-color: rgba(229, 231, 235, 0.6) !important;
-}
-
-.btn-temporal {
-    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%) !important;
-    color: #fff !important;
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.08);
-}
-
-.btn-temporal:hover {
-    box-shadow: 0 10px 20px rgba(99, 102, 241, 0.15);
-}
-
-.pulse-dot {
-    background-color: #10b981 !important;
-}
-
-/* Quick search buttons */
-.quick-search-btn {
-    background-color: #f3f4f6 !important;
-    border-color: rgba(99, 102, 241, 0.2) !important;
-    color: #2563eb !important;
-}
-
-.quick-search-btn:hover {
-    background-color: #e5e7eb !important;
-}
-
-/* File input styling */
-.file\:bg-gray-700 {
-    background-color: #e5e7eb !important;
-}
-
-.file\:text-gray-300 {
-    color: #6b7280 !important;
-}
-
-.hover\:file\:bg-gray-600:hover .file\:bg-gray-700 {
-    background-color: #d1d5db !important;
-}
-
-/* Input fields */
-input[type="text"],
-input[type="email"],
-input[type="file"] {
-    background-color: #f9fafb !important;
-    border-color: #e5e7eb !important;
-    color: #111827 !important;
-}
-
-input[type="text"]::placeholder,
-input[type="email"]::placeholder {
-    color: #9ca3af !important;
-}
-
-input:focus {
-    border-color: #2563eb !important;
-    background-color: #ffffff !important;
-}
-
-/* Status messages */
-.text-green-400 {
-    color: #059669 !important;
-}
-
-.text-red-400 {
-    color: #dc2626 !important;
-}
-
-.text-yellow-400 {
-    color: #ca8a04 !important;
-}
-</style>
-
-<div class="relative">
-    <!-- Blurred Background Content -->
-    <div class="p-6 bg-white border border-gray-200 shadow-md backdrop-blur-lg rounded-xl overflow-hidden">
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
         <!-- Header Section -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
             <div>
-                <h1 class="text-4xl font-bold text-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text">Outreach Studio</h1>
+                <h1 class="text-3xl font-bold text-gray-900">Outreach Studio</h1>
                 <p class="mt-1 text-gray-600">Your central command for cold outreach and networking.</p>
             </div>
-            <div class="mt-4 sm:mt-0 flex items-center gap-2 px-3 py-1.5 bg-green-100 border border-green-300 rounded-full text-sm text-green-700">
+            <div class="mt-4 sm:mt-0 flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full text-sm text-green-700">
                 <div class="w-2 h-2 bg-green-500 rounded-full pulse-dot"></div>
                 <span>Live Sync: <time datetime="{{ last_scan_time }}">{{ last_scan_time.split(' ')[1] }}</time></span>
             </div>
@@ -152,56 +18,56 @@ input:focus {
         <!-- Stats Dashboard -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <!-- Total Contacts -->
-            <div class="p-6 bg-white rounded-lg border border-gray-200 shadow-sm text-center">
-                <h3 class="text-sm font-medium text-gray-600">Total Contacts</h3>
+            <div class="p-6 bg-gray-50 rounded-lg border border-gray-200 text-center">
+                <h3 class="text-sm font-medium text-gray-500">Total Contacts</h3>
                 <p class="text-4xl font-bold text-blue-600 mt-2">{{ stats.contact_count | default(0) }}</p>
             </div>
         </div>
 
         <!-- Main Actions (CTAs) -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <a href="{{ url_for('message_vault') }}" class="group block p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg border border-indigo-200 hover:border-indigo-300 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
-                <h3 class="text-xl font-bold text-gray-900">Compose Message</h3>
-                <p class="text-sm text-gray-600 mt-2">Draft new emails or messages using your saved templates.</p>
+            <a href="{{ url_for('message_vault') }}" class="group block p-6 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200">
+                <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">Compose Message</h3>
+                <p class="text-sm text-gray-500 mt-2">Draft new emails or messages using your saved templates.</p>
             </a>
-            <a href="{{ url_for('people_radar') }}" class="group block p-6 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-lg border border-cyan-200 hover:border-cyan-300 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
-                <h3 class="text-xl font-bold text-gray-900">View Contacts</h3>
-                <p class="text-sm text-gray-600 mt-2">Manage your list of recruiters, hiring managers, and founders.</p>
+            <a href="{{ url_for('people_radar') }}" class="group block p-6 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200">
+                <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">View Contacts</h3>
+                <p class="text-sm text-gray-500 mt-2">Manage your list of recruiters, hiring managers, and founders.</p>
             </a>
         </div>
 
         <!-- Contact Scraping Section -->
-        <div class="p-6 bg-white rounded-lg border border-gray-200 shadow-sm">
-            <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text">Find New Contacts</h2>
-            <p class="text-sm text-gray-600 mb-4">
+        <div class="p-6 bg-gray-50 rounded-lg border border-gray-200">
+            <h2 class="text-2xl font-bold mb-4 text-gray-900">Find New Contacts</h2>
+            <p class="text-sm text-gray-500 mb-4">
                 Use the AI agent to find relevant people on LinkedIn, X, and other platforms based on hiring signals.
             </p>
             <form id="scrape-contacts-form" class="flex flex-col sm:flex-row gap-4">
                 <input type="text" name="keywords" id="scrape-keywords" placeholder="e.g., 'AI recruiter', 'founder hiring python', 'tech hiring manager'" required
-                    class="flex-grow rounded-md bg-white border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400 backdrop-blur-sm" style="border-radius: 0.25rem;">
+                    class="flex-grow rounded-md bg-white border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400" style="border-radius: 0.25rem;">
                 <button type="submit" id="scrape-contacts-btn"
-                    class="btn-temporal inline-flex items-center justify-center px-6 py-2 text-sm font-medium rounded-md shadow-sm bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700" style="border-radius: 0.25rem;">
+                    class="btn-temporal inline-flex items-center justify-center px-6 py-2 text-sm font-medium rounded-md shadow-sm" style="border-radius: 0.25rem;">
                     Scrape Contacts
                 </button>
             </form>
             <div class="mt-3 flex flex-wrap gap-2">
-                <span class="text-xs text-gray-600 self-center mr-2">Quick Search:</span>
-                <button type="button" class="quick-search-btn px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full text-blue-600 border border-blue-200 transition-colors" data-term="HR Manager" style="border-radius: 0.25rem;">HR Manager</button>
-                <button type="button" class="quick-search-btn px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full text-purple-600 border border-purple-200 transition-colors" data-term="Technical Recruiter" style="border-radius: 0.25rem;">Tech Recruiter</button>
-                <button type="button" class="quick-search-btn px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full text-pink-600 border border-pink-200 transition-colors" data-term="Head of People" style="border-radius: 0.25rem;">Head of People</button>
+                <span class="text-xs text-gray-500 self-center mr-2">Quick Search:</span>
+                <button type="button" class="px-3 py-1 text-xs bg-white hover:bg-gray-100 rounded-full text-blue-600 border border-blue-200 transition-colors quick-search-btn" data-term="HR Manager" style="border-radius: 0.25rem;">HR Manager</button>
+                <button type="button" class="px-3 py-1 text-xs bg-white hover:bg-gray-100 rounded-full text-purple-600 border border-purple-200 transition-colors quick-search-btn" data-term="Technical Recruiter" style="border-radius: 0.25rem;">Tech Recruiter</button>
+                <button type="button" class="px-3 py-1 text-xs bg-white hover:bg-gray-100 rounded-full text-pink-600 border border-pink-200 transition-colors quick-search-btn" data-term="Head of People" style="border-radius: 0.25rem;">Head of People</button>
             </div>
             <div id="scrape-status-container" class="mt-4 hidden">
                 <div class="w-full bg-gray-200 rounded-full h-2 mb-2 overflow-hidden">
-                    <div id="scrape-progress-bar" class="bg-gradient-to-r from-green-400 to-teal-400 h-full rounded-full transition-all duration-500 ease-out" style="width: 0%; border-radius: 0.25rem;"></div>
+                    <div id="scrape-progress-bar" class="bg-blue-600 h-full rounded-full transition-all duration-500 ease-out" style="width: 0%; border-radius: 0.25rem;"></div>
                 </div>
-                <p id="scrape-status-text" class="text-sm text-center text-gray-600">Starting contact scraping...</p>
+                <p id="scrape-status-text" class="text-sm text-center text-gray-500">Starting contact scraping...</p>
             </div>
         </div>
 
         <!-- Manual Contact Entry Section -->
         <div class="mt-8 pt-8 border-t border-gray-200">
-            <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text">Manually Add HR Contact</h2>
-            <p class="text-sm text-gray-600 mb-6">
+            <h2 class="text-2xl font-bold mb-4 text-gray-900">Manually Add HR Contact</h2>
+            <p class="text-sm text-gray-500 mb-6">
                 Enter contact details below. We will perform a deep verification to ensure the email address is deliverable.
             </p>
             <form id="manual-contact-form" class="space-y-4">
@@ -209,31 +75,31 @@ input:focus {
                     <div>
                         <label for="contact-name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                         <input type="text" id="contact-name" name="name" required 
-                            class="w-full rounded-md bg-white border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400 backdrop-blur-sm" style="border-radius: 0.25rem;">
+                            class="w-full rounded-md bg-white border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400" style="border-radius: 0.25rem;">
                     </div>
                     <div>
                         <label for="contact-role" class="block text-sm font-medium text-gray-700 mb-1">Role</label>
                         <input type="text" id="contact-role" name="role" placeholder="e.g. HR Manager" required 
-                            class="w-full rounded-md bg-white border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400 backdrop-blur-sm" style="border-radius: 0.25rem;">
+                            class="w-full rounded-md bg-white border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400" style="border-radius: 0.25rem;">
                     </div>
                     <div>
                         <label for="contact-company" class="block text-sm font-medium text-gray-700 mb-1">Company</label>
                         <input type="text" id="contact-company" name="company" required 
-                            class="w-full rounded-md bg-white border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400 backdrop-blur-sm" style="border-radius: 0.25rem;">
+                            class="w-full rounded-md bg-white border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400" style="border-radius: 0.25rem;">
                     </div>
                     <div>
                         <label for="contact-email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
                         <div class="relative">
                             <input type="email" id="contact-email" name="email" required 
-                                class="w-full rounded-md bg-white border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400 backdrop-blur-sm pr-10" style="border-radius: 0.25rem;">
+                                class="w-full rounded-md bg-white border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400 pr-10" style="border-radius: 0.25rem;">
                             <div id="email-status-icon" class="absolute right-3 top-2.5 text-gray-400"></div>
                         </div>
                     </div>
                 </div>
                 <div class="flex items-center justify-end gap-4">
-                    <span id="manual-add-status" class="text-sm text-gray-600"></span>
+                    <span id="manual-add-status" class="text-sm text-gray-500"></span>
                     <button type="submit" id="add-contact-btn"
-                        class="btn-temporal inline-flex items-center justify-center px-6 py-2 text-sm font-medium rounded-md shadow-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white" style="border-radius: 0.25rem;">
+                        class="btn-temporal inline-flex items-center justify-center px-6 py-2 text-sm font-medium rounded-md shadow-sm text-white" style="border-radius: 0.25rem;">
                         Verify & Add Contact
                     </button>
                 </div>
@@ -242,19 +108,19 @@ input:focus {
 
         <!-- Bulk Import Section -->
         <div class="mt-8 pt-8 border-t border-gray-200">
-            <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text">Bulk Import Contacts</h2>
-            <p class="text-sm text-gray-600 mb-6">
+            <h2 class="text-2xl font-bold mb-4 text-gray-900">Bulk Import Contacts</h2>
+            <p class="text-sm text-gray-500 mb-6">
                 Upload a CSV file to add multiple contacts at once. Ensure columns like Name, Email, Role, Company are present.
             </p>
             <form id="bulk-import-form" class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                 <input type="file" name="contacts_csv" id="contacts_csv" accept=".csv" required
-                    class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-200 file:text-gray-900 hover:file:bg-gray-300 cursor-pointer" style="border-radius: 0.25rem;">
+                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" style="border-radius: 0.25rem;">
                 <button type="submit" id="bulk-import-btn"
-                    class="btn-temporal inline-flex items-center justify-center px-6 py-2 text-sm font-medium rounded-md shadow-sm bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white whitespace-nowrap" style="border-radius: 0.25rem;">
+                    class="btn-temporal inline-flex items-center justify-center px-6 py-2 text-sm font-medium rounded-md shadow-sm text-white whitespace-nowrap" style="border-radius: 0.25rem;">
                     Upload CSV
                 </button>
             </form>
-            <p id="bulk-import-status" class="mt-2 text-sm text-gray-600"></p>
+            <p id="bulk-import-status" class="mt-2 text-sm text-gray-500"></p>
         </div>
     </div>
 

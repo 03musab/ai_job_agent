@@ -6,38 +6,22 @@
 {% block body_style %}{% endblock %}
 
 {% block content %}
-<style>
-    @keyframes techno-grid-pan {
-        0% { background-position: 0 0; }
-        100% { background-position: 50px 50px; }
-    }
-
-    .techno-background {
-        background-color: #ffffff;
-        background-image: 
-            linear-gradient(rgba(229, 231, 235, 0.6) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(229, 231, 235, 0.6) 1px, transparent 1px);
-        background-size: 50px 50px;
-        animation: techno-grid-pan 4s linear infinite;
-    }
-</style>
-
-<div class="techno-background min-h-screen -mx-4 -my-8 sm:-mx-6 lg:-mx-8">
-    <div class="bg-white/60 backdrop-blur-sm min-h-screen px-4 sm:px-6 lg:px-8 py-8">
-        <div class="container mx-auto relative z-10 pt-12">
-        <div class="flex justify-between items-center mb-8">
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
             <div>
                 <h1 class="text-3xl font-bold text-gray-900">People Radar</h1>
-                <p class="text-gray-700">Manage your network of recruiters, hiring managers, and founders.</p>
+                <p class="mt-1 text-gray-600">Manage your network of recruiters, hiring managers, and founders.</p>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-4 mt-4 sm:mt-0">
                 <form action="{{ url_for('delete_all_personal_contacts') }}" method="post" onsubmit="return confirm('Are you absolutely sure you want to delete ALL of your personal contacts? This action cannot be undone.');">
-                    <button type="submit" class="text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5" style="border-radius: 0.25rem;">
+                    <button type="submit" class="text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 font-medium rounded-md text-sm px-4 py-2 shadow-sm transition-colors" style="border-radius: 0.25rem;">
                         <i class="fas fa-trash-alt mr-2"></i>Delete All
                     </button>
                 </form>
-                <a href="{{ url_for('outreach_studio') }}" class="text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5" style="border-radius: 0.25rem;">
-                    <i class="fas fa-arrow-left mr-2"></i>Back to Outreach Studio
+                <a href="{{ url_for('outreach_studio') }}" class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" /></svg>
+                    Back to Outreach Studio
                 </a>
             </div>
         </div>
@@ -46,28 +30,28 @@
         <div class="mb-8">
             <div class="relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                         <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
                     </svg>
                 </div>
                 <input type="text" id="contact-filter" placeholder="Filter by name, title, or company..." 
-                       class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm" style="border-radius: 0.25rem;">
+                       class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm" style="border-radius: 0.25rem;">
             </div>
         </div>
 
 
     {% if not contacts %}
-    <div class="text-center bg-white border border-gray-200 p-8 rounded-lg shadow-md" style="border-radius: 0.25rem;">
+    <div class="text-center bg-white border border-gray-200 p-12 rounded-xl shadow-sm" style="border-radius: 0.5rem;">
         <i class="fas fa-user-slash fa-3x text-gray-400 mb-4"></i>
         <h2 class="text-xl font-semibold text-gray-900">No Contacts Found</h2>
-        <p class="text-gray-700 mt-2">Use the "Find New Contacts" tool in the Outreach Studio to start building your network.</p>
+        <p class="text-gray-500 mt-2">Use the "Find New Contacts" tool in the Outreach Studio to start building your network.</p>
     </div>
     {% else %}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         <!-- Skeleton Loader Cards - These will be replaced by the actual content below -->
         {% if not contacts %}
             {% for i in range(8) %}
-            <div class="bg-white border border-gray-200 rounded-lg shadow-lg p-5 flex flex-col justify-between" style="border-radius: 0.25rem;">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-5 flex flex-col justify-between" style="border-radius: 0.25rem;">
                 <div>
                     <div class="flex items-center mb-4">
                         <div class="w-12 h-12 rounded-full skeleton mr-4"></div>
@@ -89,42 +73,42 @@
         {% endif %}
 
         {% for contact in contacts %}
-        <div class="contact-card bg-white border border-gray-200 rounded-lg shadow-lg p-5 flex flex-col justify-between transition-all duration-300 hover:border-blue-400 hover:shadow-xl" style="border-radius: 0.25rem;">
+        <div class="contact-card bg-white border border-gray-200 rounded-xl shadow-sm p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:border-blue-300" style="border-radius: 0.25rem;">
             <div>
                 <div class="flex items-center mb-3">
                     <div class="flex-grow">
                         <h3 class="text-lg font-bold text-gray-900">{{ contact.full_name or 'No Name' }}</h3>
-                        <p class="text-sm text-gray-700">{{ contact.title or 'No Title' }}</p>
+                        <p class="text-sm text-gray-500">{{ contact.title or 'No Title' }}</p>
                     </div>
                     <form action="{{ url_for('delete_contact', contact_id=contact.id) }}" method="post" onsubmit="return confirm('Are you sure you want to delete this contact?');" class="ml-2">
-                        <button type="submit" class="text-gray-600 hover:text-red-600 transition-colors" title="Delete Contact">
+                        <button type="submit" class="text-gray-400 hover:text-red-600 transition-colors" title="Delete Contact">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                             </svg>
                         </button>
                     </form>
                 </div>
-                <p class="text-sm text-gray-900 font-medium mb-2">{{ contact.company or 'No Company' }}</p>
+                <p class="text-sm text-gray-700 font-medium mb-2">{{ contact.company or 'No Company' }}</p>
                 <div class="flex items-center text-xs text-gray-700 mb-4">
-                    <span class="bg-blue-100 text-blue-700 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full" style="border-radius: 9999px;">Personal</span>
+                    <span class="bg-blue-50 text-blue-700 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full border border-blue-100" style="border-radius: 9999px;">Personal</span>
                     <p>Status: <span class="font-semibold">{{ contact.status }}</span></p>
                 </div>
                 {% if contact.email %}
-                <p class="text-sm text-gray-700 break-all"><i class="fas fa-envelope mr-2"></i>{{ contact.email }}</p>
+                <p class="text-sm text-gray-500 break-all"><i class="fas fa-envelope mr-2"></i>{{ contact.email }}</p>
                 {% endif %}
             </div>
             <div class="mt-4 pt-4 border-t border-gray-200 flex flex-wrap gap-2">
                 <button 
-                    class="flex-1 text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center" style="border-radius: 0.25rem;"
+                    class="flex-1 text-white bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 font-medium rounded-md text-sm px-4 py-2 text-center shadow-sm transition-colors" style="border-radius: 0.25rem;"
                     onclick="openSendMessageModal('{{ contact.full_name }}', '{{ contact.email }}')"
                     {% if not contact.email %}disabled title="No email available for this contact"{% endif %}>
                     <i class="fas fa-paper-plane mr-1"></i> Send Message
                 </button>
-                <button class="flex-1 text-gray-900 bg-gray-100 border border-gray-300 hover:bg-gray-200 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-4 py-2" style="border-radius: 0.25rem;">
+                <button class="flex-1 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 font-medium rounded-md text-sm px-4 py-2 shadow-sm transition-colors" style="border-radius: 0.25rem;">
                     <i class="fas fa-sticky-note mr-1"></i> Add Note
                 </button>
                 {% if contact.linkedin_url %}
-                <a href="{{ contact.linkedin_url }}" target="_blank" class="w-full mt-2 text-center text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2" style="border-radius: 0.25rem;">
+                <a href="{{ contact.linkedin_url }}" target="_blank" class="w-full mt-2 text-center text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 font-medium rounded-md text-sm px-4 py-2 transition-colors" style="border-radius: 0.25rem;">
                     <i class="fab fa-linkedin mr-1"></i> View Profile
                 </a>
                 {% endif %}
@@ -133,28 +117,26 @@
         {% endfor %}
     </div>
     {% endif %}
-</div>
-</div>
 
 <!-- Send Message Modal -->
 <div id="sendMessageModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="bg-white border border-gray-200 rounded-lg shadow-xl p-6 w-full max-w-lg" style="border-radius: 0.25rem;">
+    <div class="bg-white border border-gray-200 rounded-xl shadow-xl p-6 w-full max-w-lg" style="border-radius: 0.5rem;">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-900" id="modal-title">Send Message</h3>
-            <button onclick="closeSendMessageModal()" class="text-gray-600 hover:text-gray-900">
+            <button onclick="closeSendMessageModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
                 <span class="sr-only">Close</span>
                 <i class="fas fa-times fa-lg"></i>
             </button>
         </div>
         <form id="sendMessageForm">
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-900">To:</label>
+                <label class="block text-sm font-medium text-gray-700">To:</label>
                 <p id="recipientName" class="mt-1 text-md font-semibold text-gray-900"></p>
-                <p id="recipientEmail" class="text-sm text-gray-700"></p>
+                <p id="recipientEmail" class="text-sm text-gray-500"></p>
             </div>
             <div class="mb-4">
-                <label for="templateSelect" class="block text-sm font-medium text-gray-900">Choose a Template</label>
-                <select id="templateSelect" name="template_id" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white text-gray-900" style="border-radius: 0.25rem;">
+                <label for="templateSelect" class="block text-sm font-medium text-gray-700">Choose a Template</label>
+                <select id="templateSelect" name="template_id" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white text-gray-900 shadow-sm" style="border-radius: 0.25rem;">
                     <option value="">-- Select a template --</option>
                     {% for template in templates %}
                         {% if template.type == 'email' %}
@@ -164,16 +146,16 @@
                 </select>
             </div>
             <div class="mb-4">
-                <label for="emailSubject" class="block text-sm font-medium text-gray-900">Subject</label>
-                <input type="text" id="emailSubject" name="subject" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md bg-white text-gray-900" style="border-radius: 0.25rem;">
+                <label for="emailSubject" class="block text-sm font-medium text-gray-700">Subject</label>
+                <input type="text" id="emailSubject" name="subject" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500" style="border-radius: 0.25rem;">
             </div>
             <div class="mb-4">
-                <label for="emailBody" class="block text-sm font-medium text-gray-900">Body</label>
-                <textarea id="emailBody" name="body" rows="10" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md bg-white text-gray-900" style="border-radius: 0.25rem;"></textarea>
+                <label for="emailBody" class="block text-sm font-medium text-gray-700">Body</label>
+                <textarea id="emailBody" name="body" rows="10" class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500" style="border-radius: 0.25rem;"></textarea>
             </div>
             <div class="flex justify-end">
-                <button type="button" onclick="closeSendMessageModal()" class="bg-gray-200 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-900 hover:bg-gray-300" style="border-radius: 0.25rem;">Cancel</button>
-                <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700" style="border-radius: 0.25rem;">
+                <button type="button" onclick="closeSendMessageModal()" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" style="border-radius: 0.25rem;">Cancel</button>
+                <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" style="border-radius: 0.25rem;">
                     <i class="fas fa-paper-plane mr-2"></i>Send Email
                 </button>
             </div>

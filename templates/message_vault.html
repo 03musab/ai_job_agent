@@ -1,18 +1,14 @@
 {% extends "base.html" %}
 {% block body_class %}light-theme{% endblock %}
 {% block content %}
-<!-- Full-screen fixed background -->
-<div class="fixed inset-0 bg-cover bg-center -z-10" style="background-image: url({{ url_for('static', filename='assets/temporalbg.jpg') }});">
-    <div class="absolute inset-0 bg-white/80 backdrop-blur-[4px]"></div>
-</div>
-<div class="max-w-7xl mx-auto">
+<div class="max-w-7xl mx-auto px-4 py-8">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
         <div>
-            <h1 class="text-4xl font-bold text-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text">Message Vault</h1>
-            <p class="mt-1 text-gray-700">Craft and manage your outreach templates.</p>
+            <h1 class="text-3xl font-bold text-gray-900">Message Vault</h1>
+            <p class="mt-1 text-gray-600">Craft and manage your outreach templates.</p>
         </div>
-        <a href="{{ url_for('outreach_studio') }}" class="mt-4 sm:mt-0 inline-flex items-center gap-2 text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors">
+        <a href="{{ url_for('outreach_studio') }}" class="mt-4 sm:mt-0 inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" /></svg>
             Back to Outreach Studio
         </a>
@@ -20,46 +16,30 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- Left Side: Template Editor & Preview -->
-        <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-lg space-y-6" style="border-radius: 0.25rem;">
+        <div class="p-6 bg-white border border-black rounded-xl shadow-md space-y-6" style="border-radius: 0.25rem; border: 1px solid black;">
             <div>
                 <h2 id="editor-title" class="text-2xl font-bold text-gray-900">Create New Template</h2>
-                <p class="text-sm text-gray-700">Use placeholders like <code class="text-blue-600">{firstName}</code>, <code class="text-blue-600">{companyName}</code>, <code class="text-blue-600">{jobTitle}</code>.</p>
+                
             </div>
 
             <form id="template-form" class="space-y-4">
                 <input type="hidden" id="template-id" name="template_id">
                 <div>
-                    <label for="template_name" class="block text-sm font-medium text-gray-900">Template Name</label>
-                    <input type="text" name="template_name" id="template_name" required class="form-input">
+                    <label for="template_name" class="block text-sm font-medium text-gray-700">Template Name</label>
+                    <input type="text" name="template_name" id="template_name" required class="form-input" placeholder="e.g., Initial Outreach - Software Engineer">
                 </div>
                 <div>
-                    <label for="subject" class="block text-sm font-medium text-gray-900">Subject Line (for emails)</label>
-                    <input type="text" name="subject" id="subject" class="form-input">
+                    <label for="subject" class="block text-sm font-medium text-gray-700">Subject Line (for emails)</label>
+                    <input type="text" name="subject" id="subject" class="form-input" placeholder="e.g., Question about {jobTitle} role">
                 </div>
                 <div>
-                    <label for="body" class="block text-sm font-medium text-gray-900">Message Body</label>
-                    <textarea name="body" id="body" rows="8" required class="form-input"></textarea>
-                </div>
-
-                <!-- Tone Toggles -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-900 mb-2">Tone</label>
-                    <div class="flex gap-2" id="tone-selector">
-                        {% for tone_val, tone_label, tone_emoji in [('direct', 'Direct', '🎯'), ('warm', 'Warm', '😊'), ('playful', 'Playful', '🎉')] %}
-                        <label class="flex-1">
-                            <input type="radio" name="tone" value="{{ tone_val }}" class="sr-only" {% if loop.first %}checked{% endif %}>
-                            <div class="tone-button cursor-pointer text-center p-3 rounded-lg border-2 border-gray-300 bg-gray-50 text-gray-900 transition-all duration-200" style="border-radius: 0.25rem;">
-                                <span class="text-xl">{{ tone_emoji }}</span>
-                                <span class="block text-xs font-semibold mt-1">{{ tone_label }}</span>
-                            </div>
-                        </label>
-                        {% endfor %}
-                    </div>
+                    <label for="body" class="block text-sm font-medium text-gray-700">Message Body</label>
+                    <textarea name="body" id="body" rows="8" required class="form-input" placeholder="Hi {firstName}, I saw you are hiring for..."></textarea>
                 </div>
 
                 <div class="flex gap-4 pt-2">
-                    <button type="submit" id="save-btn" class="btn-temporal flex-1 inline-flex items-center justify-center">Save Template</button>
-                    <button type="button" id="clear-btn" class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-900 bg-gray-100 hover:bg-gray-200 transition-colors" style="border-radius: 0.25rem;">Clear Form</button>
+                    <button type="submit" id="save-btn" class="btn-temporal flex-1 inline-flex items-center justify-center py-2 px-4 text-sm font-medium rounded-md shadow-sm text-white">Save Template</button>
+                    <button type="button" id="clear-btn" class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors" style="border-radius: 0.25rem;">Clear Form</button>
                 </div>
             </form>
         </div>
@@ -67,34 +47,33 @@
         <!-- Right Side: Live Preview & Template List -->
         <div class="space-y-8">
             <!-- Live Preview -->
-            <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-lg" style="border-radius: 0.25rem;">
-                <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text">Live Preview</h2>
+            <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-md" style="border-radius: 0.25rem;">
+                <h2 class="text-2xl font-bold mb-4 text-gray-900">Live Preview</h2>
                 <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 min-h-[200px]" style="border-radius: 0.25rem;">
                     <div class="flex items-center gap-2 mb-2">
-                        <span id="preview-tone-emoji" class="text-xl">🎯</span>
                         <p id="preview-subject" class="font-semibold text-gray-900"></p>
                     </div>
-                    <p id="preview-body" class="text-gray-800 whitespace-pre-wrap font-mono text-sm"></p>
+                    <p id="preview-body" class="text-gray-600 whitespace-pre-wrap font-mono text-sm"></p>
                 </div>
             </div>
 
             <!-- Template List -->
-            <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-lg" style="border-radius: 0.25rem;">
-                <h2 class="text-2xl font-bold mb-4 text-transparent bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text">Your Templates</h2>
+            <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-md" style="border-radius: 0.25rem;">
+                <h2 class="text-2xl font-bold mb-4 text-gray-900">Your Templates</h2>
                 <div id="template-list" class="space-y-3 max-h-96 overflow-y-auto pr-2">
                     {% for template in templates %}
-                    <div class="template-item bg-gray-50 p-3 rounded-lg flex items-center justify-between shadow-sm border border-gray-200 hover:bg-gray-100 transition-colors duration-200" data-template='{{ template | tojson | safe }}' style="border-radius: 0.25rem;">
+                    <div class="template-item bg-white p-3 rounded-lg flex items-center justify-between shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200" data-template='{{ template | tojson | safe }}' style="border-radius: 0.25rem;">
                         <div>
                             <h3 class="font-semibold text-gray-900">{{ template.template_name }}</h3>
-                            <p class="text-xs text-gray-700">{{ template.subject or 'No Subject' }}</p>
+                            <p class="text-xs text-gray-500">{{ template.subject or 'No Subject' }}</p>
                         </div>
                         <div class="flex gap-2">
-                            <button class="edit-btn text-blue-600 hover:text-blue-700 text-sm font-medium">Edit</button>
-                            <button class="delete-btn text-red-600 hover:text-red-700 text-sm font-medium" data-id="{{ template.id }}">Delete</button>
+                            <button class="edit-btn text-blue-600 hover:text-blue-800 text-sm font-medium">Edit</button>
+                            <button class="delete-btn text-red-600 hover:text-red-800 text-sm font-medium" data-id="{{ template.id }}">Delete</button>
                         </div>
                     </div>
                     {% else %}
-                    <p id="no-templates-msg" class="text-sm text-gray-700 text-center py-4">No templates created yet.</p>
+                    <p id="no-templates-msg" class="text-sm text-gray-500 text-center py-4">No templates created yet.</p>
                     {% endfor %}
                 </div>
             </div>
@@ -104,12 +83,9 @@
 
 <style>
 .form-input {
-    @apply mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500;
+    @apply mt-1 block w-full rounded-md bg-white shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500;
+    border: 1px solid black !important;
     border-radius: 0.25rem;
-}
-.tone-button.selected {
-    @apply border-blue-500 bg-blue-50 text-gray-900;
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
 }
 </style>
 
@@ -129,10 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Live Preview Elements
     const previewSubject = document.getElementById('preview-subject');
     const previewBody = document.getElementById('preview-body');
-    const previewToneEmoji = document.getElementById('preview-tone-emoji');
     let typingInterval;
-
-    const toneEmojis = { direct: '🎯', warm: '😊', playful: '🎉' };
 
     // --- Form & Editor Logic ---
     function clearForm() {
@@ -140,8 +113,6 @@ document.addEventListener('DOMContentLoaded', function() {
         templateIdInput.value = '';
         editorTitle.textContent = 'Create New Template';
         saveBtn.textContent = 'Save Template';
-        document.querySelector('input[name="tone"][value="direct"]').checked = true;
-        updateToneSelection();
         updatePreview();
     }
 
@@ -193,9 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
             templateNameInput.value = template.template_name;
             subjectInput.value = template.subject;
             bodyInput.value = template.body;
-            document.querySelector(`input[name="tone"][value="${template.tone || 'direct'}"]`).checked = true;
             
-            updateToneSelection();
             updatePreview();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -225,21 +194,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // --- Live Preview & Tone Logic ---
-    function updateToneSelection() {
-        document.querySelectorAll('.tone-button').forEach(btn => btn.classList.remove('selected'));
-        const selectedRadio = document.querySelector('input[name="tone"]:checked');
-        if (selectedRadio) {
-            selectedRadio.closest('.tone-button').classList.add('selected');
-            previewToneEmoji.textContent = toneEmojis[selectedRadio.value];
-        }
-    }
-
-    document.getElementById('tone-selector').addEventListener('change', () => {
-        updateToneSelection();
-        updatePreview();
-    });
-
     function updatePreview() {
         clearInterval(typingInterval);
         const subject = subjectInput.value;
@@ -264,7 +218,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Initial state setup
-    updateToneSelection();
     updatePreview();
 });
 </script>
