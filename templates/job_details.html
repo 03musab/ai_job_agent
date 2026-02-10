@@ -1,0 +1,459 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ job.title }} - {{ job.company }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Back Button -->
+        <div class="mb-6">
+            <a href="{{ url_for('dashboard') }}"
+                class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Main Container -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-200">
+            <!-- Header -->
+            <div class="px-8 py-6 border-b border-gray-200">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ job.title }}</h1>
+                        <p class="text-lg text-gray-600 mb-4">{{ job.company }}</p>
+
+                        <!-- Relevance Badge -->
+                        {% set score = job.relevance_score | int if job.relevance_score else 0 %}
+                        {% if score >= 80 %}
+                        <span class="px-4 py-1.5 text-sm font-semibold rounded-full bg-green-100 text-green-700">
+                            {{ score }}% Match
+                        </span>
+                        {% elif score >= 60 %}
+                        <span class="px-4 py-1.5 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-700">
+                            {{ score }}% Match
+                        </span>
+                        {% elif score > 0 %}
+                        <span class="px-4 py-1.5 text-sm font-semibold rounded-full bg-red-100 text-red-700">
+                            {{ score }}% Match
+                        </span>
+                        {% endif %}
+
+                        <!-- Status Badge -->
+                        {% if job.status %}
+                        <span class="ml-3 px-4 py-1.5 text-sm font-semibold rounded-full {{ job.status_class }}">
+                            {{ job.status_text }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="p-8 space-y-6">
+                <!-- Key Info Section -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-white p-4 rounded-lg border border-gray-200">
+                        <div class="text-xs text-gray-500 mb-1">Location</div>
+                        <div class="font-semibold text-gray-900">{{ job.location or 'Not specified' }}</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-gray-200">
+                        <div class="text-xs text-gray-500 mb-1">Salary</div>
+                        <div class="font-semibold text-gray-900">{{ job.salary or 'Not specified' }}</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-gray-200">
+                        <div class="text-xs text-gray-500 mb-1">Experience</div>
+                        <div class="font-semibold text-gray-900">{{ job.experience or 'Not specified' }}</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-gray-200">
+                        <div class="text-xs text-gray-500 mb-1">Job Type</div>
+                        <div class="font-semibold text-gray-900">{{ job.job_type or 'Not specified' }}</div>
+                    </div>
+                </div>
+
+                <!-- Description Section -->
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-900 mb-3">Job Description</h2>
+                    <div
+                        class="text-sm text-gray-700 bg-white p-6 rounded-lg border border-gray-200 whitespace-pre-wrap">
+                        {{ job.description or 'No description available' }}
+                    </div>
+                </div>
+
+                <!-- Skills & Keywords Section -->
+                {% if job.skills or job.extracted_tools or job.extracted_soft_skills %}
+                <div class="space-y-4">
+                    {% if job.skills %}
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Skills</h3>
+                        <div class="flex flex-wrap gap-2">
+                            {% for skill in job.skills.split(',') if job.skills %}
+                            <span
+                                class="px-3 py-1.5 text-sm font-medium rounded-full bg-white text-gray-700 border border-gray-300">
+                                {{ skill.strip() }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if job.extracted_tools %}
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Tools & Platforms</h3>
+                        <div class="flex flex-wrap gap-2">
+                            {% for tool in job.extracted_tools.split(',') if job.extracted_tools %}
+                            <span
+                                class="px-3 py-1.5 text-sm font-medium rounded-full bg-white text-gray-700 border border-gray-300">
+                                {{ tool.strip() }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if job.extracted_soft_skills %}
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Soft Skills</h3>
+                        <div class="flex flex-wrap gap-2">
+                            {% for soft_skill in job.extracted_soft_skills.split(',') if job.extracted_soft_skills %}
+                            <span
+                                class="px-3 py-1.5 text-sm font-medium rounded-full bg-white text-gray-700 border border-gray-300">
+                                {{ soft_skill.strip() }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Additional Information -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Additional Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div class="bg-white p-3 rounded-lg border border-gray-200">
+                            <span class="text-gray-500">Posted:</span>
+                            <span class="font-medium text-gray-900">
+                                {{ job.found_date or 'Not specified' }}
+                            </span>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg border border-gray-200">
+                            <span class="text-gray-500">Source:</span>
+                            <span class="font-medium text-gray-900">{{ job.source or 'Not specified' }}</span>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg border border-gray-200">
+                            <span class="text-gray-500">Deadline:</span>
+                            <span class="font-medium text-gray-900">
+                                {{ job.deadline or 'Not specified' }}
+                            </span>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg border border-gray-200">
+                            <span class="text-gray-500">Experience Range:</span>
+                            <span class="font-medium text-gray-900">
+                                {% if job.min_experience_years is not none %}
+                                {% if job.max_experience_years is not none %}
+                                {% if job.min_experience_years == job.max_experience_years %}
+                                {{ job.min_experience_years }} years
+                                {% else %}
+                                {{ job.min_experience_years }} - {{ job.max_experience_years }} years
+                                {% endif %}
+                                {% else %}
+                                {{ job.min_experience_years }}+ years
+                                {% endif %}
+                                {% elif job.max_experience_years is not none %}
+                                Up to {{ job.max_experience_years }} years
+                                {% else %}
+                                Not specified
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="px-8 py-5 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center gap-3 rounded-b-2xl">
+                <a href="{{ job.link }}" target="_blank"
+                    class="btn-temporal inline-flex items-center justify-center px-6 py-2.5 text-sm font-medium rounded-md shadow-sm text-white transition-all duration-200 hover:shadow-lg">
+                    Apply Now
+                </a>
+                <button type="button"
+                    onclick="openStatusModal({{ job.id }}, '{{ job.status }}', '{{ job.notes | default('') }}')"
+                    class="inline-flex items-center px-5 py-2.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-all duration-200">
+                    Update Status
+                </button>
+                <button type="button" onclick="analyzeTraffic({{ job.id }})"
+                    class="inline-flex items-center px-5 py-2.5 rounded-md border border-gray-200 hover:bg-gray-50 text-sm text-gray-700 btn-analysis transition-colors">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                        </path>
+                    </svg>
+                    Analyze Traffic
+                </button>
+                <button type="button" onclick="openApplyModal({{ job.id }}, '{{ job.link }}')"
+                    class="inline-flex items-center px-5 py-2.5 rounded-md border border-gray-200 hover:bg-gray-50 text-sm text-gray-700 btn-assisted-apply transition-colors">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    Assisted Apply
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Job Status Update -->
+<div id="status-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-4" role="dialog"
+    aria-modal="true" aria-labelledby="status-modal-title">
+    <div class="fixed inset-0 backdrop-blur-sm" onclick="closeStatusModal()"></div>
+    <div class="relative mx-auto p-6 border border-gray-200 w-full max-w-md shadow-lg rounded-xl bg-white z-10">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Update Job Status</h3>
+        <form id="status-form" action="{{ url_for('update_job_status') }}" method="POST">
+            <input type="hidden" name="job_id" id="status-job-id" value="{{ job.id }}">
+            <div class="mb-4">
+                <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                <select id="status" name="status"
+                    class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900">
+                    <option value="new" {% if job.status=='new' %}selected{% endif %}>New</option>
+                    <option value="applied" {% if job.status=='applied' %}selected{% endif %}>Applied</option>
+                    <option value="interview" {% if job.status=='interview' %}selected{% endif %}>Interview</option>
+                    <option value="rejected" {% if job.status=='rejected' %}selected{% endif %}>Rejected</option>
+                    <option value="offered" {% if job.status=='offered' %}selected{% endif %}>Offered</option>
+                    <option value="archived" {% if job.status=='archived' %}selected{% endif %}>Archived</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
+                <textarea id="notes" name="notes" rows="4"
+                    class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900">{{ job.notes or '' }}</textarea>
+            </div>
+            <div class="mb-4">
+                <div class="flex items-center">
+                    <input type="checkbox" id="sync_to_calendar" name="sync_to_calendar" value="1" checked
+                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded bg-white">
+                    <label for="sync_to_calendar" class="ml-2 block text-sm text-gray-700">
+                        Sync to Google Calendar
+                    </label>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Creates/updates calendar events based on job status.</p>
+            </div>
+            <div class="flex justify-end space-x-4">
+                <button type="button" onclick="closeStatusModal()"
+                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Cancel</button>
+                <button type="submit"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal for Assisted Apply -->
+<div id="apply-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-4" role="dialog"
+    aria-modal="true" aria-labelledby="apply-modal-title">
+    <div class="fixed inset-0 backdrop-blur-sm" onclick="closeApplyModal()"></div>
+    <div
+        class="relative mx-auto p-6 border border-gray-200 w-full max-w-sm shadow-lg rounded-xl bg-white text-center z-10">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Assisted Apply</h3>
+        <p class="text-gray-600 mb-4">This will start an automated browser session to fill out the form for you.</p>
+        <p class="text-sm text-red-400 mb-4 font-semibold">
+            Warning: This feature requires a local Celery worker with Selenium configured correctly. A new browser
+            window will open.
+        </p>
+        <div class="flex justify-center space-x-4">
+            <button type="button" onclick="closeApplyModal()"
+                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Cancel</button>
+            <button type="button" id="start-apply-btn"
+                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Start Automation</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Traffic Analysis -->
+<div id="traffic-analysis-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-4"
+    role="dialog" aria-modal="true" aria-labelledby="traffic-modal-title">
+    <div class="fixed inset-0 backdrop-blur-sm" onclick="closeTrafficAnalysisModal()">
+    </div>
+    <div id="traffic-analysis-modal-content"
+        class="relative w-full max-w-lg shadow-2xl rounded-2xl bg-white border border-gray-200 transform transition-transform,opacity duration-300 scale-95 opacity-0 z-10"
+        style="will-change: transform, opacity;">
+        <!-- Modal Header -->
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <div>
+                <h3 id="traffic-modal-title" class="text-xl font-bold text-gray-900">Company Traffic Analysis</h3>
+                <p id="traffic-modal-company" class="text-md text-gray-500">{{ job.company }}</p>
+            </div>
+            <button onclick="closeTrafficAnalysisModal()" class="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Close traffic analysis modal">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div id="traffic-modal-body" class="p-6 max-h-[75vh] overflow-y-auto space-y-5" role="status">
+            <!-- Loading/Error State -->
+            <div id="traffic-modal-placeholder" class="text-center py-8">
+                <svg class="animate-spin mx-auto h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
+                </svg>
+                <p class="text-gray-500 mt-3">Analyzing traffic...</p>
+            </div>
+
+            <!-- Results -->
+            <div id="traffic-modal-results" class="hidden space-y-4">
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 text-center">
+                        <div class="text-xs text-blue-600 mb-1">Monthly Visits</div>
+                        <div id="traffic-visits" class="text-2xl font-bold text-blue-700">--</div>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg border border-green-200 text-center">
+                        <div class="text-xs text-green-600 mb-1">Bounce Rate</div>
+                        <div id="traffic-bounce-rate" class="text-2xl font-bold text-green-700">--</div>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-lg border border-purple-200 text-center">
+                        <div class="text-xs text-purple-600 mb-1">Pages/Visit</div>
+                        <div id="traffic-pages-per-visit" class="text-2xl font-bold text-purple-700">--</div>
+                    </div>
+                </div>
+                <div id="traffic-message" class="text-sm text-gray-600"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Modal functions
+    const els = {
+        statusModal: document.getElementById('status-modal'),
+        applyModal: document.getElementById('apply-modal'),
+        trafficModal: document.getElementById('traffic-analysis-modal'),
+        trafficModalContent: document.getElementById('traffic-analysis-modal-content'),
+        statusForm: document.getElementById('status-form')
+    };
+
+    const openModal = (modal) => {
+        modal.classList.remove('hidden');
+        const focusable = modal.querySelector('button, [href], input, select, textarea');
+        if (focusable) focusable.focus();
+    };
+
+    const closeModal = (modal) => {
+        modal.classList.add('hidden');
+    };
+
+    // Status Modal
+    window.openStatusModal = (jobId, status, notes) => {
+        document.getElementById('status-job-id').value = jobId;
+        document.getElementById('status').value = status || 'new';
+        document.getElementById('notes').value = notes || '';
+        openModal(els.statusModal);
+    };
+
+    window.closeStatusModal = () => closeModal(els.statusModal);
+
+    // Assisted Apply Modal
+    window.openApplyModal = (jobId, link) => {
+        openModal(els.applyModal);
+        document.getElementById('start-apply-btn').onclick = () => {
+            startApplyProcess(jobId);
+            closeModal(els.applyModal);
+        };
+    };
+
+    window.closeApplyModal = () => closeModal(els.applyModal);
+
+    // Traffic Analysis
+    window.analyzeTraffic = async (jobId) => {
+        els.trafficModal.classList.remove('hidden');
+        setTimeout(() => els.trafficModalContent.classList.remove('scale-95', 'opacity-0'), 10);
+
+        const ph = document.getElementById('traffic-modal-placeholder');
+        const resDiv = document.getElementById('traffic-modal-results');
+        ph.classList.remove('hidden');
+        resDiv.classList.add('hidden');
+
+        try {
+            const res = await fetch(`/analyze_traffic/${jobId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+            ph.classList.add('hidden');
+            resDiv.classList.remove('hidden');
+
+            if (res.ok && data.status === 'success') {
+                document.getElementById('traffic-modal-company').textContent = data.company_name || '{{ job.company }}';
+                document.getElementById('traffic-visits').textContent = data.analysis.monthly_visits || '--';
+                document.getElementById('traffic-bounce-rate').textContent = data.analysis.bounce_rate || '--';
+                document.getElementById('traffic-pages-per-visit').textContent = data.analysis.pages_per_visit || '--';
+                document.getElementById('traffic-message').textContent = data.message || '';
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (e) {
+            ph.classList.add('hidden');
+            resDiv.classList.remove('hidden');
+            document.getElementById('traffic-modal-company').textContent = 'Error';
+            document.getElementById('traffic-message').innerHTML = `<p class="text-red-400">${e.message || 'Network error.'}</p>`;
+        }
+    };
+
+    window.closeTrafficAnalysisModal = () => {
+        els.trafficModalContent.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => els.trafficModal.classList.add('hidden'), 300);
+    };
+
+    // Status Update Form Handler
+    if (els.statusForm) {
+        els.statusForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(els.statusForm);
+
+            try {
+                const res = await fetch(els.statusForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    alert(data.message || 'Status updated successfully!');
+                    // Reload page to show updated status
+                    window.location.reload();
+                } else {
+                    alert(data.error || 'Failed to update status.');
+                }
+            } catch (e) {
+                alert('Network error occurred.');
+            }
+
+            closeModal(els.statusModal);
+        });
+    }
+
+    // Assisted Apply Process
+    async function startApplyProcess(jobId) {
+        try {
+            const res = await fetch(`/assisted_apply/${jobId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+            alert(data.status === 'success' ? data.message : 'Error: ' + data.message);
+        } catch (e) {
+            alert('Error occurred during assisted apply.');
+        }
+    }
+</script>
+{% endblock %}

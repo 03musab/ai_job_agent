@@ -88,6 +88,21 @@ class LearningModule(db.Model):
     description = db.Column(db.Text)
     order_index = db.Column(db.Integer, nullable=False)
     topics_data = db.Column(db.JSON, nullable=True)
+    
+    resources = db.relationship('LearningResource', backref='module', cascade='all, delete-orphan', order_by='LearningResource.order_index')
+
+class LearningResource(db.Model):
+    __tablename__ = 'learning_resources'
+
+    id = db.Column(db.Integer, primary_key=True)
+    module_id = db.Column(db.Integer, db.ForeignKey('learning_modules.id'), nullable=False)
+    resource_type = db.Column(db.String(20), nullable=False)  # 'video' or 'pdf'
+    title = db.Column(db.String(200), nullable=False)
+    youtube_video_id = db.Column(db.String(50), nullable=True)  # For YouTube videos
+    pdf_url = db.Column(db.String(500), nullable=True)  # URL or path to PDF
+    description = db.Column(db.Text, nullable=True)
+    order_index = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class UserLearningProgress(db.Model):
     __tablename__ = 'user_learning_progress'

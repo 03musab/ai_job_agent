@@ -1,560 +1,131 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-gray-50">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title | default('JobSnap') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Parisienne&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                            900: '#1e3a8a'
-                        },
-                        gray: {
-                            50: '#f8fafc',
-                            100: '#f1f5f9',
-                            200: '#e2e8f0',
-                            300: '#cbd5e1',
-                            400: '#94a3b8',
-                            500: '#64748b',
-                            600: '#475569',
-                            700: '#334155',
-                            800: '#1e293b',
-                            900: '#0f172a'
-                        },
-                        temporal: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            200: '#bae6fd',
-                            300: '#7dd3fc',
-                            400: '#38bdf8',
-                            500: '#0ea5e9',
-                            600: '#0284c7',
-                            700: '#0369a1',
-                            800: '#075985',
-                            900: '#0c4a6e'
-                        },
-                        neon: {
-                            cyan: '#00ffff',
-                            purple: '#a855f7',
-                            pink: '#ec4899',
-                            green: '#10b981'
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif']
-                    },
-                    spacing: {
-                        '18': '4.5rem',
-                        '88': '22rem'
-                    },
-                    borderRadius: {
-                        'square-sm': '0.125rem',
-                        'square': '0',
-                        'sharp-md': '0.25rem',
-                        'sharp-lg': '0.5rem'
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        :root {
-            --color-primary: #2563EB;
-            --color-primary-dark: #1D4ED8;
-            --color-gray-50: #f8fafc;
-            --color-gray-100: #f1f5f9;
-            --color-gray-900: #0f172a;
-            --color-dark-bg: #0a0a0f;
-            --color-dark-surface: #1a1a2e;
-            --color-dark-elevated: #16213e;
-            --color-neon-cyan: #00ffff;
-            --color-neon-purple: #a855f7;
-            --color-neon-pink: #ec4899;
-            --shadow-dark: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
-            --shadow-dark-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
-            --shadow-neon: 0 0 20px rgba(99, 102, 241, 0.3);
-            --shadow-neon-cyan: 0 0 20px rgba(0, 255, 255, 0.2);
-            --radius-sm: 0.125rem;
-            --radius-md: 0.25rem;
-            --radius-lg: 0.5rem;
-            --radius-xl: 0.75rem;
-        }
-        
-        [x-cloak] { display: none !important; }
-        
-        * {
-            box-sizing: border-box;
-        }
-        
-        body { 
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-            background-color: #f9fafb;
-            color: #111827;
-            line-height: 1.5;
-            min-height: 100vh;
-            position: relative;
-            overflow-x: hidden;
-            scroll-behavior: smooth;
-            font-size: 13px;
-        }
-        
-        /* Global font size reduction */
-        h1 { font-size: 1.75rem !important; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
-        h2 { font-size: 1.5rem !important; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
-        h3 { font-size: 1.25rem !important; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
-        h4 { font-size: 1.1rem !important; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
-        h5 { font-size: 1rem !important; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
-        h6 { font-size: 0.95rem !important; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
-        p { font-size: 0.9rem !important; }
-        a { font-size: 0.9rem !important; }
-        button, .btn { font-size: 0.85rem !important; font-family: 'Inter', sans-serif; font-weight: 600; }
-        input, textarea, select { font-size: 0.9rem !important; }
-        .text-sm { font-size: 0.75rem !important; }
-        .text-xs { font-size: 0.65rem !important; }
-        .text-base { font-size: 0.9rem !important; }
-        .text-lg { font-size: 1.05rem !important; }
-        .text-xl { font-size: 1.2rem !important; }
-        .text-2xl { font-size: 1.4rem !important; }
-        .text-3xl { font-size: 1.65rem !important; }
-        
-        /* Stats / Numbers */
-        .stat-number { font-family: 'Inter', sans-serif; font-weight: 700; }
-
-        body::after { display: none; }
-
-        /* Soft blurred background overlay */
-        body::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: 
-                radial-gradient(circle at 20% 30%, rgba(37, 99, 235, 0.25) 0%, transparent 50%),
-                radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.25) 0%, transparent 50%);
-            filter: blur(60px);
-            pointer-events: none;
-            z-index: 0;
-            animation: bg-drift 15s ease-in-out infinite alternate;
-        }
-
-        @keyframes bg-drift {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(5%, 5%) scale(1.05); }
-        }
-
-        /* Square-based temporal glow effects */
-        .temporal-glow {
-            position: relative;
-        }
-        .temporal-glow::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, var(--color-neon-cyan), var(--color-neon-purple), var(--color-neon-pink));
-            border-radius: 0;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-            animation: temporalPulse 3s ease-in-out infinite alternate;
-            will-change: opacity;
-        }
-        .temporal-glow:hover::before {
-            opacity: 0.7;
-        }
-
-        @keyframes temporalPulse {
-            0% { opacity: 0.1; }
-            100% { opacity: 0.3; }
-        }
-        
-        /* Modern Flash Messages - Dark Theme with Square Boxes */
-        .flash-message {
-            position: fixed;
-            top: 24px;
-            right: 24px;
-            z-index: 1000;
-            padding: 16px 20px;
-            border-radius: 0.25rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            color: #1f2937;
-            font-weight: 500;
-            font-size: 0.875rem;
-            max-width: 400px;
-            backdrop-filter: blur(12px);
-            animation: slideInRight 0.3s ease-out, fadeout 4s 1s forwards;
-            border: 1px solid rgba(0,0,0,0.05);
-            will-change: transform, opacity;
-        }
-
-        .flash-success { 
-            background-color: #f0fdf4;
-            border-left: 4px solid #16A34A;
-            color: #14532d;
-        }
-        .flash-danger { 
-            background-color: #fef2f2;
-            border-left: 4px solid #DC2626;
-            color: #7f1d1d;
-        }
-        .flash-warning { 
-            background-color: #fffbeb;
-            border-left: 4px solid #F59E0B;
-            color: #78350f;
-        }
-        .flash-info { 
-            background-color: #f0f9ff;
-            border-left: 4px solid #0284C7;
-            color: #0c4a6e;
-        }
-        
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes fadeout {
-            0% { opacity: 1; }
-            80% { opacity: 1; }
-            100% { opacity: 0; visibility: hidden; }
-        }
-        
-        /* Modern Tooltip System - Dark Theme with Square Boxes */
-        .tooltip {
-            position: relative;
-            display: inline-block;
-        }
-        .tooltip .tooltiptext {
-            visibility: hidden;
-            min-width: 120px;
-            background: rgba(255, 255, 255, 0.95);
-            color: #1f2937;
-            text-align: center;
-            border-radius: 0.25rem;
-            padding: 8px 12px;
-            position: absolute;
-            z-index: 1000;
-            bottom: 125%;
-            left: 50%;
-            transform: translateX(-50%);
-            opacity: 0;
-            transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 0.75rem;
-            font-weight: 500;
-            white-space: nowrap;
-            box-shadow: var(--shadow-dark-lg);
-            border: 1px solid #e5e7eb;
-            backdrop-filter: blur(8px);
-            will-change: transform, opacity;
-        }
-        .tooltip .tooltiptext::after {
-            content: "";
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            margin-left: -5px;
-            border-width: 5px;
-            border-style: solid;
-            border-color: rgba(255, 255, 255, 0.95) transparent transparent transparent;
-        }
-        .tooltip:hover .tooltiptext {
-            visibility: visible;
-            opacity: 1;
-            transform: translateX(-50%) translateY(-4px);
-        }
-        
-        /* Enhanced UX Styles - Square Boxes */
-        .job-item {
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            background: #ffffff;
-            border: 1px solid rgba(0,0,0,0.05);
-            border-radius: 0.25rem;
-            backdrop-filter: blur(8px);
-            will-change: transform, box-shadow;
-        }
-
-        .job-item:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            border-color: var(--color-primary);
-            background: #f9fafb;
-        }
-        
-        .skeleton {
-            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
-        }
-        @keyframes loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-        
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            min-width: 300px;
-            max-width: 500px;
-            transform: translateX(100%);
-            transition: transform 0.3s ease-in-out;
-            border-radius: 0.25rem;
-        }
-        .toast.show {
-            transform: translateX(0);
-        }
-        
-        .pulse-dot {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { 
-                opacity: 1; 
-                box-shadow: 0 0 10px currentColor;
-            }
-            50% { 
-                opacity: .5;
-                box-shadow: 0 0 20px currentColor;
-            }
-        }
-        
-        .slide-in {
-            animation: slideIn 0.3s ease-out;
-        }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .button-loading {
-            position: relative;
-            color: transparent !important;
-        }
-        .button-loading::after {
-            content: "";
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            top: 50%;
-            left: 50%;
-            margin-left: -8px;
-            margin-top: -8px;
-            border: 2px solid #ffffff;
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Status Badges - Square Boxes */
-        .status-badge {
-            border-radius: 0.25rem;
-        }
-        .status-badge.status-new {
-            background-color: #eff6ff;
-            color: #2563eb;
-            border-color: #bfdbfe;
-        }
-        .status-badge.status-applied {
-            background-color: #f0fdf4;
-            color: #16a34a;
-            border-color: #bbf7d0;
-        }
-        .status-badge.status-interview {
-            background-color: #fffbeb;
-            color: #d97706;
-            border-color: #fde68a;
-        }
-        .status-badge.status-offered {
-            background-color: #f5f3ff;
-            color: #7c3aed;
-            border-color: #ddd6fe;
-        }
-        .status-badge.status-rejected {
-            background-color: #fef2f2;
-            color: #dc2626;
-            border-color: #fecaca;
-        }
-        .status-badge.status-archived {
-            background-color: #f9fafb;
-            color: #4b5563;
-            border-color: #e5e7eb;
-        }
-
-        /* Chart Legend Dots */
-        .chart-legend-dot {
-            width: 0.625rem;
-            height: 0.625rem;
-            border-radius: 0;
-        }
-        .chart-legend-blue { background-color: #3B82F6; }
-        .chart-legend-emerald { background-color: #10B981; }
-        .chart-legend-amber { background-color: #F59E0B; }
-        .chart-legend-purple { background-color: #8B5CF6; }
-        .chart-legend-red { background-color: #EF4444; }
-        .chart-legend-gray { background-color: #6B7280; }
-
-        .btn-analysis {
-            background-color: rgba(14, 165, 233, 0.1);
-            color: #38bdf8;
-            border-color: rgba(14, 165, 233, 0.2);
-            border-radius: 0.25rem;
-        }
-        .btn-analysis:hover {
-            background-color: rgba(14, 165, 233, 0.2);
-            color: #7dd3fc;
-        }
-
-        /* Temporal enhancements - Square Boxes */
-        .nav-glass {
-            background: rgba(255, 255, 255, 0.8);
-            border-bottom: 1px solid #e5e7eb;
-            border-radius: 0;
-            backdrop-filter: blur(16px);
-            will-change: transform;
-        }
-
-        .btn-temporal {
-            background: var(--color-primary);
-            border: 1px solid var(--color-primary-dark);
-            border-radius: 0.25rem;
-            color: white;
-            transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease, text-shadow 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-temporal:hover {
-            background: var(--color-primary-dark);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            transform: translateY(-1px);
-        }
-
-        .btn-temporal::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            transition: left 0.6s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-
-        .btn-temporal:hover::before {
-            left: 100%;
-        }
-
-        .text-temporal {
-            background: linear-gradient(135deg, var(--color-neon-cyan), var(--color-neon-purple));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        /* Page Loader Spinner */
-        .loader-spinner {
-            width: 56px;
-            height: 56px;
-            border: 5px solid rgba(99, 102, 241, 0.1);
-            border-top-color: #a855f7;
-            border-radius: 0;
-            animation: spin 1s linear infinite;
-        }
-
-        /* Mobile menu dark theme - Square Boxes */
-        .mobile-menu-dark {
-            background: rgba(255, 255, 255, 0.95);
-            border-top: 1px solid #e5e7eb;
-            border-radius: 0;
-            backdrop-filter: blur(16px);
-        }
-
-        /* Content fade-in animation */
-        .content-fade-in {
-            animation: fadeInAnimation 0.7s ease-in-out forwards;
-        }
-        @keyframes fadeInAnimation {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Parisienne&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
 </head>
+
 <body class="h-full {% block body_class %}{% endblock %}" style="{% block body_style %}{% endblock %}">
     <div class="min-h-full relative z-10">
-        <nav class="nav-glass sticky top-0 z-50 shadow-lg" role="navigation" aria-label="Main menu" x-data="{ mobileMenuOpen: false }">
+        <nav class="nav-glass sticky top-0 z-50 shadow-lg" role="navigation" aria-label="Main menu"
+            x-data="{ mobileMenuOpen: false }">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
                     <div class="flex items-center">
-                        <a href="{{ url_for('dashboard') }}" class="flex items-center space-x-3 group px-4 py-3 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                            <div class="w-8 h-8 bg-blue-600 flex items-center justify-center shadow-sm group-hover:shadow-lg transition-all duration-200" style="border-radius: 0.25rem;">
+                        <a href="{{ url_for('dashboard') }}"
+                            class="flex items-center space-x-3 group px-4 py-3 rounded-lg hover:bg-gray-100 transition-all duration-200">
+                            <div class="w-8 h-8 bg-blue-600 flex items-center justify-center shadow-sm group-hover:shadow-lg transition-all duration-200"
+                                style="border-radius: 0.25rem;">
                                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" aria-hidden="true"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                                        aria-hidden="true"></path>
                                 </svg>
                             </div>
                             <h1 class="text-3xl hidden sm:block">
-                                <span style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; background: linear-gradient(135deg, #2563eb, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Job</span><span style="font-family: 'Parisienne', cursive; font-size: 1.85rem; background: linear-gradient(135deg, #2563eb, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Snap</span>
+                                <span
+                                    style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; background: linear-gradient(135deg, #2563eb, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.03em;">JobSnap</span>
                             </h1>
 
 
 
 
                         </a>
-                        <div class="hidden md:block ml-10">
+                        <div class="hidden md:block ml-6">
                             <div class="flex items-center space-x-1">
                                 {% if current_user.is_authenticated %}
-                                <a href="{{ url_for('dashboard') }}" class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 text-sm font-medium transition-all duration-200" style="border-radius: 0.25rem;">Dashboard</a>
-                                <a href="{{ url_for('profile') }}" class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 text-sm font-medium transition-all duration-200" style="border-radius: 0.25rem;">Profile</a>
-                                <a href="{{ url_for('outreach_studio') }}" class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 text-sm font-medium transition-all duration-200" style="border-radius: 0.25rem;">Outreach Studio</a>
-                                <a href="{{ url_for('learning_path') }}" class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 text-sm font-medium transition-all duration-200" style="border-radius: 0.25rem;">Learning Path</a>
+                                <a href="{{ url_for('dashboard') }}"
+                                    class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 text-base font-medium transition-all duration-200"
+                                    style="border-radius: 0.25rem;">Dashboard</a>
+                                <a href="{{ url_for('outreach_studio') }}"
+                                    class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 text-base font-medium transition-all duration-200"
+                                    style="border-radius: 0.25rem;">Outreach Studio</a>
+                                <a href="{{ url_for('learning_path') }}"
+                                    class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 text-base font-medium transition-all duration-200"
+                                    style="border-radius: 0.25rem;">Learning Path</a>
                                 {% endif %}
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="flex items-center space-x-4">
                         {% if current_user.is_authenticated %}
                         <div class="hidden md:flex items-center space-x-3">
-                            <div class="text-sm text-gray-500">Welcome back!</div>
-                            <a href="{{ url_for('logout') }}" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors" style="border-radius: 0.25rem;">
+                            <!-- Profile Icon Dropdown -->
+                            <div class="relative" x-data="{ open: false }">
+                                <button @click="open = !open" type="button"
+                                    class="flex items-center justify-center w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
+                                        </path>
+                                    </svg>
+                                </button>
+                                <!-- Dropdown Menu -->
+                                <div x-show="open" @click.away="open = false" x-transition
+                                    class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50 border border-gray-200"
+                                    style="display: none;">
+                                    <a href="{{ url_for('profile') }}"
+                                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <div class="flex items-center">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
+                                                </path>
+                                            </svg>
+                                            Profile
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                            <!-- Sign Out Button -->
+                            <a href="{{ url_for('logout') }}"
+                                class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                                style="border-radius: 0.25rem;">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                                    </path>
+                                </svg>
                                 Sign out
                             </a>
                         </div>
                         {% else %}
                         <div class="hidden md:flex items-center space-x-3">
-                            <a href="{{ url_for('login') }}" class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors">Sign in</a>
-                            <a href="{{ url_for('register') }}" class="btn-temporal inline-flex items-center px-4 py-2 text-sm font-medium shadow-sm">
+                            <a href="{{ url_for('login') }}"
+                                class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors">Sign
+                                in</a>
+                            <a href="{{ url_for('register') }}"
+                                class="btn-temporal inline-flex items-center px-4 py-2 text-sm font-medium shadow-sm">
                                 Get started
                             </a>
                         </div>
                         {% endif %}
                         <div class="md:hidden">
-                            <button type="button" @click="mobileMenuOpen = !mobileMenuOpen" class="inline-flex items-center justify-center p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors" aria-controls="mobile-menu" :aria-expanded="mobileMenuOpen" style="border-radius: 0.25rem;">
+                            <button type="button" @click="mobileMenuOpen = !mobileMenuOpen"
+                                class="inline-flex items-center justify-center p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors"
+                                aria-controls="mobile-menu" :aria-expanded="mobileMenuOpen"
+                                style="border-radius: 0.25rem;">
                                 <span class="sr-only">Open main menu</span>
-                                <svg class="h-6 w-6" :class="{'hidden': mobileMenuOpen, 'block': !mobileMenuOpen}" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                                <svg class="h-6 w-6" :class="{'hidden': mobileMenuOpen, 'block': !mobileMenuOpen}"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 6h16M4 12h16M4 18h16" />
                                 </svg>
-                                <svg class="h-6 w-6" :class="{'block': mobileMenuOpen, 'hidden': !mobileMenuOpen}" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" x-cloak>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                <svg class="h-6 w-6" :class="{'block': mobileMenuOpen, 'hidden': !mobileMenuOpen}"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" x-cloak>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
@@ -563,19 +134,33 @@
             </div>
 
             <!-- Mobile menu -->
-            <div class="md:hidden mobile-menu-dark" id="mobile-menu" role="navigation" aria-label="Mobile menu" x-show="mobileMenuOpen" x-transition x-cloak>
+            <div class="md:hidden mobile-menu-dark" id="mobile-menu" role="navigation" aria-label="Mobile menu"
+                x-show="mobileMenuOpen" x-transition x-cloak>
                 <div class="px-4 pt-2 pb-3 space-y-1">
                     {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('dashboard') }}" class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 block px-3 py-2 text-base font-medium" style="border-radius: 0.25rem;">Dashboard</a>
-                    <a href="{{ url_for('profile') }}" class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 block px-3 py-2 text-base font-medium" style="border-radius: 0.25rem;">Profile</a>
-                    <a href="{{ url_for('outreach_studio') }}" class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 block px-3 py-2 text-base font-medium" style="border-radius: 0.25rem;">Outreach Studio</a>
-                    <a href="{{ url_for('learning_path') }}" class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 block px-3 py-2 text-base font-medium" style="border-radius: 0.25rem;">Learning Path</a>
+                    <a href="{{ url_for('dashboard') }}"
+                        class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 block px-3 py-2 text-base font-medium"
+                        style="border-radius: 0.25rem;">Dashboard</a>
+                    <a href="{{ url_for('profile') }}"
+                        class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 block px-3 py-2 text-base font-medium"
+                        style="border-radius: 0.25rem;">Profile</a>
+                    <a href="{{ url_for('outreach_studio') }}"
+                        class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 block px-3 py-2 text-base font-medium"
+                        style="border-radius: 0.25rem;">Outreach Studio</a>
+                    <a href="{{ url_for('learning_path') }}"
+                        class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 block px-3 py-2 text-base font-medium"
+                        style="border-radius: 0.25rem;">Learning Path</a>
                     <div class="border-t border-gray-200 pt-2 mt-2">
-                        <a href="{{ url_for('logout') }}" class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 block px-3 py-2 text-base font-medium" style="border-radius: 0.25rem;">Sign out</a>
+                        <a href="{{ url_for('logout') }}"
+                            class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 block px-3 py-2 text-base font-medium"
+                            style="border-radius: 0.25rem;">Sign out</a>
                     </div>
                     {% else %}
-                    <a href="{{ url_for('login') }}" class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 block px-3 py-2 text-base font-medium" style="border-radius: 0.25rem;">Sign in</a>
-                    <a href="{{ url_for('register') }}" class="btn-temporal block px-3 py-2 text-base font-medium">Get started</a>
+                    <a href="{{ url_for('login') }}"
+                        class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 block px-3 py-2 text-base font-medium"
+                        style="border-radius: 0.25rem;">Sign in</a>
+                    <a href="{{ url_for('register') }}" class="btn-temporal block px-3 py-2 text-base font-medium">Get
+                        started</a>
                     {% endif %}
                 </div>
             </div>
@@ -590,8 +175,7 @@
         {% endif %}
         {% endwith %}
         <main class="flex-1" id="main-content">
-            <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-4"
->
+            <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-4">
                 {% block content %}{% endblock %}
             </div>
         </main>
@@ -600,16 +184,16 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
         // Add temporal hover effects to interactive elements
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const interactiveElements = document.querySelectorAll('button, .btn-temporal, a');
-            
+
             interactiveElements.forEach(element => {
-                element.addEventListener('mouseenter', function() {
+                element.addEventListener('mouseenter', function () {
                     this.style.transition = 'all 0.3s ease';
                 });
             });
         });
-        
+
         // --- Dynamic Toast Notification System ---
         function showToast(message, type = 'info', triggerElement = null) {
             let cardBackdrop = null;
@@ -623,14 +207,14 @@
             if (existingBackdrop) {
                 existingBackdrop.remove();
             }
-            
+
             const toast = document.createElement('div');
             toast.id = 'dynamic-toast';
             toast.setAttribute('role', 'status');
             toast.setAttribute('aria-live', 'polite');
 
             let classes = 'absolute z-[1001] px-4 py-2.5 shadow-lg text-sm font-medium transition-all duration-300 ease-in-out';
-            
+
             const typeStyles = {
                 success: 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20',
                 error: 'bg-red-500/10 text-red-300 border border-red-500/20',
@@ -707,4 +291,5 @@
         }
     </script>
 </body>
+
 </html>

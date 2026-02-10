@@ -24,6 +24,17 @@ USER_AGENTS = [
     'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 ]
 
+# Known company URL mappings (to handle special cases)
+COMPANY_URL_MAP = {
+    'outreach studios': 'https://www.outreach.io',
+    'outreach': 'https://www.outreach.io',
+    'wipro': 'https://www.wipro.com',
+    'tcs': 'https://www.tcs.com',
+    'infosys': 'https://www.infosys.com',
+    'flipkart': 'https://www.flipkartcareers.com',
+    'freshworks': 'https://www.freshworks.com',
+}
+
 class LegalContactResearcher:
     """
     Legal contact researcher that only scrapes publicly available data
@@ -99,6 +110,53 @@ class LegalContactResearcher:
         self.rate_limits[domain]['last_request'] = time.time()
         self.rate_limits[domain]['count'] += 1
         return True
+
+    def resolve_company_url(self, company_name: str) -> Optional[str]:
+        """
+        Intelligently resolve a company's URL by trying multiple patterns.
+        First checks known mappings, then tries common patterns.
+        """
+        # Check known mappings first
+        company_key = company_name.lower().strip()
+        if company_key in COMPANY_URL_MAP:
+            logger.info(f"Found URL mapping for {company_name}: {COMPANY_URL_MAP[company_key]}")
+            return COMPANY_URL_MAP[company_key]
+        
+        # Try multiple common URL patterns
+        base_name = company_name.lower().replace(' ', '')
+        hyphen_name = company_name.lower().replace(' ', '-')
+        
+        patterns = [
+            f"https://www.{base_name}.com",
+            f"https://{base_name}.com",
+            f"https://www.{hyphen_name}.com",
+            f"https://{hyphen_name}.com",
+            f"https://www.{base_name}.io",
+            f"https://{base_name}.io",
+            f"https://careers.{base_name}.com",
+            f"https://jobs.{base_name}.com",
+        ]
+        
+        logger.info(f"Attempting to resolve URL for company: {company_name}")
+        
+        for url in patterns:
+            try:
+                # Quick HEAD request to check if URL exists
+                response = self.session.head(url, timeout=5, allow_redirects=True)
+                if response.status_code == 200:
+                    logger.info(f"Successfully resolved {company_name} -> {url}")
+                    return url
+                elif response.status_code in [301, 302, 307, 308]:
+                    # Follow redirect
+                    final_url = response.headers.get('Location', url)
+                    logger.info(f"Successfully resolved {company_name} -> {final_url} (redirected)")
+                    return final_url
+            except Exception as e:
+                logger.debug(f"URL {url} failed: {e}")
+                continue
+        
+        logger.warning(f"Could not resolve URL for company: {company_name}")
+        return None
 
     def search_public_directories(self, keywords: str) -> List[Dict]:
         """Search publicly available business directories"""
@@ -270,14 +328,34 @@ class LegalContactResearcher:
             
             # Research specific companies if provided
             if companies:
-                for company in companies:
+                for idx, company in enumerate(companies):
                     try:
-                        # First, find the company's official website
-                        search_query = f'"{company}" official website'
-                        # Use legitimate search APIs or manual research
+                        # Update progress if task is available
+                        if self.task:
+                            progress = 50 + int((idx / len(companies)) * 30)  # 50-80% range
+                            self.task.update_state(
+                                state='PROGRESS',
+                                meta={
+                                    'status': f'Researching {company}...',
+                                    'progress': progress
+                                }
+                            )
                         
-                        # For each company, research their careers pages
-                        company_url = f"https://www.{company.lower().replace(' ', '')}.com"
+                        # Use smart URL resolution
+                        company_url = self.resolve_company_url(company)
+                        
+                        if not company_url:
+                            logger.warning(f"Could not resolve URL for {company}, skipping...")
+                            if self.task:
+                                self.task.update_state(
+                                    state='PROGRESS',
+                                    meta={
+                                        'status': f'Could not find website for {company}',
+                                        'progress': progress
+                                    }
+                                )
+                            continue
+                        
                         contact_info = self.scrape_company_careers_page(company_url)
                         
                         if contact_info:
@@ -291,9 +369,18 @@ class LegalContactResearcher:
                             if self.validate_contact_data(contact_data):
                                 results['contacts'].append(contact_data)
                                 results['companies_researched'].append(company)
+                                logger.info(f"Successfully found contact info for {company}")
                                 
                     except Exception as e:
-                        logger.error(f"Error researching company {company}: {e}")
+                        logger.error(f"Error researching company {company}: {e}", exc_info=True)
+                        if self.task:
+                            self.task.update_state(
+                                state='PROGRESS',
+                                meta={
+                                    'status': f'Error researching {company}: {str(e)[:100]}',
+                                    'progress': progress
+                                }
+                            )
             
             results['total_contacts_found'] = len(results['contacts'])
             results['compliance_report'] = self.generate_compliance_report()

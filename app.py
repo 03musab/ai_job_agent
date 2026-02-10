@@ -267,6 +267,73 @@ def contact_task_status(task_id):
     return jsonify(response)
 
 
+# --- News Cache ---
+NEWS_CACHE = {
+    'data': None,
+    'timestamp': 0,
+    'expiry': 900  # 15 minutes
+}
+
+@app.route('/api/job-news')
+@login_required
+def get_job_news():
+    """Fetches job market news from NewsAPI with caching."""
+    global NEWS_CACHE
+    
+    # Check cache
+    now = time.time()
+    if NEWS_CACHE['data'] and (now - NEWS_CACHE['timestamp'] < NEWS_CACHE['expiry']):
+        return jsonify({'status': 'success', 'data': NEWS_CACHE['data'], 'source': 'cache'})
+
+    api_key = os.environ.get('NEWS_API_KEY')
+    if not api_key:
+        # Fallback/Demo data if no key provided
+        return jsonify({
+            'status': 'error', 
+            'message': 'API Key not configured',
+            'data': []
+        })
+
+    try:
+        # Keywords for tech job trends
+        query = '("technology jobs" OR "AI hiring" OR "software developer" OR "remote work" OR "tech industry")'
+        
+        url = 'https://newsapi.org/v2/everything'
+        params = {
+            'q': query,
+            'language': 'en',
+            'sortBy': 'publishedAt',
+            'pageSize': 8,
+            'apiKey': api_key
+        }
+        
+        response = requests.get(url, params=params, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        
+        articles = []
+        for article in data.get('articles', []):
+            # Simple validation
+            if article.get('title') and article.get('url'):
+                articles.append({
+                    'title': article['title'],
+                    'url': article['url'],
+                    'source': article.get('source', {}).get('name', 'Unknown'),
+                    'publishedAt': article.get('publishedAt', ''),
+                    'urlToImage': article.get('urlToImage')
+                })
+        
+        # Update cache
+        NEWS_CACHE['data'] = articles
+        NEWS_CACHE['timestamp'] = now
+        
+        return jsonify({'status': 'success', 'data': articles, 'source': 'api'})
+        
+    except Exception as e:
+        logger.error(f"NewsAPI Error: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
 # Server-Sent Events endpoint for task progress streaming
 @app.route('/task_progress_stream/<task_id>')
 @login_required
@@ -4969,8 +5036,20 @@ def scrape_contacts_task(self, user_id: int, keywords: List[str]):
         
         # Use keywords to drive the external research
         search_query = " ".join(keywords)
-        # Note: In a real scenario, you might extract company names from keywords to pass to 'companies' arg
-        external_results = researcher.run(keywords=search_query)
+        
+        # Try to extract potential company names from keywords
+        # Companies are typically capitalized or multi-word terms
+        potential_companies = []
+        for keyword in keywords:
+            # If keyword has capital letters or multiple words, it might be a company
+            if any(c.isupper() for c in keyword) or len(keyword.split()) > 1:
+                potential_companies.append(keyword)
+        
+        # If no companies detected, pass None to let the researcher work with just keywords
+        companies_arg = potential_companies if potential_companies else None
+        
+        logger.info(f"Extracted potential companies: {companies_arg}")
+        external_results = researcher.run(keywords=search_query, companies=companies_arg)
         
         external_count = 0
         if external_results.get('contacts'):
@@ -4994,11 +5073,15 @@ def scrape_contacts_task(self, user_id: int, keywords: List[str]):
         message = f"Search complete. Found {internal_count} internal, {csv_count} from CSVs, and {external_count} external contacts."
         logger.info(message)
         
+        # Final update
+        self.update_state(state='PROGRESS', meta={'status': message, 'progress': 100})
+        
         return {'status': 'Complete', 'message': message, 'progress': 100, 'added_count': total_count}
     except Exception as e:
         logger.error(f"Celery task {self.request.id} failed for user {user_id}: {e}", exc_info=True)
-        self.update_state(state='FAILURE', meta={'status': 'Task failed!', 'error': str(e), 'progress': 100})
+        self.update_state(state='FAILURE', meta={'status': f'Task failed: {str(e)}', 'error': str(e), 'progress': 100})
         raise
+
 
 @app.route('/scrape_contacts', methods=['POST'])
 @login_required
@@ -5168,6 +5251,42 @@ def import_contacts():
         logger.error(f"CSV Import Error: {e}", exc_info=True)
         return jsonify({'success': False, 'message': f'Error processing CSV: {str(e)}'}), 500
 
+def add_status_colors(job):
+    """Add status color attributes to job dictionary for UI display"""
+    status_colors = {
+        'new': {'bg': '#f3f4f6', 'text': '#374151'},
+        'applied': {'bg': '#dcfce7', 'text': '#166534'},
+        'interview': {'bg': '#e0e7ff', 'text': '#3730a3'},
+        'offered': {'bg': '#fef3c7', 'text': '#92400e'},
+        'rejected': {'bg': '#fee2e2', 'text': '#991b1b'},
+        'withdrawn': {'bg': '#f3f4f6', 'text': '#6b7280'}
+    }
+    status = job.get('status', 'new')
+    colors = status_colors.get(status, status_colors['new'])
+    job['status_color'] = colors['bg']
+    job['status_text_color'] = colors['text']
+    
+    # Add status class and text for template
+    status_class_map = {
+        'new': 'bg-gray-100 text-gray-700',
+        'applied': 'bg-green-100 text-green-700',
+        'interview': 'bg-blue-100 text-blue-700',
+        'offered': 'bg-yellow-100 text-yellow-700',
+        'rejected': 'bg-red-100 text-red-700',
+        'withdrawn': 'bg-gray-100 text-gray-600'
+    }
+    status_text_map = {
+        'new': 'New',
+        'applied': 'Applied',
+        'interview': 'Interview',
+        'offered': 'Offered',
+        'rejected': 'Rejected',
+        'withdrawn': 'Withdrawn'
+    }
+    job['status_class'] = status_class_map.get(status, 'bg-gray-100 text-gray-700')
+    job['status_text'] = status_text_map.get(status, status.title() if status else 'New')
+    return job
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
@@ -5196,21 +5315,6 @@ def dashboard():
     )
     
     # Add status colors to jobs
-    def add_status_colors(job):
-        status_colors = {
-            'new': {'bg': '#f3f4f6', 'text': '#374151'},
-            'applied': {'bg': '#dcfce7', 'text': '#166534'},
-            'interview': {'bg': '#e0e7ff', 'text': '#3730a3'},
-            'offered': {'bg': '#fef3c7', 'text': '#92400e'},
-            'rejected': {'bg': '#fee2e2', 'text': '#991b1b'},
-            'withdrawn': {'bg': '#f3f4f6', 'text': '#6b7280'}
-        }
-        status = job.get('status', 'new')
-        colors = status_colors.get(status, status_colors['new'])
-        job['status_color'] = colors['bg']
-        job['status_text_color'] = colors['text']
-        return job
-    
     jobs = [add_status_colors(job) for job in jobs]
     
     saved_profiles = db.get_search_profiles(current_user.id)
@@ -5243,6 +5347,23 @@ def dashboard():
                            total_jobs=total_jobs,
                            view_mode=view_mode,
                            now=datetime.datetime.now())
+
+@app.route('/job/<int:job_id>')
+@login_required
+def job_details(job_id):
+    """Display full page for job details"""
+    db = JobDatabase()
+    jobs, _ = db.get_jobs_for_user(current_user.id, limit=1, search_query=f"id:{job_id}")
+    
+    if not jobs:
+        flash('Job not found or you do not have permission to view it.', 'error')
+        return redirect(url_for('dashboard'))
+    
+    job = jobs[0]
+    # Add status colors
+    job = add_status_colors(job)
+    
+    return render_template('job_details.html', job=job, now=datetime.datetime.now())
 
 @app.route('/search_jobs', methods=['POST'])
 @login_required
@@ -6296,6 +6417,126 @@ def save_learning_path():
         db.session.rollback()
         logger.error(f"Error saving learning path: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/generate-project-guide', methods=['POST'])
+@login_required
+def generate_project_guide():
+    """Generate a PDF guide for a mini project using Cerebras AI"""
+    try:
+        data = request.get_json()
+        project_title = data.get('project_title', '').strip()
+        
+        if not project_title:
+            return jsonify({'error': 'Project title is required'}), 400
+        
+        # Sanitize filename
+        safe_filename = re.sub(r'[^a-zA-Z0-9_-]', '_', project_title.lower())[:50]
+        pdf_filename = f'project_{safe_filename}.pdf'
+        pdf_path = os.path.join('static', 'learning_resources', pdf_filename)
+        
+        # Check if PDF already exists (cache)
+        if os.path.exists(pdf_path):
+            logger.info(f"PDF already exists for {project_title}, serving from cache")
+            return jsonify({
+                'success': True,
+                'pdf_url': f'/static/learning_resources/{pdf_filename}',
+                'cached': True
+            })
+        
+        # Generate guide content using Cerebras
+        logger.info(f"Generating PDF guide for: {project_title}")
+        
+        system_prompt = """You are an expert technical educator creating step-by-step project guides.
+Create comprehensive, beginner-friendly tutorials with clear instructions, code examples, and best practices."""
+        
+        user_prompt = f"""Create a detailed step-by-step tutorial guide for the following mini project:
+
+"{project_title}"
+
+Structure the guide with these sections:
+1. **Project Overview**: Brief description (2-3 sentences) of what this project accomplishes
+2. **Prerequisites**: Required tools, technologies, and prerequisite knowledge
+3. **Step-by-Step Instructions**: Detailed, numbered steps to complete the project
+4. **Code Examples**: Include relevant code snippets with explanations
+5. **Common Pitfalls**: List of common mistakes and how to avoid them
+6. **Expected Outcome**: What the finished project should look like/do
+7. **Next Steps**: Suggestions for extending or improving the project
+
+Format the response as valid JSON with a single key 'content' containing HTML-formatted guide content.
+Use proper HTML tags: <h2>, <h3>, <p>, <code>, <pre>, <ul>, <ol>, <li>, etc.
+Make it practical, detailed, and beginner-friendly."""
+        
+        # Call Cerebras API
+        response_data = safe_ai_request(system_prompt, user_prompt, model="llama-3.3-70b", retries=2)
+        
+        if not response_data or 'content' not in response_data:
+            return jsonify({'error': 'Failed to generate guide content'}), 500
+        
+        html_content = response_data['content']
+        
+        # Handle if content is an array of strings (join them)
+        if isinstance(html_content, list):
+            html_content = ''.join(html_content)
+        
+        # Clean up escaped newlines and extra whitespace
+        html_content = html_content.replace('\\n', '\n').replace('\n\n\n', '\n\n')
+        
+        # Create full HTML document for PDF
+        html_doc = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>{project_title} - Project Guide</title>
+<style>
+@page {{ size: A4; margin: 2cm; }}
+body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; }}
+h1 {{ color: #2563eb; border-bottom: 3px solid #2563eb; padding-bottom: 10px; }}
+h2 {{ color: #1e40af; margin-top: 25px; }}
+h3 {{ color: #3b82f6; margin-top: 15px; }}
+code {{ background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 0.9em; color: #1f2937; }}
+pre {{ background: #f9fafb; color: #1f2937; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #e5e7eb; }}
+pre code {{ background: none; color: #1f2937; padding: 0; }}
+ul, ol {{ margin: 10px 0; padding-left: 30px; }}
+li {{ margin: 8px 0; }}
+</style></head><body>
+<div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #e5e7eb; padding-bottom: 15px;">
+<h1>{project_title}</h1>
+<p style="color: #6b7280;">A Step-by-Step Project Guide</p>
+</div>
+{html_content}
+<div style="margin-top: 40px; padding-top: 15px; border-top: 2px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 0.85em;">
+<p>Generated by JobSnap Learning Path</p>
+</div></body></html>"""
+        
+        # Convert HTML to PDF using xhtml2pdf (Windows-friendly)
+        try:
+            from xhtml2pdf import pisa
+            
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+            
+            # Generate PDF
+            with open(pdf_path, 'wb') as pdf_file:
+                pisa_status = pisa.CreatePDF(html_doc, dest=pdf_file)
+            
+            if pisa_status.err:
+                raise Exception(f"PDF generation failed with {pisa_status.err} errors")
+            
+            logger.info(f"Successfully generated PDF: {pdf_filename}")
+            
+            return jsonify({
+                'success': True,
+                'pdf_url': f'/static/learning_resources/{pdf_filename}',
+                'cached': False
+            })
+            
+        except ImportError:
+            logger.error("xhtml2pdf not installed")
+            return jsonify({'error': 'PDF generation library not available'}), 500
+        except Exception as pdf_error:
+            logger.error(f"PDF generation error: {pdf_error}")
+            return jsonify({'error': f'Failed to generate PDF: {str(pdf_error)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error generating project guide: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/learning-paths', methods=['GET'])
 @login_required

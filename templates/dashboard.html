@@ -2,1240 +2,1751 @@
 {% block body_class %}light-theme{% endblock %}
 {% block content %}
 <style>
-    html { scroll-behavior: smooth; }
-    
+    html {
+        scroll-behavior: smooth;
+    }
+
     /* Light theme overrides for dashboard */
-    .bg-gray-800\/60 { background-color: rgba(248, 249, 250, 0.95) !important; border-color: rgba(229, 231, 235, 0.6) !important; }
-    .bg-gray-800\/50 { background-color: rgba(248, 249, 250, 0.95) !important; border-color: rgba(229, 231, 235, 0.6) !important; }
-    .bg-gray-800\/40 { background-color: rgba(248, 249, 250, 0.95) !important; border-color: rgba(229, 231, 235, 0.6) !important; }
-    .bg-gray-900\/90 { background-color: rgba(255, 255, 255, 0.95) !important; border-color: rgba(229, 231, 235, 0.6) !important; }
-    .bg-gray-900\/60 { background-color: rgba(255, 255, 255, 0.95) !important; border-color: rgba(229, 231, 235, 0.6) !important; }
-    .bg-gray-900\/30 { background-color: rgba(248, 249, 250, 0.9) !important; border-color: rgba(229, 231, 235, 0.4) !important; }
-    .bg-gray-900\/50 { background-color: rgba(248, 249, 250, 0.95) !important; border-color: rgba(229, 231, 235, 0.6) !important; }
-    .text-gray-300 { color: #374151 !important; }
-    .text-gray-400 { color: #6b7280 !important; }
-    .text-gray-600 { color: #4b5563 !important; }
-    .border-gray-700\/50 { border-color: rgba(229, 231, 235, 0.6) !important; }
-    .border-gray-600 { border-color: #cbd5e1 !important; }
-    .border-gray-700 { border-color: #e5e7eb !important; }
-    .bg-gray-100 { background-color: #f9fafb !important; }
+    .bg-gray-800\/60 {
+        background-color: rgba(248, 249, 250, 0.95) !important;
+        border-color: rgba(229, 231, 235, 0.6) !important;
+    }
+
+    .bg-gray-800\/50 {
+        background-color: rgba(248, 249, 250, 0.95) !important;
+        border-color: rgba(229, 231, 235, 0.6) !important;
+    }
+
+    .bg-gray-800\/40 {
+        background-color: rgba(248, 249, 250, 0.95) !important;
+        border-color: rgba(229, 231, 235, 0.6) !important;
+    }
+
+    .bg-gray-900\/90 {
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        border-color: rgba(229, 231, 235, 0.6) !important;
+    }
+
+    .bg-gray-900\/60 {
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        border-color: rgba(229, 231, 235, 0.6) !important;
+    }
+
+    .bg-gray-900\/30 {
+        background-color: rgba(248, 249, 250, 0.9) !important;
+        border-color: rgba(229, 231, 235, 0.4) !important;
+    }
+
+    .bg-gray-900\/50 {
+        background-color: rgba(248, 249, 250, 0.95) !important;
+        border-color: rgba(229, 231, 235, 0.6) !important;
+    }
+
+    .text-gray-300 {
+        color: #374151 !important;
+    }
+
+    .text-gray-400 {
+        color: #6b7280 !important;
+    }
+
+    .text-gray-600 {
+        color: #4b5563 !important;
+    }
+
+    .border-gray-700\/50 {
+        border-color: rgba(229, 231, 235, 0.6) !important;
+    }
+
+    .border-gray-600 {
+        border-color: #cbd5e1 !important;
+    }
+
+    .border-gray-700 {
+        border-color: #e5e7eb !important;
+    }
+
+    .bg-gray-100 {
+        background-color: #f9fafb !important;
+    }
 </style>
 <!-- Full Page Loader -->
-<div id="page-loader" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-[9999] transition-opacity duration-300 ease-in-out">
+<div id="page-loader"
+    class="fixed inset-0 bg-white flex flex-col items-center justify-center z-[9999] transition-opacity duration-300 ease-in-out">
     <div class="loader-spinner"></div>
     <p class="mt-4 text-lg text-gray-700">Loading Dashboard...</p>
 </div>
 
 <div id="dashboard-content" class="opacity-0">
-<div class="flex flex-col lg:flex-row gap-8">
-    <!-- Left Sidebar: Search & Profiles -->
-    <div class="w-full lg:w-1/3 p-6 bg-white rounded-xl shadow-lg border border-gray-200 space-y-8">
-        <!-- Search & Scrape Section -->
-        <div class="relative">
-            <div class="absolute inset-0 bg-blue-50 rounded-lg"></div>
-            <div class="relative p-6">
-                <h2 class="text-2xl font-bold mb-4 text-gray-900">New Job Search</h2>
-                <form id="search-form" class="space-y-4" aria-labelledby="new-job-search-heading">
-                    <div class="relative">
-                        <label for="search_terms" class="block text-sm font-medium text-gray-700">Keywords (e.g., Python, AI, Data Science)</label>
-                        <input type="text" name="search_terms" id="search_terms" placeholder="Keywords" required
-                            class="mt-1 block w-full rounded-md bg-gray-50 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-500 backdrop-blur-sm">
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="location" class="block text-sm font-medium text-gray-700">Location (e.g., Bengaluru)</label>
-                            <input type="text" name="location" id="location" placeholder="City or 'Remote'"
-                                class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-500">
+    <div class="flex flex-col lg:flex-row gap-8">
+        <!-- Left Sidebar: Search & Profiles -->
+        <div class="w-full lg:w-1/3 p-6 bg-white rounded-xl shadow-lg border border-gray-200 space-y-8">
+            <!-- Search & Scrape Section -->
+            <div class="relative">
+                <div class="absolute inset-0 bg-blue-50 rounded-lg"></div>
+                <div class="relative p-6">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-900">New Job Search</h2>
+                    <form id="search-form" class="space-y-4" aria-labelledby="new-job-search-heading">
+                        <div class="relative">
+                            <label for="search_terms" class="block text-sm font-medium text-gray-700">Keywords (e.g.,
+                                Python, AI, Data Science)</label>
+                            <input type="text" name="search_terms" id="search_terms" placeholder="Keywords" required
+                                class="mt-1 block w-full rounded-md bg-gray-50 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-500 backdrop-blur-sm">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="location" class="block text-sm font-medium text-gray-700">Location (e.g.,
+                                    Bengaluru)</label>
+                                <input type="text" name="location" id="location" placeholder="City or 'Remote'"
+                                    class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-500">
+                            </div>
+                            <div>
+                                <label for="experience" class="block text-sm font-medium text-gray-700">Experience
+                                    (e.g., 2-5 years)</label>
+                                <input type="text" name="experience" id="experience" placeholder="e.g.'0','1','2-5'"
+                                    class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-500">
+                            </div>
                         </div>
                         <div>
-                            <label for="experience" class="block text-sm font-medium text-gray-700">Experience (e.g., 2-5 years)</label>
-                            <input type="text" name="experience" id="experience"
-                                placeholder="e.g.'0','1','2-5'"
-                                class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-500">
+                            <label for="job_type" class="block text-sm font-medium text-gray-700">Job Type</label>
+                            <select id="job_type" name="job_type"
+                                class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900">
+                                <option value="">Any</option>
+                                <option value="Full-time">Full-time</option>
+                                <option value="Part-time">Part-time</option>
+                                <option value="Contract">Contract</option>
+                                <option value="Internship">Internship</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-4">
+                            <button type="submit" id="scrape-btn"
+                                class="w-full btn-temporal inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md shadow-sm"
+                                style="will-change: transform, box-shadow;">
+                                <span class="button-text">Start Search</span>
+                            </button>
+                            <button type="button" id="save-profile-btn"
+                                class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
+                                Save Profile
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Real-time Progress Bar Section -->
+            <div id="progress-container" class="hidden mt-6 relative">
+                <div class="absolute inset-0 bg-blue-50 rounded-lg"></div>
+                <div class="relative p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-lg font-bold text-blue-700">Search Progress</h3>
+                        <span id="progress-percentage" class="text-sm font-semibold text-blue-600">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div id="progress-bar"
+                            class="bg-blue-600 h-full rounded-full transition-all duration-500 ease-out"
+                            style="width: 0%"></div>
+                    </div>
+                    <div class="flex justify-between items-center mt-2 text-xs text-gray-700">
+                        <span id="progress-status">Initializing...</span>
+                        <div id="progress-milestones" class="flex gap-1">
+                            <div id="milestone-init" class="w-2 h-2 rounded-full bg-gray-400" title="Initializing">
+                            </div>
+                            <div id="milestone-scrape" class="w-2 h-2 rounded-full bg-gray-400" title="Scraping"></div>
+                            <div id="milestone-save" class="w-2 h-2 rounded-full bg-gray-400" title="Saving"></div>
+                            <div id="milestone-report" class="w-2 h-2 rounded-full bg-gray-400" title="Reporting"></div>
                         </div>
                     </div>
-                    <div>
-                        <label for="job_type" class="block text-sm font-medium text-gray-700">Job Type</label>
-                        <select id="job_type" name="job_type"
-                            class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900">
-                            <option value="">Any</option>
-                            <option value="Full-time">Full-time</option>
-                            <option value="Part-time">Part-time</option>
-                            <option value="Contract">Contract</option>
-                            <option value="Internship">Internship</option>
-                        </select>
+                    <div id="progress-error"
+                        class="hidden mt-2 text-sm text-red-700 bg-red-50 border border-red-300 rounded-md p-2">
+                        <!-- Error messages will appear here -->
                     </div>
-                    <div class="flex gap-4">
-                        <button type="submit" id="scrape-btn"
-                            class="w-full btn-temporal inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md shadow-sm" style="will-change: transform, box-shadow;">
-                            <span class="button-text">Start Search</span>
+                </div>
+            </div>
+
+            <!-- Saved Profiles Section -->
+            <div id="saved-profiles-container" class="relative">
+                <div class="absolute inset-0 bg-gray-50 rounded-lg"></div>
+                <div class="relative p-4">
+                    <h2 class="text-lg font-bold mb-3 text-gray-900">Saved Profiles</h2>
+                    <div class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar px-1">
+                        {% if saved_profiles %}
+                        {% for profile in saved_profiles %}
+                        <div
+                            class="bg-white p-3 rounded flex items-center justify-between shadow-sm border border-gray-200 hover:shadow transition-all duration-200">
+                            <div class="min-w-0 flex-1 mr-4">
+                                <h3 class="font-semibold text-gray-900 text-sm truncate"
+                                    title="{{ profile.profile_name }}">{{ profile.profile_name }}</h3>
+                                <p class="text-xs text-gray-500 truncate" title="{{ profile.search_terms }}">{{
+                                    profile.search_terms }}</p>
+                            </div>
+                            <div class="flex gap-2 shrink-0">
+                                <form action="{{ url_for('apply_profile', profile_id=profile.id) }}" method="POST"
+                                    class="inline-block apply-profile-form">
+                                    <button type="submit"
+                                        class="text-blue-600 hover:text-blue-800 text-xs font-medium transition-colors duration-200">Apply</button>
+                                </form>
+                                <form action="{{ url_for('delete_profile', profile_id=profile.id) }}" method="POST"
+                                    onsubmit="return confirm('Are you sure you want to delete this profile?');">
+                                    <button type="submit"
+                                        class="text-red-600 hover:text-red-800 text-xs font-medium transition-colors duration-200">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p class="text-xs text-gray-500 italic">No saved profiles.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Settings Section -->
+            <div class="relative">
+                <div class="absolute inset-0 bg-gray-50 rounded-lg"></div>
+                <div class="relative p-6">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-900">Email Settings</h2>
+                    <form action="{{ url_for('update_settings') }}" method="POST" class="space-y-4">
+                        <div>
+                            <label for="email_recipients" class="block text-sm font-medium text-gray-700">Recipients
+                                (comma-separated)</label>
+                            <input type="text" name="email_recipients" id="email_recipients"
+                                class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-500"
+                                value="{{ user_settings.email_recipients if user_settings else '' }}">
+                        </div>
+                        <div class="flex items-center">
+                            <input id="send_excel_attachment" name="send_excel_attachment" type="checkbox"
+                                class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded bg-white"
+                                {% if user_settings and user_settings.send_excel_attachment %}checked{% endif %}>
+                            <label for="send_excel_attachment" class="ml-2 block text-sm text-gray-700">Send Excel
+                                attachment</label>
+                        </div>
+                        <button type="submit"
+                            class="w-full btn-temporal inline-flex justify-center py-2 px-4 text-sm font-medium rounded-md shadow-sm"
+                            style="will-change: transform, box-shadow;">
+                            Save Settings
                         </button>
-                        <button type="button" id="save-profile-btn"
-                            class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
-                            Save Profile
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Real-time Progress Bar Section -->
-        <div id="progress-container" class="hidden mt-6 relative">
-            <div class="absolute inset-0 bg-blue-50 rounded-lg"></div>
-            <div class="relative p-4">
-                <div class="flex justify-between items-center mb-2">
-                    <h3 class="text-lg font-bold text-blue-700">Search Progress</h3>
-                    <span id="progress-percentage" class="text-sm font-semibold text-blue-600">0%</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2.5">
-                    <div id="progress-bar" class="bg-blue-600 h-full rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
-                </div>
-                <div class="flex justify-between items-center mt-2 text-xs text-gray-700">
-                    <span id="progress-status">Initializing...</span>
-                    <div id="progress-milestones" class="flex gap-1">
-                        <div id="milestone-init" class="w-2 h-2 rounded-full bg-gray-400" title="Initializing"></div>
-                        <div id="milestone-scrape" class="w-2 h-2 rounded-full bg-gray-400" title="Scraping"></div>
-                        <div id="milestone-save" class="w-2 h-2 rounded-full bg-gray-400" title="Saving"></div>
-                        <div id="milestone-report" class="w-2 h-2 rounded-full bg-gray-400" title="Reporting"></div>
-                    </div>
-                </div>
-                <div id="progress-error" class="hidden mt-2 text-sm text-red-700 bg-red-50 border border-red-300 rounded-md p-2">
-                    <!-- Error messages will appear here -->
+                    </form>
                 </div>
             </div>
-        </div>
 
-        <!-- Saved Profiles Section -->
-        <div id="saved-profiles-container" class="relative">
-            <div class="absolute inset-0 bg-gray-50 rounded-lg"></div>
-            <div class="relative p-6">
-                <h2 class="text-2xl font-bold mb-4 text-gray-900">Saved Profiles</h2>
-                <div class="space-y-4">
-                    {% if saved_profiles %}
-                    {% for profile in saved_profiles %}
-                    <div class="bg-white p-4 rounded-lg flex items-center justify-between shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200">
-                        <div>
-                            <h3 class="font-semibold text-gray-900">{{ profile.profile_name }}</h3>
-                            <p class="text-xs text-gray-600">{{ profile.search_terms }}</p>
+            <!-- Calendar Integration Section -->
+            <div class="relative">
+                <div class="absolute inset-0 bg-blue-50 rounded-lg"></div>
+                <div class="relative p-6">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-900">Calendar Integration</h2>
+                    <div class="space-y-4">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h3 class="text-sm font-semibold text-blue-900 mb-2">Auto-Sync Features:</h3>
+                            <ul class="text-xs text-blue-800 space-y-1">
+                                <li>• Interview events when status changes</li>
+                                <li>• Application deadline reminders</li>
+                                <li>• Follow-up task scheduling</li>
+                                <li>• Smart conflict prevention</li>
+                            </ul>
                         </div>
-                        <div class="flex gap-2">
-                            <form action="{{ url_for('apply_profile', profile_id=profile.id) }}" method="POST"
-                                class="inline-block apply-profile-form">
-                                <button type="submit" class="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors duration-200">Apply</button>
+
+                        <div class="flex flex-col gap-2">
+                            <form action="{{ url_for('test_calendar') }}" method="POST" class="inline">
+                                <button type="submit"
+                                    class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
+                                    Test G-Calendar Connection
+                                </button>
                             </form>
-                            <form action="{{ url_for('delete_profile', profile_id=profile.id) }}" method="POST"
-                                onsubmit="return confirm('Are you sure you want to delete this profile?');">
-                                <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium transition-colors duration-200">Delete</button>
+
+                            <form action="{{ url_for('reauth_google') }}" method="POST" class="inline">
+                                <button type="submit"
+                                    class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
+                                    Sign in with google account
+                                </button>
+                            </form>
+
+                            <form action="{{ url_for('sync_calendar') }}" method="POST" class="inline"
+                                onsubmit="return confirm('This will create calendar events for all your jobs. Continue?');">
+                                <button type="submit"
+                                    class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200">
+                                    Sync All Status Jobs to Calendar
+                                </button>
                             </form>
                         </div>
+
+                        <div class="text-xs text-gray-700 bg-gray-100 border border-gray-200 rounded p-2">
+                            <p><strong>Note:</strong> Requires Google Calendar API access. Make sure your
+                                <code class="text-indigo-600">credentials.json</code> file includes calendar
+                                permissions.
+                            </p>
+                        </div>
                     </div>
-                    {% endfor %}
-                    {% else %}
-                    <p class="text-sm text-gray-600">No saved profiles. Save a search above!</p>
-                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Calendar Events Management -->
+            <div class="relative">
+                <div class="absolute inset-0 bg-gray-50 rounded-lg"></div>
+                <div class="relative p-6">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-900">My Calendar Events</h2>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <button id="load-events-btn"
+                                class="inline-flex justify-center py-2 px-3 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
+                                Load Events
+                            </button>
+                            <button id="refresh-events-btn"
+                                class="inline-flex justify-center py-2 px-3 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200">
+                                Refresh (events)
+                            </button>
+                            <a href="https://calendar.google.com" target="_blank"
+                                class="inline-flex justify-center py-2 px-3 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
+                                Open Calendar
+                            </a>
+                        </div>
+
+                        <div class="text-xs text-gray-700 bg-blue-50 border border-blue-200 rounded p-2">
+                            <p><strong>Auto-Sync:</strong> Events automatically refresh every 30 seconds to stay in sync
+                                with Google Calendar</p>
+                        </div>
+
+                        <div id="calendar-events-container" class="hidden">
+                            <div
+                                class="bg-white border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto shadow-sm">
+                                <div id="events-list" class="space-y-2">
+                                    <!-- Events will be loaded here -->
+                                </div>
+                                <div id="no-events" class="text-center text-gray-700 py-4 hidden">
+                                    No job-related calendar events found.
+                                </div>
+                                <div id="events-loading" class="text-center text-gray-700 py-4">
+                                    Loading calendar events...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- User Settings Section -->
-        <div class="relative">
-            <div class="absolute inset-0 bg-gray-50 rounded-lg"></div>
-            <div class="relative p-6">
-                <h2 class="text-2xl font-bold mb-4 text-gray-900">Email Settings</h2>
-                <form action="{{ url_for('update_settings') }}" method="POST" class="space-y-4">
-                    <div>
-                        <label for="email_recipients" class="block text-sm font-medium text-gray-700">Recipients (comma-separated)</label>
-                        <input type="text" name="email_recipients" id="email_recipients"
-                            class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-500"
-                            value="{{ user_settings.email_recipients if user_settings else '' }}">
-                    </div>
-                    <div class="flex items-center">
-                        <input id="send_excel_attachment" name="send_excel_attachment" type="checkbox"
-                            class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded bg-white" {% if user_settings and user_settings.send_excel_attachment %}checked{% endif %}>
-                        <label for="send_excel_attachment" class="ml-2 block text-sm text-gray-700">Send Excel attachment</label>
-                    </div>
+        <!-- Right Content: Job Listings & Filters -->
+        <main class="w-full lg:w-2/3 p-6 bg-white rounded-xl shadow-lg border border-gray-200"
+            aria-labelledby="job-listings-heading">
+            <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                <div class="flex items-center gap-4">
+                    <h1 id="job-listings-heading" class="text-3xl font-bold text-gray-900">Your Jobs ({{ total_jobs }})
+                    </h1>
+                </div>
+                <form action="{{ url_for('delete_all_jobs') }}" method="POST"
+                    onsubmit="return confirm('Are you sure you want to delete ALL jobs? This cannot be undone.');">
                     <button type="submit"
-                        class="w-full btn-temporal inline-flex justify-center py-2 px-4 text-sm font-medium rounded-md shadow-sm" style="will-change: transform, box-shadow;">
-                        Save Settings
-                    </button>
+                        class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md shadow-sm transition-all duration-200">Delete
+                        All</button>
                 </form>
             </div>
-        </div>
 
-        <!-- Calendar Integration Section -->
-        <div class="relative">
-            <div class="absolute inset-0 bg-blue-50 rounded-lg"></div>
-            <div class="relative p-6">
-                <h2 class="text-2xl font-bold mb-4 text-gray-900">Calendar Integration</h2>
-                <div class="space-y-4">
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h3 class="text-sm font-semibold text-blue-900 mb-2">Auto-Sync Features:</h3>
-                        <ul class="text-xs text-blue-800 space-y-1">
-                            <li>• Interview events when status changes</li>
-                            <li>• Application deadline reminders</li>
-                            <li>• Follow-up task scheduling</li>
-                            <li>• Smart conflict prevention</li>
-                        </ul>
-                    </div>
 
-                    <div class="flex flex-col gap-2">
-                        <form action="{{ url_for('test_calendar') }}" method="POST" class="inline">
-                            <button type="submit"
-                                class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
-                                Test G-Calendar Connection
-                            </button>
-                        </form>
-
-                        <form action="{{ url_for('reauth_google') }}" method="POST" class="inline">
-                            <button type="submit"
-                                class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
-                                Sign in with google account
-                            </button>
-                        </form>
-
-                        <form action="{{ url_for('sync_calendar') }}" method="POST" class="inline"
-                            onsubmit="return confirm('This will create calendar events for all your jobs. Continue?');">
-                            <button type="submit"
-                                class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200">
-                                Sync All Status Jobs to Calendar
-                            </button>
-                        </form>
-                    </div>
-
-                    <div class="text-xs text-gray-700 bg-gray-100 border border-gray-200 rounded p-2">
-                        <p><strong>Note:</strong> Requires Google Calendar API access. Make sure your
-                            <code class="text-indigo-600">credentials.json</code> file includes calendar permissions.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Calendar Events Management -->
-        <div class="relative">
-            <div class="absolute inset-0 bg-gray-50 rounded-lg"></div>
-            <div class="relative p-6">
-                <h2 class="text-2xl font-bold mb-4 text-gray-900">My Calendar Events</h2>
-                <div class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
-                        <button id="load-events-btn"
-                            class="inline-flex justify-center py-2 px-3 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
-                            Load Events
-                        </button>
-                        <button id="refresh-events-btn"
-                            class="inline-flex justify-center py-2 px-3 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200">
-                            Refresh (events)
-                        </button>
-                        <a href="https://calendar.google.com" target="_blank"
-                            class="inline-flex justify-center py-2 px-3 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
-                            Open Calendar
-                        </a>
-                    </div>
-
-                    <div class="text-xs text-gray-700 bg-blue-50 border border-blue-200 rounded p-2">
-                        <p><strong>Auto-Sync:</strong> Events automatically refresh every 30 seconds to stay in sync with Google Calendar</p>
-                    </div>
-
-                    <div id="calendar-events-container" class="hidden">
-                        <div class="bg-white border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto shadow-sm">
-                            <div id="events-list" class="space-y-2">
-                                <!-- Events will be loaded here -->
-                            </div>
-                            <div id="no-events" class="text-center text-gray-700 py-4 hidden">
-                                No job-related calendar events found.
-                            </div>
-                            <div id="events-loading" class="text-center text-gray-700 py-4">
-                                Loading calendar events...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Right Content: Job Listings & Filters -->
-    <main class="w-full lg:w-2/3 p-6 bg-white rounded-xl shadow-lg border border-gray-200" aria-labelledby="job-listings-heading">
-        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-            <div class="flex items-center gap-4">
-                <h1 id="job-listings-heading" class="text-3xl font-bold text-gray-900">Your Jobs ({{ total_jobs }})</h1>
-            </div>
-            <form action="{{ url_for('delete_all_jobs') }}" method="POST"
-                onsubmit="return confirm('Are you sure you want to delete ALL jobs? This cannot be undone.');">
-                <button type="submit"
-                    class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md shadow-sm transition-all duration-200">Delete All</button>
-            </form>
-        </div>
-
-        <!-- Application Status Overview -->
-        <div class="mb-8 bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden" aria-labelledby="chart-heading">
-            <!-- Overview Header -->
-            <div class="bg-gray-50 px-6 py-5 border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <div class="p-2 bg-blue-100 rounded-lg" aria-hidden="true">
-                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
-                                </path>
-                            </svg>
-                        </div>
-                        <div>
-                            <h2 id="chart-heading" class="text-lg font-semibold text-gray-900">Application Status Overview</h2>
-                            <p class="text-sm text-gray-500">Track your application progress</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <button type="button" class="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium text-sm" onclick="filterByStatus('new')">
-                    <span class="inline-block mr-2">📥</span>View New Jobs
-                </button>
-                <button type="button" class="px-4 py-2 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium text-sm" onclick="filterByStatus('interview')">
-                    <span class="inline-block mr-2">🎤</span>Interview Pipeline
-                </button>
-                <button type="button" class="px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors font-medium text-sm" onclick="filterByStatus('offered')">
-                    <span class="inline-block mr-2">🎉</span>Job Offers
-                </button>
-            </div>
-        </div>
-
-        <!-- Enhanced Filter Form -->
-        <div class="mb-8 bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden" aria-labelledby="filter-heading">
-            <!-- Filter Header -->
-            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <div class="p-2 bg-blue-100 rounded-lg" aria-hidden="true">
-                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z">
-                                </path>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 id="filter-heading" class="text-lg font-semibold text-gray-900">Filter & Sort Jobs</h3>
-                            <p class="text-sm text-gray-500">Refine your job search results</p>
-                        </div>
-                    </div>
-                    <button type="button" id="toggle-filters"
-                        class="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Toggle filters" aria-expanded="true">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="will-change: transform;">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Filter Content -->
-            <div id="filter-content" class="p-6">
-                <form id="filter-form" action="{{ url_for('dashboard') }}" method="GET">
-                    <!-- Primary Filters Row -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                        <!-- Search Keywords -->
-                        <div class="space-y-2">
-                            <label for="search_query" class="flex items-center text-sm font-medium text-gray-700" id="search-query-label">
-                                <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                </svg>
-                                Search Keywords
-                            </label>
-                            <div class="relative">
-                                <input type="text" id="search_query" name="search_query"
-                                    placeholder="Job title, company, skills..."
-                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 placeholder-gray-400" aria-labelledby="search-query-label"
-                                    value="{{ search_query }}">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                    </svg>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Left Column: Status & Quotes -->
+                <div class="flex flex-col gap-6">
+                    <!-- Application Status Overview -->
+                    <div class="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden flex flex-col"
+                        aria-labelledby="chart-heading">
+                        <!-- Overview Header -->
+                        <div class="bg-gray-50 px-6 py-5 border-b border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="p-2 bg-blue-100 rounded-lg" aria-hidden="true">
+                                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                                            </path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h2 id="chart-heading" class="text-lg font-semibold text-gray-900">Application
+                                            Status Overview</h2>
+                                        <p class="text-sm text-gray-500">Track your application progress</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Location -->
-                        <div class="space-y-2">
-                            <label for="location_filter" class="flex items-center text-sm font-medium text-gray-700" id="location-filter-label">
-                                <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <!-- Quick Actions -->
+                        <div
+                            class="px-6 py-4 bg-gray-50 border-t border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 items-end">
+                            <button type="button"
+                                class="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium text-sm"
+                                onclick="filterByStatus('new')">
+                                <span class="inline-block mr-2">📥</span>View New Jobs
+                            </button>
+                            <button type="button"
+                                class="px-4 py-2 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium text-sm"
+                                onclick="filterByStatus('interview')">
+                                <span class="inline-block mr-2">🎤</span>Interview Pipeline
+                            </button>
+                            <button type="button"
+                                class="px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors font-medium text-sm"
+                                onclick="filterByStatus('offered')">
+                                <span class="inline-block mr-2">🎉</span>Job Offers
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Daily Inspiration Quote Box -->
+                    <div class="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden flex flex-col"
+                        x-data="{
+                        quotes: [
+                            { text: 'The best way to predict the future is to create it.', author: 'Peter Drucker' },
+                            { text: 'Success is not final, failure is not fatal.', author: 'Winston Churchill' },
+                            { text: 'The only limit is your imagination.', author: 'Unknown' },
+                            { text: 'Dream big and dare to fail.', author: 'Norman Vaughan' },
+                            { text: 'Every expert was once a beginner.', author: 'Helen Hayes' },
+                            { text: 'Code is poetry written in logic.', author: 'Unknown' },
+                            { text: 'Stay hungry, stay foolish.', author: 'Steve Jobs' },
+                            { text: 'Make it work, make it right, make it fast.', author: 'Kent Beck' },
+                            { text: 'Talk is cheap. Show me the code.', author: 'Linus Torvalds' },
+                            { text: 'First solve the problem. Then write the code.', author: 'John Johnson' },
+                            { text: 'Simplicity is the soul of efficiency.', author: 'Austin Freeman' },
+                            { text: 'Knowledge is power.', author: 'Francis Bacon' },
+                            { text: 'Opportunities don\'t happen. You create them.', author: 'Chris Grosser' },
+                            { text: 'The secret of getting ahead is getting started.', author: 'Mark Twain' },
+                            { text: 'Quality is not an act, it is a habit.', author: 'Aristotle' },
+                            { text: 'Innovation distinguishes leaders from followers.', author: 'Steve Jobs' },
+                            { text: 'Technology is best when it brings people together.', author: 'Matt Mullenweg' },
+                            { text: 'AI amplifies human creativity and ingenuity.', author: 'Fei-Fei Li' },
+                            { text: 'Software is eating the world.', author: 'Marc Andreessen' },
+                            { text: 'Learning never exhausts the mind.', author: 'Leonardo da Vinci' },
+                            { text: 'Focus on being productive, not busy.', author: 'Tim Ferriss' },
+                            { text: 'Your time is limited. Don\'t waste it.', author: 'Steve Jobs' },
+                            { text: 'Believe you can and you\'re halfway there.', author: 'Theodore Roosevelt' },
+                            { text: 'You miss 100% of the shots you don\'t take.', author: 'Wayne Gretzky' },
+                            { text: 'It always seems impossible until it\'s done.', author: 'Nelson Mandela' },
+                            { text: 'Don\'t watch the clock. Keep going.', author: 'Sam Levenson' },
+                            { text: 'Optimism is the faith that leads to achievement.', author: 'Helen Keller' },
+                            { text: 'Whatever you are, be a good one.', author: 'Abraham Lincoln' },
+                            { text: 'The future belongs to those who believe in dreams.', author: 'Eleanor Roosevelt' },
+                            { text: 'Life is 10% what happens, 90% how you react.', author: 'Charles Swindoll' },
+                            { text: 'Do what you can with what you have.', author: 'John Wooden' },
+                            { text: 'Get up and make opportunities happen.', author: 'Madam C.J. Walker' },
+                            { text: 'Luck meets preparation at opportunity.', author: 'Seneca' },
+                            { text: 'Every pro was once an amateur.', author: 'Unknown' },
+                            { text: 'Failure is not fatal. Courage to continue is.', author: 'Winston Churchill' },
+                            { text: 'I haven\'t failed. I found 10,000 ways that won\'t work.', author: 'Thomas Edison' },
+                            { text: 'Experience is the name we give our mistakes.', author: 'Oscar Wilde' },
+                            { text: 'Technology is indistinguishable from magic.', author: 'Arthur C. Clarke' },
+                            { text: 'Good software makes the complex appear simple.', author: 'Grady Booch' },
+                            { text: 'Programs are written for people to read.', author: 'Harold Abelson' },
+                            { text: 'Code is like humor. Explaining it makes it bad.', author: 'Cory House' },
+                            { text: 'It\'s not a bug. It\'s an undocumented feature.', author: 'Anonymous' },
+                            { text: 'Computers can see, hear and learn. Welcome to the future.', author: 'Dave Waters' },
+                            { text: 'Constantly learning is essential in this industry.', author: 'Anonymous' },
+                            { text: 'Success comes to those too busy to look for it.', author: 'Henry David Thoreau' },
+                            { text: 'If you want to lift yourself, lift someone else.', author: 'Booker T. Washington' },
+                            { text: 'We can\'t solve problems with the same thinking.', author: 'Albert Einstein' },
+                            { text: 'Technology is neither good nor bad; nor neutral.', author: 'Melvin Kranzberg' },
+                            { text: 'Do great work by loving what you do.', author: 'Steve Jobs' },
+                            { text: 'The art of challenges is the art of hope.', author: 'Unknown' }
+                        ],
+                        currentQuote: {},
+                        init() {
+                            this.pickDailyQuote();
+                        },
+                        pickDailyQuote() {
+                            // Use date string as seed for daily rotation consistency
+                            const today = new Date().toDateString();
+                            let hash = 0;
+                            for (let i = 0; i < today.length; i++) {
+                                hash = ((hash << 5) - hash) + today.charCodeAt(i);
+                                hash |= 0;
+                            }
+                            const index = Math.abs(hash) % this.quotes.length;
+                            this.currentQuote = this.quotes[index];
+                        },
+                        refreshQuote() {
+                            // Pick random quote different from current
+                            let newIndex;
+                            do {
+                                newIndex = Math.floor(Math.random() * this.quotes.length);
+                            } while (this.quotes[newIndex].text === this.currentQuote.text && this.quotes.length > 1);
+                            this.currentQuote = this.quotes[newIndex];
+                        }
+                    }">
+
+                        <div class="bg-gray-50 px-6 py-5 border-b border-gray-200 flex justify-between items-center">
+                            <div class="flex items-center space-x-3">
+                                <div class="p-2 bg-amber-100 rounded-lg">
+                                    <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 class="text-lg font-semibold text-gray-900">Daily Inspiration</h2>
+                                    <p class="text-sm text-gray-500">Fuel for your journey</p>
+                                </div>
+                            </div>
+                            <button @click="refreshQuote()"
+                                class="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-full transition-colors focus:outline-none"
+                                title="New Quote">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
                                     </path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                 </svg>
-                                Job Location
-                            </label>
-                            <div class="relative">
-                                <input type="text" id="location_filter" name="location_filter"
-                                    placeholder="City, state, or 'Remote'"
-                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 placeholder-gray-400" aria-labelledby="location-filter-label"
-                                    value="{{ location_filter }}">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            </button>
+                        </div>
+
+                        <div class="p-6 flex-1 flex flex-col justify-center min-h-[160px]">
+                            <div class="relative z-10">
+                                <svg class="absolute -top-4 -left-2 w-8 h-8 text-gray-100 transform -scale-x-100"
+                                    fill="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        d="M14.017 21L14.017 18C14.017 16.096 14.017 14.192 14.017 12.289C14.017 11.472 14.053 10.655 14.125 9.838C14.197 9.021 14.467 8.163 14.935 7.264C15.474 6.223 16.211 5.378 17.147 4.73C18.083 4.082 19.234 3.758 20.6 3.758V6.997C19.881 6.997 19.342 7.159 18.983 7.483C18.623 7.807 18.443 8.275 18.443 8.887V10.849C18.443 11.838 18.82 12.684 19.575 13.385C20.33 14.087 20.707 15.023 20.707 16.193C20.707 17.596 20.185 18.801 19.144 19.809C18.102 20.817 16.699 21.321 14.935 21.321V21L14.017 21ZM4.017 21L4.017 18C4.017 16.096 4.017 14.192 4.017 12.289C4.017 11.472 4.053 10.655 4.125 9.838C4.197 9.021 4.467 8.163 4.935 7.264C5.474 6.223 6.211 5.378 7.147 4.73C8.083 4.082 9.234 3.758 10.6 3.758V6.997C9.881 6.997 9.342 7.159 8.983 7.483C8.623 7.807 8.443 8.275 8.443 8.887V10.849C8.443 11.838 8.82 12.684 9.575 13.385C10.33 14.087 10.707 15.023 10.707 16.193C10.707 17.596 10.185 18.801 9.144 19.809C8.102 20.817 6.699 21.321 4.935 21.321V21L4.017 21Z">
+                                    </path>
+                                </svg>
+
+                                <p class="text-xl font-medium leading-relaxed font-serif italic text-gray-800 text-center px-4"
+                                    x-text="currentQuote.text" x-transition:enter="transition ease-out duration-300"
+                                    x-transition:enter-start="opacity-0 transform scale-95"
+                                    x-transition:enter-end="opacity-100 transform scale-100">
+                                </p>
+
+                                <div class="mt-4 text-right">
+                                    <span
+                                        class="inline-block bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider"
+                                        x-text="'- ' + currentQuote.author"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Job Trends & News -->
+                <div class="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden flex flex-col h-full"
+                    x-data="{ 
+                news: [], 
+                loading: true, 
+                error: null,
+                formatDate(dateStr) {
+                    if (!dateStr) return '';
+                    const date = new Date(dateStr);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                },
+                async fetchNews() {
+                    this.loading = true;
+                    // Artificial delay to show loading state (1.5s)
+                    const delay = new Promise(resolve => setTimeout(resolve, 1500));
+                    
+                    try {
+                        const [_, res] = await Promise.all([
+                            delay,
+                            fetch('/api/job-news')
+                        ]);
+                        
+                        const data = await res.json();
+                        if (data.status === 'success') {
+                            this.news = data.data;
+                        } else {
+                            this.error = data.message || 'Failed to load news';
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        this.error = 'Unable to load news';
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            }" x-init="fetchNews()">
+                    <!-- Header -->
+                    <div class="bg-gray-50 px-6 py-5 border-b border-gray-200 flex justify-between items-center">
+                        <div class="flex items-center space-x-3">
+                            <div class="p-2 bg-indigo-100 rounded-lg">
+                                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-semibold text-gray-900">Job Trends & News</h2>
+                                <p class="text-sm text-gray-500">Latest tech industry updates</p>
+                            </div>
+                        </div>
+                        <button @click="loading = true; fetchNews()"
+                            class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all duration-200 focus:outline-none"
+                            title="Refresh News">
+                            <svg class="w-5 h-5" :class="{'animate-spin': loading}" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                </path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="p-0 flex-1 flex flex-col min-h-[220px]">
+                        <!-- Loading Skeleton -->
+                        <div x-show="loading" class="p-6 space-y-6">
+                            <div class="animate-pulse flex space-x-4">
+                                <div class="h-16 w-16 bg-gray-200 rounded-md"></div>
+                                <div class="flex-1 space-y-2 py-1">
+                                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                                    <div class="h-3 bg-gray-100 rounded w-1/2"></div>
+                                </div>
+                            </div>
+                            <div class="animate-pulse flex space-x-4">
+                                <div class="h-16 w-16 bg-gray-200 rounded-md"></div>
+                                <div class="flex-1 space-y-2 py-1">
+                                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                                    <div class="h-3 bg-gray-100 rounded w-1/2"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Error State -->
+                        <div x-show="error" class="p-8 text-center" style="display: none;">
+                            <svg class="mx-auto h-10 w-10 text-gray-300" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <p class="mt-2 text-sm text-gray-500" x-text="error"></p>
+                            <button @click="loading = true; error = null; fetchNews()"
+                                class="mt-4 text-xs font-medium text-blue-600 hover:text-blue-500">
+                                Try Again
+                            </button>
+                        </div>
+
+                        <!-- News List -->
+                        <ul x-show="!loading && !error"
+                            class="divide-y divide-gray-100 overflow-y-auto max-h-[350px] custom-scrollbar"
+                            style="display: none;">
+                            <template x-for="item in news" :key="item.url">
+                                <li class="group hover:bg-gray-50 transition-colors duration-200">
+                                    <a :href="item.url" target="_blank" class="block p-4">
+                                        <div class="flex justify-between items-start gap-4">
+                                            <div class="flex-1 min-w-0">
+                                                <h4 class="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug"
+                                                    x-text="item.title"></h4>
+                                                <div class="flex items-center gap-2 mt-2">
+                                                    <span
+                                                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800"
+                                                        x-text="item.source"></span>
+                                                    <span class="text-xs text-gray-400"
+                                                        x-text="formatDate(item.publishedAt)"></span>
+                                                </div>
+                                            </div>
+                                            <template x-if="item.urlToImage">
+                                                <div class="shrink-0">
+                                                    <img :src="item.urlToImage" alt=""
+                                                        class="h-16 w-20 object-cover rounded-lg border border-gray-100 shadow-sm transition-transform duration-300 group-hover:scale-105"
+                                                        @error="$el.style.display='none'">
+                                                </div>
+                                            </template>
+                                            <template x-if="!item.urlToImage">
+                                                <div
+                                                    class="shrink-0 h-16 w-20 bg-gray-100 rounded-lg flex items-center justify-center text-gray-300">
+                                                    <svg class="w-8 h-8" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z">
+                                                        </path>
+                                                    </svg>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </a>
+                                </li>
+                            </template>
+                            <template x-if="news.length === 0">
+                                <li class="p-8 text-center text-gray-500">
+                                    <p class="text-sm">No recent job news found.</p>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enhanced Filter Form -->
+            <div class="mb-8 bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden"
+                aria-labelledby="filter-heading">
+                <!-- Filter Header -->
+                <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="p-2 bg-blue-100 rounded-lg" aria-hidden="true">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 id="filter-heading" class="text-lg font-semibold text-gray-900">Filter & Sort
+                                    Jobs
+                                </h3>
+                                <p class="text-sm text-gray-500">Refine your job search results</p>
+                            </div>
+                        </div>
+                        <button type="button" id="toggle-filters"
+                            class="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                            aria-label="Toggle filters" aria-expanded="true">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                style="will-change: transform;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter Content -->
+                <div id="filter-content" class="p-6">
+                    <form id="filter-form" action="{{ url_for('dashboard') }}" method="GET">
+                        <!-- Primary Filters Row -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                            <!-- Search Keywords -->
+                            <div class="space-y-2">
+                                <label for="search_query" class="flex items-center text-sm font-medium text-gray-700"
+                                    id="search-query-label">
+                                    <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                    </svg>
+                                    Search Keywords
+                                </label>
+                                <div class="relative">
+                                    <input type="text" id="search_query" name="search_query"
+                                        placeholder="Job title, company, skills..."
+                                        class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 placeholder-gray-400"
+                                        aria-labelledby="search-query-label" value="{{ search_query }}">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Location -->
+                            <div class="space-y-2">
+                                <label for="location_filter" class="flex items-center text-sm font-medium text-gray-700"
+                                    id="location-filter-label">
+                                    <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
                                         </path>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                     </svg>
+                                    Job Location
+                                </label>
+                                <div class="relative">
+                                    <input type="text" id="location_filter" name="location_filter"
+                                        placeholder="City, state, or 'Remote'"
+                                        class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 placeholder-gray-400"
+                                        aria-labelledby="location-filter-label" value="{{ location_filter }}">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
+                                            </path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        </svg>
+                                    </div>
                                 </div>
                             </div>
+
+                            <div class="space-y-2">
+                                <label for="status_filter" class="flex items-center text-sm font-medium text-gray-700"
+                                    id="status-filter-label">
+                                    <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    Application Status
+                                </label>
+                                <select id="status_filter" name="status_filter" aria-labelledby="status-filter-label"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900">
+                                    <option value="">All Statuses</option>
+                                    <option value="new" {% if status_filter=='new' %}selected{% endif %}>New
+                                    </option>
+                                    <option value="applied" {% if status_filter=='applied' %}selected{% endif %}>
+                                        Applied
+                                    </option>
+                                    <option value="interview" {% if status_filter=='interview' %}selected{% endif %}>
+                                        Interview</option>
+                                    <option value="offered" {% if status_filter=='offered' %}selected{% endif %}>
+                                        Offered
+                                    </option>
+                                    <option value="rejected" {% if status_filter=='rejected' %}selected{% endif %}>
+                                        Rejected</option>
+                                    <option value="archived" {% if status_filter=='archived' %}selected{% endif %}>
+                                        Archived</option>
+                                </select>
+                            </div>
                         </div>
-                        
-                        <div class="space-y-2">
-                            <label for="status_filter" class="flex items-center text-sm font-medium text-gray-700" id="status-filter-label">
-                                <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                        <!-- New Stuff: Refactored filter actions for better responsiveness -->
+                        <div
+                            class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-200">
+                            <!-- Left side: Sort controls -->
+                            <div class="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
+                                <label for="sort_by" class="text-sm font-medium text-gray-600 hidden sm:block"
+                                    id="sort-by-label">Sort by:</label>
+                                <div class="w-full flex gap-2">
+                                    <select id="sort_by" name="sort_by" aria-labelledby="sort-by-label"
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900">
+                                        <option value="found_date" {% if sort_by=='found_date' %}selected{% endif %}>
+                                            Date Added</option>
+                                        <option value="title" {% if sort_by=='title' %}selected{% endif %}>Title
+                                        </option>
+                                        <option value="relevance_score" {% if sort_by=='relevance_score' %}selected{%
+                                            endif %}>Relevance</option>
+                                    </select>
+                                    <select id="sort_order" name="sort_order" aria-label="Sort order"
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900">
+                                        <option value="desc" {% if sort_order=='desc' %}selected{% endif %}>
+                                            Descending
+                                        </option>
+                                        <option value="asc" {% if sort_order=='asc' %}selected{% endif %}>Ascending
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            <!-- Right side: Action buttons -->
+                            <div class="w-full sm:w-auto flex items-center gap-2">
+                                <button type="submit"
+                                    class="flex-1 btn-temporal inline-flex justify-center py-2.5 px-5 text-sm font-semibold rounded-xl shadow-sm">
+                                    Apply Filters
+                                </button>
+                                <a href="{{ url_for('dashboard') }}"
+                                    class="flex-1 sm:flex-initial inline-flex justify-center py-2.5 px-5 border border-gray-300 shadow-sm text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
+                                    Reset
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="job-listings" class="space-y-6">
+                {% if jobs %}
+                {% for job in jobs %}
+                <article
+                    class="job-item relative bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300"
+                    data-job-id="{{ job.id }}">
+                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                <a href="{{ job.link }}" target="_blank"
+                                    class="hover:text-blue-600 transition-colors">{{ job.title }}</a>
+                            </h3>
+                            <p class="text-sm text-gray-600 mt-1">{{ job.company }}</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <a href="{{ job.link }}" target="_blank"
+                                class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">
+                                Apply Now
+                            </a>
+                            <button type="button"
+                                onclick="openStatusModal({{ job.id }}, '{{ job.status }}', '{{ job.notes | default('') }}')"
+                                class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-all duration-200">
+                                Update Status
+                            </button>
+                            <button type="button" onclick="window.location.href='/job/{{ job.id }}'"
+                                class="inline-flex items-center px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50 text-sm text-gray-700">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                                    </path>
                                 </svg>
-                                Application Status
-                            </label>
-                            <select id="status_filter" name="status_filter" aria-labelledby="status-filter-label"
-                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900">
-                                <option value="">All Statuses</option>
-                                <option value="new" {% if status_filter=='new' %}selected{% endif %}>New</option>
-                                <option value="applied" {% if status_filter=='applied' %}selected{% endif %}>Applied</option>
-                                <option value="interview" {% if status_filter=='interview' %}selected{% endif %}>Interview</option>
-                                <option value="offered" {% if status_filter=='offered' %}selected{% endif %}>Offered</option>
-                                <option value="rejected" {% if status_filter=='rejected' %}selected{% endif %}>Rejected</option>
-                                <option value="archived" {% if status_filter=='archived' %}selected{% endif %}>Archived</option>
+                                View Details
+                            </button>
+                            <button type="button" onclick="analyzeTraffic({{ job.id }})"
+                                class="inline-flex items-center px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50 text-sm text-gray-700 btn-analysis">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                                    </path>
+                                </svg>
+                                Analyze
+                            </button>
+                            <button type="button" onclick="openApplyModal({{ job.id }}, '{{ job.link }}')"
+                                class="inline-flex items-center px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50 text-sm text-gray-700 btn-assisted-apply">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.562L16.25 21.75l-.648-1.188a2.25 2.25 0 01-1.476-1.476L12.938 18l1.188-.648a2.25 2.25 0 011.476-1.476L16.25 15l.648 1.188a2.25 2.25 0 011.476 1.476L19.562 18l-1.188.648a2.25 2.25 0 01-1.476 1.476z">
+                                    </path>
+                                </svg>
+                                Apply
+                            </button>
+                            <form action="{{ url_for('delete_job', job_id=job.id) }}" method="POST"
+                                onsubmit="return confirm('Are you sure you want to delete this job?');" class="inline">
+                                <button type="submit"
+                                    class="inline-flex items-center px-3 py-2 rounded-md border border-gray-200 hover:bg-red-50 text-gray-700 transition-colors"
+                                    aria-label="Delete job: {{ job.title }}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                        </path>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+                {% else %}
+                <div class="bg-white p-6 rounded-2xl text-center text-gray-500 border border-gray-200 shadow-sm">
+                    <p>No jobs found. Try a new search!</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Enhanced Pagination -->
+            {% if total_pages > 1 %}
+            <div class="mt-12 mb-8">
+                <!-- Pagination Info -->
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+                    <div class="text-sm text-gray-600 mb-4 sm:mb-0">
+                        <span class="font-medium">Showing page {{ current_page }} of {{ total_pages }}</span>
+                        <span class="mx-2">•</span>
+                        <span>{{ total_jobs }} total jobs found</span>
+                    </div>
+                    <div class="text-sm text-gray-700">
+                        {% set start_job = (current_page - 1) * limit + 1 %}
+                        {% set end_job = current_page * limit if current_page * limit < total_jobs else total_jobs %}
+                            Jobs {{ start_job }}-{{ end_job }} of {{ total_jobs }} </div>
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <div class="flex justify-center">
+                        <nav class="flex items-center space-x-2" aria-label="Pagination">
+                            <!-- Previous Button -->
+                            {% if current_page > 1 %}
+                            <a href="{{ url_for('dashboard', page=current_page-1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
+                                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                                style="will-change: background-color, border-color;" aria-label="Go to previous page">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 19l-7-7 7-7"></path>
+                                </svg>
+                                Previous
+                            </a>
+                            {% else %}
+                            <span
+                                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed"
+                                aria-disabled="true">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 19l-7-7 7-7"></path>
+                                </svg>
+                                Previous
+                            </span>
+                            {% endif %}
+
+                            <!-- Page Numbers -->
+                            <div class="flex items-center space-x-1">
+                                {% if pagination_pages %}
+                                {% for p in pagination_pages %}
+                                {% if p == current_page %}
+                                <span aria-current="page"
+                                    class="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg shadow-md">
+                                    {{ p }}
+                                </span>
+                                {% else %}
+                                <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
+                                    aria-label="Go to page {{ p }}"
+                                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-blue-300 transition-colors duration-200"
+                                    style="will-change: background-color, border-color;">
+                                    {{ p }}
+                                </a>
+                                {% endif %}
+                                {% endfor %}
+                                {% else %}
+                                {% for p in range(1, total_pages + 1) %}
+                                {% if p == current_page %}
+                                <span aria-current="page"
+                                    class="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg shadow-md">
+                                    {{ p }}
+                                </span>
+                                {% else %}
+                                <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
+                                    aria-label="Go to page {{ p }}"
+                                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-blue-300 transition-colors duration-200"
+                                    style="will-change: background-color, border-color;">
+                                    {{ p }}
+                                </a>
+                                {% endif %}
+                                {% endfor %}
+                                {% endif %}
+                            </div>
+
+                            <!-- Next Button -->
+                            {% if current_page < total_pages %} <a
+                                href="{{ url_for('dashboard', page=current_page+1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
+                                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                                style="will-change: background-color, border-color;" aria-label="Go to next page">
+                                Next
+                                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 5l7 7-7 7"></path>
+                                </svg>
+                                </a>
+                                {% else %}
+                                <span
+                                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed"
+                                    aria-disabled="true">
+                                    Next
+                                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </span>
+                                {% endif %}
+                        </nav>
+                    </div>
+
+                    <!-- Quick Jump (for many pages) -->
+                    {% if total_pages > 10 %}
+                    <div class="flex justify-center mt-4">
+                        <div class="flex items-center space-x-2 text-sm text-gray-400">
+                            <span>Jump to page:</span>
+                            <select aria-label="Jump to page"
+                                onchange="window.location.href='{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}&page=' + this.value"
+                                class="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900">
+                                {% for p in range(1, total_pages + 1) %}
+                                <option value="{{ p }}" {% if p==current_page %}selected{% endif %}>{{ p }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                     </div>
+                    {% endif %}
+                </div>
+                {% endif %}
 
-                    <!-- New Stuff: Refactored filter actions for better responsiveness -->
-                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-200">
-                        <!-- Left side: Sort controls -->
-                        <div class="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
-                            <label for="sort_by" class="text-sm font-medium text-gray-600 hidden sm:block" id="sort-by-label">Sort by:</label>
-                            <div class="w-full flex gap-2">
-                                <select id="sort_by" name="sort_by" aria-labelledby="sort-by-label"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900">
-                                    <option value="found_date" {% if sort_by=='found_date' %}selected{% endif %}>Date Added</option>
-                                    <option value="title" {% if sort_by=='title' %}selected{% endif %}>Title</option>
-                                    <option value="relevance_score" {% if sort_by=='relevance_score' %}selected{% endif %}>Relevance</option>
-                                </select>
-                                <select id="sort_order" name="sort_order" aria-label="Sort order"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900">
-                                    <option value="desc" {% if sort_order=='desc' %}selected{% endif %}>Descending</option>
-                                    <option value="asc" {% if sort_order=='asc' %}selected{% endif %}>Ascending</option>
-                                </select>
-                            </div>
-                        </div>
-                        <!-- Right side: Action buttons -->
-                        <div class="w-full sm:w-auto flex items-center gap-2">
-                            <button type="submit"
-                                class="flex-1 btn-temporal inline-flex justify-center py-2.5 px-5 text-sm font-semibold rounded-xl shadow-sm">
-                                Apply Filters
-                            </button>
-                            <a href="{{ url_for('dashboard') }}"
-                                class="flex-1 sm:flex-initial inline-flex justify-center py-2.5 px-5 border border-gray-300 shadow-sm text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
-                                Reset
-                            </a>
-                        </div>
-                    </div>
-</form>
-</div>
-</div>
+        </main>
+    </div>
 
-<div id="job-listings" class="space-y-6">
-    {% if jobs %}
-    {% for job in jobs %}
-    <article class="job-item relative bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300" data-job-id="{{ job.id }}">
-        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-            <div class="flex-1">
-                <h3 class="text-lg font-semibold text-gray-900">
-                    <a href="{{ job.link }}" target="_blank" class="hover:text-blue-600 transition-colors">{{ job.title }}</a>
-                </h3>
-                <p class="text-sm text-gray-600 mt-1">{{ job.company }}</p>
-            </div>
-            <div class="flex flex-wrap items-center gap-2">
-                <a href="{{ job.link }}" target="_blank" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">
-                    Apply Now
-                </a>
-                <button type="button" onclick="openStatusModal({{ job.id }}, '{{ job.status }}', '{{ job.notes | default('') }}')" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-all duration-200">
-                    Update Status
-                </button>
-                <button type="button" onclick='openDetailsModal({{ job | tojson | safe }})' class="inline-flex items-center px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50 text-sm text-gray-700">
-                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                    View Details
-                </button>
-                <button type="button" onclick="analyzeTraffic({{ job.id }})" class="inline-flex items-center px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50 text-sm text-gray-700 btn-analysis">
-                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                    Analyze
-                </button>
-                <button type="button" onclick="openApplyModal({{ job.id }}, '{{ job.link }}')" class="inline-flex items-center px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50 text-sm text-gray-700 btn-assisted-apply">
-                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.562L16.25 21.75l-.648-1.188a2.25 2.25 0 01-1.476-1.476L12.938 18l1.188-.648a2.25 2.25 0 011.476-1.476L16.25 15l.648 1.188a2.25 2.25 0 011.476 1.476L19.562 18l-1.188.648a2.25 2.25 0 01-1.476 1.476z"></path></svg>
-                    Apply
-                </button>
-                <form action="{{ url_for('delete_job', job_id=job.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this job?');" class="inline">
-                    <button type="submit" class="inline-flex items-center px-3 py-2 rounded-md border border-gray-200 hover:bg-red-50 text-gray-700 transition-colors" aria-label="Delete job: {{ job.title }}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+    <!-- Modal for Job Details -->
+    <div id="details-modal"
+        class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden z-50 w-full max-w-2xl p-4"
+        role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="bg-black bg-opacity-50 fixed inset-0 -z-10 backdrop-blur-sm" onclick="closeDetailsModal()"></div>
+        <div id="details-modal-content"
+            class="relative w-full shadow-2xl rounded-2xl bg-white border border-gray-200 transform transition-transform,opacity duration-300 scale-95 opacity-0"
+            style="will-change: transform, opacity;">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <div>
+                    <h3 id="modal-title" class="text-xl font-bold text-gray-900">Job Title</h3>
+                    <p id="modal-company" class="text-md text-gray-500">Company Name</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="modal-relevance" class="px-3 py-1 text-sm font-semibold rounded-full"></span>
+                    <button onclick="closeDetailsModal()" class="text-gray-400 hover:text-gray-600 transition-colors"
+                        aria-label="Close details modal">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
-                </form>
+                </div>
             </div>
-        </div>
-    </article>
-    {% endfor %}
-    {% else %}
-    <div class="bg-white p-6 rounded-2xl text-center text-gray-500 border border-gray-200 shadow-sm">
-        <p>No jobs found. Try a new search!</p>
-    </div>
-    {% endif %}
-</div>
 
-<!-- Enhanced Pagination -->
-{% if total_pages > 1 %}
-<div class="mt-12 mb-8">
-    <!-- Pagination Info -->
-    <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
-        <div class="text-sm text-gray-600 mb-4 sm:mb-0">
-            <span class="font-medium">Showing page {{ current_page }} of {{ total_pages }}</span>
-            <span class="mx-2">•</span>
-            <span>{{ total_jobs }} total jobs found</span>
-        </div>
-        <div class="text-sm text-gray-700">
-            {% set start_job = (current_page - 1) * limit + 1 %}
-            {% set end_job = current_page * limit if current_page * limit < total_jobs else total_jobs %}
-            Jobs {{ start_job }}-{{ end_job }} of {{ total_jobs }}
-        </div>
-    </div>
+            <!-- Modal Body -->
+            <div class="p-6 max-h-[75vh] overflow-y-auto space-y-5">
+                <!-- Key Info Section -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                    <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                        <div class="text-xs text-gray-500">Location</div>
+                        <div id="modal-location" class="font-semibold text-gray-900 text-sm truncate"></div>
+                    </div>
+                    <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                        <div class="text-xs text-gray-500">Salary</div>
+                        <div id="modal-salary" class="font-semibold text-gray-900 text-sm truncate"></div>
+                    </div>
+                    <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                        <div class="text-xs text-gray-500">Experience</div>
+                        <div id="modal-experience" class="font-semibold text-gray-900 text-sm truncate"></div>
+                    </div>
+                    <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                        <div class="text-xs text-gray-500">Job Type</div>
+                        <div id="modal-job-type" class="font-semibold text-gray-900 text-sm truncate"></div>
+                    </div>
+                </div>
 
-    <!-- Pagination Controls -->
-    <div class="flex justify-center">
-        <nav class="flex items-center space-x-2" aria-label="Pagination">
-            <!-- Previous Button -->
-            {% if current_page > 1 %}
-            <a href="{{ url_for('dashboard', page=current_page-1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
-                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200" style="will-change: background-color, border-color;" aria-label="Go to previous page">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
-                Previous
-            </a>
-            {% else %}
-            <span
-                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed" aria-disabled="true">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
-                Previous
-            </span>
-            {% endif %}
+                <!-- Description Section -->
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-900 mb-2">Job Description</h4>
+                    <div id="modal-description"
+                        class="text-sm text-gray-700 bg-white p-4 rounded-lg border border-gray-200 max-h-60 overflow-y-auto whitespace-pre-wrap">
+                    </div>
+                </div>
 
-            <!-- Page Numbers -->
-            <div class="flex items-center space-x-1">
-                {% if pagination_pages %}
-                {% for p in pagination_pages %}
-                {% if p == current_page %}
-                <span aria-current="page"
-                    class="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg shadow-md">
-                    {{ p }}
-                </span>
-                {% else %}
-                <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}" aria-label="Go to page {{ p }}"
-                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-blue-300 transition-colors duration-200" style="will-change: background-color, border-color;">
-                    {{ p }}
+                <!-- Skills & Keywords Section -->
+                <div class="space-y-3">
+                    <div id="modal-skills-container" class="hidden">
+                        <h4 class="text-md font-semibold text-gray-900 mb-2">Skills</h4>
+                        <div id="modal-skills" class="flex flex-wrap gap-2"></div>
+                    </div>
+                    <div id="modal-tools-container" class="hidden">
+                        <h4 class="text-md font-semibold text-gray-900 mb-2">Tools & Platforms</h4>
+                        <div id="modal-tools" class="flex flex-wrap gap-2"></div>
+                    </div>
+                    <div id="modal-soft-skills-container" class="hidden">
+                        <h4 class="text-md font-semibold text-gray-900 mb-2">Soft Skills</h4>
+                        <div id="modal-soft-skills" class="flex flex-wrap gap-2"></div>
+                    </div>
+                </div>
+
+                <!-- Other Details Section -->
+                <div>
+                    <h4 class="text-md font-semibold text-gray-900 mb-2">Additional Information</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                        <div class="bg-white p-2.5 rounded-lg border border-gray-200"><span
+                                class="text-gray-500">Posted:</span> <span id="modal-posted-date"
+                                class="font-medium text-gray-900"></span></div>
+                        <div class="bg-white p-2.5 rounded-lg border border-gray-200"><span
+                                class="text-gray-500">Source:</span> <span id="modal-source"
+                                class="font-medium text-gray-900"></span></div>
+                        <div class="bg-white p-2.5 rounded-lg border border-gray-200"><span
+                                class="text-gray-500">Deadline:</span> <span id="modal-deadline"
+                                class="font-medium text-gray-900"></span></div>
+                        <div class="bg-white p-2.5 rounded-lg border border-gray-200"><span
+                                class="text-gray-500">Experience Range:</span> <span id="modal-exp-range"
+                                class="font-medium text-gray-900"></span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div
+                class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end items-center gap-4 rounded-b-2xl">
+                <button onclick="closeDetailsModal()"
+                    class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">Close</button>
+                <a id="modal-apply-link" href="#" target="_blank"
+                    class="btn-temporal inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md shadow-sm">
+                    Apply Now
                 </a>
-                {% endif %}
-                {% endfor %}
-                {% else %}
-                {% for p in range(1, total_pages + 1) %}
-                {% if p == current_page %}
-                <span aria-current="page"
-                    class="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg shadow-md">
-                    {{ p }}
-                </span>
-                {% else %}
-                <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}" aria-label="Go to page {{ p }}"
-                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-blue-300 transition-colors duration-200" style="will-change: background-color, border-color;">
-                    {{ p }}
-                </a>
-                {% endif %}
-                {% endfor %}
-                {% endif %}
             </div>
-
-            <!-- Next Button -->
-            {% if current_page < total_pages %}
-            <a href="{{ url_for('dashboard', page=current_page+1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
-                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200" style="will-change: background-color, border-color;" aria-label="Go to next page">
-                Next
-                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                </svg>
-            </a>
-            {% else %}
-            <span
-                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed" aria-disabled="true">
-                Next
-                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                </svg>
-            </span>
-            {% endif %}
-        </nav>
-    </div>
-
-    <!-- Quick Jump (for many pages) -->
-    {% if total_pages > 10 %}
-    <div class="flex justify-center mt-4">
-        <div class="flex items-center space-x-2 text-sm text-gray-400">
-            <span>Jump to page:</span>
-            <select aria-label="Jump to page"
-                onchange="window.location.href='{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}&page=' + this.value"
-                class="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900">
-                {% for p in range(1, total_pages + 1) %}
-                <option value="{{ p }}" {% if p==current_page %}selected{% endif %}>{{ p }}</option>
-                {% endfor %}
-            </select>
         </div>
     </div>
-    {% endif %}
-</div>
-{% endif %}
 
-</main>
-</div>
+    <!-- Modal for Job Status Update -->
+    <div id="status-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-4" role="dialog"
+        aria-modal="true" aria-labelledby="status-modal-title">
+        <div class="fixed inset-0 backdrop-blur-sm" onclick="closeStatusModal()"></div>
+        <div class="relative mx-auto p-6 border border-gray-200 w-full max-w-md shadow-lg rounded-xl bg-white z-10">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Update Job Status</h3>
+            <form id="status-form" action="{{ url_for('update_job_status') }}" method="POST">
+                <input type="hidden" name="job_id" id="status-job-id">
+                <div class="mb-4">
+                    <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                    <select id="status" name="status"
+                        class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900">
+                        <option value="new">New</option>
+                        <option value="applied">Applied</option>
+                        <option value="interview">Interview</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="offered">Offered</option>
+                        <option value="archived">Archived</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
+                    <textarea id="notes" name="notes" rows="4"
+                        class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"></textarea>
+                </div>
+                <div class="mb-4">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="sync_to_calendar" name="sync_to_calendar" value="1" checked
+                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded bg-white">
+                        <label for="sync_to_calendar" class="ml-2 block text-sm text-gray-700">
+                            Sync to Google Calendar
+                        </label>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Creates/updates calendar events based on job status.</p>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" onclick="closeStatusModal()"
+                        class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Cancel</button>
+                    <button type="submit"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-<!-- Modal for Job Details -->
-<div id="details-modal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden z-50 w-full max-w-2xl p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div class="bg-black bg-opacity-50 fixed inset-0 -z-10 backdrop-blur-sm" onclick="closeDetailsModal()"></div>
-    <div id="details-modal-content" class="relative w-full shadow-2xl rounded-2xl bg-white border border-gray-200 transform transition-transform,opacity duration-300 scale-95 opacity-0" style="will-change: transform, opacity;">
-        <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <div>
-                <h3 id="modal-title" class="text-xl font-bold text-gray-900">Job Title</h3>
-                <p id="modal-company" class="text-md text-gray-500">Company Name</p>
+    <!-- Modal for Assisted Apply -->
+    <div id="apply-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-4" role="dialog"
+        aria-modal="true" aria-labelledby="apply-modal-title">
+        <div class="fixed inset-0 backdrop-blur-sm" onclick="closeApplyModal()"></div>
+        <div
+            class="relative mx-auto p-6 border border-gray-200 w-full max-w-sm shadow-lg rounded-xl bg-white text-center z-10">
+
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Assisted Apply</h3>
+            <p class="text-gray-600 mb-4">This will start an automated browser session to fill out the form for you.</p>
+            <p class="text-sm text-red-400 mb-4 font-semibold">
+                Warning: This feature requires a local Celery worker with Selenium configured correctly. A new browser
+                window will open.
+            </p>
+            <div class="flex justify-center space-x-4">
+                <button type="button" onclick="closeApplyModal()"
+                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Cancel</button>
+                <button type="button" id="start-apply-btn"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Start Automation</button>
             </div>
-            <div class="flex items-center gap-3">
-                <span id="modal-relevance" class="px-3 py-1 text-sm font-semibold rounded-full"></span>
-                <button onclick="closeDetailsModal()" class="text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close details modal">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </div>
+    </div>
+
+    <!-- Modal for Traffic Analysis -->
+    <div id="traffic-analysis-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-4"
+        role="dialog" aria-modal="true" aria-labelledby="traffic-modal-title">
+        <div class="fixed inset-0 backdrop-blur-sm" onclick="closeTrafficAnalysisModal()">
+        </div>
+        <div id="traffic-analysis-modal-content"
+            class="relative w-full max-w-lg shadow-2xl rounded-2xl bg-white border border-gray-200 transform transition-transform,opacity duration-300 scale-95 opacity-0 z-10"
+            style="will-change: transform, opacity;">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <div>
+                    <h3 id="traffic-modal-title" class="text-xl font-bold text-gray-900">Company Traffic Analysis</h3>
+                    <p id="traffic-modal-company" class="text-md text-gray-500">Company Name</p>
+                </div>
+                <button onclick="closeTrafficAnalysisModal()"
+                    class="text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label="Close traffic analysis modal">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
                 </button>
             </div>
-        </div>
 
-        <!-- Modal Body -->
-        <div class="p-6 max-h-[75vh] overflow-y-auto space-y-5">
-            <!-- Key Info Section -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
-                <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><div class="text-xs text-gray-500">Location</div><div id="modal-location" class="font-semibold text-gray-900 text-sm truncate"></div></div>
-                <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><div class="text-xs text-gray-500">Salary</div><div id="modal-salary" class="font-semibold text-gray-900 text-sm truncate"></div></div>
-                <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><div class="text-xs text-gray-500">Experience</div><div id="modal-experience" class="font-semibold text-gray-900 text-sm truncate"></div></div>
-                <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><div class="text-xs text-gray-500">Job Type</div><div id="modal-job-type" class="font-semibold text-gray-900 text-sm truncate"></div></div>
-            </div>
-
-            <!-- Description Section -->
-            <div>
-                <h4 class="text-lg font-semibold text-gray-900 mb-2">Job Description</h4>
-                <div id="modal-description" class="text-sm text-gray-600 bg-gray-50 p-4 rounded-lg border border-gray-200 max-h-60 overflow-y-auto whitespace-pre-wrap"></div>
-            </div>
-
-            <!-- Skills & Keywords Section -->
-            <div class="space-y-3">
-                <div id="modal-skills-container" class="hidden">
-                    <h4 class="text-md font-semibold text-gray-900 mb-2">Skills</h4>
-                    <div id="modal-skills" class="flex flex-wrap gap-2"></div>
+            <!-- Modal Body -->
+            <div id="traffic-modal-body" class="p-6 max-h-[75vh] overflow-y-auto space-y-5" role="status">
+                <!-- Loading/Error State -->
+                <div id="traffic-modal-placeholder" class="text-center py-8">
+                    <svg class="animate-spin mx-auto h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg"
+                        fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                    </svg>
+                    <p class="mt-4 text-gray-600">Analyzing company traffic data...</p>
                 </div>
-                <div id="modal-tools-container" class="hidden">
-                    <h4 class="text-md font-semibold text-gray-900 mb-2">Tools & Platforms</h4>
-                    <div id="modal-tools" class="flex flex-wrap gap-2"></div>
-                </div>
-                <div id="modal-soft-skills-container" class="hidden">
-                    <h4 class="text-md font-semibold text-gray-900 mb-2">Soft Skills</h4>
-                    <div id="modal-soft-skills" class="flex flex-wrap gap-2"></div>
-                </div>
-            </div>
-
-            <!-- Other Details Section -->
-            <div>
-                <h4 class="text-md font-semibold text-gray-900 mb-2">Additional Information</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                    <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><span class="text-gray-500">Posted:</span> <span id="modal-posted-date" class="font-medium text-gray-900"></span></div>
-                    <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><span class="text-gray-500">Source:</span> <span id="modal-source" class="font-medium text-gray-900"></span></div>
-                    <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><span class="text-gray-500">Deadline:</span> <span id="modal-deadline" class="font-medium text-gray-900"></span></div>
-                    <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><span class="text-gray-500">Experience Range:</span> <span id="modal-exp-range" class="font-medium text-gray-900"></span></div>
+                <!-- Results Content (hidden by default) -->
+                <div id="traffic-modal-results" class="hidden space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
+                        <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                            <div class="text-xs text-gray-500">Monthly Visits</div>
+                            <div id="traffic-visits" class="stat-number text-xl text-blue-600">--</div>
+                        </div>
+                        <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                            <div class="text-xs text-gray-500">Bounce Rate</div>
+                            <div id="traffic-bounce-rate" class="stat-number text-xl text-blue-600">--</div>
+                        </div>
+                        <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                            <div class="text-xs text-gray-500">Pages per Visit</div>
+                            <div id="traffic-pages-per-visit" class="stat-number text-xl text-blue-600">--</div>
+                        </div>
+                    </div>
+                    <div id="traffic-message" class="text-gray-600"></div>
                 </div>
             </div>
-        </div>
 
-        <!-- Modal Footer -->
-        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end items-center gap-4 rounded-b-2xl">
-            <button onclick="closeDetailsModal()" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">Close</button>
-            <a id="modal-apply-link" href="#" target="_blank" class="btn-temporal inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md shadow-sm">
-                Apply Now
-            </a>
+            <!-- Modal Footer -->
+            <div
+                class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end items-center gap-4 rounded-b-2xl">
+                <button onclick="closeTrafficAnalysisModal()"
+                    class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">Close</button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Modal for Job Status Update -->
-<div id="status-modal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden z-50 w-full max-w-md p-4" role="dialog" aria-modal="true" aria-labelledby="status-modal-title">
-    <div class="bg-black bg-opacity-50 fixed inset-0 -z-10 backdrop-blur-sm" onclick="closeStatusModal()"></div>
-    <div class="relative mx-auto p-6 border border-gray-200 w-full shadow-lg rounded-xl bg-white">
-        <h3 class="text-lg font-bold text-gray-900 mb-4">Update Job Status</h3>
-        <form id="status-form" action="{{ url_for('update_job_status') }}" method="POST">
-            <input type="hidden" name="job_id" id="status-job-id">
-            <div class="mb-4">
-                <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
-                <select id="status" name="status"
-                    class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900">
-                    <option value="new">New</option>
-                    <option value="applied">Applied</option>
-                    <option value="interview">Interview</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="offered">Offered</option>
-                    <option value="archived">Archived</option>
-                </select>
-            </div>
-            <div class="mb-4">
-                <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
-                <textarea id="notes" name="notes" rows="4"
-                    class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"></textarea>
-            </div>
-            <div class="mb-4">
-                <div class="flex items-center">
-                    <input type="checkbox" id="sync_to_calendar" name="sync_to_calendar" value="1" checked
-                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded bg-white">
-                    <label for="sync_to_calendar" class="ml-2 block text-sm text-gray-700">
-                        Sync to Google Calendar
-                    </label>
-                </div>
-                <p class="text-xs text-gray-500 mt-1">Creates/updates calendar events based on job status.</p>
-            </div>
-            <div class="flex justify-end space-x-4">
-                <button type="button" onclick="closeStatusModal()"
-                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Cancel</button>
-                <button type="submit"
-                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Modal for Assisted Apply -->
-<div id="apply-modal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden z-50 w-full max-w-sm p-4" role="dialog" aria-modal="true" aria-labelledby="apply-modal-title">
-    <div class="bg-black bg-opacity-50 fixed inset-0 -z-10 backdrop-blur-sm" onclick="closeApplyModal()"></div>
-    <div class="relative mx-auto p-6 border border-gray-200 w-full max-w-sm shadow-lg rounded-xl bg-white text-center">
-        <h3 class="text-lg font-bold text-gray-900 mb-4">Assisted Apply</h3>
-        <p class="text-gray-600 mb-4">This will start an automated browser session to fill out the form for you.</p>
-        <p class="text-sm text-red-400 mb-4 font-semibold">
-            Warning: This feature requires a local Celery worker with Selenium configured correctly. A new browser
-            window will open.
-        </p>
-        <div class="flex justify-center space-x-4">
-            <button type="button" onclick="closeApplyModal()"
-                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Cancel</button>
-            <button type="button" id="start-apply-btn"
-                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Start Automation</button>
-        </div>
-    </div>
-</div>
-
-<!-- Modal for Traffic Analysis -->
-<div id="traffic-analysis-modal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden z-50 w-full max-w-lg p-4" role="dialog" aria-modal="true" aria-labelledby="traffic-modal-title">
-    <div class="bg-black bg-opacity-50 fixed inset-0 -z-10 backdrop-blur-sm" onclick="closeTrafficAnalysisModal()"></div>
-    <div id="traffic-analysis-modal-content" class="relative w-full shadow-2xl rounded-2xl bg-white border border-gray-200 transform transition-transform,opacity duration-300 scale-95 opacity-0" style="will-change: transform, opacity;">
-        <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <div>
-                <h3 id="traffic-modal-title" class="text-xl font-bold text-gray-900">Company Traffic Analysis</h3>
-                <p id="traffic-modal-company" class="text-md text-gray-500">Company Name</p>
-            </div>
-            <button onclick="closeTrafficAnalysisModal()" class="text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close traffic analysis modal">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-        </div>
-
-        <!-- Modal Body -->
-        <div id="traffic-modal-body" class="p-6 max-h-[75vh] overflow-y-auto space-y-5" role="status">
-            <!-- Loading/Error State -->
-            <div id="traffic-modal-placeholder" class="text-center py-8">
-                <svg class="animate-spin mx-auto h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <p class="mt-4 text-gray-600">Analyzing company traffic data...</p>
-            </div>
-            <!-- Results Content (hidden by default) -->
-            <div id="traffic-modal-results" class="hidden space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-center"><div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><div class="text-xs text-gray-500">Monthly Visits</div><div id="traffic-visits" class="stat-number text-xl text-blue-600">--</div></div><div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><div class="text-xs text-gray-500">Bounce Rate</div><div id="traffic-bounce-rate" class="stat-number text-xl text-blue-600">--</div></div><div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200"><div class="text-xs text-gray-500">Pages per Visit</div><div id="traffic-pages-per-visit" class="stat-number text-xl text-blue-600">--</div></div></div><div id="traffic-message" class="text-gray-600"></div>
-            </div>
-        </div>
-
-        <!-- Modal Footer -->
-        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end items-center gap-4 rounded-b-2xl">
-            <button onclick="closeTrafficAnalysisModal()" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">Close</button>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- DOM Elements Cache ---
-        const els = {
-            searchForm: document.getElementById('search-form'),
-            scrapeBtn: document.getElementById('scrape-btn'),
-            saveProfileBtn: document.getElementById('save-profile-btn'),
-            statusModal: document.getElementById('status-modal'),
-            applyModal: document.getElementById('apply-modal'),
-            detailsModal: document.getElementById('details-modal'),
-            detailsModalContent: document.getElementById('details-modal-content'),
-            trafficModal: document.getElementById('traffic-analysis-modal'),
-            trafficModalContent: document.getElementById('traffic-analysis-modal-content'),
-            statusForm: document.getElementById('status-form'),
-            progress: {
-                container: document.getElementById('progress-container'),
-                bar: document.getElementById('progress-bar'),
-                pct: document.getElementById('progress-percentage'),
-                status: document.getElementById('progress-status'),
-                error: document.getElementById('progress-error'),
-                milestones: {
-                    init: document.getElementById('milestone-init'),
-                    scrape: document.getElementById('milestone-scrape'),
-                    save: document.getElementById('milestone-save'),
-                    report: document.getElementById('milestone-report')
-                }
-            }
-        };
-        
-        const scrapeBtnText = els.scrapeBtn ? els.scrapeBtn.querySelector('.button-text') : null;
-        const originalBtnText = scrapeBtnText ? scrapeBtnText.textContent : '';
-
-        // --- Search & Progress Logic ---
-        let eventSource = null;
-
-        function resetProgressBar() {
-            els.progress.container.classList.add('hidden');
-            els.progress.bar.style.width = '0%';
-            els.progress.pct.textContent = '0%';
-            els.progress.status.textContent = 'Ready to start...';
-            els.progress.error.classList.add('hidden');
-            els.progress.error.textContent = '';
-            Object.values(els.progress.milestones).forEach(el => el.className = 'w-2 h-2 rounded-full bg-gray-600');
-            
-            if(els.scrapeBtn) {
-                els.scrapeBtn.classList.remove('button-loading');
-                els.scrapeBtn.disabled = false;
-                if(scrapeBtnText) scrapeBtnText.textContent = originalBtnText;
-            }
-            
-            els.progress.bar.classList.remove('from-green-400', 'to-emerald-500', 'from-red-500', 'to-orange-500');
-            els.progress.bar.classList.add('from-teal-400', 'to-sky-500');
-        }
-
-        function updateMilestones(percent) {
-            const m = els.progress.milestones;
-            if (percent >= 5) m.init.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse';
-            if (percent >= 15) { m.init.className = 'w-2 h-2 rounded-full bg-green-400'; m.scrape.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse'; }
-            if (percent >= 90) { m.scrape.className = 'w-2 h-2 rounded-full bg-green-400'; m.save.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse'; }
-            if (percent >= 95) { m.save.className = 'w-2 h-2 rounded-full bg-green-400'; m.report.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse'; }
-            if (percent >= 100) m.report.className = 'w-2 h-2 rounded-full bg-green-400';
-        }
-
-        if (els.searchForm) {
-            els.searchForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                resetProgressBar();
-                els.progress.container.classList.remove('hidden');
-                
-                const formData = new FormData(els.searchForm);
-                const params = new URLSearchParams(formData).toString();
-
-                if(els.scrapeBtn) {
-                    els.scrapeBtn.classList.add('button-loading');
-                    if(scrapeBtnText) scrapeBtnText.textContent = 'Searching...';
-                }
-
-                try {
-                    const response = await fetch("{{ url_for('start_scrape') }}", {
-                        method: 'POST',
-                        body: params,
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-                    });
-                    const data = await response.json();
-                    
-                    if (response.ok && data.task_id) {
-                        eventSource = new EventSource(`/task_progress_stream/${data.task_id}`);
-                        eventSource.onmessage = (event) => {
-                            const d = JSON.parse(event.data);
-                            els.progress.bar.style.width = `${d.percent}%`;
-                            els.progress.pct.textContent = `${d.percent}%`;
-                            els.progress.status.textContent = d.message || d.state;
-                            updateMilestones(d.percent);
-
-                            if (d.state === 'SUCCESS') {
-                                els.progress.status.textContent = 'Complete! Reloading...';
-                                els.progress.bar.classList.replace('from-teal-400', 'from-green-400');
-                                els.progress.bar.classList.replace('to-sky-500', 'to-emerald-500');
-                                eventSource.close();
-                                setTimeout(() => window.location.reload(), 1500);
-                            } else if (d.state === 'FAILURE') {
-                                handleSearchError(d.message || 'Unknown error');
-                            }
-                        };
-                        eventSource.onerror = () => {
-                            console.error("EventSource failed.");
-                            eventSource.close();
-                            handleSearchError('Connection lost.');
-                        };
-                    } else {
-                        handleSearchError(data.message || data.error || 'Unknown error.');
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements Cache ---
+            const els = {
+                searchForm: document.getElementById('search-form'),
+                scrapeBtn: document.getElementById('scrape-btn'),
+                saveProfileBtn: document.getElementById('save-profile-btn'),
+                statusModal: document.getElementById('status-modal'),
+                applyModal: document.getElementById('apply-modal'),
+                detailsModal: document.getElementById('details-modal'),
+                detailsModalContent: document.getElementById('details-modal-content'),
+                trafficModal: document.getElementById('traffic-analysis-modal'),
+                trafficModalContent: document.getElementById('traffic-analysis-modal-content'),
+                statusForm: document.getElementById('status-form'),
+                progress: {
+                    container: document.getElementById('progress-container'),
+                    bar: document.getElementById('progress-bar'),
+                    pct: document.getElementById('progress-percentage'),
+                    status: document.getElementById('progress-status'),
+                    error: document.getElementById('progress-error'),
+                    milestones: {
+                        init: document.getElementById('milestone-init'),
+                        scrape: document.getElementById('milestone-scrape'),
+                        save: document.getElementById('milestone-save'),
+                        report: document.getElementById('milestone-report')
                     }
-                } catch (error) {
-                    handleSearchError('Failed to connect to backend.');
                 }
-            });
-        }
+            };
 
-        function handleSearchError(msg) {
-            els.progress.status.textContent = 'Task Failed!';
-            els.progress.error.textContent = `Error: ${msg}`;
-            els.progress.error.classList.remove('hidden');
-            els.progress.bar.classList.replace('from-teal-400', 'from-red-500');
-            els.progress.bar.classList.replace('to-sky-500', 'to-orange-500');
-            if(eventSource) eventSource.close();
-            if(els.scrapeBtn) {
-                els.scrapeBtn.disabled = false;
-                els.scrapeBtn.classList.remove('button-loading');
-                if(scrapeBtnText) scrapeBtnText.textContent = 'Try Again';
+            const scrapeBtnText = els.scrapeBtn ? els.scrapeBtn.querySelector('.button-text') : null;
+            const originalBtnText = scrapeBtnText ? scrapeBtnText.textContent : '';
+
+            // --- Search & Progress Logic ---
+            let eventSource = null;
+
+            function resetProgressBar() {
+                els.progress.container.classList.add('hidden');
+                els.progress.bar.style.width = '0%';
+                els.progress.pct.textContent = '0%';
+                els.progress.status.textContent = 'Ready to start...';
+                els.progress.error.classList.add('hidden');
+                els.progress.error.textContent = '';
+                Object.values(els.progress.milestones).forEach(el => el.className = 'w-2 h-2 rounded-full bg-gray-600');
+
+                if (els.scrapeBtn) {
+                    els.scrapeBtn.classList.remove('button-loading');
+                    els.scrapeBtn.disabled = false;
+                    if (scrapeBtnText) scrapeBtnText.textContent = originalBtnText;
+                }
+
+                els.progress.bar.classList.remove('from-green-400', 'to-emerald-500', 'from-red-500', 'to-orange-500');
+                els.progress.bar.classList.add('from-teal-400', 'to-sky-500');
             }
-        }
 
-        // --- Save Profile ---
-        if (els.saveProfileBtn) {
-            els.saveProfileBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const fields = ['search_terms', 'location', 'experience', 'job_type'];
-                const values = fields.map(id => document.getElementById(id).value.trim());
-                
-                if (!values[0]) return alert('Please enter search terms.');
-                
-                const profileName = prompt('Enter a name for this search profile:');
-                if (!profileName || !profileName.trim()) return;
+            function updateMilestones(percent) {
+                const m = els.progress.milestones;
+                if (percent >= 5) m.init.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse';
+                if (percent >= 15) { m.init.className = 'w-2 h-2 rounded-full bg-green-400'; m.scrape.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse'; }
+                if (percent >= 90) { m.scrape.className = 'w-2 h-2 rounded-full bg-green-400'; m.save.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse'; }
+                if (percent >= 95) { m.save.className = 'w-2 h-2 rounded-full bg-green-400'; m.report.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse'; }
+                if (percent >= 100) m.report.className = 'w-2 h-2 rounded-full bg-green-400';
+            }
 
-                const formData = new FormData();
-                formData.append('profile_name', profileName.trim());
-                fields.forEach((f, i) => formData.append(f, values[i]));
+            if (els.searchForm) {
+                els.searchForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    resetProgressBar();
+                    els.progress.container.classList.remove('hidden');
 
-                fetch('/save_profile', { method: 'POST', body: formData })
-                    .then(r => r.ok ? (alert('Saved!'), window.location.reload()) : alert('Failed to save. May exist.'))
-                    .catch(() => alert('Error saving profile.'));
-            });
-        }
+                    const formData = new FormData(els.searchForm);
+                    const params = new URLSearchParams(formData).toString();
 
-        // --- Apply Profile ---
-        document.querySelectorAll('.apply-profile-form').forEach(form => {
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                try {
-                    const res = await fetch(form.action, { method: 'POST' });
-                    const data = await res.json();
-                    if (data.success && data.profile) {
-                        ['search_terms', 'location', 'experience', 'job_type'].forEach(k => {
-                            const el = document.getElementById(k);
-                            if(el) el.value = data.profile[k];
+                    if (els.scrapeBtn) {
+                        els.scrapeBtn.classList.add('button-loading');
+                        if (scrapeBtnText) scrapeBtnText.textContent = 'Searching...';
+                    }
+
+                    try {
+                        const response = await fetch("{{ url_for('start_scrape') }}", {
+                            method: 'POST',
+                            body: params,
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
                         });
-                        const box = els.searchForm.parentElement.parentElement;
-                        box.style.transition = 'box-shadow 0.3s ease';
-                        box.style.boxShadow = '0 0 20px rgba(79, 70, 229, 0.7)';
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                        setTimeout(() => box.style.boxShadow = '', 2000);
-                    } else {
-                        alert('Error: ' + (data.error || 'Unknown'));
+                        const data = await response.json();
+
+                        if (response.ok && data.task_id) {
+                            eventSource = new EventSource(`/task_progress_stream/${data.task_id}`);
+                            eventSource.onmessage = (event) => {
+                                const d = JSON.parse(event.data);
+                                els.progress.bar.style.width = `${d.percent}%`;
+                                els.progress.pct.textContent = `${d.percent}%`;
+                                els.progress.status.textContent = d.message || d.state;
+                                updateMilestones(d.percent);
+
+                                if (d.state === 'SUCCESS') {
+                                    els.progress.status.textContent = 'Complete! Reloading...';
+                                    els.progress.bar.classList.replace('from-teal-400', 'from-green-400');
+                                    els.progress.bar.classList.replace('to-sky-500', 'to-emerald-500');
+                                    eventSource.close();
+                                    setTimeout(() => window.location.reload(), 1500);
+                                } else if (d.state === 'FAILURE') {
+                                    handleSearchError(d.message || 'Unknown error');
+                                }
+                            };
+                            eventSource.onerror = () => {
+                                console.error("EventSource failed.");
+                                eventSource.close();
+                                handleSearchError('Connection lost.');
+                            };
+                        } else {
+                            handleSearchError(data.message || data.error || 'Unknown error.');
+                        }
+                    } catch (error) {
+                        handleSearchError('Failed to connect to backend.');
                     }
-                } catch (e) { alert('Connection failed.'); }
-            });
-        });
-
-        // --- Modals ---
-        let activeTrigger = null;
-        const openModal = (modal, trigger) => {
-            activeTrigger = trigger;
-            modal.classList.remove('hidden');
-            const focusable = modal.querySelector('button, [href], input, select, textarea');
-            if (focusable) focusable.focus();
-        };
-        const closeModal = (modal) => {
-            modal.classList.add('hidden');
-            if (activeTrigger) { activeTrigger.focus(); activeTrigger = null; }
-        };
-
-        // Global functions for HTML onclick attributes
-        window.openStatusModal = (jobId, status, notes) => {
-            document.getElementById('status-job-id').value = jobId;
-            document.getElementById('status').value = status;
-            document.getElementById('notes').value = notes;
-            openModal(els.statusModal, document.activeElement);
-        };
-        window.closeStatusModal = () => closeModal(els.statusModal);
-        
-        window.openApplyModal = (jobId, link) => {
-            openModal(els.applyModal, document.activeElement);
-            document.getElementById('start-apply-btn').onclick = () => {
-                startApplyProcess(jobId);
-                closeModal(els.applyModal);
-            };
-        };
-        window.closeApplyModal = () => closeModal(els.applyModal);
-
-        window.openDetailsModal = (job) => {
-            openModal(els.detailsModal, document.activeElement);
-            const setTxt = (id, txt) => document.getElementById(id).textContent = txt || '';
-            const setHtml = (id, html) => document.getElementById(id).innerHTML = html || '<span class="text-gray-500">Not specified</span>';
-            
-            setTxt('modal-title', job.title);
-            setTxt('modal-company', job.company);
-            setHtml('modal-location', job.location);
-            setHtml('modal-salary', job.salary);
-            setHtml('modal-experience', job.experience);
-            setHtml('modal-job-type', job.job_type);
-            setTxt('modal-description', job.description || 'No description.');
-            setHtml('modal-posted-date', job.posted_date);
-            setHtml('modal-source', job.source);
-            setHtml('modal-deadline', job.deadline);
-            
-            // Exp Range
-            let range = 'Not specified';
-            if (job.min_experience_years != null) range = job.max_experience_years != null ? (job.min_experience_years === job.max_experience_years ? `${job.min_experience_years} years` : `${job.min_experience_years} - ${job.max_experience_years} years`) : `${job.min_experience_years}+ years`;
-            else if (job.max_experience_years != null) range = `Up to ${job.max_experience_years} years`;
-            document.getElementById('modal-exp-range').innerHTML = range === 'Not specified' ? '<span class="text-gray-500">Not specified</span>' : range;
-
-            // Tags
-            const setTags = (items, id) => {
-                const c = document.getElementById(id);
-                const p = document.getElementById(id + '-container');
-                if (items && items.trim()) {
-                    c.innerHTML = items.split(',').map(i => `<span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-700 text-gray-300">${i.trim()}</span>`).join('');
-                    p.classList.remove('hidden');
-                } else p.classList.add('hidden');
-            };
-            setTags(job.skills, 'modal-skills');
-            setTags(job.extracted_tools, 'modal-tools');
-            setTags(job.extracted_soft_skills, 'modal-soft-skills');
-
-            // Relevance
-            const badge = document.getElementById('modal-relevance');
-            const score = Math.round(job.relevance_score || 0);
-            badge.textContent = `${score}% Match`;
-            badge.className = `px-3 py-1 text-sm font-semibold rounded-full ${score >= 60 ? 'bg-green-100 text-green-700' : score >= 30 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`;
-            
-            document.getElementById('modal-apply-link').href = job.link || '#';
-            setTimeout(() => els.detailsModalContent.classList.remove('scale-95', 'opacity-0'), 10);
-        };
-        window.closeDetailsModal = () => {
-            els.detailsModalContent.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => els.detailsModal.classList.add('hidden'), 300);
-        };
-
-        // Traffic Analysis
-        window.analyzeTraffic = async (jobId) => {
-            els.trafficModal.classList.remove('hidden');
-            setTimeout(() => els.trafficModalContent.classList.remove('scale-95', 'opacity-0'), 10);
-            
-            const ph = document.getElementById('traffic-modal-placeholder');
-            const resDiv = document.getElementById('traffic-modal-results');
-            ph.classList.remove('hidden');
-            resDiv.classList.add('hidden');
-            document.getElementById('traffic-modal-company').textContent = 'Loading...';
-
-            try {
-                const res = await fetch(`/analyze_traffic/${jobId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-                const data = await res.json();
-                ph.classList.add('hidden');
-                resDiv.classList.remove('hidden');
-                
-                if (res.ok && data.status === 'success') {
-                    document.getElementById('traffic-modal-company').textContent = data.company_name || 'N/A';
-                    document.getElementById('traffic-visits').textContent = data.analysis.monthly_visits || '--';
-                    document.getElementById('traffic-bounce-rate').textContent = data.analysis.bounce_rate || '--';
-                    document.getElementById('traffic-pages-per-visit').textContent = data.analysis.pages_per_visit || '--';
-                    document.getElementById('traffic-message').textContent = data.message || '';
-                } else {
-                    throw new Error(data.message);
-                }
-            } catch (e) {
-                ph.classList.add('hidden');
-                resDiv.classList.remove('hidden');
-                document.getElementById('traffic-modal-company').textContent = 'Error';
-                document.getElementById('traffic-message').innerHTML = `<p class="text-red-400">${e.message || 'Network error.'}</p>`;
+                });
             }
-        };
-        window.closeTrafficAnalysisModal = () => {
-            els.trafficModalContent.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => els.trafficModal.classList.add('hidden'), 300);
-        };
 
-        // Close modals on backdrop click
-        [els.detailsModal, els.trafficModal].forEach(m => m.addEventListener('click', e => { if (e.target === m) closeModal(m); }));
+            function handleSearchError(msg) {
+                els.progress.status.textContent = 'Task Failed!';
+                els.progress.error.textContent = `Error: ${msg}`;
+                els.progress.error.classList.remove('hidden');
+                els.progress.bar.classList.replace('from-teal-400', 'from-red-500');
+                els.progress.bar.classList.replace('to-sky-500', 'to-orange-500');
+                if (eventSource) eventSource.close();
+                if (els.scrapeBtn) {
+                    els.scrapeBtn.disabled = false;
+                    els.scrapeBtn.classList.remove('button-loading');
+                    if (scrapeBtnText) scrapeBtnText.textContent = 'Try Again';
+                }
+            }
 
-        // --- Status Update ---
-        if (els.statusForm) {
-            els.statusForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(els.statusForm);
-                const jobId = formData.get('job_id');
-                const jobCard = document.querySelector(`article[data-job-id="${jobId}"]`);
-                const btn = jobCard ? jobCard.querySelector('button[onclick*="openStatusModal"]') : null;
+            // --- Save Profile ---
+            if (els.saveProfileBtn) {
+                els.saveProfileBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const fields = ['search_terms', 'location', 'experience', 'job_type'];
+                    const values = fields.map(id => document.getElementById(id).value.trim());
+
+                    if (!values[0]) return alert('Please enter search terms.');
+
+                    const profileName = prompt('Enter a name for this search profile:');
+                    if (!profileName || !profileName.trim()) return;
+
+                    const formData = new FormData();
+                    formData.append('profile_name', profileName.trim());
+                    fields.forEach((f, i) => formData.append(f, values[i]));
+
+                    fetch('/save_profile', { method: 'POST', body: formData })
+                        .then(r => r.ok ? (alert('Saved!'), window.location.reload()) : alert('Failed to save. May exist.'))
+                        .catch(() => alert('Error saving profile.'));
+                });
+            }
+
+            // --- Apply Profile ---
+            document.querySelectorAll('.apply-profile-form').forEach(form => {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    try {
+                        const res = await fetch(form.action, { method: 'POST' });
+                        const data = await res.json();
+                        if (data.success && data.profile) {
+                            ['search_terms', 'location', 'experience', 'job_type'].forEach(k => {
+                                const el = document.getElementById(k);
+                                if (el) el.value = data.profile[k];
+                            });
+                            const box = els.searchForm.parentElement.parentElement;
+                            box.style.transition = 'box-shadow 0.3s ease';
+                            box.style.boxShadow = '0 0 20px rgba(79, 70, 229, 0.7)';
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            setTimeout(() => box.style.boxShadow = '', 2000);
+                        } else {
+                            alert('Error: ' + (data.error || 'Unknown'));
+                        }
+                    } catch (e) { alert('Connection failed.'); }
+                });
+            });
+
+            // --- Modals ---
+            let activeTrigger = null;
+            const openModal = (modal, trigger) => {
+                activeTrigger = trigger;
+                modal.classList.remove('hidden');
+                const focusable = modal.querySelector('button, [href], input, select, textarea');
+                if (focusable) focusable.focus();
+            };
+            const closeModal = (modal) => {
+                modal.classList.add('hidden');
+                if (activeTrigger) { activeTrigger.focus(); activeTrigger = null; }
+            };
+
+            // Global functions for HTML onclick attributes
+            window.openStatusModal = (jobId, status, notes) => {
+                document.getElementById('status-job-id').value = jobId;
+                document.getElementById('status').value = status;
+                document.getElementById('notes').value = notes;
+                openModal(els.statusModal, document.activeElement);
+            };
+            window.closeStatusModal = () => closeModal(els.statusModal);
+
+            window.openApplyModal = (jobId, link) => {
+                openModal(els.applyModal, document.activeElement);
+                document.getElementById('start-apply-btn').onclick = () => {
+                    startApplyProcess(jobId);
+                    closeModal(els.applyModal);
+                };
+            };
+            window.closeApplyModal = () => closeModal(els.applyModal);
+
+            window.openDetailsModal = (job) => {
+                openModal(els.detailsModal, document.activeElement);
+                const setTxt = (id, txt) => document.getElementById(id).textContent = txt || '';
+                const setHtml = (id, html) => document.getElementById(id).innerHTML = html || '<span class="text-gray-500">Not specified</span>';
+
+                setTxt('modal-title', job.title);
+                setTxt('modal-company', job.company);
+                setHtml('modal-location', job.location);
+                setHtml('modal-salary', job.salary);
+                setHtml('modal-experience', job.experience);
+                setHtml('modal-job-type', job.job_type);
+                setTxt('modal-description', job.description || 'No description.');
+                setHtml('modal-posted-date', job.posted_date);
+                setHtml('modal-source', job.source);
+                setHtml('modal-deadline', job.deadline);
+
+                // Exp Range
+                let range = 'Not specified';
+                if (job.min_experience_years != null) range = job.max_experience_years != null ? (job.min_experience_years === job.max_experience_years ? `${job.min_experience_years} years` : `${job.min_experience_years} - ${job.max_experience_years} years`) : `${job.min_experience_years}+ years`;
+                else if (job.max_experience_years != null) range = `Up to ${job.max_experience_years} years`;
+                document.getElementById('modal-exp-range').innerHTML = range === 'Not specified' ? '<span class="text-gray-500">Not specified</span>' : range;
+
+                // Tags
+                const setTags = (items, id) => {
+                    const c = document.getElementById(id);
+                    const p = document.getElementById(id + '-container');
+                    if (items && items.trim()) {
+                        c.innerHTML = items.split(',').map(i => `<span class="px-2 py-1 text-xs font-medium rounded-full bg-white text-gray-700 border border-gray-300">${i.trim()}</span>`).join('');
+                        p.classList.remove('hidden');
+                    } else p.classList.add('hidden');
+                };
+                setTags(job.skills, 'modal-skills');
+                setTags(job.extracted_tools, 'modal-tools');
+                setTags(job.extracted_soft_skills, 'modal-soft-skills');
+
+                // Relevance
+                const badge = document.getElementById('modal-relevance');
+                const score = Math.round(job.relevance_score || 0);
+                badge.textContent = `${score}% Match`;
+                badge.className = `px-3 py-1 text-sm font-semibold rounded-full ${score >= 60 ? 'bg-green-100 text-green-700' : score >= 30 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`;
+
+                document.getElementById('modal-apply-link').href = job.link || '#';
+                setTimeout(() => els.detailsModalContent.classList.remove('scale-95', 'opacity-0'), 10);
+            };
+            window.closeDetailsModal = () => {
+                els.detailsModalContent.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => els.detailsModal.classList.add('hidden'), 300);
+            };
+
+            // Traffic Analysis
+            window.analyzeTraffic = async (jobId) => {
+                els.trafficModal.classList.remove('hidden');
+                setTimeout(() => els.trafficModalContent.classList.remove('scale-95', 'opacity-0'), 10);
+
+                const ph = document.getElementById('traffic-modal-placeholder');
+                const resDiv = document.getElementById('traffic-modal-results');
+                ph.classList.remove('hidden');
+                resDiv.classList.add('hidden');
+                document.getElementById('traffic-modal-company').textContent = 'Loading...';
 
                 try {
-                    const res = await fetch(els.statusForm.action, { method: 'POST', body: formData, headers: { 'Accept': 'application/json' } });
+                    const res = await fetch(`/analyze_traffic/${jobId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
                     const data = await res.json();
-                    if (res.ok && data.success) {
-                        showToast(data.message, 'success', btn);
-                        if (jobCard && data.job) {
-                            const badge = jobCard.querySelector('.status-badge');
-                            if (badge) {
-                                badge.className = `px-2 py-0.5 text-xs font-semibold rounded-full uppercase status-badge status-${data.job.status} border`;
-                                badge.textContent = data.job.status;
-                            }
-                        }
-                    } else showToast(data.error || 'Failed.', 'error', btn);
-                } catch (e) { showToast('Network error.', 'error', btn); }
-                closeModal(els.statusModal);
-            });
-        }
+                    ph.classList.add('hidden');
+                    resDiv.classList.remove('hidden');
 
-        async function startApplyProcess(jobId) {
-            try {
-                const res = await fetch(`/assisted_apply/${jobId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-                const data = await res.json();
-                alert(data.status === 'success' ? data.message : 'Error: ' + data.message);
-            } catch (e) { alert('Error occurred.'); }
-        }
-
-        // --- Chart.js ---
-        async function renderJobStatusChart() {
-            try {
-                const res = await fetch('/api/job_status_data');
-                if (!res.ok) throw new Error('Failed to fetch data');
-                const data = await res.json();
-                const total = Object.values(data).reduce((a, b) => a + b, 0);
-                
-                // Fallback
-                let tbl = '<table><caption>Status</caption><thead><tr><th>Status</th><th>Count</th></tr></thead><tbody>';
-                Object.entries(data).forEach(([k, v]) => tbl += `<tr><td>${k}</td><td>${v}</td></tr>`);
-                document.getElementById('chart-fallback').innerHTML = tbl + '</tbody></table>';
-
-                if (total === 0) {
-                    document.getElementById('jobStatusChart').parentElement.innerHTML = '<div class="text-center py-8"><div class="text-4xl mb-3">🤷‍♀️</div><p class="text-gray-400">No data yet!</p></div>';
-                    return;
+                    if (res.ok && data.status === 'success') {
+                        document.getElementById('traffic-modal-company').textContent = data.company_name || 'N/A';
+                        document.getElementById('traffic-visits').textContent = data.analysis.monthly_visits || '--';
+                        document.getElementById('traffic-bounce-rate').textContent = data.analysis.bounce_rate || '--';
+                        document.getElementById('traffic-pages-per-visit').textContent = data.analysis.pages_per_visit || '--';
+                        document.getElementById('traffic-message').textContent = data.message || '';
+                    } else {
+                        throw new Error(data.message);
+                    }
+                } catch (e) {
+                    ph.classList.add('hidden');
+                    resDiv.classList.remove('hidden');
+                    document.getElementById('traffic-modal-company').textContent = 'Error';
+                    document.getElementById('traffic-message').innerHTML = `<p class="text-red-400">${e.message || 'Network error.'}</p>`;
                 }
+            };
+            window.closeTrafficAnalysisModal = () => {
+                els.trafficModalContent.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => els.trafficModal.classList.add('hidden'), 300);
+            };
 
-                // Stats
-                const config = { 'new': {c:'blue',l:'New'}, 'applied': {c:'emerald',l:'Applied'}, 'interview': {c:'amber',l:'Interview'}, 'offered': {c:'purple',l:'Offered'}, 'rejected': {c:'red',l:'Rejected'}, 'archived': {c:'gray',l:'Archived'} };
-                document.getElementById('chartStats').innerHTML = Object.entries(data).map(([k, v]) => {
-                    const c = config[k] || {c:'gray',l:k};
-                    return `<div class="bg-gray-50 border border-gray-200 rounded-lg p-4"><div class="flex justify-between"><div class="flex items-center gap-2"><div class="chart-legend-dot chart-legend-${c.c}"></div><span class="text-sm font-medium text-gray-700">${c.l}</span></div><div class="text-right"><div class="text-xl font-bold text-gray-900">${v}</div><div class="text-xs text-gray-500">${(v/total*100).toFixed(1)}%</div></div></div></div>`;
-                }).join('');
+            // Close modals on backdrop click
+            [els.detailsModal, els.trafficModal].forEach(m => m.addEventListener('click', e => { if (e.target === m) closeModal(m); }));
 
-                // Chart
-                new Chart(document.getElementById('jobStatusChart').getContext('2d'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: Object.keys(data).map(k => config[k]?.l || k),
-                        datasets: [{ data: Object.values(data), backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#6B7280'], borderColor: '#0f172a', borderWidth: 3 }]
-                    },
-                    options: { responsive: true, cutout: '60%', plugins: { legend: { display: false } }, animation: { animateScale: true } }
+            // --- Status Update ---
+            if (els.statusForm) {
+                els.statusForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(els.statusForm);
+                    const jobId = formData.get('job_id');
+                    const jobCard = document.querySelector(`article[data-job-id="${jobId}"]`);
+                    const btn = jobCard ? jobCard.querySelector('button[onclick*="openStatusModal"]') : null;
+
+                    try {
+                        const res = await fetch(els.statusForm.action, { method: 'POST', body: formData, headers: { 'Accept': 'application/json' } });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            showToast(data.message, 'success', btn);
+                            if (jobCard && data.job) {
+                                const badge = jobCard.querySelector('.status-badge');
+                                if (badge) {
+                                    badge.className = `px-2 py-0.5 text-xs font-semibold rounded-full uppercase status-badge status-${data.job.status} border`;
+                                    badge.textContent = data.job.status;
+                                }
+                            }
+                        } else showToast(data.error || 'Failed.', 'error', btn);
+                    } catch (e) { showToast('Network error.', 'error', btn); }
+                    closeModal(els.statusModal);
                 });
-            } catch (e) { console.error('Chart error:', e); }
-        }
+            }
 
-        // --- Filters ---
-        window.filterByStatus = (status) => {
-            const el = document.getElementById('status_filter');
-            if (el) { el.value = status; document.getElementById('filter-form').submit(); }
-        };
-        
-        const toggleFilters = document.getElementById('toggle-filters');
-        if (toggleFilters) {
-            toggleFilters.addEventListener('click', () => {
-                const content = document.getElementById('filter-content');
-                const isHidden = content.classList.toggle('hidden');
-                toggleFilters.setAttribute('aria-expanded', !isHidden);
-                toggleFilters.querySelector('svg').style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
-            });
-        }
-        
-        const filterForm = document.getElementById('filter-form');
-        if (filterForm) {
-            filterForm.addEventListener('submit', () => {
-                const list = document.getElementById('job-listings');
-                if (list) list.innerHTML = Array(3).fill('<div class="job-item bg-white p-6 rounded-2xl shadow-sm border border-gray-200 animate-pulse"><div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div><div class="h-4 bg-gray-200 rounded w-1/2"></div></div>').join('');
-                const btn = filterForm.querySelector('button[type="submit"]');
-                if(btn) { btn.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2 inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Filtering...'; btn.disabled = true; }
-            });
-        }
+            async function startApplyProcess(jobId) {
+                try {
+                    const res = await fetch(`/assisted_apply/${jobId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                    const data = await res.json();
+                    alert(data.status === 'success' ? data.message : 'Error: ' + data.message);
+                } catch (e) { alert('Error occurred.'); }
+            }
 
-        // --- Calendar ---
-        const loadEventsBtn = document.getElementById('load-events-btn');
-        const refreshEventsBtn = document.getElementById('refresh-events-btn');
-        
-        async function loadCalendarEvents(showLoading = true) {
-            const container = document.getElementById('calendar-events-container');
-            const list = document.getElementById('events-list');
-            const loading = document.getElementById('events-loading');
-            const noEvents = document.getElementById('no-events');
-            
-            if (showLoading) { container.classList.remove('hidden'); loading.classList.remove('hidden'); noEvents.classList.add('hidden'); list.innerHTML = ''; }
-            
-            try {
-                const res = await fetch('/calendar_events');
-                const data = await res.json();
-                if (showLoading) loading.classList.add('hidden');
-                
-                if (data.error) { list.innerHTML = `<div class="text-red-400 text-center py-4">Error: ${data.error}</div>`; return; }
-                
-                if (data.events?.length) {
-                    list.innerHTML = data.events.map(e => `
+            // --- Chart.js ---
+            async function renderJobStatusChart() {
+                try {
+                    const res = await fetch('/api/job_status_data');
+                    if (!res.ok) throw new Error('Failed to fetch data');
+                    const data = await res.json();
+                    const total = Object.values(data).reduce((a, b) => a + b, 0);
+
+                    // Fallback
+                    let tbl = '<table><caption>Status</caption><thead><tr><th>Status</th><th>Count</th></tr></thead><tbody>';
+                    Object.entries(data).forEach(([k, v]) => tbl += `<tr><td>${k}</td><td>${v}</td></tr>`);
+                    document.getElementById('chart-fallback').innerHTML = tbl + '</tbody></table>';
+
+                    if (total === 0) {
+                        document.getElementById('jobStatusChart').parentElement.innerHTML = '<div class="text-center py-8"><div class="text-4xl mb-3">🤷‍♀️</div><p class="text-gray-400">No data yet!</p></div>';
+                        return;
+                    }
+
+                    // Stats
+                    const config = { 'new': { c: 'blue', l: 'New' }, 'applied': { c: 'emerald', l: 'Applied' }, 'interview': { c: 'amber', l: 'Interview' }, 'offered': { c: 'purple', l: 'Offered' }, 'rejected': { c: 'red', l: 'Rejected' }, 'archived': { c: 'gray', l: 'Archived' } };
+                    document.getElementById('chartStats').innerHTML = Object.entries(data).map(([k, v]) => {
+                        const c = config[k] || { c: 'gray', l: k };
+                        return `<div class="bg-gray-50 border border-gray-200 rounded-lg p-4"><div class="flex justify-between"><div class="flex items-center gap-2"><div class="chart-legend-dot chart-legend-${c.c}"></div><span class="text-sm font-medium text-gray-700">${c.l}</span></div><div class="text-right"><div class="text-xl font-bold text-gray-900">${v}</div><div class="text-xs text-gray-500">${(v / total * 100).toFixed(1)}%</div></div></div></div>`;
+                    }).join('');
+
+                    // Chart
+                    new Chart(document.getElementById('jobStatusChart').getContext('2d'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: Object.keys(data).map(k => config[k]?.l || k),
+                            datasets: [{ data: Object.values(data), backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#6B7280'], borderColor: '#0f172a', borderWidth: 3 }]
+                        },
+                        options: { responsive: true, cutout: '60%', plugins: { legend: { display: false } }, animation: { animateScale: true } }
+                    });
+                } catch (e) { console.error('Chart error:', e); }
+            }
+
+            // --- Filters ---
+            window.filterByStatus = (status) => {
+                const el = document.getElementById('status_filter');
+                if (el) { el.value = status; document.getElementById('filter-form').submit(); }
+            };
+
+            const toggleFilters = document.getElementById('toggle-filters');
+            if (toggleFilters) {
+                toggleFilters.addEventListener('click', () => {
+                    const content = document.getElementById('filter-content');
+                    const isHidden = content.classList.toggle('hidden');
+                    toggleFilters.setAttribute('aria-expanded', !isHidden);
+                    toggleFilters.querySelector('svg').style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+                });
+            }
+
+            const filterForm = document.getElementById('filter-form');
+            if (filterForm) {
+                filterForm.addEventListener('submit', () => {
+                    const list = document.getElementById('job-listings');
+                    if (list) list.innerHTML = Array(3).fill('<div class="job-item bg-white p-6 rounded-2xl shadow-sm border border-gray-200 animate-pulse"><div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div><div class="h-4 bg-gray-200 rounded w-1/2"></div></div>').join('');
+                    const btn = filterForm.querySelector('button[type="submit"]');
+                    if (btn) { btn.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2 inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Filtering...'; btn.disabled = true; }
+                });
+            }
+
+            // --- Calendar ---
+            const loadEventsBtn = document.getElementById('load-events-btn');
+            const refreshEventsBtn = document.getElementById('refresh-events-btn');
+
+            async function loadCalendarEvents(showLoading = true) {
+                const container = document.getElementById('calendar-events-container');
+                const list = document.getElementById('events-list');
+                const loading = document.getElementById('events-loading');
+                const noEvents = document.getElementById('no-events');
+
+                if (showLoading) { container.classList.remove('hidden'); loading.classList.remove('hidden'); noEvents.classList.add('hidden'); list.innerHTML = ''; }
+
+                try {
+                    const res = await fetch('/calendar_events');
+                    const data = await res.json();
+                    if (showLoading) loading.classList.add('hidden');
+
+                    if (data.error) { list.innerHTML = `<div class="text-red-400 text-center py-4">Error: ${data.error}</div>`; return; }
+
+                    if (data.events?.length) {
+                        list.innerHTML = data.events.map(e => `
                         <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 shadow-sm" data-event-id="${e.id}">
                             <div class="flex justify-between items-start"><div class="flex-1"><h4 class="font-medium text-gray-900 text-sm">${e.summary}</h4><p class="text-xs text-gray-500 mt-1">📅 ${e.start}</p></div>
                             <div class="flex gap-1 ml-2"><a href="${e.htmlLink}" target="_blank" class="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 bg-blue-100 rounded">View</a><button onclick="deleteCalendarEvent('${e.id}')" class="text-red-600 hover:text-red-800 text-xs px-2 py-1 bg-red-100 rounded">Delete</button></div></div>
                         </div>`).join('');
-                } else noEvents.classList.remove('hidden');
-            } catch (e) { if (showLoading) loading.classList.add('hidden'); list.innerHTML = `<div class="text-red-400 text-center py-4">Failed: ${e.message}</div>`; }
-        }
+                    } else noEvents.classList.remove('hidden');
+                } catch (e) { if (showLoading) loading.classList.add('hidden'); list.innerHTML = `<div class="text-red-400 text-center py-4">Failed: ${e.message}</div>`; }
+            }
 
-        if (loadEventsBtn) loadEventsBtn.addEventListener('click', () => loadCalendarEvents(true));
-        if (refreshEventsBtn) refreshEventsBtn.addEventListener('click', () => {
-            refreshEventsBtn.innerHTML = 'Syncing...'; refreshEventsBtn.disabled = true;
-            loadCalendarEvents(false).then(() => { refreshEventsBtn.innerHTML = 'Refresh'; refreshEventsBtn.disabled = false; });
+            if (loadEventsBtn) loadEventsBtn.addEventListener('click', () => loadCalendarEvents(true));
+            if (refreshEventsBtn) refreshEventsBtn.addEventListener('click', () => {
+                refreshEventsBtn.innerHTML = 'Syncing...'; refreshEventsBtn.disabled = true;
+                loadCalendarEvents(false).then(() => { refreshEventsBtn.innerHTML = 'Refresh'; refreshEventsBtn.disabled = false; });
+            });
+
+            window.deleteCalendarEvent = async (id) => {
+                if (!confirm('Delete event?')) return;
+                const el = document.querySelector(`[data-event-id="${id}"]`);
+                try {
+                    const res = await fetch(`/delete_calendar_event/${id}`, { method: 'DELETE' });
+                    const data = await res.json();
+                    if (data.success && el) {
+                        el.style.transition = 'opacity 0.3s, transform 0.3s';
+                        el.style.opacity = '0'; el.style.transform = 'translateX(-20px)';
+                        setTimeout(() => el.remove(), 310);
+                    } else alert('Failed: ' + (data.error || 'Unknown'));
+                } catch (e) { alert('Failed: ' + e.message); }
+            };
+
+            // --- Init ---
+            const loader = document.getElementById('page-loader');
+            const content = document.getElementById('dashboard-content');
+
+            renderJobStatusChart(); // Async
+
+            requestAnimationFrame(() => {
+                if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }
+                if (content) { content.classList.remove('opacity-0'); content.classList.add('content-fade-in'); }
+            });
         });
-
-        window.deleteCalendarEvent = async (id) => {
-            if (!confirm('Delete event?')) return;
-            const el = document.querySelector(`[data-event-id="${id}"]`);
-            try {
-                const res = await fetch(`/delete_calendar_event/${id}`, { method: 'DELETE' });
-                const data = await res.json();
-                if (data.success && el) {
-                    el.style.transition = 'opacity 0.3s, transform 0.3s';
-                    el.style.opacity = '0'; el.style.transform = 'translateX(-20px)';
-                    setTimeout(() => el.remove(), 310);
-                } else alert('Failed: ' + (data.error || 'Unknown'));
-            } catch (e) { alert('Failed: ' + e.message); }
-        };
-
-        // --- Init ---
-        const loader = document.getElementById('page-loader');
-        const content = document.getElementById('dashboard-content');
-        
-        renderJobStatusChart(); // Async
-        
-        requestAnimationFrame(() => {
-            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }
-            if (content) { content.classList.remove('opacity-0'); content.classList.add('content-fade-in'); }
-        });
-    });
-</script>
+    </script>
 </div>
 </div>
 {% endblock %}
