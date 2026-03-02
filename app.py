@@ -158,6 +158,7 @@ def make_celery(app):
 
 # Initialize Flask app (top-level, so it's imported by all processes)
 app = Flask(__name__)
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 # Database Configuration for Learning Paths (SQLite for now, switch to Postgres later)
@@ -1160,6 +1161,82 @@ class JobDatabase:
         finally:
             conn.close()
 
+    def get_top_picks_for_user(self, user_id: int, limit: int = 6) -> List[Dict]:
+        """
+        Returns top job picks for a user based on their parsed resume skills.
+        Matches user skills against job skills, keywords, and description.
+        Falls back to highest relevance_score if no resume skills exist.
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        try:
+            # Get user's parsed resume skills
+            cursor.execute("SELECT resume_parsed_data FROM user_details WHERE user_id = ?", (user_id,))
+            row = cursor.fetchone()
+            user_skills = []
+            
+            if row and row['resume_parsed_data']:
+                try:
+                    parsed = json.loads(row['resume_parsed_data'])
+                    user_skills = [s.lower().strip() for s in parsed.get('skills', []) if s.strip()]
+                except (json.JSONDecodeError, AttributeError):
+                    pass
+            
+            # Get all jobs for the user
+            cursor.execute("""
+                SELECT * FROM jobs WHERE user_id = ?
+                ORDER BY found_date DESC
+            """, (user_id,))
+            all_jobs = [dict(r) for r in cursor.fetchall()]
+            
+            if not all_jobs:
+                return []
+            
+            if user_skills:
+                # Score each job by how many user skills appear in its skills/keywords/description
+                for job in all_jobs:
+                    job_text = ' '.join([
+                        (job.get('skills') or '').lower(),
+                        (job.get('keywords') or '').lower(),
+                        (job.get('description') or '').lower(),
+                        (job.get('title') or '').lower(),
+                        (job.get('extracted_tools') or '').lower()
+                    ])
+                    match_count = sum(1 for skill in user_skills if skill in job_text)
+                    job['_match_score'] = match_count
+                
+                # Sort by match score descending, then by relevance_score as tiebreaker
+                all_jobs.sort(key=lambda j: (j.get('_match_score', 0), j.get('relevance_score', 0)), reverse=True)
+                
+                # Only return jobs with at least 1 skill match
+                matched_jobs = [j for j in all_jobs if j.get('_match_score', 0) > 0]
+                
+                if matched_jobs:
+                    for j in matched_jobs:
+                        # Add matched skills list for display
+                        job_text = ' '.join([
+                            (j.get('skills') or '').lower(),
+                            (j.get('keywords') or '').lower(),
+                            (j.get('description') or '').lower(),
+                            (j.get('title') or '').lower(),
+                            (j.get('extracted_tools') or '').lower()
+                        ])
+                        j['matched_skills'] = [s for s in user_skills if s in job_text][:5]
+                        j.pop('_match_score', None)
+                    return matched_jobs[:limit]
+            
+            # Fallback: return top jobs by relevance_score
+            all_jobs.sort(key=lambda j: j.get('relevance_score', 0), reverse=True)
+            return all_jobs[:limit]
+            
+        except Exception as e:
+            logger.error(f"Error getting top picks for user {user_id}: {e}", exc_info=True)
+            return []
+        finally:
+            conn.close()
+
     def update_custom_score(self, user_id: int, keyword: str, keyword_type: str, change_multiplier: float) -> None:
         """Adjusts the custom relevance score multiplier for a specific keyword for a user."""
         conn = sqlite3.connect(self.db_path)
@@ -1721,16 +1798,31 @@ class EnhancedJobScraper:
     """Advanced job scraper with multiple sources and strategies."""
     
     def __init__(self, search_terms: List[str], location: Optional[str],
-                 experience: Optional[str], job_type: Optional[str], user_id: int, task=None):
+                 experience: Optional[str], job_type: Optional[str], user_id: int, task=None, scan_mode: str = 'fast'):
         self.search_terms = search_terms
         self.location = location
         self.experience = experience
         self.job_type = job_type
         self.user_id = user_id
         self.task = task
+        self.scan_mode = scan_mode
         self.db = JobDatabase()
         self.custom_scores = self.db.get_custom_scores(self.user_id)
         self.session = None  # Avoid shared Session across threads
+        
+        # Scan mode configuration
+        if self.scan_mode == 'deep':
+            self.linkedin_max_pages = 5
+            self.internshala_max_pages = 8
+            self.request_delay = (2, 5)       # seconds range
+            self.max_results = 75
+            logger.info(f"[ScanMode] Deep scan enabled: more pages, thorough scraping")
+        else:
+            self.linkedin_max_pages = 1
+            self.internshala_max_pages = 1
+            self.request_delay = (0.5, 1.5)   # seconds range
+            self.max_results = 25
+            logger.info(f"[ScanMode] Fast scan enabled: quick results")
         
         # Placeholder for common skills/tools/soft skills (can be expanded)
         self.common_skills = ['python', 'java', 'javascript', 'react', 'angular', 'vue', 'nodejs', 'express', 'django', 'flask', 'sql', 'nosql', 'mongodb', 'postgresql', 'mysql', 'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'git', 'github', 'gitlab', 'jenkins', 'ci/cd', 'agile', 'scrum', 'rest api', 'graphql', 'html', 'css', 'redux', 'typescript', 'webpack', 'babel', 'selenium', 'jira', 'confluence', 'tableau', 'power bi', 'excel', 'gcp', 'azure', 'terraform', 'ansible', 'puppet', 'chef', 'splunk', 'elk stack', 'grafana', 'prometheus']
@@ -1940,7 +2032,7 @@ class EnhancedJobScraper:
         logger.info(f"[LinkedIn] Scraping for term '{term}' in {self.location or 'All Locations'}...")
         jobs = []
         seen_links = set()
-        max_pages = 3  # Limit pages to avoid throttling
+        max_pages = self.linkedin_max_pages
         base_url = "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
         proxies = None  # Add proxy support if needed
 
@@ -1955,7 +2047,7 @@ class EnhancedJobScraper:
             headers = {'User-Agent': random.choice(USER_AGENTS)}
             try:
                 logger.info(f"[LinkedIn] Sending request to LinkedIn for job list (page {page + 1})...")
-                time.sleep(random.uniform(2, 5))  # Random delay to avoid detection
+                time.sleep(random.uniform(*self.request_delay))  # Dynamic delay based on scan mode
                 response = requests.get(base_url, params=params, headers=headers, timeout=15, proxies=proxies)
 
                 if response.status_code != 200:
@@ -2071,7 +2163,7 @@ class EnhancedJobScraper:
         logger.info(f"[Internshala] Starting enhanced scrape for term '{term}' in {self.location or 'All Locations'}...")
         jobs = []
         seen_links = set()
-        max_pages = 5  # Increased to get more results
+        max_pages = self.internshala_max_pages
         
         # Enhanced URL generation with better slug handling
         term_slug = self._create_url_slug(term)
@@ -2123,7 +2215,7 @@ class EnhancedJobScraper:
                     session.headers['Referer'] = referer
                     
                     # Randomized delay to avoid detection
-                    time.sleep(random.uniform(2.5, 5.0))
+                    time.sleep(random.uniform(*self.request_delay))
                     
                     response = session.get(url, timeout=20)
                     referer = url
@@ -2613,7 +2705,7 @@ class EnhancedJobScraper:
         for source, count in source_counts.items():
             logger.info(f"Final jobs from {source}: {count}.")
             
-        return high_relevance_jobs[:50]
+        return high_relevance_jobs[:self.max_results]
 
 class ApplicationFiller:
     """Automated job application filler for various ATS platforms"""
@@ -4111,15 +4203,16 @@ class SmartEmailer:
 
 class JobHunter:
     """Main class to run the job alert system."""
-    def __init__(self, user_id: int, search_terms: List[str], location: str, experience: str = "", job_type: str = "", task=None):
+    def __init__(self, user_id: int, search_terms: List[str], location: str, experience: str = "", job_type: str = "", task=None, scan_mode: str = 'fast'):
         self.user_id = user_id
         self.search_terms = search_terms
         self.location = location
         self.experience = experience
         self.job_type = job_type
         self.task = task
+        self.scan_mode = scan_mode
         self.db = JobDatabase() # This is fine, DB can be initialized here.
-        self.scraper = EnhancedJobScraper(search_terms=self.search_terms, location=self.location, experience=self.experience, job_type=self.job_type, user_id=self.user_id, task=self.task)
+        self.scraper = EnhancedJobScraper(search_terms=self.search_terms, location=self.location, experience=self.experience, job_type=self.job_type, user_id=self.user_id, task=self.task, scan_mode=self.scan_mode)
         self.emailer = SmartEmailer()
         
     def run(self):
@@ -4183,12 +4276,12 @@ class JobHunter:
 
 # --- Celery Tasks ---
 @celery.task(bind=True, name='app.run_job_hunt_task')
-def run_job_hunt_task(self, user_id: int, search_terms: List[str], location: str, experience: str, job_type: str):
+def run_job_hunt_task(self, user_id: int, search_terms: List[str], location: str, experience: str, job_type: str, scan_mode: str = 'fast'):
     """Celery task to run the job hunt for a specific user and search profile."""
-    logger.info(f"Celery task {self.request.id} started for user {user_id} with terms {search_terms} at {location}.")
+    logger.info(f"Celery task {self.request.id} started for user {user_id} with terms {search_terms} at {location} (scan_mode={scan_mode}).")
     try:
-        logger.info(f"Creating JobHunter instance for user {user_id}.")
-        hunter = JobHunter(user_id=user_id, search_terms=search_terms, location=location, experience=experience, job_type=job_type, task=self) # Correctly passing self
+        logger.info(f"Creating JobHunter instance for user {user_id} with scan_mode={scan_mode}.")
+        hunter = JobHunter(user_id=user_id, search_terms=search_terms, location=location, experience=experience, job_type=job_type, task=self, scan_mode=scan_mode)
         logger.info(f"Running JobHunter.run() for user {user_id}.")
         hunter.run()
         logger.info(f"Celery task {self.request.id} completed successfully for user {user_id}.")
@@ -5317,6 +5410,10 @@ def dashboard():
     # Add status colors to jobs
     jobs = [add_status_colors(job) for job in jobs]
     
+    # Get top job picks based on resume skills
+    top_picks = db.get_top_picks_for_user(current_user.id, limit=6)
+    top_picks = [add_status_colors(job) for job in top_picks]
+    
     saved_profiles = db.get_search_profiles(current_user.id)
     user_settings = db.get_user_settings(current_user.id)
     
@@ -5332,6 +5429,7 @@ def dashboard():
 
     return render_template('dashboard.html', 
                            jobs=jobs, 
+                           top_picks=top_picks,
                            saved_profiles=saved_profiles,
                            user_settings=user_settings,
                            current_page=page,
@@ -5990,16 +6088,23 @@ def start_scrape():
         location = request.form.get('location', '')
         experience = request.form.get('experience', '')
         job_type = request.form.get('job_type', '')
+        scan_mode = request.form.get('scan_mode', 'fast')
+        
+        # Validate scan_mode
+        if scan_mode not in ('fast', 'deep'):
+            scan_mode = 'fast'
         
         if not search_terms:
             return jsonify({'error': 'Search terms are required'}), 400
+        
+        logger.info(f"Starting scrape for user {current_user.id} with scan_mode={scan_mode}")
         
         # Convert search terms to list
         search_terms_list = [term.strip() for term in search_terms.split(',') if term.strip()]
         
         # Start the Celery task
         task = run_job_hunt_task.delay(
-            current_user.id, search_terms_list, location, experience, job_type
+            current_user.id, search_terms_list, location, experience, job_type, scan_mode
         )
         
         return jsonify({

@@ -118,6 +118,29 @@
                                 <option value="Internship">Internship</option>
                             </select>
                         </div>
+                        <!-- Scan Mode Toggle -->
+                        <div x-data="{ mode: 'fast' }">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Scan Mode</label>
+                            <input type="hidden" name="scan_mode" :value="mode" id="scan_mode">
+                            <div class="grid grid-cols-2 gap-3">
+                                <button type="button" @click="mode = 'fast'" :class="mode === 'fast'
+                                        ? 'bg-blue-50 border-blue-400 ring-2 ring-blue-200 text-blue-700'
+                                        : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'"
+                                    class="relative flex flex-col items-center p-3 rounded-lg border-2 transition-all duration-200 cursor-pointer">
+                                    <span class="text-lg mb-0.5">⚡</span>
+                                    <span class="text-sm font-semibold">Fast Scan</span>
+                                    <span class="text-[10px] mt-0.5 opacity-75">~60 seconds</span>
+                                </button>
+                                <button type="button" @click="mode = 'deep'" :class="mode === 'deep'
+                                        ? 'bg-purple-50 border-purple-400 ring-2 ring-purple-200 text-purple-700'
+                                        : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'"
+                                    class="relative flex flex-col items-center p-3 rounded-lg border-2 transition-all duration-200 cursor-pointer">
+                                    <span class="text-lg mb-0.5">🔍</span>
+                                    <span class="text-sm font-semibold">Deep Scan</span>
+                                    <span class="text-[10px] mt-0.5 opacity-75">~2-3 minutes</span>
+                                </button>
+                            </div>
+                        </div>
                         <div class="flex gap-4">
                             <button type="submit" id="scrape-btn"
                                 class="w-full btn-temporal inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md shadow-sm"
@@ -840,33 +863,190 @@
                 </div>
             </div>
 
+            <!-- Top Job Picks for You — 3D Fan Carousel -->
+            {% if top_picks %}
+            <script type="application/json" id="picks-json-data">{{ top_picks | tojson }}</script>
+            <script id="picks-data">
+                var __topPicksRaw = [];
+                try {
+                    __topPicksRaw = JSON.parse(document.getElementById('picks-json-data').textContent);
+                } catch (e) { }
+                window.__topPicks__ = __topPicksRaw;
+            </script>
+            <style>
+                .fan-stage {
+                    perspective: 1000px;
+                    perspective-origin: center center;
+                }
+
+                .fan-card {
+                    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s ease, z-index 0s;
+                    transform-style: preserve-3d;
+                    cursor: pointer;
+                    will-change: transform;
+                    user-select: none;
+                }
+
+                .fan-card:hover {
+                    filter: brightness(1.03);
+                }
+
+                .fan-dot {
+                    transition: all 0.3s ease;
+                }
+            </style>
+            <div class="mb-10" x-data="fanCarousel(window.__topPicks__)">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <span style="font-size:28px;line-height:1">⭐</span>
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-900">Top Job Picks for You</h2>
+                            <p class="text-xs text-gray-500">Based on your resume skills</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3D Fan Stage -->
+                <div class="fan-stage relative w-full overflow-hidden" style="height: 320px;">
+                    <template x-for="(pick, i) in picks" :key="i">
+                        <div class="fan-card absolute" :style="getCardStyle(i)" @click="setActive(i)">
+                            <!-- Card face -->
+                            <div class="bg-white rounded-2xl border flex flex-col overflow-hidden"
+                                :class="i === activeIndex ? 'border-indigo-300 shadow-2xl' : 'border-gray-200 shadow-md'"
+                                style="width: 240px; height: 280px;">
+                                <!-- Gradient header -->
+                                <div class="p-5 flex-1 flex flex-col"
+                                    :style="i === activeIndex ? 'background: linear-gradient(135deg, #f0f4ff 0%, #fafaff 100%)' : ''">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                                            :style="'background-color:' + pick.status_color + '; color:' + pick.status_text_color"
+                                            x-text="pick.status_text"></span>
+                                        <span x-show="pick.relevance_score > 0"
+                                            class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full"
+                                            x-text="Math.round(pick.relevance_score) + '%'"></span>
+                                    </div>
+                                    <h3 class="text-base font-bold text-gray-900 mb-1 leading-snug"
+                                        style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.8em"
+                                        x-text="pick.title"></h3>
+                                    <p class="text-sm text-gray-500 truncate mb-3" x-text="pick.company"></p>
+                                    <div class="flex flex-wrap gap-1 mt-auto">
+                                        <template x-for="skill in pick.matched_skills.slice(0,4)" :key="skill">
+                                            <span
+                                                class="inline-block px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full border border-indigo-100"
+                                                x-text="skill"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                                <!-- View Details — only on active -->
+                                <div class="px-4 pb-4 pt-1" x-show="i === activeIndex" x-transition>
+                                    <a :href="'/job/' + pick.id"
+                                        class="w-full btn-temporal inline-flex items-center justify-center px-4 py-2.5 text-sm font-semibold rounded-xl shadow-sm transition-all duration-200"
+                                        @click.stop>
+                                        View Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Dot indicators -->
+                <div class="flex justify-center gap-1.5 mt-8 mb-4">
+                    <template x-for="(pick, i) in picks" :key="i">
+                        <button @click="setActive(i)" class="fan-dot rounded-full transition-all duration-300"
+                            :class="i === activeIndex ? 'w-6 h-2 bg-indigo-500' : 'w-2 h-2 bg-gray-300 hover:bg-gray-400'">
+                        </button>
+                    </template>
+                </div>
+
+                <!-- Navigation Controls Below -->
+                <div class="flex justify-center items-center gap-4">
+                    <button @click="prev()" :disabled="activeIndex === 0"
+                        :class="activeIndex > 0 ? 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300 shadow-sm' : 'bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed'"
+                        class="w-10 h-10 flex items-center justify-center rounded-full border transition-all duration-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
+                            </path>
+                        </svg>
+                    </button>
+                    <button @click="next()" :disabled="activeIndex === picks.length - 1"
+                        :class="activeIndex < picks.length - 1 ? 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300 shadow-sm' : 'bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed'"
+                        class="w-10 h-10 flex items-center justify-center rounded-full border transition-all duration-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <script>
+                function fanCarousel(picks) {
+                    return {
+                        picks,
+                        activeIndex: Math.floor(picks.length / 2),
+                        prev() { if (this.activeIndex > 0) this.activeIndex--; },
+                        next() { if (this.activeIndex < this.picks.length - 1) this.activeIndex++; },
+                        setActive(i) { this.activeIndex = i; },
+                        getCardStyle(i) {
+                            const diff = i - this.activeIndex;
+                            const abs = Math.abs(diff);
+                            const stageW = 800;
+                            const cardW = 240;
+                            const centerX = stageW / 2 - cardW / 2;
+
+                            // Position offsets from center
+                            const offsetMap = { 0: 0, 1: 200, 2: 320, 3: 400, 4: 460 };
+                            const xOff = (offsetMap[abs] || abs * 120) * Math.sign(diff);
+
+                            // Rotation: side cards tilt inward toward center
+                            const rotateMap = { 0: 0, 1: 30, 2: 45, 3: 55, 4: 62 };
+                            const rotY = -(rotateMap[abs] || 60) * Math.sign(diff);
+
+                            // Scale: center=1, falloff
+                            const scaleMap = { 0: 1, 1: 0.78, 2: 0.65, 3: 0.55, 4: 0.48 };
+                            const scale = scaleMap[abs] || 0.44;
+
+                            // Opacity
+                            const opacityMap = { 0: 1, 1: 0.85, 2: 0.65, 3: 0.45, 4: 0.3 };
+                            const opacity = opacityMap[abs] || 0.25;
+
+                            // z-index
+                            const zIndex = 50 - abs * 10;
+
+                            return `
+                            left: calc(50% - ${cardW / 2}px + ${xOff}px);
+                            top: ${abs === 0 ? 20 : 40}px;
+                            transform: rotateY(${rotY}deg) scale(${scale});
+                            opacity: ${opacity};
+                            z-index: ${zIndex};
+                            transform-origin: center center;
+                        `;
+                        }
+                    }
+                }
+            </script>
+            {% endif %}
+
             <div id="job-listings" class="space-y-6">
                 {% if jobs %}
                 {% for job in jobs %}
                 <article
                     class="job-item relative bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300"
                     data-job-id="{{ job.id }}">
-                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                        <div class="flex-1">
-                            <h3 class="text-lg font-semibold text-gray-900">
-                                <a href="{{ job.link }}" target="_blank"
-                                    class="hover:text-blue-600 transition-colors">{{ job.title }}</a>
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-xl font-bold text-gray-900 truncate" title="{{ job.title }}">
+                                {{ job.title }}
                             </h3>
                             <p class="text-sm text-gray-600 mt-1">{{ job.company }}</p>
                         </div>
-                        <div class="flex flex-wrap items-center gap-2">
-                            <a href="{{ job.link }}" target="_blank"
-                                class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">
-                                Apply Now
-                            </a>
-                            <button type="button"
-                                onclick="openStatusModal({{ job.id }}, '{{ job.status }}', '{{ job.notes | default('') }}')"
-                                class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-all duration-200">
-                                Update Status
-                            </button>
-                            <button type="button" onclick="window.location.href='/job/{{ job.id }}'"
-                                class="inline-flex items-center px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50 text-sm text-gray-700">
-                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        <div class="shrink-0">
+                            <a href="{{ url_for('job_details', job_id=job.id) }}"
+                                class="btn-temporal inline-flex items-center px-5 py-2.5 text-sm font-semibold rounded-lg shadow-sm transition-all duration-200 hover:shadow-md">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                     aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -875,40 +1055,7 @@
                                     </path>
                                 </svg>
                                 View Details
-                            </button>
-                            <button type="button" onclick="analyzeTraffic({{ job.id }})"
-                                class="inline-flex items-center px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50 text-sm text-gray-700 btn-analysis">
-                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                    aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
-                                    </path>
-                                </svg>
-                                Analyze
-                            </button>
-                            <button type="button" onclick="openApplyModal({{ job.id }}, '{{ job.link }}')"
-                                class="inline-flex items-center px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50 text-sm text-gray-700 btn-assisted-apply">
-                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                    aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.562L16.25 21.75l-.648-1.188a2.25 2.25 0 01-1.476-1.476L12.938 18l1.188-.648a2.25 2.25 0 011.476-1.476L16.25 15l.648 1.188a2.25 2.25 0 011.476 1.476L19.562 18l-1.188.648a2.25 2.25 0 01-1.476 1.476z">
-                                    </path>
-                                </svg>
-                                Apply
-                            </button>
-                            <form action="{{ url_for('delete_job', job_id=job.id) }}" method="POST"
-                                onsubmit="return confirm('Are you sure you want to delete this job?');" class="inline">
-                                <button type="submit"
-                                    class="inline-flex items-center px-3 py-2 rounded-md border border-gray-200 hover:bg-red-50 text-gray-700 transition-colors"
-                                    aria-label="Delete job: {{ job.title }}">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                        aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
-                                        </path>
-                                    </svg>
-                                </button>
-                            </form>
+                            </a>
                         </div>
                     </div>
                 </article>
