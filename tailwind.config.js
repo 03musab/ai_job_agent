@@ -44,6 +44,13 @@ module.exports = {
                     purple: '#a855f7',
                     pink: '#ec4899',
                     green: '#10b981'
+                },
+                premium: {
+                    bg: '#1A1A1A',
+                    text: '#F0F0F0',
+                    teal: '#004D61',
+                    ruby: '#822659',
+                    forest: '#3E5641'
                 }
             },
             fontFamily: {

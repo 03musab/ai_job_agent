@@ -6,68 +6,77 @@
         scroll-behavior: smooth;
     }
 
-    /* Light theme overrides for dashboard */
-    .bg-gray-800\/60 {
+    /* Light theme overrides for dashboard - only apply when NOT in dark theme */
+    :root:not(.dark-theme) .bg-gray-800\/60 {
         background-color: rgba(248, 249, 250, 0.95) !important;
         border-color: rgba(229, 231, 235, 0.6) !important;
     }
 
-    .bg-gray-800\/50 {
+    :root:not(.dark-theme) .bg-gray-800\/50 {
         background-color: rgba(248, 249, 250, 0.95) !important;
         border-color: rgba(229, 231, 235, 0.6) !important;
     }
 
-    .bg-gray-800\/40 {
+    :root:not(.dark-theme) .bg-gray-800\/40 {
         background-color: rgba(248, 249, 250, 0.95) !important;
         border-color: rgba(229, 231, 235, 0.6) !important;
     }
 
-    .bg-gray-900\/90 {
+    :root:not(.dark-theme) .bg-gray-900\/90 {
         background-color: rgba(255, 255, 255, 0.95) !important;
         border-color: rgba(229, 231, 235, 0.6) !important;
     }
 
-    .bg-gray-900\/60 {
+    :root:not(.dark-theme) .bg-gray-900\/60 {
         background-color: rgba(255, 255, 255, 0.95) !important;
         border-color: rgba(229, 231, 235, 0.6) !important;
     }
 
-    .bg-gray-900\/30 {
+    :root:not(.dark-theme) .bg-gray-900\/30 {
         background-color: rgba(248, 249, 250, 0.9) !important;
         border-color: rgba(229, 231, 235, 0.4) !important;
     }
 
-    .bg-gray-900\/50 {
+    :root:not(.dark-theme) .bg-gray-900\/50 {
         background-color: rgba(248, 249, 250, 0.95) !important;
         border-color: rgba(229, 231, 235, 0.6) !important;
     }
 
-    .text-gray-300 {
+    :root:not(.dark-theme) .text-gray-300 {
         color: #374151 !important;
     }
 
-    .text-gray-400 {
+    :root:not(.dark-theme) .text-gray-400 {
         color: #6b7280 !important;
     }
 
-    .text-gray-600 {
+    :root:not(.dark-theme) .text-gray-600 {
         color: #4b5563 !important;
     }
 
-    .border-gray-700\/50 {
+    :root:not(.dark-theme) .border-gray-700\/50 {
         border-color: rgba(229, 231, 235, 0.6) !important;
     }
 
-    .border-gray-600 {
+    :root:not(.dark-theme) .border-gray-600 {
         border-color: #cbd5e1 !important;
     }
 
-    .border-gray-700 {
+    :root:not(.dark-theme) .border-gray-700 {
         border-color: #e5e7eb !important;
     }
 
-    .bg-gray-100 {
+    :root:not(.dark-theme) .bg-gray-100 {
         background-color: #f9fafb !important;
+    }
+
+    /* Dark theme specific adjustments for Dashboard */
+    .dark-theme #page-loader {
+        background-color: #1A1A1A !important;
+    }
+
+    .dark-theme #page-loader p {
+        color: #F0F0F0 !important;
     }
 </style>
 <!-- Full Page Loader -->
@@ -223,124 +232,140 @@
                 </div>
             </div>
 
-            <!-- User Settings Section -->
-            <div class="relative">
-                <div class="absolute inset-0 bg-gray-50 rounded-lg"></div>
-                <div class="relative p-6">
-                    <h2 class="text-2xl font-bold mb-4 text-gray-900">Email Settings</h2>
-                    <form action="{{ url_for('update_settings') }}" method="POST" class="space-y-4">
+            <!-- User Settings Section (Collapsible) -->
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open"
+                    class="w-full flex items-center justify-between p-4 rounded-lg text-left transition-all duration-200"
+                    :class="darkMode ? 'bg-[var(--card-bg)] hover:bg-[var(--elevated-bg)]' : 'bg-gray-50 hover:bg-gray-100'">
+                    <div class="flex items-center gap-3">
+                        <span class="text-base">✉️</span>
+                        <span class="font-semibold text-sm"
+                            :class="darkMode ? 'text-premium-text' : 'text-gray-900'">Email Settings</span>
+                    </div>
+                    <svg class="w-4 h-4 transition-transform duration-200"
+                        :class="[open ? 'rotate-180' : '', darkMode ? 'text-premium-text/60' : 'text-gray-400']"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div x-show="open" x-transition x-cloak class="px-4 pb-4 pt-2 space-y-3">
+                    <form action="{{ url_for('update_settings') }}" method="POST" class="space-y-3">
                         <div>
-                            <label for="email_recipients" class="block text-sm font-medium text-gray-700">Recipients
+                            <label for="email_recipients" class="block text-xs font-medium"
+                                :class="darkMode ? 'text-premium-text/70' : 'text-gray-600'">Recipients
                                 (comma-separated)</label>
                             <input type="text" name="email_recipients" id="email_recipients"
-                                class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-500"
+                                class="mt-1 block w-full rounded-lg text-sm bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-400 px-3 py-2"
                                 value="{{ user_settings.email_recipients if user_settings else '' }}">
                         </div>
                         <div class="flex items-center">
                             <input id="send_excel_attachment" name="send_excel_attachment" type="checkbox"
                                 class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded bg-white"
                                 {% if user_settings and user_settings.send_excel_attachment %}checked{% endif %}>
-                            <label for="send_excel_attachment" class="ml-2 block text-sm text-gray-700">Send Excel
+                            <label for="send_excel_attachment" class="ml-2 block text-sm"
+                                :class="darkMode ? 'text-premium-text/80' : 'text-gray-700'">Send Excel
                                 attachment</label>
                         </div>
                         <button type="submit"
-                            class="w-full btn-temporal inline-flex justify-center py-2 px-4 text-sm font-medium rounded-md shadow-sm"
-                            style="will-change: transform, box-shadow;">
+                            class="w-full btn-temporal inline-flex justify-center py-2 px-4 text-sm font-medium rounded-lg shadow-sm">
                             Save Settings
                         </button>
                     </form>
                 </div>
             </div>
 
-            <!-- Calendar Integration Section -->
-            <div class="relative">
-                <div class="absolute inset-0 bg-blue-50 rounded-lg"></div>
-                <div class="relative p-6">
-                    <h2 class="text-2xl font-bold mb-4 text-gray-900">Calendar Integration</h2>
-                    <div class="space-y-4">
-                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <h3 class="text-sm font-semibold text-blue-900 mb-2">Auto-Sync Features:</h3>
-                            <ul class="text-xs text-blue-800 space-y-1">
-                                <li>• Interview events when status changes</li>
-                                <li>• Application deadline reminders</li>
-                                <li>• Follow-up task scheduling</li>
-                                <li>• Smart conflict prevention</li>
-                            </ul>
-                        </div>
-
-                        <div class="flex flex-col gap-2">
-                            <form action="{{ url_for('test_calendar') }}" method="POST" class="inline">
-                                <button type="submit"
-                                    class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
-                                    Test G-Calendar Connection
-                                </button>
-                            </form>
-
-                            <form action="{{ url_for('reauth_google') }}" method="POST" class="inline">
-                                <button type="submit"
-                                    class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
-                                    Sign in with google account
-                                </button>
-                            </form>
-
-                            <form action="{{ url_for('sync_calendar') }}" method="POST" class="inline"
-                                onsubmit="return confirm('This will create calendar events for all your jobs. Continue?');">
-                                <button type="submit"
-                                    class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200">
-                                    Sync All Status Jobs to Calendar
-                                </button>
-                            </form>
-                        </div>
-
-                        <div class="text-xs text-gray-700 bg-gray-100 border border-gray-200 rounded p-2">
-                            <p><strong>Note:</strong> Requires Google Calendar API access. Make sure your
-                                <code class="text-indigo-600">credentials.json</code> file includes calendar
-                                permissions.
-                            </p>
-                        </div>
+            <!-- Calendar Integration Section (Collapsible) -->
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open"
+                    class="w-full flex items-center justify-between p-4 rounded-lg text-left transition-all duration-200"
+                    :class="darkMode ? 'bg-[var(--card-bg)] hover:bg-[var(--elevated-bg)]' : 'bg-blue-50 hover:bg-blue-100'">
+                    <div class="flex items-center gap-3">
+                        <span class="text-base">📅</span>
+                        <span class="font-semibold text-sm"
+                            :class="darkMode ? 'text-premium-text' : 'text-gray-900'">Calendar Integration</span>
                     </div>
+                    <svg class="w-4 h-4 transition-transform duration-200"
+                        :class="[open ? 'rotate-180' : '', darkMode ? 'text-premium-text/60' : 'text-gray-400']"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div x-show="open" x-transition x-cloak class="px-4 pb-4 pt-2 space-y-3">
+                    <div class="border rounded-lg p-3 transition-colors text-xs"
+                        :class="darkMode ? 'bg-[var(--elevated-bg)] border-premium-teal/40 text-premium-text/80' : 'bg-blue-50 border-blue-200 text-blue-800'">
+                        <strong class="block mb-1">Auto-Sync Features:</strong>
+                        <ul class="space-y-0.5">
+                            <li>• Interview events on status change</li>
+                            <li>• Application deadline reminders</li>
+                            <li>• Follow-up task scheduling</li>
+                            <li>• Smart conflict prevention</li>
+                        </ul>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <form action="{{ url_for('test_calendar') }}" method="POST">
+                            <button type="submit"
+                                class="w-full py-2 px-3 text-xs font-medium rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors">Test
+                                G-Calendar Connection</button>
+                        </form>
+                        <form action="{{ url_for('reauth_google') }}" method="POST">
+                            <button type="submit"
+                                class="w-full py-2 px-3 text-xs font-medium rounded-lg text-white bg-red-500 hover:bg-red-600 transition-colors">Sign
+                                in with Google Account</button>
+                        </form>
+                        <form action="{{ url_for('sync_calendar') }}" method="POST"
+                            onsubmit="return confirm('Sync all jobs to calendar?');">
+                            <button type="submit"
+                                class="w-full py-2 px-3 text-xs font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors">Sync
+                                All Jobs to Calendar</button>
+                        </form>
+                    </div>
+                    <p class="text-xs" :class="darkMode ? 'text-premium-text/60' : 'text-gray-500'">
+                        Requires Google Calendar API + <code>credentials.json</code>
+                    </p>
                 </div>
             </div>
 
-            <!-- Calendar Events Management -->
-            <div class="relative">
-                <div class="absolute inset-0 bg-gray-50 rounded-lg"></div>
-                <div class="relative p-6">
-                    <h2 class="text-2xl font-bold mb-4 text-gray-900">My Calendar Events</h2>
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
-                            <button id="load-events-btn"
-                                class="inline-flex justify-center py-2 px-3 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
-                                Load Events
-                            </button>
-                            <button id="refresh-events-btn"
-                                class="inline-flex justify-center py-2 px-3 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200">
-                                Refresh (events)
-                            </button>
-                            <a href="https://calendar.google.com" target="_blank"
-                                class="inline-flex justify-center py-2 px-3 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
-                                Open Calendar
-                            </a>
-                        </div>
-
-                        <div class="text-xs text-gray-700 bg-blue-50 border border-blue-200 rounded p-2">
-                            <p><strong>Auto-Sync:</strong> Events automatically refresh every 30 seconds to stay in sync
-                                with Google Calendar</p>
-                        </div>
-
-                        <div id="calendar-events-container" class="hidden">
-                            <div
-                                class="bg-white border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto shadow-sm">
-                                <div id="events-list" class="space-y-2">
-                                    <!-- Events will be loaded here -->
-                                </div>
-                                <div id="no-events" class="text-center text-gray-700 py-4 hidden">
-                                    No job-related calendar events found.
-                                </div>
-                                <div id="events-loading" class="text-center text-gray-700 py-4">
-                                    Loading calendar events...
-                                </div>
-                            </div>
+            <!-- Calendar Events Management (Collapsible) -->
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open"
+                    class="w-full flex items-center justify-between p-4 rounded-lg text-left transition-all duration-200"
+                    :class="darkMode ? 'bg-[var(--card-bg)] hover:bg-[var(--elevated-bg)]' : 'bg-gray-50 hover:bg-gray-100'">
+                    <div class="flex items-center gap-3">
+                        <span class="text-base">🗓️</span>
+                        <span class="font-semibold text-sm" :class="darkMode ? 'text-premium-text' : 'text-gray-900'">My
+                            Calendar Events</span>
+                    </div>
+                    <svg class="w-4 h-4 transition-transform duration-200"
+                        :class="[open ? 'rotate-180' : '', darkMode ? 'text-premium-text/60' : 'text-gray-400']"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div x-show="open" x-transition x-cloak class="px-4 pb-4 pt-2 space-y-3">
+                    <div class="grid grid-cols-3 gap-2">
+                        <button id="load-events-btn"
+                            class="py-2 px-2 text-xs font-medium rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors">
+                            Load Events
+                        </button>
+                        <button id="refresh-events-btn"
+                            class="py-2 px-2 text-xs font-medium rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors">
+                            Refresh
+                        </button>
+                        <a href="https://calendar.google.com" target="_blank"
+                            class="inline-flex justify-center py-2 px-2 text-xs font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+                            Open
+                        </a>
+                    </div>
+                    <p class="text-xs" :class="darkMode ? 'text-premium-text/60' : 'text-gray-500'">
+                        Auto-syncs every 30s with Google Calendar
+                    </p>
+                    <div id="calendar-events-container" class="hidden">
+                        <div class="bg-white border border-gray-200 rounded-lg p-3 max-h-64 overflow-y-auto shadow-sm">
+                            <div id="events-list" class="space-y-2"></div>
+                            <div id="no-events" class="text-center text-gray-600 text-sm py-3 hidden">No job-related
+                                calendar events found.</div>
+                            <div id="events-loading" class="text-center text-gray-600 text-sm py-3">Loading calendar
+                                events...</div>
                         </div>
                     </div>
                 </div>
@@ -393,21 +418,21 @@
 
                         <!-- Quick Actions -->
                         <div
-                            class="px-6 py-4 bg-gray-50 border-t border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 items-end">
+                            class="px-6 py-4 bg-gray-50 border-t border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 items-center">
                             <button type="button"
-                                class="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium text-sm"
+                                class="flex items-center justify-center px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium text-sm"
                                 onclick="filterByStatus('new')">
-                                <span class="inline-block mr-2">📥</span>View New Jobs
+                                <span class="mr-2 text-base"></span><span>New Jobs</span>
                             </button>
                             <button type="button"
-                                class="px-4 py-2 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium text-sm"
+                                class="flex items-center justify-center px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium text-sm"
                                 onclick="filterByStatus('interview')">
-                                <span class="inline-block mr-2">🎤</span>Interview Pipeline
+                                <span class="mr-2 text-base"></span><span>Interview Pipeline</span>
                             </button>
                             <button type="button"
-                                class="px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors font-medium text-sm"
+                                class="flex items-center justify-center px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors font-medium text-sm"
                                 onclick="filterByStatus('offered')">
-                                <span class="inline-block mr-2">🎉</span>Job Offers
+                                <span class="mr-2 text-base"></span><span>Job Offers</span>
                             </button>
                         </div>
                     </div>
@@ -526,15 +551,17 @@
                                     </path>
                                 </svg>
 
-                                <p class="text-xl font-medium leading-relaxed font-serif italic text-gray-800 text-center px-4"
-                                    x-text="currentQuote.text" x-transition:enter="transition ease-out duration-300"
+                                <p class="text-xl font-medium leading-relaxed font-serif italic text-center px-4"
+                                    :class="darkMode ? 'text-premium-text' : 'text-gray-800'" x-text="currentQuote.text"
+                                    x-transition:enter="transition ease-out duration-300"
                                     x-transition:enter-start="opacity-0 transform scale-95"
                                     x-transition:enter-end="opacity-100 transform scale-100">
                                 </p>
 
-                                <div class="mt-4 text-right">
+                                <div class="mt-6 flex justify-end">
                                     <span
-                                        class="inline-block bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider"
+                                        class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase border transition-colors"
+                                        :class="darkMode ? 'bg-premium-black text-premium-text border-premium-teal/30' : 'bg-gray-900 text-white border-transparent'"
                                         x-text="'- ' + currentQuote.author"></span>
                                 </div>
                             </div>
@@ -645,7 +672,8 @@
                             class="divide-y divide-gray-100 overflow-y-auto max-h-[350px] custom-scrollbar"
                             style="display: none;">
                             <template x-for="item in news" :key="item.url">
-                                <li class="group hover:bg-gray-50 transition-colors duration-200">
+                                <li class="group transition-colors duration-200"
+                                    :class="darkMode ? 'hover:bg-premium-teal/5' : 'hover:bg-gray-50'">
                                     <a :href="item.url" target="_blank" class="block p-4">
                                         <div class="flex justify-between items-start gap-4">
                                             <div class="flex-1 min-w-0">
@@ -653,9 +681,11 @@
                                                     x-text="item.title"></h4>
                                                 <div class="flex items-center gap-2 mt-2">
                                                     <span
-                                                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800"
+                                                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold transition-colors border"
+                                                        :class="darkMode ? 'bg-premium-teal/20 text-premium-teal border-premium-teal/30' : 'bg-gray-100 text-gray-800 border-transparent'"
                                                         x-text="item.source"></span>
-                                                    <span class="text-xs text-gray-400"
+                                                    <span class="text-xs transition-colors"
+                                                        :class="darkMode ? 'text-premium-text/60' : 'text-gray-400'"
                                                         x-text="formatDate(item.publishedAt)"></span>
                                                 </div>
                                             </div>
@@ -912,12 +942,13 @@
                     <template x-for="(pick, i) in picks" :key="i">
                         <div class="fan-card absolute" :style="getCardStyle(i)" @click="setActive(i)">
                             <!-- Card face -->
-                            <div class="bg-white rounded-2xl border flex flex-col overflow-hidden"
-                                :class="i === activeIndex ? 'border-indigo-300 shadow-2xl' : 'border-gray-200 shadow-md'"
-                                style="width: 240px; height: 280px;">
+                            <div class="border flex flex-col overflow-hidden transition-all duration-300" :class="[
+                                    i === activeIndex ? (darkMode ? 'border-premium-ruby shadow-premium-ruby/30' : 'border-indigo-300 shadow-2xl') : (darkMode ? 'border-premium-teal/40 shadow-md' : 'border-gray-200 shadow-md'),
+                                    darkMode ? 'bg-[var(--card-bg)]' : 'bg-white'
+                                ]" style="width: 240px; height: 280px;">
                                 <!-- Gradient header -->
                                 <div class="p-5 flex-1 flex flex-col"
-                                    :style="i === activeIndex ? 'background: linear-gradient(135deg, #f0f4ff 0%, #fafaff 100%)' : ''">
+                                    :style="i === activeIndex ? (darkMode ? 'background: linear-gradient(135deg, rgba(130, 38, 89, 0.1) 0%, rgba(0, 77, 97, 0.1) 100%)' : 'background: linear-gradient(135deg, #f0f4ff 0%, #fafaff 100%)') : ''">
                                     <div class="flex items-center justify-between mb-3">
                                         <span
                                             class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
@@ -927,14 +958,18 @@
                                             class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full"
                                             x-text="Math.round(pick.relevance_score) + '%'"></span>
                                     </div>
-                                    <h3 class="text-base font-bold text-gray-900 mb-1 leading-snug"
+                                    <h3 class="text-base font-bold mb-1 leading-snug"
+                                        :class="darkMode ? 'text-premium-text' : 'text-gray-900'"
                                         style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.8em"
                                         x-text="pick.title"></h3>
-                                    <p class="text-sm text-gray-500 truncate mb-3" x-text="pick.company"></p>
+                                    <p class="text-sm truncate mb-3"
+                                        :class="darkMode ? 'text-premium-text/70' : 'text-gray-500'"
+                                        x-text="pick.company"></p>
                                     <div class="flex flex-wrap gap-1 mt-auto">
                                         <template x-for="skill in pick.matched_skills.slice(0,4)" :key="skill">
                                             <span
-                                                class="inline-block px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full border border-indigo-100"
+                                                class="inline-block px-2 py-0.5 text-xs font-medium rounded-full border"
+                                                :class="darkMode ? 'bg-premium-ruby/20 text-premium-text border-premium-ruby/30' : 'bg-indigo-50 text-indigo-700 border-indigo-100'"
                                                 x-text="skill"></span>
                                         </template>
                                     </div>
@@ -956,7 +991,7 @@
                 <div class="flex justify-center gap-1.5 mt-8 mb-4">
                     <template x-for="(pick, i) in picks" :key="i">
                         <button @click="setActive(i)" class="fan-dot rounded-full transition-all duration-300"
-                            :class="i === activeIndex ? 'w-6 h-2 bg-indigo-500' : 'w-2 h-2 bg-gray-300 hover:bg-gray-400'">
+                            :class="i === activeIndex ? 'w-6 h-2 bg-premium-ruby' : (darkMode ? 'w-2 h-2 bg-premium-teal hover:bg-premium-ruby' : 'w-2 h-2 bg-gray-300 hover:bg-gray-400')">
                         </button>
                     </template>
                 </div>
@@ -1061,8 +1096,33 @@
                 </article>
                 {% endfor %}
                 {% else %}
-                <div class="bg-white p-6 rounded-2xl text-center text-gray-500 border border-gray-200 shadow-sm">
-                    <p>No jobs found. Try a new search!</p>
+                <div class="flex flex-col items-center justify-center py-16 px-6 rounded-2xl border border-dashed transition-colors"
+                    :class="darkMode ? 'border-premium-teal/30 bg-[var(--elevated-bg)]' : 'border-gray-200 bg-gray-50'">
+                    <!-- Illustration -->
+                    <div class="w-20 h-20 rounded-full flex items-center justify-center mb-5 shadow-inner"
+                        :class="darkMode ? 'bg-premium-teal/10' : 'bg-blue-50'">
+                        <svg class="w-10 h-10" :class="darkMode ? 'text-premium-teal/60' : 'text-blue-300'" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-1" :class="darkMode ? 'text-premium-text' : 'text-gray-800'">No jobs
+                        found yet</h3>
+                    <p class="text-sm text-center max-w-sm mb-6"
+                        :class="darkMode ? 'text-premium-text/60' : 'text-gray-500'">
+                        Start a new job search from the left panel to populate your personal job board.
+                    </p>
+                    <a href="#search-form" onclick="document.getElementById('search_terms').focus(); return false;"
+                        class="inline-flex items-center px-5 py-2.5 text-sm font-semibold rounded-xl shadow-sm transition-all duration-200 active:scale-95"
+                        :class="darkMode ? 'bg-premium-teal/20 text-premium-teal border border-premium-teal/30 hover:bg-premium-teal/30' : 'bg-blue-600 text-white hover:bg-blue-700'">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        Start a Job Search
+                    </a>
                 </div>
                 {% endif %}
             </div>
@@ -1795,14 +1855,29 @@
                         return `<div class="bg-gray-50 border border-gray-200 rounded-lg p-4"><div class="flex justify-between"><div class="flex items-center gap-2"><div class="chart-legend-dot chart-legend-${c.c}"></div><span class="text-sm font-medium text-gray-700">${c.l}</span></div><div class="text-right"><div class="text-xl font-bold text-gray-900">${v}</div><div class="text-xs text-gray-500">${(v / total * 100).toFixed(1)}%</div></div></div></div>`;
                     }).join('');
 
+                    const isDark = document.body.classList.contains('dark-theme');
+                    const chartColor = isDark ? '#F0F0F0' : '#0f172a';
+
                     // Chart
                     new Chart(document.getElementById('jobStatusChart').getContext('2d'), {
                         type: 'doughnut',
                         data: {
                             labels: Object.keys(data).map(k => config[k]?.l || k),
-                            datasets: [{ data: Object.values(data), backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#6B7280'], borderColor: '#0f172a', borderWidth: 3 }]
+                            datasets: [{
+                                data: Object.values(data),
+                                backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#6B7280'],
+                                borderColor: isDark ? '#1A1A1A' : '#ffffff',
+                                borderWidth: 3
+                            }]
                         },
-                        options: { responsive: true, cutout: '60%', plugins: { legend: { display: false } }, animation: { animateScale: true } }
+                        options: {
+                            responsive: true,
+                            cutout: '60%',
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            animation: { animateScale: true }
+                        }
                     });
                 } catch (e) { console.error('Chart error:', e); }
             }
@@ -1887,6 +1962,9 @@
             const content = document.getElementById('dashboard-content');
 
             renderJobStatusChart(); // Async
+
+            // Store current URL with query params to persist filters when coming back from job details
+            sessionStorage.setItem('last_dashboard_url', window.location.href);
 
             requestAnimationFrame(() => {
                 if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }

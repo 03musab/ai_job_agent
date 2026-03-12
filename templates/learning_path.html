@@ -621,21 +621,7 @@
             unlockInterval: null,
 
             init() {
-                const storedRole = localStorage.getItem('lp_targetRole');
-                const storedCompany = localStorage.getItem('lp_targetCompany');
-                const storedAnalysis = localStorage.getItem('lp_analysis');
-
-                if (storedRole) this.targetRole = storedRole;
-                if (storedCompany) this.targetCompany = storedCompany;
-                if (storedAnalysis) {
-                    try {
-                        this.analysis = JSON.parse(storedAnalysis);
-                        this.checkUnlockCountdown();
-                    } catch (e) {
-                        console.error('Failed to parse stored analysis', e);
-                        localStorage.removeItem('lp_analysis');
-                    }
-                }
+                // Removed localStorage persistence as per user request for fresh start on page load
             },
 
             startNewPath() {
@@ -649,9 +635,6 @@
                 this.progress = 0;
                 if (this.unlockInterval) clearInterval(this.unlockInterval);
                 this.roadmapUnlockCountdown = 0;
-                localStorage.removeItem('lp_targetRole');
-                localStorage.removeItem('lp_targetCompany');
-                localStorage.removeItem('lp_analysis');
                 localStorage.removeItem('lp_unlockTime');
             },
 
@@ -685,9 +668,6 @@
 
                     this.analysis = data;
                     this.roadmap = null; // Reset roadmap on new analysis
-                    localStorage.setItem('lp_targetRole', this.targetRole);
-                    localStorage.setItem('lp_targetCompany', this.targetCompany);
-                    localStorage.setItem('lp_analysis', JSON.stringify(this.analysis));
                     this.startUnlockCountdown();
                     // Scroll to results
                     this.$nextTick(() => {
@@ -704,44 +684,22 @@
             },
 
             startUnlockCountdown() {
-                const unlockTime = Date.now() + 60000;
-                localStorage.setItem('lp_unlockTime', unlockTime);
                 this.roadmapUnlockCountdown = 60;
                 this.startCountdownInterval();
             },
 
             checkUnlockCountdown() {
-                const unlockTime = localStorage.getItem('lp_unlockTime');
-                if (unlockTime) {
-                    const now = Date.now();
-                    const remaining = Math.ceil((parseInt(unlockTime) - now) / 1000);
-                    if (remaining > 0) {
-                        this.roadmapUnlockCountdown = remaining;
-                        this.startCountdownInterval();
-                    } else {
-                        this.roadmapUnlockCountdown = 0;
-                        localStorage.removeItem('lp_unlockTime');
-                    }
-                }
+                // Persistence removed, countdown resets on refresh
+                this.roadmapUnlockCountdown = 0;
             },
 
             startCountdownInterval() {
                 if (this.unlockInterval) clearInterval(this.unlockInterval);
                 this.unlockInterval = setInterval(() => {
-                    const unlockTime = parseInt(localStorage.getItem('lp_unlockTime') || 0);
-                    if (!unlockTime) {
-                        clearInterval(this.unlockInterval);
-                        return;
-                    }
-                    const now = Date.now();
-                    const remaining = Math.ceil((unlockTime - now) / 1000);
-
-                    if (remaining <= 0) {
+                    this.roadmapUnlockCountdown--;
+                    if (this.roadmapUnlockCountdown <= 0) {
                         clearInterval(this.unlockInterval);
                         this.roadmapUnlockCountdown = 0;
-                        localStorage.removeItem('lp_unlockTime');
-                    } else {
-                        this.roadmapUnlockCountdown = remaining;
                     }
                 }, 1000);
             },

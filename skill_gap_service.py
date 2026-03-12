@@ -76,7 +76,7 @@ class SkillGapService:
 
         # 3. Call OpenAI
         try:
-            return safe_ai_request(system_prompt, user_prompt, model="llama-3.3-70b")
+            return safe_ai_request(system_prompt, user_prompt, model="gpt-oss-120b")
 
         except Exception as e:
             logger.error(f"Skill gap analysis failed: {e}")

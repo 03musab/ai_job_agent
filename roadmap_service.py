@@ -70,7 +70,7 @@ class RoadmapService:
         """
 
         try:
-            return safe_ai_request(system_prompt, user_prompt, model="llama-3.3-70b")
+            return safe_ai_request(system_prompt, user_prompt, model="gpt-oss-120b")
 
         except Exception as e:
             logger.error(f"Roadmap generation failed: {e}")
@@ -137,7 +137,7 @@ class RoadmapService:
         """
 
         try:
-            return safe_ai_request(system_prompt, user_prompt, model="llama-3.3-70b")
+            return safe_ai_request(system_prompt, user_prompt, model="gpt-oss-120b")
         except Exception as e:
             logger.error(f"Combined generation failed: {e}")
             return {"error": str(e)}

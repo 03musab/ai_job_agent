@@ -149,42 +149,86 @@ class LegalContactResearcher:
                 elif response.status_code in [301, 302, 307, 308]:
                     # Follow redirect
                     final_url = response.headers.get('Location', url)
+                    if final_url.startswith('/'):
+                         parsed = urlparse(url)
+                         final_url = f"{parsed.scheme}://{parsed.netloc}{final_url}"
                     logger.info(f"Successfully resolved {company_name} -> {final_url} (redirected)")
                     return final_url
             except Exception as e:
                 logger.debug(f"URL {url} failed: {e}")
                 continue
         
+        # Final fallback: Search engine
+        try:
+             search_url = f"https://duckduckgo.com/html/?q={company_name}+official+website"
+             resp = self.session.get(search_url, timeout=10)
+             if resp.status_code == 200:
+                 soup = BeautifulSoup(resp.content, 'html.parser')
+                 # DuckDuckGo HTML simple results
+                 result = soup.find('a', class_='result__url')
+                 if result:
+                     found_url = "https://" + result.get_text().strip().split('/')[0]
+                     logger.info(f"Resolved {company_name} via search: {found_url}")
+                     return found_url
+        except Exception as e:
+             logger.warning(f"Fallback search failed for {company_name}: {e}")
+
         logger.warning(f"Could not resolve URL for company: {company_name}")
         return None
 
     def search_public_directories(self, keywords: str) -> List[Dict]:
-        """Search publicly available business directories"""
+        """Search for company career pages and hiring signals using public search engines"""
         contacts = []
         
-        # Public directories that allow research
-        directories = [
-            {
-                'name': 'Crunchbase',
-                'search_url': 'https://www.crunchbase.com/discover/organization.companies',
-                'params': {'q': keywords}
-            },
-            # Add more legitimate directories here
-        ]
-        
-        for directory in directories:
-            try:
-                if not self.respect_rate_limit(urlparse(directory['search_url']).netloc):
-                    continue
+        try:
+            # We'll use DuckDuckGo's HTML interface as a compliant public search
+            search_query = f"{keywords} hiring careers contacts"
+            search_url = f"https://duckduckgo.com/html/?q={search_query.replace(' ', '+')}"
+            
+            domain = urlparse(search_url).netloc
+            if not self.respect_rate_limit(domain):
+                return contacts
+                
+            logger.info(f"Performing public search for keywords: {keywords}")
+            response = self.session.get(search_url, timeout=15)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            results = soup.find_all('div', class_='result')
+            
+            found_companies = set()
+            
+            for result in results[:10]: # Process top 10 results
+                link_tag = result.find('a', class_='result__a')
+                snippet_tag = result.find('a', class_='result__snippet')
+                
+                if link_tag:
+                    url = link_tag['href']
+                    title = link_tag.get_text().strip()
+                    snippet = snippet_tag.get_text().strip() if snippet_tag else ""
                     
-                if not self.check_robots_txt(directory['search_url']):
-                    continue
-                
-                logger.info(f"Searching {directory['name']} for: {keywords}")
-                # Implement specific directory parsing logic here
-                
-            except Exception as e:
-                logger.error(f"Error searching {directory['name']}: {e}")
+                    # Basic logic to extract company from title or URL
+                    parsed_url = urlparse(url)
+                    company = parsed_url.netloc.replace('www.', '').split('.')[0].capitalize()
+                    
+                    if company not in found_companies:
+                        found_companies.add(company)
+                        logger.info(f"Found potential hiring signal: {company} at {url}")
+                        
+                        # Try to scrape the career page directly
+                        contact_info = self.scrape_company_careers_page(url)
+                        if contact_info:
+                             contacts.append({
+                                 'company': company,
+                                 'contact_info': contact_info,
+                                 'source_type': 'Public Search Result',
+                                 'source_url': url
+                             })
+                             
+            return contacts
+            
+        except Exception as e:
+            logger.error(f"Error during public keyword search: {e}")
                 
         return contacts
 

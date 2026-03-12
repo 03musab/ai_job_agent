@@ -38,7 +38,7 @@ import schedule
 from bs4 import BeautifulSoup
 from celery import Celery
 from celery.schedules import crontab
-from flask import Flask, flash, jsonify, redirect, render_template, request, url_for, Response, stream_with_context
+from flask import Flask, flash, jsonify, redirect, render_template, request, url_for, Response, stream_with_context, session
 from flask_login import (LoginManager, UserMixin, current_user, login_required,
                          login_user, logout_user)
 from google.auth.transport.requests import Request
@@ -108,13 +108,13 @@ RELEVANCE_WEIGHTS = {
     'term_in_title': 30,
     'term_in_desc': 10,
     'skill': 5,
-    'tool': 4,
-    'soft_skill': 3,
-    'title_word': 2,
+    'tool': 3,
+    'soft_skill': 2,
+    'title_word': 1,
     'exp_match': 20,
     'exp_partial': 10,
-    'location': 15,
-    'job_type': 10,
+    'location': 10,
+    'job_type': 5,
 }
 RECENCY_MULTIPLIERS = {'week': 1.2, 'month': 1.05}
 RELEVANCE_MIN_THRESHOLD = float(os.environ.get('RELEVANCE_MIN_THRESHOLD', '10'))
@@ -811,7 +811,7 @@ class JobDatabase:
 
         conn.commit()
         conn.close()
-        logger.info("Database schema check/update complete.")
+        logger.debug("Database schema check/update complete.")
         if os.environ.get('RUN_JOB_HASH_MIGRATION', '0') == '1':
             logger.info("RUN_JOB_HASH_MIGRATION=1 detected; starting job_hash migration...")
             self.migrate_job_hashes_normalized()
@@ -1475,7 +1475,7 @@ class OutreachDatabase:
 
         conn.commit()
         conn.close()
-        logger.info("Outreach database schema check/update complete.")
+        logger.debug("Outreach database schema check/update complete.")
 
     def get_outreach_stats(self, user_id: int) -> Dict[str, Any]:
         """Retrieves key statistics for the outreach dashboard."""
@@ -1952,55 +1952,72 @@ class EnhancedJobScraper:
 
     def _calculate_relevance_score(self, job: Job) -> float:
         """
-        Calculates a relevance score for a job based on search terms,
+        Calculates a relevance score for a job (0-100) based on search terms,
         extracted keywords, experience level, and user-defined custom scores.
         """
         score = 0.0
         job_title_lower = job.title.lower()
         job_description_lower = job.description.lower()
 
+        # 1. Search Terms (Max: 40 points)
+        search_score = 0.0
         for term in self.search_terms:
-            if term.lower() in job_title_lower:
-                score += RELEVANCE_WEIGHTS['term_in_title'] * self._get_multiplier(term.lower(), ['keyword', 'keywords'])
-            elif term.lower() in job_description_lower:
-                score += RELEVANCE_WEIGHTS['term_in_desc'] * self._get_multiplier(term.lower(), ['keyword', 'keywords'])
+            term_low = term.lower()
+            if term_low in job_title_lower:
+                search_score += RELEVANCE_WEIGHTS['term_in_title'] * self._get_multiplier(term_low, ['keyword', 'keywords'])
+            elif term_low in job_description_lower:
+                search_score += RELEVANCE_WEIGHTS['term_in_desc'] * self._get_multiplier(term_low, ['keyword', 'keywords'])
+        score += min(search_score, 40.0)
 
+        # 2. Skills & Tools (Max: 25 points)
+        skill_tool_score = 0.0
         for skill in job.skills:
-            score += RELEVANCE_WEIGHTS['skill'] * self._get_multiplier(skill.lower(), ['skill', 'skills'])
+            skill_tool_score += RELEVANCE_WEIGHTS['skill'] * self._get_multiplier(skill.lower(), ['skill', 'skills'])
         for tool in job.extracted_tools:
-            score += RELEVANCE_WEIGHTS['tool'] * self._get_multiplier(tool.lower(), ['tool', 'tools', 'tools_platforms'])
+            skill_tool_score += RELEVANCE_WEIGHTS['tool'] * self._get_multiplier(tool.lower(), ['tool', 'tools', 'tools_platforms'])
         for soft_skill in job.extracted_soft_skills:
-            score += RELEVANCE_WEIGHTS['soft_skill'] * self._get_multiplier(soft_skill.lower(), ['soft_skill', 'soft_skills'])
-
+            skill_tool_score += RELEVANCE_WEIGHTS['soft_skill'] * self._get_multiplier(soft_skill.lower(), ['soft_skill', 'soft_skills'])
+        
+        # Minor bonus for specific title words (Max: 5 points within the 25 cap or separate?)
+        # Let's keep title_word minor and inside the skill/tool umbrella for simplicity
         for word in re.findall(r'\b\w+\b', job_title_lower):
-            score += RELEVANCE_WEIGHTS['title_word'] * self._get_multiplier(word, ['title_word', 'title'])
+            skill_tool_score += RELEVANCE_WEIGHTS['title_word'] * self._get_multiplier(word, ['title_word', 'title'])
+        
+        score += min(skill_tool_score, 25.0)
 
+        # 3. Experience (Max: 20 points)
+        exp_score = 0.0
         if self.experience:
             user_min_exp, user_max_exp = self._extract_experience_years(self.experience)
             if user_min_exp is not None:
                 if job.min_experience_years is not None and job.max_experience_years is not None:
                     if max(user_min_exp, job.min_experience_years) <= min(user_max_exp if user_max_exp is not None else float('inf'), job.max_experience_years if job.max_experience_years is not None else float('inf')):
-                        score += RELEVANCE_WEIGHTS['exp_match']
+                        exp_score += RELEVANCE_WEIGHTS['exp_match']
                 elif job.min_experience_years is not None and job.max_experience_years is None:
                     if user_min_exp >= job.min_experience_years:
-                        score += RELEVANCE_WEIGHTS['exp_match']
+                        exp_score += RELEVANCE_WEIGHTS['exp_match']
                 elif job.min_experience_years is None and user_max_exp is None:
-                    score += RELEVANCE_WEIGHTS['exp_match'] * 0.5 # Partial match for open-ended
+                    exp_score += RELEVANCE_WEIGHTS['exp_match'] * 0.5 
                 elif job.min_experience_years is None:
                     exp_match_keywords = self._extract_keywords_from_description(job.experience, re.findall(r'\b\w+\b', self.experience.lower()))
                     if exp_match_keywords:
-                        score += RELEVANCE_WEIGHTS['exp_partial']
+                        exp_score += RELEVANCE_WEIGHTS['exp_partial']
+        score += min(exp_score, 20.0)
 
+        # 4. Location & Job Type (Max: 15 points)
+        logistics_score = 0.0
         if self.location and self.location.lower() in job.location.lower():
-            score += RELEVANCE_WEIGHTS['location']
-
+            logistics_score += RELEVANCE_WEIGHTS['location']
         if self.job_type and self.job_type.lower() in job.job_type.lower():
-            score += RELEVANCE_WEIGHTS['job_type']
+            logistics_score += RELEVANCE_WEIGHTS['job_type']
+        score += min(logistics_score, 15.0)
 
+        # 5. Recency Multiplier (Up to 20% boost)
         try:
             if 'ago' in job.posted_date.lower():
-                num, unit = job.posted_date.lower().replace('posted', '').replace('ago', '').strip().split(' ')[:2]
-                num = int(num)
+                parts = job.posted_date.lower().replace('posted', '').replace('ago', '').strip().split(' ')
+                num = int(parts[0])
+                unit = parts[1]
                 if 'hour' in unit:
                     posted_date = datetime.datetime.now() - datetime.timedelta(hours=num)
                 elif 'day' in unit:
@@ -2013,7 +2030,7 @@ class EnhancedJobScraper:
                     posted_date = datetime.datetime.min
             else:
                 posted_date = datetime.datetime.strptime(job.posted_date, '%Y-%m-%d')
-        except (ValueError, AttributeError):
+        except (ValueError, AttributeError, IndexError):
             posted_date = datetime.datetime.min
 
         days_ago = (datetime.datetime.now() - posted_date).days
@@ -2022,7 +2039,8 @@ class EnhancedJobScraper:
         elif days_ago <= 30:
             score *= RECENCY_MULTIPLIERS['month']
 
-        return round(score, 2)
+        # Final cap and rounding
+        return round(min(score, 100.0), 1)
 
 
     def scrape_linkedin_jobs(self, term: str) -> List[Job]:
@@ -4464,7 +4482,8 @@ def register():
             return redirect(url_for('login'))
         else:
             flash('Username already exists. Please choose a different one.', 'danger')
-    return render_template('register.html', now=datetime.datetime.now())
+            return redirect(url_for('login') + '#register')
+    return redirect(url_for('login') + '#register')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -4763,8 +4782,20 @@ def delete_all_personal_contacts():
 @app.route('/admin/upload_contacts', methods=['GET', 'POST'])
 @login_required
 def admin_upload_contacts():
-    # In a real app, you would add a check here to ensure only admin users can access this.
-    # For now, any logged-in user can access it for demonstration.
+    # Admin password protection
+    admin_pass = os.environ.get('ADMIN_UPLOAD_PASS', 'admin123')
+    
+    if not session.get('admin_authenticated'):
+        if request.method == 'POST' and request.form.get('admin_password'):
+            if request.form.get('admin_password') == admin_pass:
+                session['admin_authenticated'] = True
+                flash('Admin authenticated successfully.', 'success')
+                return redirect(url_for('admin_upload_contacts'))
+            else:
+                flash('Invalid admin password.', 'danger')
+        
+        return render_template('admin_upload.html', needs_auth=True)
+
     if request.method == 'POST':
         if 'contacts_csv' not in request.files:
             flash('No file part in the request.', 'danger')
@@ -4773,24 +4804,27 @@ def admin_upload_contacts():
         if file.filename == '':
             flash('No file selected for uploading.', 'warning')
             return redirect(request.url)
-        if file and file.filename.endswith('.csv'):
+        if file and (file.filename.endswith('.csv') or file.filename.endswith('.xlsx')):
             try:
-                # --- New Robust Approach using standard `csv` library ---
                 # Save the file to the repository for persistence and scraper access
                 filename = secure_filename(file.filename)
                 timestamp = int(time.time())
                 save_path = os.path.join(CSV_UPLOAD_FOLDER, f"admin_{timestamp}_{filename}")
                 file.save(save_path)
-                logger.info(f"Saved admin upload CSV to {save_path}")
+                logger.info(f"Saved admin upload to {save_path}")
 
-                # Read from the saved file
-                with open(save_path, 'r', encoding='utf-8-sig') as f:
-                    csv_text = f.read()
+                if file.filename.endswith('.csv'):
+                    with open(save_path, 'r', encoding='utf-8-sig') as f:
+                        csv_text = f.read()
+                    reader = csv.DictReader(csv_text.splitlines())
+                    data_rows = list(reader)
+                else:
+                    # Support Excel
+                    import pandas as pd
+                    df = pd.read_excel(save_path)
+                    data_rows = df.to_dict('records')
 
-                reader = csv.DictReader(csv_text.splitlines())
-                
                 # --- Smarter Header Mapping ---
-                # This map allows for flexible CSV column names.
                 header_map = {
                     'full_name': ['full_name', 'name', 'contact name', 'contact', 'full name', 'customer name'],
                     'title': ['title', 'job title', 'position', 'role', 'job_title', 'job position'],
@@ -4801,52 +4835,44 @@ def admin_upload_contacts():
                 }
 
                 contacts_to_add = []
-                for row in reader:
+                for row in data_rows:
                     processed_row = {}
-                    # Normalize the keys from the uploaded file once
                     normalized_input_row = {}
                     for key, value in row.items():
                         if key:
-                            normalized_input_row[key.lower().strip().replace(' ', '_')] = value
+                            normalized_input_row[str(key).lower().strip().replace(' ', '_')] = value
 
-                    # Map the flexible headers to our standard database columns
                     for db_key, possible_headers in header_map.items():
                         for header in possible_headers:
                             if header in normalized_input_row:
                                 processed_row[db_key] = normalized_input_row[header]
-                                break # Move to the next db_key once found
+                                break
                     
-                    # Generate LinkedIn URL if missing but Email exists (to prevent duplicates)
                     if not processed_row.get('linkedin_url') and processed_row.get('email'):
-                        email_hash = hashlib.md5(processed_row['email'].lower().encode()).hexdigest()
+                        email_hash = hashlib.md5(str(processed_row['email']).lower().encode()).hexdigest()
                         processed_row['linkedin_url'] = f"csv-upload-{email_hash}"
 
-                    # Only add if we have at least a name or email
                     if processed_row.get('full_name') or processed_row.get('email'):
-                        # Add metadata
-                        processed_row['source'] = 'Uploaded CSV'
+                        processed_row['source'] = 'Admin Upload'
                         processed_row['added_date'] = datetime.datetime.now().isoformat()
                         contacts_to_add.append(processed_row)
 
-                # --- Diagnostic Check ---
-                if contacts_to_add:
-                    first_contact_preview = contacts_to_add[0]
-                    flash(f"Diagnostic: First contact read from CSV -> Name: {first_contact_preview.get('full_name')}, Company: {first_contact_preview.get('company')}", 'info')
-
                 outreach_db = OutreachDatabase()
                 count = outreach_db.add_global_contacts(contacts_to_add)
-                flash(f'Successfully processed {count} contacts from the CSV. Duplicates were ignored.', 'success')
+                flash(f'Successfully processed {count} contacts. Duplicates were ignored.', 'success')
             except Exception as e:
-                logger.error(f"Error processing uploaded CSV: {e}", exc_info=True)
-                flash(f'An error occurred while processing the file: {e}', 'danger')
+                logger.error(f"Error processing admin upload: {e}", exc_info=True)
+                flash(f'An error occurred: {e}', 'danger')
             return redirect(url_for('admin_upload_contacts'))
 
-    return render_template('admin_upload.html')
+    return render_template('admin_upload.html', needs_auth=False)
 
 @app.route('/admin/clear_global_contacts', methods=['POST'])
 @login_required
 def clear_global_contacts():
-    # Add admin check here in a real application
+    if not session.get('admin_authenticated'):
+        flash('Admin authentication required.', 'danger')
+        return redirect(url_for('admin_upload_contacts'))
     try:
         outreach_db = OutreachDatabase()
         count = outreach_db.clear_global_contacts()
@@ -5028,7 +5054,7 @@ HR_SEARCH_TERMS_MAP = {
 
 def search_csv_repository_for_contacts(user_id: int, keywords: List[str]) -> int:
     """
-    Iterates through all CSV files in the repository and adds matching contacts.
+    Iterates through all CSV and Excel files in the repository and adds matching contacts.
     """
     added_count = 0
     outreach_db = OutreachDatabase()
@@ -5046,130 +5072,106 @@ def search_csv_repository_for_contacts(user_id: int, keywords: List[str]) -> int
         'linkedin_url': ['linkedin_url', 'linkedin', 'linkedin profile', 'profile url', 'linkedin_profile', 'social profile']
     }
 
-    logger.info(f"Searching CSV repository for keywords: {keywords}")
+    logger.info(f"Searching CSV/Excel repository for keywords: {keywords}")
 
     for filename in os.listdir(CSV_UPLOAD_FOLDER):
-        if not filename.endswith('.csv'):
-            continue
-            
         filepath = os.path.join(CSV_UPLOAD_FOLDER, filename)
         try:
-            with open(filepath, 'r', encoding='utf-8-sig', errors='replace') as f:
-                reader = csv.DictReader(f)
-                
-                file_headers = reader.fieldnames
-                if not file_headers:
+            rows = []
+            if filename.endswith('.csv'):
+                with open(filepath, 'r', encoding='utf-8-sig', errors='replace') as f:
+                    reader = csv.DictReader(f)
+                    rows = list(reader)
+            elif filename.endswith(('.xlsx', '.xls')):
+                try:
+                    df = pd.read_excel(filepath)
+                    # Convert to list of dicts like DictReader
+                    rows = df.to_dict('records')
+                except Exception as e:
+                    logger.error(f"Error reading Excel {filename}: {e}")
                     continue
-                    
-                # Create a mapping for this specific file
-                file_map = {}
-                normalized_headers = {h.lower().strip().replace(' ', '_'): h for h in file_headers}
+            else:
+                continue
+            
+            if not rows:
+                continue
                 
-                for db_key, possible_matches in header_map.items():
-                    for match in possible_matches:
-                        if match in normalized_headers:
-                            file_map[db_key] = normalized_headers[match]
-                            break
+            # Get headers from the first row
+            file_headers = rows[0].keys()
+            
+            # Create a mapping for this specific file
+            file_map = {}
+            normalized_headers = {str(h).lower().strip().replace(' ', '_'): h for h in file_headers}
+            
+            for db_key, possible_matches in header_map.items():
+                for match in possible_matches:
+                    if match in normalized_headers:
+                        file_map[db_key] = normalized_headers[match]
+                        break
+            
+            has_split_name = 'full_name' not in file_map and \
+                             ('first_name' in normalized_headers or 'last_name' in normalized_headers)
+            
+            for row in rows:
+                contact_data = {}
+                for db_key, file_header in file_map.items():
+                    if file_header in row and row[file_header]:
+                        val = row[file_header]
+                        # Handle potential NaN from pandas
+                        if pd.isna(val):
+                            continue
+                        contact_data[db_key] = str(val).strip()
                 
-                has_split_name = 'full_name' not in file_map and \
-                                 ('first_name' in normalized_headers or 'last_name' in normalized_headers)
-                
-                for row in reader:
-                    contact_data = {}
-                    for db_key, file_header in file_map.items():
-                        if file_header in row and row[file_header]:
-                            contact_data[db_key] = row[file_header].strip()
-                    
-                    if 'full_name' not in contact_data and has_split_name:
-                        first = row.get(normalized_headers.get('first_name', ''), '').strip()
-                        last = row.get(normalized_headers.get('last_name', ''), '').strip()
-                        if first or last:
-                            contact_data['full_name'] = f"{first} {last}".strip()
+                if 'full_name' not in contact_data and has_split_name:
+                    first = str(row.get(normalized_headers.get('first_name', ''), '')).strip()
+                    last = str(row.get(normalized_headers.get('last_name', ''), '')).strip()
+                    if first or last:
+                        contact_data['full_name'] = f"{first} {last}".strip()
 
-                    search_text = f"{contact_data.get('full_name', '')} {contact_data.get('title', '')} {contact_data.get('company', '')}".lower()
-                    
-                    if any(k.lower() in search_text for k in keywords):
-                        if contact_data.get('full_name') or contact_data.get('email'):
-                            if not contact_data.get('linkedin_url'):
-                                if contact_data.get('email'):
-                                    email_hash = hashlib.md5(contact_data['email'].lower().encode()).hexdigest()
-                                    contact_data['linkedin_url'] = f"csv-repo-{email_hash}"
-                                else:
-                                    unique_str = f"{contact_data.get('full_name')}-{contact_data.get('company')}"
-                                    unique_hash = hashlib.md5(unique_str.encode()).hexdigest()
-                                    contact_data['linkedin_url'] = f"csv-repo-noemail-{unique_hash}"
-                            
-                            contact_data['source'] = f'CSV Repo: {filename}'
-                            if outreach_db.add_contact(user_id, contact_data):
-                                added_count += 1
+                search_text = f"{contact_data.get('full_name', '')} {contact_data.get('title', '')} {contact_data.get('company', '')}".lower()
+                
+                if any(k.lower() in search_text for k in keywords):
+                    if contact_data.get('full_name') or contact_data.get('email'):
+                        if not contact_data.get('linkedin_url'):
+                            if contact_data.get('email'):
+                                email_hash = hashlib.md5(contact_data['email'].lower().encode()).hexdigest()
+                                contact_data['linkedin_url'] = f"repo-{email_hash}"
+                            else:
+                                unique_str = f"{contact_data.get('full_name')}-{contact_data.get('company')}"
+                                unique_hash = hashlib.md5(unique_str.encode()).hexdigest()
+                                contact_data['linkedin_url'] = f"repo-noemail-{unique_hash}"
+                        
+                        contact_data['source'] = f'Repository: {filename}'
+                        if outreach_db.add_contact(user_id, contact_data):
+                            added_count += 1
         except Exception as e:
-            logger.error(f"Error searching CSV {filename}: {e}")
+            logger.error(f"Error processing file {filename}: {e}")
             continue
     return added_count
 
 # --- Celery Tasks for Outreach ---
 @celery.task(bind=True, name='app.scrape_contacts_task')
 def scrape_contacts_task(self, user_id: int, keywords: List[str]):
-    """Celery task to scrape contacts from various platforms."""
+    """Celery task to search contacts ONLY in the uploaded repository."""
     logger.info(f"Celery task {self.request.id} started for user {user_id} to find contacts with keywords: {keywords}.")
     try:
-        outreach_db = OutreachDatabase()
+
         
-        # 1. Search Internal Database
-        self.update_state(state='PROGRESS', meta={'status': 'Searching internal database...', 'progress': 20})
-        internal_count = outreach_db.search_and_copy_global_contacts(user_id, keywords)
+
+
+
 
         # 2. Search CSV Repository
-        self.update_state(state='PROGRESS', meta={'status': 'Searching CSV repository...', 'progress': 30})
+        self.update_state(state='PROGRESS', meta={'status': 'Searching CSV/Excel repository...', 'progress': 50})
         csv_count = search_csv_repository_for_contacts(user_id, keywords)
 
-        # 3. Research External Sources (Public Directories & Career Pages)
-        self.update_state(state='PROGRESS', meta={'status': 'Researching public sources...', 'progress': 50})
-        researcher = LegalContactResearcher(user_id, task=self)
-        
-        # Use keywords to drive the external research
-        search_query = " ".join(keywords)
-        
-        # Try to extract potential company names from keywords
-        # Companies are typically capitalized or multi-word terms
-        potential_companies = []
-        for keyword in keywords:
-            # If keyword has capital letters or multiple words, it might be a company
-            if any(c.isupper() for c in keyword) or len(keyword.split()) > 1:
-                potential_companies.append(keyword)
-        
-        # If no companies detected, pass None to let the researcher work with just keywords
-        companies_arg = potential_companies if potential_companies else None
-        
-        logger.info(f"Extracted potential companies: {companies_arg}")
-        external_results = researcher.run(keywords=search_query, companies=companies_arg)
-        
-        external_count = 0
-        if external_results.get('contacts'):
-            # Process found contacts
-            for contact in external_results['contacts']:
-                # Map scraper result to DB schema
-                emails = contact.get('contact_info', {}).get('emails', [])
-                if emails:
-                    contact_data = {
-                        'full_name': 'HR Contact', # Placeholder as scraper might not get names
-                        'title': 'Recruiter / HR',
-                        'company': contact.get('company', 'Unknown'),
-                        'email': emails[0],
-                        'linkedin_url': contact.get('source_url', f"scraped-{time.time()}"),
-                        'source': contact.get('source_type', 'External Research')
-                    }
-                    if outreach_db.add_contact(user_id, contact_data):
-                        external_count += 1
-
-        total_count = internal_count + csv_count + external_count
-        message = f"Search complete. Found {internal_count} internal, {csv_count} from CSVs, and {external_count} external contacts."
+        message = f"Search complete. Found {csv_count} matching contacts in your uploaded files."
         logger.info(message)
         
         # Final update
         self.update_state(state='PROGRESS', meta={'status': message, 'progress': 100})
         
-        return {'status': 'Complete', 'message': message, 'progress': 100, 'added_count': total_count}
+        return {'status': 'Complete', 'message': message, 'progress': 100, 'added_count': csv_count}
     except Exception as e:
         logger.error(f"Celery task {self.request.id} failed for user {user_id}: {e}", exc_info=True)
         self.update_state(state='FAILURE', meta={'status': f'Task failed: {str(e)}', 'error': str(e), 'progress': 100})
@@ -6572,7 +6574,7 @@ Use proper HTML tags: <h2>, <h3>, <p>, <code>, <pre>, <ul>, <ol>, <li>, etc.
 Make it practical, detailed, and beginner-friendly."""
         
         # Call Cerebras API
-        response_data = safe_ai_request(system_prompt, user_prompt, model="llama-3.3-70b", retries=2)
+        response_data = safe_ai_request(system_prompt, user_prompt, model="gpt-oss-120b", retries=2)
         
         if not response_data or 'content' not in response_data:
             return jsonify({'error': 'Failed to generate guide content'}), 500

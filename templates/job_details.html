@@ -7,7 +7,7 @@
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Back Button -->
         <div class="mb-6">
-            <a href="{{ url_for('dashboard') }}"
+            <a href="{{ url_for('dashboard') }}" id="back-to-dashboard-link"
                 class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
@@ -15,6 +15,17 @@
                 Back to Dashboard
             </a>
         </div>
+
+        <script>
+            // Recover dashboard filter state from sessionStorage
+            document.addEventListener('DOMContentLoaded', function () {
+                const backLink = document.getElementById('back-to-dashboard-link');
+                const lastUrl = sessionStorage.getItem('last_dashboard_url');
+                if (lastUrl && backLink) {
+                    backLink.href = lastUrl;
+                }
+            });
+        </script>
 
         <!-- Main Container -->
         <div class="bg-white rounded-2xl shadow-lg border border-gray-200">

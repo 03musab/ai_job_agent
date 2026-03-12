@@ -559,6 +559,26 @@
     </div>
   </nav>
 
+  <!-- Flash Messages -->
+  <div style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1050; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 10px;">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div style="padding: 1rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; justify-content: space-between; align-items: center; background-color: {% if category == 'success' %}#def7ec{% elif category == 'danger' or category == 'error' %}#fde8e8{% else %}#e1effe{% endif %}; color: {% if category == 'success' %}#03543f{% elif category == 'danger' or category == 'error' %}#9b1c1c{% else %}#1e429f{% endif %}; border: 1px solid {% if category == 'success' %}#31c48d{% elif category == 'danger' or category == 'error' %}#f8b4b4{% else %}#a4cafe{% endif %}; animation: fadeIn 0.3s ease-out;">
+            <span style="font-size: 0.9rem; font-weight: 500;">{{ message }}</span>
+            <button onclick="this.parentElement.remove()" style="background: none; border: none; font-size: 1.25rem; font-weight: bold; cursor: pointer; color: inherit; opacity: 0.7; padding: 0 0 0 10px;">&times;</button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+
   <!-- Auth Page Content -->
   <div class="auth-page-wrapper">
     <div class="auth-container" id="container">

@@ -23,6 +23,251 @@
     --radius-md: 0.25rem;
     --radius-lg: 0.5rem;
     --radius-xl: 0.75rem;
+
+    /* Base theme colors */
+    --app-bg: #f9fafb;
+    --app-text: #111827;
+    --card-bg: #ffffff;
+    --nav-bg: rgba(255, 255, 255, 0.8);
+    --border-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark-theme {
+    --app-bg: #121212;
+    /* Deeper black for background */
+    --app-text: #F0F0F0;
+    --card-bg: #1E1E1E;
+    /* Slightly lighter for cards */
+    --elevated-bg: #2C2C2C;
+    /* Even lighter for modals/notes */
+    --nav-bg: #121212;
+    --border-color: rgba(0, 77, 97, 0.6);
+    /* Sharper Teal Border */
+    --color-primary: #3E5641;
+    --color-primary-dark: #2d4030;
+    --accent-ruby: #822659;
+}
+
+.dark-theme body {
+    background-color: var(--app-bg) !important;
+    color: var(--app-text) !important;
+}
+
+.dark-theme .bg-white,
+.dark-theme .bg-gray-50,
+.dark-theme .bg-gray-100,
+.dark-theme .bg-gray-200,
+.dark-theme .bg-slate-50,
+.dark-theme .bg-slate-100,
+.dark-theme .bg-blue-50,
+.dark-theme .bg-indigo-50,
+.dark-theme .bg-green-50,
+.dark-theme .bg-amber-50,
+.dark-theme .bg-blue-100,
+.dark-theme .bg-indigo-100,
+.dark-theme .bg-amber-100 {
+    background-color: var(--card-bg) !important;
+}
+
+.dark-theme .fan-card .bg-white {
+    background-color: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+}
+
+.dark-theme .text-gray-900,
+.dark-theme .text-gray-800,
+.dark-theme .text-gray-700,
+.dark-theme .text-gray-600,
+.dark-theme .text-gray-500,
+.dark-theme .text-gray-400,
+.dark-theme .text-slate-900,
+.dark-theme .text-slate-800,
+.dark-theme .text-slate-700,
+.dark-theme .text-slate-600,
+.dark-theme .text-indigo-900,
+.dark-theme .text-indigo-800 {
+    color: var(--app-text) !important;
+}
+
+.dark-theme .border-gray-50,
+.dark-theme .border-gray-100,
+.dark-theme .border-gray-200,
+.dark-theme .border-gray-300,
+.dark-theme .divide-gray-50> :not([hidden])~ :not([hidden]),
+.dark-theme .divide-gray-100> :not([hidden])~ :not([hidden]),
+.dark-theme .divide-gray-200> :not([hidden])~ :not([hidden]) {
+    border-color: var(--border-color) !important;
+}
+
+.dark-theme .nav-glass {
+    background: var(--nav-bg) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+.dark-theme .btn-temporal,
+.dark-theme .bg-blue-600 {
+    background-color: var(--color-primary) !important;
+    /* Forest Green */
+    border-color: var(--color-primary-dark) !important;
+}
+
+.dark-theme .text-blue-600,
+.dark-theme .text-indigo-600 {
+    color: #008ba3 !important;
+    /* Lighter Teal for links/text */
+}
+
+.dark-theme .bg-indigo-600 {
+    background-color: var(--accent-ruby) !important;
+}
+
+.dark-theme .bg-green-50,
+.dark-theme .bg-emerald-500\/10 {
+    background-color: rgba(62, 86, 65, 0.2) !important;
+    /* Forest Green glass */
+    color: #A7C0A9 !important;
+}
+
+.dark-theme .bg-blue-50,
+.dark-theme .bg-sky-500\/10 {
+    background-color: rgba(0, 77, 97, 0.2) !important;
+    /* Dark Teal glass */
+    color: #80C8D6 !important;
+}
+
+.dark-theme .bg-amber-100,
+.dark-theme .bg-amber-500\/10 {
+    background-color: rgba(130, 38, 89, 0.2) !important;
+    /* Deep Ruby glass */
+    color: #E2ADC8 !important;
+}
+
+/* Specific component overrides */
+.dark-theme .job-item {
+    background: rgba(26, 26, 26, 0.4) !important;
+    border: 1px solid rgba(0, 77, 97, 0.2) !important;
+}
+
+.dark-theme .job-item:hover {
+    background: rgba(0, 77, 97, 0.1) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: 0 0 20px rgba(0, 77, 97, 0.2);
+}
+
+.dark-theme .stat-number {
+    color: var(--accent-ruby) !important;
+}
+
+/* Hover and Interactive state overrides for Premium Dark Theme */
+.dark-theme .hover\:bg-gray-100:hover,
+.dark-theme .hover\:bg-gray-50:hover,
+.dark-theme .hover\:bg-blue-50:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.dark-theme .hover\:text-gray-900:hover,
+.dark-theme .hover\:text-blue-600:hover,
+.dark-theme .group:hover .group-hover\:text-blue-600 {
+    color: #F0F0F0 !important;
+}
+
+.dark-theme .hover\:border-blue-300:hover,
+.dark-theme .hover\:border-gray-300:hover {
+    border-color: var(--accent-ruby) !important;
+}
+
+.dark-theme select,
+.dark-theme input,
+.dark-theme textarea {
+    background-color: #1A1A1A !important;
+    color: #F0F0F0 !important;
+    border-color: rgba(0, 77, 97, 0.3) !important;
+}
+
+/* Component specific fixes */
+.dark-theme .text-blue-900,
+.dark-theme .text-blue-800,
+.dark-theme .text-indigo-900,
+.dark-theme .text-indigo-800 {
+    color: #F0F0F0 !important;
+}
+
+.dark-theme .bg-red-600 {
+    background-color: var(--color-primary) !important;
+    /* Forest Green as CTA */
+}
+
+.dark-theme .bg-green-600,
+.dark-theme .bg-emerald-600 {
+    background-color: #2D4030 !important;
+}
+
+.dark-theme .bg-gray-900 {
+    background-color: #121212 !important;
+    border: 1px solid var(--border-color);
+}
+
+.dark-theme code {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    color: #80C8D6 !important;
+}
+
+.dark-theme .bg-green-50,
+.dark-theme .bg-blue-50,
+.dark-theme .bg-purple-50,
+.dark-theme .bg-pink-50 {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+.dark-theme .quick-search-btn {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(0, 77, 97, 0.3) !important;
+}
+
+.dark-theme .quick-search-btn:hover {
+    background-color: var(--accent-ruby) !important;
+    color: #F0F0F0 !important;
+    border-color: var(--accent-ruby) !important;
+}
+
+/* More comprehensive Hover overrides for anything */
+.dark-theme .hover\:bg-blue-700:hover,
+.dark-theme .hover\:bg-indigo-700:hover,
+.dark-theme .hover\:bg-emerald-700:hover,
+.dark-theme .hover\:bg-gray-200:hover {
+    background-color: var(--color-primary-dark) !important;
+}
+
+.dark-theme .hover\:bg-red-700:hover {
+    background-color: #5a1a1a !important;
+    /* Darker Red */
+}
+
+.dark-theme .hover\:text-red-600:hover {
+    color: #ff4d4d !important;
+}
+
+.dark-theme .hover\:border-blue-300:hover,
+.dark-theme .hover\:border-gray-400:hover {
+    border-color: var(--border-color) !important;
+}
+
+/* Ensure images/avatars don't have white backgrounds on hover if they are circular buttons */
+.dark-theme .rounded-full.bg-white:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Fix mobile menu hover */
+.dark-theme .mobile-menu-dark a:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: var(--accent-ruby) !important;
+}
+
+/* Contact card specific hover */
+.dark-theme .contact-card:hover,
+.dark-theme .campaign-card:hover {
+    border-color: var(--border-color) !important;
+    background-color: rgba(0, 77, 97, 0.05) !important;
 }
 
 [x-cloak] {
