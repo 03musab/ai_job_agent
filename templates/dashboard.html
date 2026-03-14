@@ -78,6 +78,19 @@
     .dark-theme #page-loader p {
         color: #F0F0F0 !important;
     }
+
+    /* Professional Placeholder Styling */
+    ::placeholder {
+        color: #94a3b8 !important; /* Slate 400 */
+        font-style: italic;
+        opacity: 0.8;
+        font-weight: 400;
+        transition: opacity 0.2s ease;
+    }
+
+    input:focus::placeholder {
+        opacity: 0.4;
+    }
 </style>
 <!-- Full Page Loader -->
 <div id="page-loader"
@@ -99,21 +112,21 @@
                         <div class="relative">
                             <label for="search_terms" class="block text-sm font-medium text-gray-700">Keywords (e.g.,
                                 Python, AI, Data Science)</label>
-                            <input type="text" name="search_terms" id="search_terms" placeholder="Keywords" required
-                                class="mt-1 block w-full rounded-md bg-gray-50 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-500 backdrop-blur-sm">
+                            <input type="text" name="search_terms" id="search_terms" placeholder="e.g. Python, AI, Data Science" required
+                                class="mt-1 block w-full rounded-md bg-gray-50 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-400 backdrop-blur-sm">
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label for="location" class="block text-sm font-medium text-gray-700">Location (e.g.,
                                     Bengaluru)</label>
-                                <input type="text" name="location" id="location" placeholder="City or 'Remote'"
-                                    class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-500">
+                                <input type="text" name="location" id="location" placeholder="e.g. Bengaluru, Remote"
+                                    class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-400">
                             </div>
                             <div>
                                 <label for="experience" class="block text-sm font-medium text-gray-700">Experience
                                     (e.g., 2-5 years)</label>
-                                <input type="text" name="experience" id="experience" placeholder="e.g.'0','1','2-5'"
-                                    class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-500">
+                                <input type="text" name="experience" id="experience" placeholder="e.g. 2-5 years, Senior"
+                                    class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 placeholder-gray-400">
                             </div>
                         </div>
                         <div>

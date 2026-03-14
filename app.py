@@ -1756,6 +1756,18 @@ class OutreachDatabase:
         finally:
             conn.close()
 
+    def update_contact_note(self, contact_id: int, user_id: int, note: str) -> bool:
+        """Updates the note for a specific contact."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute("UPDATE contacts SET notes = ? WHERE id = ? AND user_id = ?", (note, contact_id, user_id))
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            conn.close()
+
+
     def get_campaigns_with_analytics(self, user_id: int) -> List[Dict]:
         """Retrieves all campaigns for a user, enriched with analytics from outreach_logs."""
         conn = sqlite3.connect(self.db_path)
@@ -4913,6 +4925,19 @@ def api_send_message():
     except Exception as e:
         logger.error(f"Error sending email via API for user {current_user.id}: {e}", exc_info=True)
         return jsonify({'success': False, 'message': f'An error occurred: {e}'}), 500
+
+@app.route('/api/contacts/<int:contact_id>/note', methods=['PUT'])
+@login_required
+def update_contact_note_route(contact_id):
+    """API endpoint to update a contact's note."""
+    data = request.get_json()
+    note = data.get('note', '')
+    
+    outreach_db = OutreachDatabase()
+    if outreach_db.update_contact_note(contact_id, current_user.id, note):
+        return jsonify({'success': True, 'message': 'Note updated successfully.'})
+    return jsonify({'success': False, 'message': 'Failed to update note. Contact not found or unauthorized.'}), 404
+
 
 @app.route('/message_vault')
 @login_required
