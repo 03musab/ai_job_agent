@@ -81,11 +81,11 @@ try:
 except ImportError:
     logger.warning("dnspython module not found. SMTP email verification will be limited.")
 
-import threading
-import traceback
+
 
 # Set Cerebras API Key
-os.environ['CEREBRAS_API_KEY'] = "csk-yjmhny5wcyh5dmt4wf9f5mp3k6w4cvkerw2vrh4ceyxh46vr"
+# AI API keys should be set in environment variables (.env)
+
 
 # --- Local Imports ---
 from resume_service import ResumeParsingService
@@ -138,20 +138,7 @@ def make_celery(app):
     # Configure periodic tasks directly within Celery's configuration
     # The beat_schedule below automatically triggers scraping twice a day.
     # Comment it out to prevent automatic scraping on startup.
-    # celery.conf.beat_schedule = {
-    #     'run-job-hunt-daily-morning': {
-    #         'task': 'app.scheduled_job_hunt_for_all_users', # Reference the task by its full path
-    #         'schedule': crontab(hour=9, minute=0), # 9:00 AM daily
-    #         'args': (), # No arguments for this task
-    #         'options': {'queue': 'celery'} # Ensure it uses the default queue
-    #     },
-    #     'run-job-hunt-daily-evening': {
-    #         'task': 'app.scheduled_job_hunt_for_all_users', # Reference the task by its full path
-    #         'schedule': crontab(hour=18, minute=0), # 6:00 PM daily
-    #         'args': (),
-    #         'options': {'queue': 'celery'}
-    #     },
-    # }
+
     celery.conf.timezone = 'UTC' # Or your desired timezone, e.g., 'Asia/Kolkata'
 
     return celery

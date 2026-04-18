@@ -1,4 +1,4 @@
-﻿Flask
+Flask
 Flask-Login
 celery
 redis
@@ -16,3 +16,7 @@ schedule
 PyMuPDF
 python-docx
 honcho
+reportlab
+dnspython
+xhtml2pdf
+undetected-chromedriver
