@@ -1,4 +1,4 @@
-import json
+﻿import json
 import os
 import logging
 from typing import List, Dict, Any
@@ -76,7 +76,7 @@ class SkillGapService:
 
         # 3. Call OpenAI
         try:
-            return safe_ai_request(system_prompt, user_prompt, model="gpt-oss-120b")
+            return safe_ai_request(system_prompt, user_prompt, model="qwen-3-235b-a22b-instruct-2507")
 
         except Exception as e:
             logger.error(f"Skill gap analysis failed: {e}")

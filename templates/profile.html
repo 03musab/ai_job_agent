@@ -270,11 +270,11 @@ ${phone}`);
         copyBtn.disabled = true;
         coverLetterTextarea.readOnly = true; // Prevent user input during animation
         coverLetterTextarea.value = '';
-        coverLetterTextarea.placeholder = '🤖 AI is crafting a new cover letter...';
+        coverLetterTextarea.placeholder = 'AI is crafting a new cover letter...';
 
         // 1. "Thinking" phase
         const thinkingTimeout = setTimeout(() => {
-            coverLetterTextarea.placeholder = '✍️ Generating your cover letter...';
+            coverLetterTextarea.placeholder = 'Generating your cover letter...';
             
             // 2. "Typing" phase
             let i = 0;

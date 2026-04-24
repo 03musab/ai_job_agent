@@ -8,7 +8,7 @@ from cerebras.cloud.sdk import Cerebras
 # Get logger (do not configure basicConfig here to avoid overriding app settings)
 logger = logging.getLogger("AI_Utils")
 
-def safe_ai_request(system_prompt, user_prompt, model="gpt-oss-120b", retries=1):
+def safe_ai_request(system_prompt, user_prompt, model="qwen-3-235b-a22b-instruct-2507", retries=1):
     """
     Executes an OpenAI call with:
     - JSON validation

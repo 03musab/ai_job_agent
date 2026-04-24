@@ -1,4 +1,4 @@
-import os
+﻿import os
 import re
 import json
 import logging
@@ -91,7 +91,7 @@ class ResumeParsingService:
                 system_prompt = "You are an expert resume parser. Extract skills and work experience from the resume text provided. Return ONLY valid JSON."
                 user_prompt = f"Analyze the following resume text and extract:\n1. 'skills': A list of technical and soft skills.\n2. 'work_experience': A list of objects, each containing 'title', 'company', 'start_date', 'end_date', and 'description'.\n\nResume Text:\n{text[:4000]}"
 
-                data = safe_ai_request(system_prompt, user_prompt, model="gpt-oss-120b")
+                data = safe_ai_request(system_prompt, user_prompt, model="qwen-3-235b-a22b-instruct-2507")
                 
                 
                 # Merge AI skills with keyword skills (deduplicate)

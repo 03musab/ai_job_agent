@@ -1151,39 +1151,284 @@ class JobDatabase:
     def get_top_picks_for_user(self, user_id: int, limit: int = 6) -> List[Dict]:
         """
         Returns top job picks for a user based on their parsed resume skills.
-        Matches user skills against job skills, keywords, and description.
-        Falls back to highest relevance_score if no resume skills exist.
+
+        Strict pre-filters (applied in order before skill-matching):
+          1. Walk-in / hiring-drive / mass-event keyword block
+          2. Stale listings (> 30 days old)
+          3. Over-saturated roles (50+ applicants mentioned)
+          4. Experience-range mismatch (user's years vs job requirements)
+          5. AI seniority scan via llama3.1-8b (senior/fresher keyword detection)
         """
+        import re as _re
+        from datetime import datetime as _dt
+        from cerebras.cloud.sdk import Cerebras as _Cerebras
+
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        
+
+        # ── Filter constants ──────────────────────────────────────────────────
+        WALK_IN_PATTERNS = [
+            'walk-in', 'walk in', 'hiring drive', 'hiring event',
+            'recruitment drive', 'campus drive', 'job fair', 'job mela',
+            'open day', 'open house', 'mass hiring', 'bulk hiring',
+            'pool campus', 'offcampus drive',
+        ]
+        STALE_DAYS = 30
+
+        # Seniority level → approximate experience band (min, max or None)
+        SENIORITY_BANDS = {
+            'fresher':       (0, 1),
+            'entry':         (0, 2),
+            'junior':        (1, 3),
+            'associate':     (1, 4),
+            'mid':           (3, 7),
+            'professional':  (2, 8),
+            'senior':        (5, None),
+            'lead':          (6, None),
+            'principal':     (8, None),
+            'staff':         (7, None),
+            'manager':       (6, None),
+            'director':      (10, None),
+            'vp':            (12, None),
+        }
+        # Keywords that signal a level without needing AI
+        FAST_SENIOR_KW  = {'senior', 'lead', 'principal', 'staff', 'director', 'vp', 'manager', 'head of', 'sr.', 'sr '}
+        FAST_FRESHER_KW = {'fresher', 'freshers', 'entry level', 'entry-level', 'trainee', 'intern', 'graduate', 'no experience'}
+
+        # ── Helper: compute user total years from parsed resume ───────────────
+        def _user_total_years(parsed: dict) -> Optional[int]:
+            """Sum up months across all work_experience entries."""
+            total_months = 0
+            for exp in (parsed.get('work_experience') or []):
+                start_str = str(exp.get('start_date') or '')
+                end_str   = str(exp.get('end_date') or '').lower()
+                # Parse year from strings like "Jan 2020", "2020", "2020-01"
+                def _year(s):
+                    m = _re.search(r'(20\d{2}|19\d{2})', s)
+                    return int(m.group(1)) if m else None
+                def _month(s):
+                    months = {'jan':1,'feb':2,'mar':3,'apr':4,'may':5,'jun':6,
+                              'jul':7,'aug':8,'sep':9,'oct':10,'nov':11,'dec':12}
+                    for k, v in months.items():
+                        if k in s.lower():
+                            return v
+                    m = _re.search(r'-(\d{2})', s)
+                    return int(m.group(1)) if m else 1
+
+                sy = _year(start_str)
+                if not sy:
+                    continue
+                sm = _month(start_str)
+                if 'present' in end_str or 'current' in end_str or not end_str.strip():
+                    ey, em = _dt.utcnow().year, _dt.utcnow().month
+                else:
+                    ey = _year(end_str)
+                    em = _month(end_str) if ey else None
+                    if not ey:
+                        continue
+
+                months = (ey - sy) * 12 + (em - sm)
+                total_months += max(months, 0)
+
+            if total_months == 0:
+                return None
+            return max(1, round(total_months / 12))
+
+        # ── Helper: fast keyword-based seniority check ────────────────────────
+        def _fast_seniority_label(title: str, desc: str) -> Optional[str]:
+            """Returns 'senior', 'fresher', or None if ambiguous."""
+            combined = (title + ' ' + desc[:200]).lower()
+            if any(kw in combined for kw in FAST_SENIOR_KW):
+                return 'senior'
+            if any(kw in combined for kw in FAST_FRESHER_KW):
+                return 'fresher'
+            return None
+
+        # ── Helper: AI seniority scan via llama3.1-8b ────────────────────────
+        _ai_cache: dict = {}  # job_hash → 'senior'|'junior'|'mid'|'fresher'|'unknown'
+
+        def _ai_seniority_label(job: dict) -> str:
+            job_hash = job.get('job_hash') or str(job.get('id', ''))
+            if job_hash in _ai_cache:
+                return _ai_cache[job_hash]
+
+            api_key = os.getenv('CEREBRAS_API_KEY')
+            if not api_key:
+                return 'unknown'
+
+            title = (job.get('title') or '')[:120]
+            snippet = (job.get('description') or '')[:600]
+
+            prompt = (
+                "Classify this job posting into exactly ONE seniority level.\n"
+                "Reply with ONLY one word from: fresher, junior, mid, senior, lead\n\n"
+                f"Job Title: {title}\n"
+                f"Description snippet: {snippet}\n\n"
+                "Level:"
+            )
+            try:
+                client = _Cerebras(api_key=api_key)
+                resp = client.chat.completions.create(
+                    model="llama3.1-8b",          # fast & cheap — classification only
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=5,
+                    temperature=0,
+                )
+                label = resp.choices[0].message.content.strip().lower().split()[0]
+                label = label if label in ('fresher', 'junior', 'mid', 'senior', 'lead') else 'unknown'
+            except Exception as e:
+                logger.debug(f"AI seniority scan failed for job {job_hash}: {e}")
+                label = 'unknown'
+
+            _ai_cache[job_hash] = label
+            return label
+
+        # ── Helper: parse experience from description text ────────────────────
+        def _parse_exp_from_text(text: str):
+            """Returns (min_years, max_years) found in raw text, or (None, None)."""
+            t = text.lower()
+            m = _re.search(r'(\d+)\s*[-–to]+\s*(\d+)\s*(?:years?|yrs?)', t)
+            if m:
+                return int(m.group(1)), int(m.group(2))
+            m = _re.search(r'(\d+)\s*\+\s*(?:years?|yrs?)', t)
+            if m:
+                return int(m.group(1)), None
+            m = _re.search(r'(\d+)\s*(?:years?|yrs?)', t)
+            if m:
+                v = int(m.group(1))
+                return v, v
+            return None, None
+
+        # ── Main filter ───────────────────────────────────────────────────────
+        def _is_quality_job(job: dict, user_years: Optional[int], user_level: str) -> bool:
+            title    = (job.get('title') or '').lower()
+            desc     = (job.get('description') or '').lower()
+            combined = title + ' ' + desc
+
+            # 1. Walk-in / drive events
+            if any(pat in combined for pat in WALK_IN_PATTERNS):
+                return False
+
+            # 2. Stale listing
+            found_date_str = job.get('found_date') or job.get('date_posted') or ''
+            if found_date_str:
+                dm = _re.match(r'(\d{4}-\d{2}-\d{2})', str(found_date_str))
+                if dm:
+                    try:
+                        posted = _dt.strptime(dm.group(1), '%Y-%m-%d')
+                        if (_dt.utcnow() - posted).days > STALE_DAYS:
+                            return False
+                    except ValueError:
+                        pass
+
+            # 3. Over-saturated
+            am = _re.search(r'(over\s+)?(\d+)\s*\+?\s*applicants?', combined, _re.I)
+            if am:
+                try:
+                    if int(am.group(2)) >= 50:
+                        return False
+                except ValueError:
+                    pass
+
+            # 4. Experience-range mismatch (strict)
+            if user_years is not None:
+                # Prefer structured columns, fall back to text parse
+                job_min = job.get('min_experience_years')
+                job_max = job.get('max_experience_years')
+                if job_min is None and job_max is None:
+                    job_min, job_max = _parse_exp_from_text(desc)
+                    # also check the dedicated experience field
+                    if job_min is None:
+                        job_min, job_max = _parse_exp_from_text(job.get('experience') or '')
+
+                if job_min is not None:
+                    # Allow ±1 year of grace on both ends
+                    effective_min = max(0, job_min - 1)
+                    effective_max = (job_max + 1) if job_max is not None else float('inf')
+                    if not (effective_min <= user_years <= effective_max):
+                        return False
+
+            # 5. Fast keyword seniority check
+            fast_level = _fast_seniority_label(title, desc)
+            if fast_level and user_level:
+                if fast_level == 'senior' and user_level in ('fresher', 'junior'):
+                    return False
+                if fast_level == 'fresher' and user_level in ('senior', 'lead', 'mid'):
+                    return False
+
+            # 6. AI seniority scan (only if fast check was ambiguous)
+            if fast_level is None and user_level not in ('', 'unknown'):
+                ai_level = _ai_seniority_label(job)
+                if ai_level != 'unknown':
+                    # senior/lead jobs → reject if user is fresher/junior
+                    if ai_level in ('senior', 'lead') and user_level in ('fresher', 'junior'):
+                        return False
+                    # fresher jobs → reject if user is senior/lead/mid
+                    if ai_level == 'fresher' and user_level in ('senior', 'lead', 'mid'):
+                        return False
+
+            return True
+
         try:
-            # Get user's parsed resume skills
+            # ── Load user data ────────────────────────────────────────────────
             cursor.execute("SELECT resume_parsed_data FROM user_details WHERE user_id = ?", (user_id,))
             row = cursor.fetchone()
-            user_skills = []
-            
+            user_skills  = []
+            user_years   = None   # total experience years derived from resume
+            user_level   = ''     # 'fresher'|'junior'|'mid'|'senior'|'lead'|''
+
             if row and row['resume_parsed_data']:
                 try:
                     parsed = json.loads(row['resume_parsed_data'])
                     user_skills = [s.lower().strip() for s in parsed.get('skills', []) if s.strip()]
+                    user_years  = _user_total_years(parsed)
+
+                    # Derive seniority label from years
+                    if user_years is not None:
+                        if user_years <= 1:
+                            user_level = 'fresher'
+                        elif user_years <= 3:
+                            user_level = 'junior'
+                        elif user_years <= 7:
+                            user_level = 'mid'
+                        elif user_years <= 12:
+                            user_level = 'senior'
+                        else:
+                            user_level = 'lead'
+
+                    logger.info(
+                        f"Top-picks filter — user {user_id}: "
+                        f"~{user_years}yr exp → level={user_level or 'unknown'}, "
+                        f"skills={len(user_skills)}"
+                    )
                 except (json.JSONDecodeError, AttributeError):
                     pass
-            
-            # Get all jobs for the user
+
+            # ── Load all jobs ─────────────────────────────────────────────────
             cursor.execute("""
                 SELECT * FROM jobs WHERE user_id = ?
                 ORDER BY found_date DESC
             """, (user_id,))
             all_jobs = [dict(r) for r in cursor.fetchall()]
-            
+
             if not all_jobs:
                 return []
-            
+
+            # ── Apply all quality filters ─────────────────────────────────────
+            quality_jobs = [j for j in all_jobs if _is_quality_job(j, user_years, user_level)]
+
+            logger.info(
+                f"Top-picks filter — user {user_id}: "
+                f"{len(all_jobs)} total → {len(quality_jobs)} after filters"
+            )
+
+            # Safety: if everything got filtered, fall back to unfiltered pool
+            candidate_pool = quality_jobs if quality_jobs else all_jobs
+
+            # ── Skill-based scoring ───────────────────────────────────────────
             if user_skills:
-                # Score each job by how many user skills appear in its skills/keywords/description
-                for job in all_jobs:
+                for job in candidate_pool:
                     job_text = ' '.join([
                         (job.get('skills') or '').lower(),
                         (job.get('keywords') or '').lower(),
@@ -1191,18 +1436,16 @@ class JobDatabase:
                         (job.get('title') or '').lower(),
                         (job.get('extracted_tools') or '').lower()
                     ])
-                    match_count = sum(1 for skill in user_skills if skill in job_text)
-                    job['_match_score'] = match_count
-                
-                # Sort by match score descending, then by relevance_score as tiebreaker
-                all_jobs.sort(key=lambda j: (j.get('_match_score', 0), j.get('relevance_score', 0)), reverse=True)
-                
-                # Only return jobs with at least 1 skill match
-                matched_jobs = [j for j in all_jobs if j.get('_match_score', 0) > 0]
-                
+                    job['_match_score'] = sum(1 for skill in user_skills if skill in job_text)
+
+                candidate_pool.sort(
+                    key=lambda j: (j.get('_match_score', 0), j.get('relevance_score', 0)),
+                    reverse=True
+                )
+                matched_jobs = [j for j in candidate_pool if j.get('_match_score', 0) > 0]
+
                 if matched_jobs:
                     for j in matched_jobs:
-                        # Add matched skills list for display
                         job_text = ' '.join([
                             (j.get('skills') or '').lower(),
                             (j.get('keywords') or '').lower(),
@@ -1213,16 +1456,17 @@ class JobDatabase:
                         j['matched_skills'] = [s for s in user_skills if s in job_text][:5]
                         j.pop('_match_score', None)
                     return matched_jobs[:limit]
-            
-            # Fallback: return top jobs by relevance_score
-            all_jobs.sort(key=lambda j: j.get('relevance_score', 0), reverse=True)
-            return all_jobs[:limit]
-            
+
+            # Fallback: top by relevance_score
+            candidate_pool.sort(key=lambda j: j.get('relevance_score', 0), reverse=True)
+            return candidate_pool[:limit]
+
         except Exception as e:
             logger.error(f"Error getting top picks for user {user_id}: {e}", exc_info=True)
             return []
         finally:
             conn.close()
+
 
     def update_custom_score(self, user_id: int, keyword: str, keyword_type: str, change_multiplier: float) -> None:
         """Adjusts the custom relevance score multiplier for a specific keyword for a user."""
@@ -6586,7 +6830,7 @@ Use proper HTML tags: <h2>, <h3>, <p>, <code>, <pre>, <ul>, <ol>, <li>, etc.
 Make it practical, detailed, and beginner-friendly."""
         
         # Call Cerebras API
-        response_data = safe_ai_request(system_prompt, user_prompt, model="gpt-oss-120b", retries=2)
+        response_data = safe_ai_request(system_prompt, user_prompt, model="qwen-3-235b-a22b-instruct-2507", retries=2)
         
         if not response_data or 'content' not in response_data:
             return jsonify({'error': 'Failed to generate guide content'}), 500

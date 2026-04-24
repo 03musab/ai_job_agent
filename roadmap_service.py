@@ -1,4 +1,4 @@
-import json
+﻿import json
 import os
 import logging
 from typing import List, Dict, Any
@@ -70,7 +70,7 @@ class RoadmapService:
         """
 
         try:
-            return safe_ai_request(system_prompt, user_prompt, model="gpt-oss-120b")
+            return safe_ai_request(system_prompt, user_prompt, model="qwen-3-235b-a22b-instruct-2507")
 
         except Exception as e:
             logger.error(f"Roadmap generation failed: {e}")
@@ -137,7 +137,7 @@ class RoadmapService:
         """
 
         try:
-            return safe_ai_request(system_prompt, user_prompt, model="gpt-oss-120b")
+            return safe_ai_request(system_prompt, user_prompt, model="qwen-3-235b-a22b-instruct-2507")
         except Exception as e:
             logger.error(f"Combined generation failed: {e}")
             return {"error": str(e)}
