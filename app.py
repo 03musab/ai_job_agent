@@ -822,12 +822,13 @@ class JobDatabase:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         try:
-            cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, password_hash))
             cursor.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", (username, password_hash, role))
             conn.commit()
+            logger.info(f"Created user: {username} with role: {role}")
             return cursor.lastrowid
         except sqlite3.IntegrityError:
-            return None # Username already exists
+            logger.warning(f"Username already exists: {username}")
+            return None
         finally:
             conn.close()
 
