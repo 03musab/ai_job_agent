@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Post a New Job{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Post a New Job</h1>
+
+    <div class="bg-white p-8 rounded-lg shadow-lg max-w-4xl mx-auto">
+        <form id="post-job-form">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Job Title -->
+                <div>
+                    <label for="title" class="block text-sm font-medium text-gray-700">Job Title</label>
+                    <input type="text" name="title" id="title" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+
+                <!-- Company Name -->
+                <div>
+                    <label for="company" class="block text-sm font-medium text-gray-700">Company Name</label>
+                    <input type="text" name="company" id="company" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+
+                <!-- Location -->
+                <div>
+                    <label for="location" class="block text-sm font-medium text-gray-700">Location</label>
+                    <input type="text" name="location" id="location" required placeholder="e.g., San Francisco, CA or Remote"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+
+                <!-- Job Type -->
+                <div>
+                    <label for="job_type" class="block text-sm font-medium text-gray-700">Job Type</label>
+                    <select id="job_type" name="job_type" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option>Full-time</option>
+                        <option>Part-time</option>
+                        <option>Contract</option>
+                        <option>Internship</option>
+                        <option>Temporary</option>
+                    </select>
+                </div>
+
+                <!-- Salary Range -->
+                <div>
+                    <label for="salary_range" class="block text-sm font-medium text-gray-700">Salary Range (Optional)</label>
+                    <input type="text" name="salary_range" id="salary_range" placeholder="e.g., $100,000 - $120,000"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+
+                <!-- Application Deadline -->
+                <div>
+                    <label for="deadline" class="block text-sm font-medium text-gray-700">Application Deadline (Optional)</label>
+                    <input type="date" name="deadline" id="deadline"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="mt-6">
+                <label for="description" class="block text-sm font-medium text-gray-700">Job Description</label>
+                <textarea id="description" name="description" rows="8" required
+                          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+            </div>
+
+            <!-- Required Skills -->
+            <div class="mt-6">
+                <label for="skills" class="block text-sm font-medium text-gray-700">Required Skills (comma-separated)</label>
+                <input type="text" name="skills" id="skills" placeholder="e.g., Python, React, SQL"
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+            </div>
+
+            <!-- Submit Button -->
+            <div class="mt-8 flex justify-end">
+                <button type="submit"
+                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Post Job
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('post-job-form');
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+
+        // Convert skills string to an array
+        if (data.skills) {
+            data.skills = data.skills.split(',').map(skill => skill.trim()).filter(skill => skill);
+        } else {
+            data.skills = [];
+        }
+
+        fetch('/api/jobs', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.error || 'An unknown error occurred.') });
+            }
+            return response.json();
+        })
+        .then(result => {
+            // Use the existing flash message system by redirecting with a query param
+            // This is a simple way to show feedback without adding a new UI component
+            window.location.href = '/dashboard?flash_success=Job posted successfully!';
+        })
+        .catch(error => {
+            console.error('Error posting job:', error);
+            // For simplicity, we'll use an alert for errors.
+            // A more integrated solution would be to show the error message in the UI.
+            alert('Error: ' + error.message);
+        });
+    });
+});
+</script>
+{% endblock %}

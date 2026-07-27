@@ -67,6 +67,13 @@
                         :class="darkMode ? 'text-premium-text/70 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
                         Learning
                     </a>
+                    {% if current_user.role == 'recruiter' %}
+                    <a href="{{ url_for('recruiter_post_job') }}"
+                        class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
+                        :class="darkMode ? 'text-premium-text/70 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
+                        Post a Job
+                    </a>
+                    {% endif %}
                     {% endif %}
                 </div>
 
@@ -189,6 +196,13 @@
                         class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
                         :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Learning
                         Path</a>
+                    {% if current_user.role == 'recruiter' %}
+                    <a href="{{ url_for('recruiter_post_job') }}"
+                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
+                        :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
+                        Post a Job
+                    </a>
+                    {% endif %}
                     <a href="{{ url_for('profile') }}"
                         class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
                         :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Profile</a>

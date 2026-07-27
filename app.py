@@ -555,9 +555,11 @@ class Job:
 
 class User(UserMixin):
     def __init__(self, id, username, password_hash, email_recipients='', send_excel_attachment=True):
+    def __init__(self, id, username, password_hash, role='seeker', email_recipients='', send_excel_attachment=True):
         self.id = id
         self.username = username
         self.password_hash = password_hash
+        self.role = role
         self.email_recipients = email_recipients
         self.send_excel_attachment = send_excel_attachment
 
@@ -567,6 +569,7 @@ class User(UserMixin):
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT id, username, password_hash, email_recipients, send_excel_attachment FROM users WHERE id = ?", (user_id,))
+        cursor.execute("SELECT id, username, password_hash, role, email_recipients, send_excel_attachment FROM users WHERE id = ?", (user_id,))
         user_data = cursor.fetchone()
         conn.close()
         if user_data:
@@ -579,6 +582,7 @@ class User(UserMixin):
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT id, username, password_hash, email_recipients, send_excel_attachment FROM users WHERE username = ?", (username,))
+        cursor.execute("SELECT id, username, password_hash, role, email_recipients, send_excel_attachment FROM users WHERE username = ?", (username,))
         user_data = cursor.fetchone()
         conn.close()
         if user_data:
@@ -608,6 +612,7 @@ class JobDatabase:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'seeker',
                 email_recipients TEXT DEFAULT '',
                 send_excel_attachment BOOLEAN DEFAULT TRUE
             )
@@ -615,6 +620,9 @@ class JobDatabase:
         # Perform ALTER TABLE for new user columns if they don't exist
         cursor.execute("PRAGMA table_info(users)")
         user_columns = [col[1] for col in cursor.fetchall()]
+        if 'role' not in user_columns:
+            try: cursor.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'seeker'"); conn.commit(); logger.info("Added role column to users table.")
+            except sqlite3.OperationalError as e: logger.warning(f"role column already exists or error altering users table: {e}")
         if 'send_excel_attachment' not in user_columns:
             try: cursor.execute("ALTER TABLE users ADD COLUMN send_excel_attachment BOOLEAN DEFAULT TRUE"); conn.commit(); logger.info("Added send_excel_attachment column to users table.")
             except sqlite3.OperationalError as e: logger.warning(f"send_excel_attachment column already exists or error altering users table: {e}")
@@ -721,6 +729,7 @@ class JobDatabase:
                     extracted_tools TEXT DEFAULT '',
                     extracted_soft_skills TEXT DEFAULT '',
                     user_feedback TEXT DEFAULT '',
+                    posted_by_recruiter_id INTEGER,
                     deadline TEXT,
                     FOREIGN KEY(user_id) REFERENCES users(id)
                 )
@@ -753,6 +762,12 @@ class JobDatabase:
                     conn.commit(); logger.info("Added deadline column to jobs table.")
                 except sqlite3.OperationalError as e:
                     logger.warning(f"deadline column already exists or error altering jobs table: {e}")
+            if 'posted_by_recruiter_id' not in jobs_existing_columns:
+                try:
+                    cursor.execute("ALTER TABLE jobs ADD COLUMN posted_by_recruiter_id INTEGER")
+                    conn.commit(); logger.info("Added posted_by_recruiter_id column to jobs table.")
+                except sqlite3.OperationalError as e:
+                    logger.warning(f"posted_by_recruiter_id column already exists or error altering jobs table: {e}")
 
         # --- Search Profiles Table ---
         cursor.execute('''
@@ -804,10 +819,12 @@ class JobDatabase:
             self.migrate_job_hashes_normalized()
 
     def add_user(self, username, password_hash):
+    def add_user(self, username, password_hash, role='seeker'):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         try:
             cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, password_hash))
+            cursor.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", (username, password_hash, role))
             conn.commit()
             return cursor.lastrowid
         except sqlite3.IntegrityError:
@@ -829,6 +846,8 @@ class JobDatabase:
                 (job_hash, title, company, location, salary, link, description,
                  keywords, skills, experience, job_type, posted_date, source,
                  relevance_score, found_date, user_id, status, notes, deadline,
+                 keywords, skills, experience, job_type, posted_date, source, relevance_score, 
+                 found_date, user_id, status, notes, deadline, posted_by_recruiter_id,
                  min_experience_years, max_experience_years, extracted_tools, extracted_soft_skills, user_feedback)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
@@ -850,6 +869,7 @@ class JobDatabase:
                 user_id,  # user_id
                 'new',  # status
                 '',  # notes
+                job.deadline,  # deadline
                 job.deadline,  # deadline
                 job.min_experience_years,  # min_experience_years
                 job.max_experience_years,  # max_experience_years
@@ -880,6 +900,7 @@ class JobDatabase:
             logger.error(f"SQLite Operational Error (likely schema mismatch during job insert): {e}.")
             # Log with the corrected order for accurate debugging
             correct_values = (job_hash, job.title, job.company, job.location, job.salary, job.link, job.description, ', '.join(job.keywords), ', '.join(job.skills), job.experience, job.job_type, job.posted_date, job.source, job.relevance_score, datetime.datetime.now().isoformat(), user_id, 'new', '', job.deadline, job.min_experience_years, job.max_experience_years, ', '.join(job.extracted_tools), ', '.join(job.extracted_soft_skills), job.user_feedback if job.user_feedback else '')
+            correct_values = (job_hash, job.title, job.company, job.location, job.salary, job.link, job.description, ', '.join(job.keywords), ', '.join(job.skills), job.experience, job.job_type, job.posted_date, job.source, job.relevance_score, datetime.datetime.now().isoformat(), user_id, 'new', '', job.deadline, None, job.min_experience_years, job.max_experience_years, ', '.join(job.extracted_tools), ', '.join(job.extracted_soft_skills), job.user_feedback if job.user_feedback else '')
             logger.error("Attempting to insert values: %s", correct_values)
             return False
         except Exception as e:
@@ -902,6 +923,7 @@ class JobDatabase:
             id, job_hash, title, company, location, salary, link, description,
             keywords, skills, experience, job_type, posted_date, source,
             relevance_score, found_date, applied, status, user_id, notes, deadline,
+            relevance_score, found_date, applied, status, user_id, notes, deadline, posted_by_recruiter_id,
             min_experience_years, max_experience_years, extracted_tools, extracted_soft_skills, user_feedback
         """
         query = f"SELECT {query_columns} FROM jobs WHERE user_id = ?"
@@ -4717,9 +4739,11 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        role = request.form.get('role', 'seeker') # Get role from form
         password_hash = generate_password_hash(password)
         db = JobDatabase()
         user_id = db.add_user(username, password_hash)
+        user_id = db.add_user(username, password_hash, role)
         if user_id:
             flash('Registration successful! Please log in.', 'success')
             return redirect(url_for('login'))

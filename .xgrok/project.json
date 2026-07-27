@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "setup": "integrated",
+  "languages": [
+    "JavaScript/TypeScript",
+    "Python"
+  ],
+  "stacks": [
+    "Node.js",
+    "pip"
+  ],
+  "markers": [
+    "package.json",
+    "requirements.txt"
+  ],
+  "packageName": "ai_job_agent",
+  "suggestedRun": "python -m src.main",
+  "suggestedTest": "pytest",
+  "createdAt": "2026-07-27T14:12:18.663Z",
+  "tool": "xgrok"
+}
