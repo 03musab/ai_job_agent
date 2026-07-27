@@ -566,7 +566,7 @@ class User(UserMixin):
     @staticmethod
     def get(user_id):
         db = JobDatabase()
-        conn = sqlite3.connect(db.db_path)
+        conn = sqlite3.connect(db.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute("SELECT id, username, password_hash, email_recipients, send_excel_attachment FROM users WHERE id = ?", (user_id,))
         cursor.execute("SELECT id, username, password_hash, role, email_recipients, send_excel_attachment FROM users WHERE id = ?", (user_id,))
@@ -579,7 +579,7 @@ class User(UserMixin):
     @staticmethod
     def get_by_username(username):
         db = JobDatabase()
-        conn = sqlite3.connect(db.db_path)
+        conn = sqlite3.connect(db.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute("SELECT id, username, password_hash, email_recipients, send_excel_attachment FROM users WHERE username = ?", (username,))
         cursor.execute("SELECT id, username, password_hash, role, email_recipients, send_excel_attachment FROM users WHERE username = ?", (username,))
@@ -603,7 +603,7 @@ class JobDatabase:
 
     def init_db(self):
         """Initializes the SQLite database table(s) if they don't exist, and performs schema migrations."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
 
         # --- Users Table ---
@@ -819,7 +819,7 @@ class JobDatabase:
             self.migrate_job_hashes_normalized()
 
     def add_user(self, username: str, password_hash: str, role: str = 'seeker') -> Optional[int]:
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", (username, password_hash, role))
@@ -828,6 +828,9 @@ class JobDatabase:
             return cursor.lastrowid
         except sqlite3.IntegrityError:
             logger.warning(f"Username already exists: {username}")
+            return None
+        except sqlite3.OperationalError as e:
+            logger.error(f"Database operational error during user creation: {e}")
             return None
         finally:
             conn.close()
@@ -838,7 +841,7 @@ class JobDatabase:
         norm = f"{normalize_for_hash(job.title)}|{normalize_for_hash(job.company)}|{normalize_for_hash(job.location)}|{user_id}"
         job_hash = hashlib.md5(norm.encode('utf-8')).hexdigest()
 
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -914,7 +917,7 @@ class JobDatabase:
                              location_filter: Optional[str] = None,
                              job_type_filter: Optional[str] = None) -> Tuple[List[Dict], int]:
         """Retrieves jobs for a specific user from the database, with filters and pagination."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
 
         query_columns = """
@@ -982,7 +985,7 @@ class JobDatabase:
     def save_search_profile(self, user_id: int, profile_name: str, search_terms: str,
                             location: str, experience: str, job_type: str) -> Optional[int]:
         """Saves a search profile for a user. Returns profile ID on success, None on failure."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -1003,7 +1006,7 @@ class JobDatabase:
 
     def get_search_profiles(self, user_id: int) -> List[Dict]:
         """Retrieves all saved search profiles for a user."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute("SELECT id, profile_name, search_terms, location, experience, job_type FROM search_profiles WHERE user_id = ?", (user_id,))
         profiles_raw = cursor.fetchall()
@@ -1015,7 +1018,7 @@ class JobDatabase:
 
     def get_search_profile_by_id(self, profile_id: int, user_id: int) -> Optional[Dict]:
         """Retrieves a single search profile by ID and user ID."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute("SELECT id, profile_name, search_terms, location, experience, job_type FROM search_profiles WHERE id = ? AND user_id = ?", (profile_id, user_id))
         profile_data = cursor.fetchone()
@@ -1027,7 +1030,7 @@ class JobDatabase:
 
     def delete_search_profile(self, profile_id: int, user_id: int) -> bool:
         """Deletes a search profile for a user."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute("DELETE FROM search_profiles WHERE id = ? AND user_id = ?", (profile_id, user_id))
         conn.commit()
@@ -1037,7 +1040,7 @@ class JobDatabase:
 
     def update_user_settings(self, user_id: int, email_recipients: str, send_excel_attachment: bool) -> bool:
         """Updates user's email notification settings."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -1055,7 +1058,7 @@ class JobDatabase:
 
     def get_user_settings(self, user_id: int) -> Optional[Dict]:
         """Retrieves a user's email notification settings."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute("SELECT email_recipients, send_excel_attachment FROM users WHERE id = ?", (user_id,))
         settings_data = cursor.fetchone()
@@ -1065,7 +1068,7 @@ class JobDatabase:
 
     def update_job_status_and_notes(self, job_id: int, user_id: int, status: str, notes: str) -> bool:
         """Updates the application status and notes for a specific job."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -1081,7 +1084,7 @@ class JobDatabase:
 
     def record_job_feedback(self, user_id: int, job_id: int, feedback_type: str) -> bool:
         """Records user feedback for a job and updates the job's feedback status."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("UPDATE jobs SET user_feedback = ? WHERE id = ? AND user_id = ?", (feedback_type, job_id, user_id))
@@ -1097,7 +1100,7 @@ class JobDatabase:
 
     def delete_job(self, job_id: int, user_id: int) -> bool:
         """Deletes a specific job for a user."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("DELETE FROM jobs WHERE id = ? AND user_id = ?", (job_id, user_id))
@@ -1111,7 +1114,7 @@ class JobDatabase:
 
     def delete_jobs(self, job_ids: List[int], user_id: int) -> int:
         """Deletes multiple jobs for a user."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             placeholders = ','.join(['?'] * len(job_ids))
@@ -1127,7 +1130,7 @@ class JobDatabase:
 
     def delete_all_jobs(self, user_id: int) -> int:
         """Deletes all jobs for a user."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("DELETE FROM jobs WHERE user_id = ?", (user_id,))
@@ -1142,7 +1145,7 @@ class JobDatabase:
 
     def get_job_status_counts(self, user_id: int) -> Dict[str, int]:
         """Retrieves the count of jobs for each status for a specific user."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
 
         # Initialize counts to ensure all statuses are present, even if they are 0.
@@ -1183,7 +1186,7 @@ class JobDatabase:
         from datetime import datetime as _dt
         from cerebras.cloud.sdk import Cerebras as _Cerebras
 
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -1490,7 +1493,7 @@ class JobDatabase:
 
     def update_custom_score(self, user_id: int, keyword: str, keyword_type: str, change_multiplier: float) -> None:
         """Adjusts the custom relevance score multiplier for a specific keyword for a user."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("SELECT score_multiplier FROM user_custom_scores WHERE user_id = ? AND keyword = ? AND keyword_type = ?",
@@ -1515,7 +1518,7 @@ class JobDatabase:
 
     def get_custom_scores(self, user_id: int) -> Dict[Tuple[str, str], float]:
         """Retrieves all custom score multipliers for a given user."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute("SELECT keyword, keyword_type, score_multiplier FROM user_custom_scores WHERE user_id = ?", (user_id,))
         rows = cursor.fetchall()
@@ -1529,7 +1532,7 @@ class JobDatabase:
 
     def migrate_job_hashes_normalized(self) -> None:
         """One-time migration to recompute job_hash using normalized title/company/location and user_id."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             # Fetch user_id to make the hash user-specific
@@ -1561,7 +1564,7 @@ class JobDatabase:
 
     def get_user_details(self, user_id: int) -> Optional[Dict]:
         """Retrieves a user's application details."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         conn.row_factory = sqlite3.Row # This allows accessing columns by name
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM user_details WHERE user_id = ?", (user_id,))
@@ -1573,7 +1576,7 @@ class JobDatabase:
 
     def save_user_details(self, user_id: int, details: Dict) -> bool:
         """Saves or updates a user's application details."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             # Using INSERT OR REPLACE (UPSERT) for simplicity
@@ -1606,7 +1609,7 @@ class JobDatabase:
 
     def delete_user_details(self, user_id: int) -> bool:
         """Deletes a user's application details from the user_details table."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("DELETE FROM user_details WHERE user_id = ?", (user_id,))
@@ -1627,7 +1630,7 @@ class OutreachDatabase:
 
     def init_db(self):
         """Initializes the outreach database tables if they don't exist."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
 
         # Contacts Table
@@ -1730,7 +1733,7 @@ class OutreachDatabase:
 
     def get_outreach_stats(self, user_id: int) -> Dict[str, Any]:
         """Retrieves key statistics for the outreach dashboard."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         stats = {}
         try:
@@ -1744,7 +1747,7 @@ class OutreachDatabase:
 
     def add_campaign(self, user_id: int, data: Dict) -> Optional[int]:
         """Adds a new campaign to the database."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -1767,7 +1770,7 @@ class OutreachDatabase:
 
     def update_campaign_status(self, campaign_id: int, user_id: int, status: str) -> bool:
         """Updates the status of a campaign (e.g., to 'active')."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("UPDATE campaigns SET status = ? WHERE id = ? AND user_id = ?", (status, campaign_id, user_id))
@@ -1778,7 +1781,7 @@ class OutreachDatabase:
 
     def delete_campaign(self, campaign_id: int, user_id: int) -> bool:
         """Deletes a campaign."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("DELETE FROM campaigns WHERE id = ? AND user_id = ?", (campaign_id, user_id))
@@ -1789,7 +1792,7 @@ class OutreachDatabase:
 
     def get_templates_by_user(self, user_id: int) -> List[Dict]:
         """Retrieves all templates for a specific user."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         try:
@@ -1801,7 +1804,7 @@ class OutreachDatabase:
 
     def add_template(self, user_id: int, data: Dict) -> Optional[int]:
         """Adds a new template to the database."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -1826,7 +1829,7 @@ class OutreachDatabase:
 
     def get_template_by_id(self, template_id: int, user_id: int) -> Optional[Dict]:
         """Retrieves a single template by its ID for a specific user."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         try:
@@ -1841,7 +1844,7 @@ class OutreachDatabase:
 
     def update_template(self, template_id: int, user_id: int, data: Dict) -> bool:
         """Updates an existing template."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -1868,7 +1871,7 @@ class OutreachDatabase:
 
     def delete_template(self, template_id: int, user_id: int) -> bool:
         """Deletes a template from the database."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("DELETE FROM templates WHERE id = ? AND user_id = ?", (template_id, user_id))
@@ -1882,7 +1885,7 @@ class OutreachDatabase:
 
     def add_global_contacts(self, contacts: List[Dict]) -> int:
         """Adds a list of contact dictionaries to the global contacts table, ignoring duplicates."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         inserted_count = 0
         try:
@@ -1910,7 +1913,7 @@ class OutreachDatabase:
         Searches global contacts for keywords and copies matches to a user's personal contacts.
         Returns the number of new contacts added.
         """
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         
         # Build the search query for global contacts
@@ -1939,7 +1942,7 @@ class OutreachDatabase:
 
     def add_contact(self, user_id: int, data: Dict) -> bool:
         """Adds a new contact, avoiding duplicates based on LinkedIn URL."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -1962,7 +1965,7 @@ class OutreachDatabase:
 
     def get_contacts_by_user(self, user_id: int) -> List[Dict]:
         """Retrieves all contacts for a specific user."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         try:
@@ -1974,7 +1977,7 @@ class OutreachDatabase:
 
     def clear_global_contacts(self) -> int:
         """Deletes all records from the global_hiring_contacts table."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("DELETE FROM global_hiring_contacts")
@@ -1986,7 +1989,7 @@ class OutreachDatabase:
 
     def delete_contact(self, contact_id: int, user_id: int) -> bool:
         """Deletes a single personal contact for a specific user."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("DELETE FROM contacts WHERE id = ? AND user_id = ?", (contact_id, user_id))
@@ -1997,7 +2000,7 @@ class OutreachDatabase:
 
     def delete_all_contacts_for_user(self, user_id: int) -> int:
         """Deletes all personal contacts for a specific user."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("DELETE FROM contacts WHERE user_id = ?", (user_id,))
@@ -2009,7 +2012,7 @@ class OutreachDatabase:
 
     def update_contact_note(self, contact_id: int, user_id: int, note: str) -> bool:
         """Updates the note for a specific contact."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("UPDATE contacts SET notes = ? WHERE id = ? AND user_id = ?", (note, contact_id, user_id))
@@ -2021,7 +2024,7 @@ class OutreachDatabase:
 
     def get_campaigns_with_analytics(self, user_id: int) -> List[Dict]:
         """Retrieves all campaigns for a user, enriched with analytics from outreach_logs."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         try:
@@ -4580,7 +4583,7 @@ def assisted_apply_task(user_id: int, job_id: int):
     Uses a pre-existing browser profile if configured by the user, to maintain login sessions.
     """
     db = JobDatabase()
-    conn = sqlite3.connect(db.db_path)
+    conn = sqlite3.connect(db.db_path, timeout=10)
     conn.row_factory = sqlite3.Row # Use row_factory for dict-like access
     cursor = conn.cursor()
 
@@ -4698,7 +4701,7 @@ def assisted_apply_task(user_id: int, job_id: int):
 @celery.task(name='app.scheduled_job_hunt_for_all_users')
 def scheduled_job_hunt_for_all_users():
     db = JobDatabase()
-    conn = sqlite3.connect(db.db_path)
+    conn = sqlite3.connect(db.db_path, timeout=10)
     cursor = conn.cursor()
     cursor.execute("SELECT id, username FROM users")
     users = cursor.fetchall()
