@@ -94,6 +94,7 @@ from roadmap_service import RoadmapService
 from ai_utils import safe_ai_request
 from learning_models import LearningPath, LearningModule, UserLearningProgress
 from extensions import db
+from auth_middleware import require_role
 
 if os.environ.get('ENABLE_GEVENT_PATCH', '0') == '1':
     gevent.monkey.patch_all(ssl=False)
@@ -554,7 +555,6 @@ class Job:
         }
 
 class User(UserMixin):
-    def __init__(self, id, username, password_hash, email_recipients='', send_excel_attachment=True):
     def __init__(self, id, username, password_hash, role='seeker', email_recipients='', send_excel_attachment=True):
         self.id = id
         self.username = username
@@ -818,8 +818,7 @@ class JobDatabase:
             logger.info("RUN_JOB_HASH_MIGRATION=1 detected; starting job_hash migration...")
             self.migrate_job_hashes_normalized()
 
-    def add_user(self, username, password_hash):
-    def add_user(self, username, password_hash, role='seeker'):
+    def add_user(self, username: str, password_hash: str, role: str = 'seeker') -> Optional[int]:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         try:
@@ -832,7 +831,7 @@ class JobDatabase:
         finally:
             conn.close()
 
-    def add_job(self, job: Job, user_id: Optional[int] = None):
+    def add_job(self, job: Job, user_id: Optional[int] = None, posted_by_recruiter_id: Optional[int] = None):
         """Adds a job to the database with deduplication and user association."""
         # The hash must be unique per user for the same job to allow multiple users to track it.
         norm = f"{normalize_for_hash(job.title)}|{normalize_for_hash(job.company)}|{normalize_for_hash(job.location)}|{user_id}"
@@ -846,10 +845,9 @@ class JobDatabase:
                 (job_hash, title, company, location, salary, link, description,
                  keywords, skills, experience, job_type, posted_date, source,
                  relevance_score, found_date, user_id, status, notes, deadline,
-                 keywords, skills, experience, job_type, posted_date, source, relevance_score, 
-                 found_date, user_id, status, notes, deadline, posted_by_recruiter_id,
+                 posted_by_recruiter_id,
                  min_experience_years, max_experience_years, extracted_tools, extracted_soft_skills, user_feedback)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 job_hash,  # job_hash
                 job.title,  # title
@@ -870,12 +868,12 @@ class JobDatabase:
                 'new',  # status
                 '',  # notes
                 job.deadline,  # deadline
-                job.deadline,  # deadline
+                posted_by_recruiter_id,  # posted_by_recruiter_id
                 job.min_experience_years,  # min_experience_years
                 job.max_experience_years,  # max_experience_years
                 ', '.join(job.extracted_tools),  # extracted_tools
                 ', '.join(job.extracted_soft_skills),  # extracted_soft_skills
-                job.user_feedback if job.user_feedback else ''  # user_feedback
+                job.user_feedback if job.user_feedback else '',  # user_feedback
             ))
             conn.commit()
             if cursor.rowcount > 0:
@@ -899,8 +897,7 @@ class JobDatabase:
         except sqlite3.OperationalError as e:
             logger.error(f"SQLite Operational Error (likely schema mismatch during job insert): {e}.")
             # Log with the corrected order for accurate debugging
-            correct_values = (job_hash, job.title, job.company, job.location, job.salary, job.link, job.description, ', '.join(job.keywords), ', '.join(job.skills), job.experience, job.job_type, job.posted_date, job.source, job.relevance_score, datetime.datetime.now().isoformat(), user_id, 'new', '', job.deadline, job.min_experience_years, job.max_experience_years, ', '.join(job.extracted_tools), ', '.join(job.extracted_soft_skills), job.user_feedback if job.user_feedback else '')
-            correct_values = (job_hash, job.title, job.company, job.location, job.salary, job.link, job.description, ', '.join(job.keywords), ', '.join(job.skills), job.experience, job.job_type, job.posted_date, job.source, job.relevance_score, datetime.datetime.now().isoformat(), user_id, 'new', '', job.deadline, None, job.min_experience_years, job.max_experience_years, ', '.join(job.extracted_tools), ', '.join(job.extracted_soft_skills), job.user_feedback if job.user_feedback else '')
+            correct_values = (job_hash, job.title, job.company, job.location, job.salary, job.link, job.description, ', '.join(job.keywords), ', '.join(job.skills), job.experience, job.job_type, job.posted_date, job.source, job.relevance_score, datetime.datetime.now().isoformat(), user_id, 'new', '', job.deadline, posted_by_recruiter_id, job.min_experience_years, job.max_experience_years, ', '.join(job.extracted_tools), ', '.join(job.extracted_soft_skills), job.user_feedback if job.user_feedback else '')
             logger.error("Attempting to insert values: %s", correct_values)
             return False
         except Exception as e:
@@ -923,7 +920,7 @@ class JobDatabase:
             id, job_hash, title, company, location, salary, link, description,
             keywords, skills, experience, job_type, posted_date, source,
             relevance_score, found_date, applied, status, user_id, notes, deadline,
-            relevance_score, found_date, applied, status, user_id, notes, deadline, posted_by_recruiter_id,
+            posted_by_recruiter_id,
             min_experience_years, max_experience_years, extracted_tools, extracted_soft_skills, user_feedback
         """
         query = f"SELECT {query_columns} FROM jobs WHERE user_id = ?"
@@ -4411,27 +4408,25 @@ class SmartEmailer:
                     
                     <div class="jobs-section">
                         <h2>🎯 Top Job Matches</h2>
-                        {''.join(f'''
-<div class="job-card">
-    <div class="relevance-badge">{job.relevance_score:.0f}% Match</div>
+                        {''.join(
+'''<div class="job-card">
+    <div class="relevance-badge">''' + str(int(job.relevance_score)) + '''% Match</div>
     <div class="job-title">
-        {f'<a href="{job.link}" target="_blank">{job.title}</a>' if job.title and job.title != 'N/A' and job.link and job.link != 'N/A' else (job.title if job.title and job.title != 'N/A' else '')}
+        ''' + (('<a href="' + str(job.link) + '" target="_blank">' + str(job.title) + '</a>') if job.title and job.title != 'N/A' and job.link and job.link != 'N/A' else (str(job.title) if job.title and job.title != 'N/A' else '')) + '''
     </div>
-    <div class="job-company">{job.company}</div>
+    <div class="job-company">''' + str(job.company) + '''</div>
     <div class="job-meta">
-        {f'<span class="job-meta-item">📍 {job.location}</span>' if job.location and job.location != 'N/A' else ''}
-        {f'<span class="job-meta-item">💰 {job.salary}</span>' if job.salary and job.salary != 'N/A' else ''}
-        {f'<span class="job-meta-item">👨‍💼 {job.experience}</span>' if job.experience and job.experience != 'N/A' else ''}
-        {f'<span class="job-meta-item">🔗 {job.source}</span>' if job.source and job.source != 'N/A' else ''}
-        {f'<span class="job-meta-item">📅 {job.posted_date}</span>' if job.posted_date and job.posted_date != 'N/A' else ''}
+        ''' + (('<span class="job-meta-item">📍 ' + str(job.location) + '</span>') if job.location and job.location != 'N/A' else '') + '''
+        ''' + (('<span class="job-meta-item">💰 ' + str(job.salary) + '</span>') if job.salary and job.salary != 'N/A' else '') + '''
+        ''' + (('<span class="job-meta-item">👨‍💼 ' + str(job.experience) + '</span>') if job.experience and job.experience != 'N/A' else '') + '''
+        ''' + (('<span class="job-meta-item">🔗 ' + str(job.source) + '</span>') if job.source and job.source != 'N/A' else '') + '''
+        ''' + (('<span class="job-meta-item">📅 ' + str(job.posted_date) + '</span>') if job.posted_date and job.posted_date != 'N/A' else '') + '''
     </div>
     <div class="job-description">
-        {job.description[:300]}{"..." if len(job.description) > 300 else ""}
+        ''' + str(job.description[:300]) + ('''...''' if len(job.description) > 300 else '''''') + '''
     </div>
-    {f'''<div class="tag-container">
-        {' '.join(f'<span class="tag">{s}</span>' for s in (job.skills + job.extracted_tools)[:6])}
-    </div>''' if job.skills or job.extracted_tools else ''}
-    <a href="{job.link}" class="btn" target="_blank">Apply Now →</a>
+    ''' + (('<div class="tag-container">' + ' '.join('<span class="tag">' + s + '</span>' for s in (job.skills + job.extracted_tools)[:6]) + '</div>') if job.skills or job.extracted_tools else '') + '''
+    <a href="''' + str(job.link) + '''" class="btn" target="_blank">Apply Now →</a>
 </div>
 ''' for job in top_jobs)}
                     </div>
@@ -4742,7 +4737,6 @@ def register():
         role = request.form.get('role', 'seeker') # Get role from form
         password_hash = generate_password_hash(password)
         db = JobDatabase()
-        user_id = db.add_user(username, password_hash)
         user_id = db.add_user(username, password_hash, role)
         if user_id:
             flash('Registration successful! Please log in.', 'success')
@@ -6488,6 +6482,51 @@ def jobs():
     except Exception as e:
         logger.error(f"Failed to fetch jobs: {e}")
         return jsonify({'error': 'Failed to fetch jobs'}), 500
+
+@app.route('/recruiter/post-job')
+@login_required
+@require_role('recruiter')
+def recruiter_post_job():
+    return render_template('post_job.html')
+
+@app.route('/api/jobs', methods=['POST'])
+@login_required
+@require_role('recruiter')
+def api_post_job():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        title = data.get('title', '').strip()
+        company = data.get('company', '').strip()
+        if not title or not company:
+            return jsonify({'error': 'Title and company are required'}), 400
+
+        job = Job(
+            title=title,
+            company=company,
+            location=data.get('location', '').strip(),
+            job_type=data.get('job_type', 'Full-time').strip(),
+            description=data.get('description', '').strip(),
+            salary=data.get('salary_range', '').strip() or 'Not specified',
+            deadline=data.get('deadline', '').strip() or 'N/A',
+            skills=data.get('skills', []),
+            keywords=[],
+            experience='',
+            link='',
+            source='Recruiter',
+            posted_date=datetime.datetime.now().isoformat(),
+            job_hash='',
+        )
+
+        db = JobDatabase()
+        db.add_job(job, user_id=current_user.id, posted_by_recruiter_id=current_user.id)
+
+        return jsonify({'message': 'Job posted successfully'}), 201
+    except Exception as e:
+        logger.error(f"Failed to post job: {e}")
+        return jsonify({'error': 'Failed to post job'}), 500
 
 @app.route('/api/analyze_skill_gap', methods=['POST'])
 @login_required
