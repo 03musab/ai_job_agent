@@ -554,6 +554,57 @@ class Job:
             'user_feedback': self.user_feedback
         }
 
+@dataclass
+class Company:
+    id: Optional[int] = None
+    recruiter_id: Optional[int] = None
+    company_name: Optional[str] = None
+    logo: Optional[str] = None
+    website: Optional[str] = None
+    description: Optional[str] = None
+    industry: Optional[str] = None
+    company_size: Optional[str] = None
+    headquarters: Optional[str] = None
+    founded: Optional[int] = None
+    linkedin: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'recruiter_id': self.recruiter_id,
+            'company_name': self.company_name,
+            'logo': self.logo,
+            'website': self.website,
+            'description': self.description,
+            'industry': self.industry,
+            'company_size': self.company_size,
+            'headquarters': self.headquarters,
+            'founded': self.founded,
+            'linkedin': self.linkedin,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at,
+        }
+
+    @staticmethod
+    def from_row(row: dict):
+        return Company(
+            id=row.get('id'),
+            recruiter_id=row.get('recruiter_id'),
+            company_name=row.get('company_name'),
+            logo=row.get('logo'),
+            website=row.get('website'),
+            description=row.get('description'),
+            industry=row.get('industry'),
+            company_size=row.get('company_size'),
+            headquarters=row.get('headquarters'),
+            founded=row.get('founded'),
+            linkedin=row.get('linkedin'),
+            created_at=row.get('created_at'),
+            updated_at=row.get('updated_at'),
+        )
+
 class User(UserMixin):
     def __init__(self, id, username, password_hash, role='seeker', email_recipients='', send_excel_attachment=True):
         self.id = id
@@ -808,6 +859,25 @@ class JobDatabase:
                 UNIQUE(user_id, job_id), -- Only one feedback per job per user
                 FOREIGN KEY(user_id) REFERENCES users(id),
                 FOREIGN KEY(job_id) REFERENCES jobs(id)
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS companies (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                recruiter_id INTEGER UNIQUE NOT NULL,
+                company_name TEXT NOT NULL,
+                logo TEXT,
+                website TEXT,
+                description TEXT,
+                industry TEXT,
+                company_size TEXT,
+                headquarters TEXT,
+                founded INTEGER,
+                linkedin TEXT,
+                created_at TEXT,
+                updated_at TEXT,
+                FOREIGN KEY(recruiter_id) REFERENCES users(id)
             )
         ''')
 
@@ -1617,6 +1687,95 @@ class JobDatabase:
             return cursor.rowcount > 0
         except Exception as e:
             logger.error(f"Error deleting user details for user {user_id}: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def save_company(self, recruiter_id: int, data: Dict) -> bool:
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        cursor = conn.cursor()
+        try:
+            existing = self.get_company_by_recruiter(recruiter_id)
+            now = datetime.datetime.now().isoformat()
+            if existing:
+                cursor.execute('''
+                    UPDATE companies SET
+                        company_name = ?, logo = ?, website = ?, description = ?,
+                        industry = ?, company_size = ?, headquarters = ?,
+                        founded = ?, linkedin = ?, updated_at = ?
+                    WHERE recruiter_id = ?
+                ''', (
+                    data.get('company_name', '').strip(),
+                    data.get('logo', '').strip(),
+                    data.get('website', '').strip(),
+                    data.get('description', '').strip(),
+                    data.get('industry', '').strip(),
+                    data.get('company_size', '').strip(),
+                    data.get('headquarters', '').strip(),
+                    data.get('founded'),
+                    data.get('linkedin', '').strip(),
+                    now,
+                    recruiter_id,
+                ))
+            else:
+                cursor.execute('''
+                    INSERT INTO companies (
+                        recruiter_id, company_name, logo, website, description,
+                        industry, company_size, headquarters, founded, linkedin,
+                        created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    recruiter_id,
+                    data.get('company_name', '').strip(),
+                    data.get('logo', '').strip(),
+                    data.get('website', '').strip(),
+                    data.get('description', '').strip(),
+                    data.get('industry', '').strip(),
+                    data.get('company_size', '').strip(),
+                    data.get('headquarters', '').strip(),
+                    data.get('founded'),
+                    data.get('linkedin', '').strip(),
+                    now,
+                    now,
+                ))
+            conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Error saving company for recruiter {recruiter_id}: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def get_company_by_recruiter(self, recruiter_id: int) -> Optional[Dict]:
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "SELECT * FROM companies WHERE recruiter_id = ?",
+                (recruiter_id,)
+            )
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+            return None
+        except Exception as e:
+            logger.error(f"Error fetching company for recruiter {recruiter_id}: {e}")
+            return None
+        finally:
+            conn.close()
+
+    def delete_company(self, recruiter_id: int) -> bool:
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "DELETE FROM companies WHERE recruiter_id = ?",
+                (recruiter_id,)
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error deleting company for recruiter {recruiter_id}: {e}")
             return False
         finally:
             conn.close()
