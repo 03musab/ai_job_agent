@@ -6819,7 +6819,7 @@ def upload_company_logo(recruiter_id):
         logo_path = os.path.join(recruiter_logo_dir, unique_name)
         file.save(logo_path)
 
-        db.save_company(recruiter_id, {'logo': logo_path, **existing_company})
+        db.save_company(recruiter_id, {**existing_company, 'logo': logo_path})
         company = db.get_company_by_recruiter(recruiter_id)
 
         return jsonify({'success': True, 'message': 'Logo uploaded.', 'data': company})

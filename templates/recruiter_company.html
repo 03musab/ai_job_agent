@@ -392,6 +392,9 @@ function companySettings() {
         this.logoError = 'File must be under 5 MB.';
         return;
       }
+      if (this.logoPreview && this.logoPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(this.logoPreview);
+      }
       this.logoFile = file;
       this.logoPreview = URL.createObjectURL(file);
     },
@@ -407,6 +410,9 @@ function companySettings() {
         const data = await res.json();
         if (data.success) {
           this.company = data.data;
+          if (this.logoPreview && this.logoPreview.startsWith('blob:')) {
+            URL.revokeObjectURL(this.logoPreview);
+          }
           this.logoPreview = data.data.logo || null;
           this.logoFile = null;
           this.showToast('Logo uploaded.', 'success');
@@ -430,6 +436,9 @@ function companySettings() {
         const data = await res.json();
         if (data.success) {
           this.company = data.data;
+          if (this.logoPreview && this.logoPreview.startsWith('blob:')) {
+            URL.revokeObjectURL(this.logoPreview);
+          }
           this.logoPreview = null;
           this.logoFile = null;
           this.showToast('Logo removed.', 'success');
@@ -447,13 +456,13 @@ function companySettings() {
     showToast(message, type = 'info') {
       const container = document.getElementById('toast-container');
       if (!container) return;
+      const darkMode = document.body.classList.contains('dark-theme');
       const toast = document.createElement('div');
       const colors = {
         success: darkMode ? 'bg-green-900/50 text-green-300 border-green-700' : 'bg-green-50 text-green-800 border-green-200',
         error: darkMode ? 'bg-red-900/50 text-red-300 border-red-700' : 'bg-red-50 text-red-800 border-red-200',
         info: darkMode ? 'bg-blue-900/50 text-blue-300 border-blue-700' : 'bg-blue-50 text-blue-800 border-blue-200',
       };
-      const darkMode = document.body.classList.contains('dark-theme');
       toast.className = `px-4 py-3 rounded-lg border shadow-lg text-sm font-medium ${colors[type] || colors.info}`;
       toast.style.animation = 'companyToastIn 0.3s ease-out forwards';
       toast.textContent = message;
