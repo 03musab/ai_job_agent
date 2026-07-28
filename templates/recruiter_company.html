@@ -112,7 +112,6 @@
                  :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Company Name *</label>
           <input type="text" id="company_name" x-model="form.company_name" required
                  class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
-                 style="border-radius: 0.25rem;"
                  :class="errors.company_name ? 'border-red-400 focus:ring-red-400' : (darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500')" />
           <p x-show="errors.company_name" x-text="errors.company_name" class="mt-1 text-xs text-red-500"></p>
         </div>
@@ -123,7 +122,6 @@
                  :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Website</label>
           <input type="url" id="website" x-model="form.website" placeholder="https://"
                  class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
-                 style="border-radius: 0.25rem;"
                  :class="errors.website ? 'border-red-400 focus:ring-red-400' : (darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500')" />
           <p x-show="errors.website" x-text="errors.website" class="mt-1 text-xs text-red-500"></p>
         </div>
@@ -134,7 +132,6 @@
                  :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Industry</label>
           <input type="text" id="industry" x-model="form.industry" placeholder="e.g., Technology, Healthcare"
                  class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
-                 style="border-radius: 0.25rem;"
                  :class="darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500'" />
         </div>
 
@@ -144,7 +141,6 @@
                  :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Company Size</label>
           <select id="company_size" x-model="form.company_size"
                   class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
-                  style="border-radius: 0.25rem;"
                   :class="darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500'">
             <option value="">Select size...</option>
             <option value="1-10">1–10 employees</option>
@@ -164,7 +160,6 @@
                  :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Headquarters</label>
           <input type="text" id="headquarters" x-model="form.headquarters" placeholder="e.g., San Francisco, CA"
                  class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
-                 style="border-radius: 0.25rem;"
                  :class="darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500'" />
         </div>
 
@@ -174,7 +169,6 @@
                  :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Founded Year</label>
           <input type="number" id="founded" x-model="form.founded" placeholder="e.g., 2020" min="1800" max="2026"
                  class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
-                 style="border-radius: 0.25rem;"
                  :class="errors.founded ? 'border-red-400 focus:ring-red-400' : (darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500')" />
           <p x-show="errors.founded" x-text="errors.founded" class="mt-1 text-xs text-red-500"></p>
         </div>
@@ -185,7 +179,6 @@
                  :class="darkMode ? 'text-gray-300' : 'text-gray-700'">LinkedIn URL</label>
           <input type="url" id="linkedin" x-model="form.linkedin" placeholder="https://linkedin.com/company/..."
                  class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
-                 style="border-radius: 0.25rem;"
                  :class="errors.linkedin ? 'border-red-400 focus:ring-red-400' : (darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500')" />
           <p x-show="errors.linkedin" x-text="errors.linkedin" class="mt-1 text-xs text-red-500"></p>
         </div>
@@ -198,7 +191,6 @@
         <textarea id="description" x-model="form.description" rows="4" maxlength="500"
                   placeholder="Tell candidates about your company..."
                   class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none resize-none"
-                  style="border-radius: 0.25rem;"
                   :class="errors.description ? 'border-red-400 focus:ring-red-400' : (darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500')"></textarea>
         <div class="flex justify-between mt-1">
           <p x-show="errors.description" x-text="errors.description" class="text-xs text-red-500"></p>
@@ -233,6 +225,8 @@
     </form>
   </div>
 
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-6 right-6 z-[1000] flex flex-col gap-2"></div>
 </div>
 {% endblock %}
 
@@ -366,7 +360,7 @@ function companySettings() {
           this.isEditing = true;
           this.showToast(data.message, 'success');
         } else {
-          this.serverErrors = data.errors || [data.message];
+          this.serverErrors = data.errors ? Object.values(data.errors) : [data.message];
           this.showToast(data.message || 'Failed to save company.', 'error');
         }
       } catch (e) {
