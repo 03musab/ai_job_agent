@@ -95,6 +95,7 @@ from ai_utils import safe_ai_request
 from learning_models import LearningPath, LearningModule, UserLearningProgress
 from extensions import db
 from auth_middleware import require_role
+from company_validation import validate_company, sanitize_company_data
 
 if os.environ.get('ENABLE_GEVENT_PATCH', '0') == '1':
     gevent.monkey.patch_all(ssl=False)
@@ -6690,6 +6691,81 @@ def api_post_job():
     except Exception as e:
         logger.error(f"Failed to post job: {e}")
         return jsonify({'error': 'Failed to post job'}), 500
+
+@app.route('/api/recruiters/<int:recruiter_id>/company', methods=['GET'])
+@login_required
+@require_role('recruiter')
+def get_company(recruiter_id):
+    if recruiter_id != current_user.id:
+        return jsonify({'success': False, 'message': 'Access denied. You can only access your own company profile.'}), 403
+    try:
+        db = JobDatabase()
+        company = db.get_company_by_recruiter(recruiter_id)
+        if company:
+            return jsonify({'success': True, 'data': company})
+        return jsonify({'success': True, 'data': None})
+    except Exception as e:
+        logger.error(f"Failed to fetch company for recruiter {recruiter_id}: {e}")
+        return jsonify({'success': False, 'message': 'Failed to fetch company profile.'}), 500
+
+@app.route('/api/recruiters/<int:recruiter_id>/company', methods=['POST'])
+@login_required
+@require_role('recruiter')
+def create_company(recruiter_id):
+    if recruiter_id != current_user.id:
+        return jsonify({'success': False, 'message': 'Access denied. You can only create your own company profile.'}), 403
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'No data provided.'}), 400
+
+        errors = validate_company(data)
+        if errors:
+            return jsonify({'success': False, 'message': 'Validation failed.', 'errors': errors}), 400
+
+        db = JobDatabase()
+        existing = db.get_company_by_recruiter(recruiter_id)
+        if existing:
+            return jsonify({'success': False, 'message': 'Company profile already exists. Use PUT to update.'}), 409
+
+        cleaned = sanitize_company_data(data)
+        if db.save_company(recruiter_id, cleaned):
+            company = db.get_company_by_recruiter(recruiter_id)
+            return jsonify({'success': True, 'message': 'Company profile created.', 'data': company}), 201
+        return jsonify({'success': False, 'message': 'Failed to create company profile.'}), 500
+    except Exception as e:
+        logger.error(f"Failed to create company for recruiter {recruiter_id}: {e}")
+        return jsonify({'success': False, 'message': 'Failed to create company profile.'}), 500
+
+@app.route('/api/recruiters/<int:recruiter_id>/company', methods=['PUT'])
+@login_required
+@require_role('recruiter')
+def update_company(recruiter_id):
+    if recruiter_id != current_user.id:
+        return jsonify({'success': False, 'message': 'Access denied. You can only update your own company profile.'}), 403
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'No data provided.'}), 400
+
+        db = JobDatabase()
+        existing = db.get_company_by_recruiter(recruiter_id)
+        if not existing:
+            return jsonify({'success': False, 'message': 'Company profile not found. Use POST to create.'}), 404
+
+        merged = {**existing, **{k: v for k, v in data.items() if v is not None and k != 'id' and k != 'recruiter_id'}}
+        errors = validate_company(merged)
+        if errors:
+            return jsonify({'success': False, 'message': 'Validation failed.', 'errors': errors}), 400
+
+        cleaned = sanitize_company_data(merged)
+        if db.save_company(recruiter_id, cleaned):
+            company = db.get_company_by_recruiter(recruiter_id)
+            return jsonify({'success': True, 'message': 'Company profile updated.', 'data': company})
+        return jsonify({'success': False, 'message': 'Failed to update company profile.'}), 500
+    except Exception as e:
+        logger.error(f"Failed to update company for recruiter {recruiter_id}: {e}")
+        return jsonify({'success': False, 'message': 'Failed to update company profile.'}), 500
 
 @app.route('/api/analyze_skill_gap', methods=['POST'])
 @login_required
