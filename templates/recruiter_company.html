@@ -1,0 +1,481 @@
+{% extends "base.html" %}
+
+{% block title %}Company Settings — JobSnap{% endblock %}
+
+{% block body_class %}light-theme{% endblock %}
+
+{% block content %}
+<div id="company-page" x-data="companySettings()" x-init="init()" class="max-w-4xl mx-auto px-4 py-8">
+
+  <!-- Page Loader -->
+  <div x-show="loading" class="fixed inset-0 bg-white/80 z-[9999] flex items-center justify-center"
+       :class="darkMode ? '!bg-gray-900/80' : ''">
+    <div class="flex flex-col items-center gap-3">
+      <div class="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-sm text-gray-500" :class="darkMode ? '!text-gray-400' : ''">Loading...</p>
+    </div>
+  </div>
+
+  <!-- Page Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold" :class="darkMode ? 'text-white' : 'text-gray-900'">Company Settings</h1>
+    <p class="mt-1 text-sm" :class="darkMode ? 'text-gray-400' : 'text-gray-500'">Manage your company profile and branding.</p>
+  </div>
+
+  <!-- Error Banner -->
+  <div x-show="pageError" class="mb-6 p-4 rounded-lg"
+       :class="darkMode ? 'bg-red-900/30 border border-red-800 text-red-300' : 'bg-red-50 border border-red-200 text-red-700'">
+    <span x-text="pageError"></span>
+  </div>
+
+  <!-- Empty State -->
+  <div x-show="!loading && !pageError && !company" class="text-center py-16"
+       :class="darkMode ? 'bg-gray-800/50' : 'bg-white'"
+       class="rounded-xl shadow-lg border" style="border-radius: 0.5rem;"
+       :class="darkMode ? 'border-gray-700' : 'border-gray-200'">
+    <div class="text-5xl mb-4">🏢</div>
+    <h2 class="text-xl font-semibold mb-2" :class="darkMode ? 'text-white' : 'text-gray-900'">No company profile yet</h2>
+    <p class="mb-6" :class="darkMode ? 'text-gray-400' : 'text-gray-500'">Create your company profile to attract better candidates.</p>
+    <button @click="startCreate()"
+            class="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all duration-200">
+      Create Company Profile
+    </button>
+  </div>
+
+  <!-- Company Profile Card -->
+  <div x-show="showForm" x-cloak
+       :class="darkMode ? 'bg-gray-800/90 border-gray-700' : 'bg-white border-gray-200'"
+       class="rounded-xl shadow-lg border p-6 md:p-8"
+       style="border-radius: 0.5rem;">
+
+    <!-- Section: Logo -->
+    <div class="mb-10">
+      <h2 class="text-lg font-semibold mb-4" :class="darkMode ? 'text-white' : 'text-gray-900'">Company Logo</h2>
+      <div class="flex items-start gap-6 flex-wrap">
+        <!-- Current Logo Preview -->
+        <div class="w-24 h-24 rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden shrink-0"
+             :class="logoPreview ? (darkMode ? 'border-gray-600' : 'border-gray-300') : (darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50')">
+          <img x-show="logoPreview" :src="logoPreview" class="w-full h-full object-contain" alt="Logo" />
+          <span x-show="!logoPreview" class="text-2xl" :class="darkMode ? 'text-gray-600' : 'text-gray-400'">🏢</span>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200"
+                 :class="darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+            </svg>
+            Choose File
+            <input type="file" accept=".png,.jpg,.jpeg,.svg,.webp" @change="handleLogoSelect($event)" class="hidden" />
+          </label>
+          <p class="text-xs" :class="darkMode ? 'text-gray-500' : 'text-gray-400'">PNG, JPG, SVG, WEBP — max 5 MB</p>
+          <div x-show="logoError" x-text="logoError" class="text-xs text-red-500"></div>
+        </div>
+
+        <div class="flex gap-2">
+          <button x-show="logoFile" @click="uploadLogo()"
+                  :disabled="logoUploading"
+                  class="px-4 py-2 text-sm font-medium text-white rounded-lg transition-all duration-200"
+                  :class="logoUploading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'">
+            <span x-show="!logoUploading">Upload</span>
+            <span x-show="logoUploading" class="flex items-center gap-1">
+              <span class="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></span>
+              Uploading...
+            </span>
+          </button>
+          <button x-show="company && company.logo" @click="deleteLogo()"
+                  :disabled="logoDeleting"
+                  class="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200"
+                  :class="logoDeleting ? 'bg-red-200 text-red-400 cursor-not-allowed' : (darkMode ? 'bg-red-900/40 text-red-300 hover:bg-red-900/60' : 'bg-red-50 text-red-600 hover:bg-red-100')">
+            <span x-show="!logoDeleting">Remove</span>
+            <span x-show="logoDeleting" class="flex items-center gap-1">
+              <span class="w-3 h-3 border border-red-500 border-t-transparent rounded-full animate-spin"></span>
+              Removing...
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <hr :class="darkMode ? 'border-gray-700' : 'border-gray-200'" class="mb-10" />
+
+    <!-- Section: Company Details -->
+    <h2 class="text-lg font-semibold mb-5" :class="darkMode ? 'text-white' : 'text-gray-900'">
+      <span x-text="isEditing ? 'Edit Company Profile' : 'Create Company Profile'"></span>
+    </h2>
+
+    <form @submit.prevent="submitCompany()" class="space-y-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Company Name -->
+        <div>
+          <label for="company_name" class="block text-sm font-medium mb-1"
+                 :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Company Name *</label>
+          <input type="text" id="company_name" x-model="form.company_name" required
+                 class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
+                 style="border-radius: 0.25rem;"
+                 :class="errors.company_name ? 'border-red-400 focus:ring-red-400' : (darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500')" />
+          <p x-show="errors.company_name" x-text="errors.company_name" class="mt-1 text-xs text-red-500"></p>
+        </div>
+
+        <!-- Website -->
+        <div>
+          <label for="website" class="block text-sm font-medium mb-1"
+                 :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Website</label>
+          <input type="url" id="website" x-model="form.website" placeholder="https://"
+                 class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
+                 style="border-radius: 0.25rem;"
+                 :class="errors.website ? 'border-red-400 focus:ring-red-400' : (darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500')" />
+          <p x-show="errors.website" x-text="errors.website" class="mt-1 text-xs text-red-500"></p>
+        </div>
+
+        <!-- Industry -->
+        <div>
+          <label for="industry" class="block text-sm font-medium mb-1"
+                 :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Industry</label>
+          <input type="text" id="industry" x-model="form.industry" placeholder="e.g., Technology, Healthcare"
+                 class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
+                 style="border-radius: 0.25rem;"
+                 :class="darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500'" />
+        </div>
+
+        <!-- Company Size -->
+        <div>
+          <label for="company_size" class="block text-sm font-medium mb-1"
+                 :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Company Size</label>
+          <select id="company_size" x-model="form.company_size"
+                  class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
+                  style="border-radius: 0.25rem;"
+                  :class="darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500'">
+            <option value="">Select size...</option>
+            <option value="1-10">1–10 employees</option>
+            <option value="11-50">11–50 employees</option>
+            <option value="51-200">51–200 employees</option>
+            <option value="201-500">201–500 employees</option>
+            <option value="501-1000">501–1,000 employees</option>
+            <option value="1001-5000">1,001–5,000 employees</option>
+            <option value="5001-10000">5,001–10,000 employees</option>
+            <option value="10000+">10,000+ employees</option>
+          </select>
+        </div>
+
+        <!-- Headquarters -->
+        <div>
+          <label for="headquarters" class="block text-sm font-medium mb-1"
+                 :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Headquarters</label>
+          <input type="text" id="headquarters" x-model="form.headquarters" placeholder="e.g., San Francisco, CA"
+                 class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
+                 style="border-radius: 0.25rem;"
+                 :class="darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500'" />
+        </div>
+
+        <!-- Founded -->
+        <div>
+          <label for="founded" class="block text-sm font-medium mb-1"
+                 :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Founded Year</label>
+          <input type="number" id="founded" x-model="form.founded" placeholder="e.g., 2020" min="1800" max="2026"
+                 class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
+                 style="border-radius: 0.25rem;"
+                 :class="errors.founded ? 'border-red-400 focus:ring-red-400' : (darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500')" />
+          <p x-show="errors.founded" x-text="errors.founded" class="mt-1 text-xs text-red-500"></p>
+        </div>
+
+        <!-- LinkedIn -->
+        <div class="md:col-span-2">
+          <label for="linkedin" class="block text-sm font-medium mb-1"
+                 :class="darkMode ? 'text-gray-300' : 'text-gray-700'">LinkedIn URL</label>
+          <input type="url" id="linkedin" x-model="form.linkedin" placeholder="https://linkedin.com/company/..."
+                 class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
+                 style="border-radius: 0.25rem;"
+                 :class="errors.linkedin ? 'border-red-400 focus:ring-red-400' : (darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500')" />
+          <p x-show="errors.linkedin" x-text="errors.linkedin" class="mt-1 text-xs text-red-500"></p>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div>
+        <label for="description" class="block text-sm font-medium mb-1"
+               :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Description</label>
+        <textarea id="description" x-model="form.description" rows="4" maxlength="500"
+                  placeholder="Tell candidates about your company..."
+                  class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none resize-none"
+                  style="border-radius: 0.25rem;"
+                  :class="errors.description ? 'border-red-400 focus:ring-red-400' : (darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500')"></textarea>
+        <div class="flex justify-between mt-1">
+          <p x-show="errors.description" x-text="errors.description" class="text-xs text-red-500"></p>
+          <p class="text-xs ml-auto" :class="darkMode ? 'text-gray-500' : 'text-gray-400'">
+            <span x-text="(form.description || '').length"></span>/500
+          </p>
+        </div>
+      </div>
+
+      <!-- Server Errors -->
+      <div x-show="serverErrors.length" class="p-3 rounded-lg"
+           :class="darkMode ? 'bg-red-900/30 border border-red-800' : 'bg-red-50 border border-red-200'">
+        <template x-for="err in serverErrors" :key="err">
+          <p class="text-sm text-red-600" :class="darkMode ? '!text-red-400' : ''" x-text="err"></p>
+        </template>
+      </div>
+
+      <!-- Submit -->
+      <div class="pt-4 mt-6 border-t flex justify-end"
+           :class="darkMode ? 'border-gray-700' : 'border-gray-200'">
+        <button type="submit"
+                :disabled="submitting"
+                class="px-6 py-2.5 text-sm font-semibold text-white rounded-lg transition-all duration-200 disabled:cursor-not-allowed"
+                :class="submitting ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'">
+          <span x-show="!submitting" x-text="isEditing ? 'Save Changes' : 'Create Company Profile'"></span>
+          <span x-show="submitting" class="flex items-center gap-2">
+            <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            Saving...
+          </span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function companySettings() {
+  const recruiterId = {{ current_user.id }};
+  const apiBase = `/api/recruiters/${recruiterId}/company`;
+
+  return {
+    loading: true,
+    showForm: false,
+    isEditing: false,
+    pageError: '',
+
+    company: null,
+    form: {
+      company_name: '',
+      website: '',
+      description: '',
+      industry: '',
+      company_size: '',
+      headquarters: '',
+      founded: '',
+      linkedin: '',
+    },
+    errors: {},
+    serverErrors: [],
+    submitting: false,
+
+    logoFile: null,
+    logoPreview: null,
+    logoUploading: false,
+    logoDeleting: false,
+    logoError: '',
+
+    async init() {
+      try {
+        const res = await fetch(apiBase);
+        const data = await res.json();
+        if (data.success) {
+          if (data.data) {
+            this.company = data.data;
+            this.isEditing = true;
+            this.populateForm(data.data);
+            if (data.data.logo) {
+              this.logoPreview = data.data.logo;
+            }
+            this.showForm = true;
+          }
+        } else {
+          this.pageError = data.message || 'Failed to load company profile.';
+        }
+      } catch (e) {
+        this.pageError = 'Could not connect to server.';
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    populateForm(c) {
+      this.form = {
+        company_name: c.company_name || '',
+        website: c.website || '',
+        description: c.description || '',
+        industry: c.industry || '',
+        company_size: c.company_size || '',
+        headquarters: c.headquarters || '',
+        founded: c.founded !== null && c.founded !== undefined ? String(c.founded) : '',
+        linkedin: c.linkedin || '',
+      };
+    },
+
+    startCreate() {
+      this.isEditing = false;
+      this.company = null;
+      this.form = { company_name: '', website: '', description: '', industry: '', company_size: '', headquarters: '', founded: '', linkedin: '' };
+      this.errors = {};
+      this.serverErrors = [];
+      this.showForm = true;
+    },
+
+    validate() {
+      const e = {};
+      const name = (this.form.company_name || '').trim();
+      if (!name) e.company_name = 'Company name is required.';
+      else if (name.length < 2 || name.length > 100) e.company_name = 'Must be 2–100 characters.';
+
+      if (this.form.website && !/^https?:\/\/.+/i.test(this.form.website.trim()))
+        e.website = 'Enter a valid URL starting with http:// or https://.';
+
+      if (this.form.linkedin && !/^https?:\/\/.+/i.test(this.form.linkedin.trim()))
+        e.linkedin = 'Enter a valid URL starting with http:// or https://.';
+
+      if (this.form.founded) {
+        const y = parseInt(this.form.founded, 10);
+        if (isNaN(y) || y < 1800 || y > 2026) e.founded = 'Enter a valid year (1800–2026).';
+      }
+
+      const desc = (this.form.description || '').trim();
+      if (desc.length > 500) e.description = 'Max 500 characters.';
+
+      this.errors = e;
+      return Object.keys(e).length === 0;
+    },
+
+    async submitCompany() {
+      this.errors = {};
+      this.serverErrors = [];
+      if (!this.validate()) return;
+
+      this.submitting = true;
+      try {
+        const payload = {};
+        for (const [k, v] of Object.entries(this.form)) {
+          const val = String(v || '').trim();
+          if (val) payload[k] = val;
+          else if (k === 'founded') payload.founded = null;
+        }
+
+        const method = this.isEditing ? 'PUT' : 'POST';
+        const res = await fetch(apiBase, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          this.company = data.data;
+          this.isEditing = true;
+          this.showToast(data.message, 'success');
+        } else {
+          this.serverErrors = data.errors || [data.message];
+          this.showToast(data.message || 'Failed to save company.', 'error');
+        }
+      } catch (e) {
+        this.showToast('Could not connect to server.', 'error');
+      } finally {
+        this.submitting = false;
+      }
+    },
+
+    handleLogoSelect(event) {
+      this.logoError = '';
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const allowed = ['png', 'jpg', 'jpeg', 'svg', 'webp'];
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!allowed.includes(ext)) {
+        this.logoError = 'Invalid file type. Allowed: PNG, JPG, SVG, WEBP.';
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        this.logoError = 'File must be under 5 MB.';
+        return;
+      }
+      this.logoFile = file;
+      this.logoPreview = URL.createObjectURL(file);
+    },
+
+    async uploadLogo() {
+      if (!this.logoFile) return;
+      this.logoUploading = true;
+      this.logoError = '';
+      try {
+        const formData = new FormData();
+        formData.append('logo', this.logoFile);
+        const res = await fetch(`${apiBase}/logo`, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          this.company = data.data;
+          this.logoPreview = data.data.logo || null;
+          this.logoFile = null;
+          this.showToast('Logo uploaded.', 'success');
+        } else {
+          this.logoError = data.message;
+          this.showToast(data.message, 'error');
+        }
+      } catch (e) {
+        this.showToast('Could not upload logo.', 'error');
+      } finally {
+        this.logoUploading = false;
+      }
+    },
+
+    async deleteLogo() {
+      if (!this.company || !this.company.logo) return;
+      this.logoDeleting = true;
+      this.logoError = '';
+      try {
+        const res = await fetch(`${apiBase}/logo`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          this.company = data.data;
+          this.logoPreview = null;
+          this.logoFile = null;
+          this.showToast('Logo removed.', 'success');
+        } else {
+          this.logoError = data.message;
+          this.showToast(data.message, 'error');
+        }
+      } catch (e) {
+        this.showToast('Could not delete logo.', 'error');
+      } finally {
+        this.logoDeleting = false;
+      }
+    },
+
+    showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      const colors = {
+        success: darkMode ? 'bg-green-900/50 text-green-300 border-green-700' : 'bg-green-50 text-green-800 border-green-200',
+        error: darkMode ? 'bg-red-900/50 text-red-300 border-red-700' : 'bg-red-50 text-red-800 border-red-200',
+        info: darkMode ? 'bg-blue-900/50 text-blue-300 border-blue-700' : 'bg-blue-50 text-blue-800 border-blue-200',
+      };
+      const darkMode = document.body.classList.contains('dark-theme');
+      toast.className = `px-4 py-3 rounded-lg border shadow-lg text-sm font-medium ${colors[type] || colors.info}`;
+      toast.style.animation = 'companyToastIn 0.3s ease-out forwards';
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.animation = 'companyToastOut 0.3s ease-out forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    },
+  };
+}
+</script>
+
+<style>
+  [x-cloak] { display: none !important; }
+  @keyframes companyToastIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes companyToastOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-8px); }
+  }
+</style>
+{% endblock %}

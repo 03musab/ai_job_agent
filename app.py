@@ -6660,6 +6660,12 @@ def jobs():
 def recruiter_post_job():
     return render_template('post_job.html')
 
+@app.route('/recruiter/company')
+@login_required
+@require_role('recruiter')
+def recruiter_company():
+    return render_template('recruiter_company.html')
+
 @app.route('/api/jobs', methods=['POST'])
 @login_required
 @require_role('recruiter')
