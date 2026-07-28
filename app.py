@@ -14,6 +14,7 @@ import signal
 import sqlite3
 import sys
 import threading
+import uuid
 import smtplib
 import socket
 import time
@@ -94,7 +95,7 @@ from roadmap_service import RoadmapService
 from ai_utils import safe_ai_request
 from learning_models import LearningPath, LearningModule, UserLearningProgress
 from extensions import db
-from auth_middleware import require_role
+from auth_middleware import require_role, require_company_owner
 from company_validation import validate_company, sanitize_company_data
 
 if os.environ.get('ENABLE_GEVENT_PATCH', '0') == '1':
@@ -173,6 +174,12 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True) # Ensure the upload folder exists
 CSV_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, 'csv_repository')
 os.makedirs(CSV_UPLOAD_FOLDER, exist_ok=True)
+
+COMPANY_LOGO_FOLDER = os.path.join(UPLOAD_FOLDER, 'company-logos')
+os.makedirs(COMPANY_LOGO_FOLDER, exist_ok=True)
+app.config['COMPANY_LOGO_FOLDER'] = COMPANY_LOGO_FOLDER
+ALLOWED_LOGO_EXTENSIONS = {'png', 'jpg', 'jpeg', 'svg', 'webp'}
+MAX_LOGO_SIZE = 5 * 1024 * 1024  # 5MB
 
 # Use new style Celery config keys (lowercase without CELERY_ prefix), with fallback to old env vars
 broker_url = os.environ.get('broker_url') or os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
@@ -6695,9 +6702,8 @@ def api_post_job():
 @app.route('/api/recruiters/<int:recruiter_id>/company', methods=['GET'])
 @login_required
 @require_role('recruiter')
+@require_company_owner
 def get_company(recruiter_id):
-    if recruiter_id != current_user.id:
-        return jsonify({'success': False, 'message': 'Access denied. You can only access your own company profile.'}), 403
     try:
         db = JobDatabase()
         company = db.get_company_by_recruiter(recruiter_id)
@@ -6711,9 +6717,8 @@ def get_company(recruiter_id):
 @app.route('/api/recruiters/<int:recruiter_id>/company', methods=['POST'])
 @login_required
 @require_role('recruiter')
+@require_company_owner
 def create_company(recruiter_id):
-    if recruiter_id != current_user.id:
-        return jsonify({'success': False, 'message': 'Access denied. You can only create your own company profile.'}), 403
     try:
         data = request.get_json()
         if not data:
@@ -6740,9 +6745,8 @@ def create_company(recruiter_id):
 @app.route('/api/recruiters/<int:recruiter_id>/company', methods=['PUT'])
 @login_required
 @require_role('recruiter')
+@require_company_owner
 def update_company(recruiter_id):
-    if recruiter_id != current_user.id:
-        return jsonify({'success': False, 'message': 'Access denied. You can only update your own company profile.'}), 403
     try:
         data = request.get_json()
         if not data:
@@ -6766,6 +6770,83 @@ def update_company(recruiter_id):
     except Exception as e:
         logger.error(f"Failed to update company for recruiter {recruiter_id}: {e}")
         return jsonify({'success': False, 'message': 'Failed to update company profile.'}), 500
+
+@app.route('/api/recruiters/<int:recruiter_id>/company/logo', methods=['POST'])
+@login_required
+@require_role('recruiter')
+@require_company_owner
+def upload_company_logo(recruiter_id):
+    try:
+        if 'logo' not in request.files:
+            return jsonify({'success': False, 'message': 'No logo file provided.'}), 400
+
+        file = request.files['logo']
+        if not file or file.filename == '':
+            return jsonify({'success': False, 'message': 'No logo file selected.'}), 400
+
+        ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+        if ext not in ALLOWED_LOGO_EXTENSIONS:
+            return jsonify({'success': False, 'message': f'Invalid file type. Allowed: {", ".join(ALLOWED_LOGO_EXTENSIONS)}'}), 400
+
+        file.seek(0, 2)
+        size = file.tell()
+        file.seek(0)
+        if size > MAX_LOGO_SIZE:
+            return jsonify({'success': False, 'message': 'Logo file must be under 5MB.'}), 400
+
+        db = JobDatabase()
+        existing_company = db.get_company_by_recruiter(recruiter_id)
+        if not existing_company:
+            return jsonify({'success': False, 'message': 'Company profile not found. Create a company profile first.'}), 404
+
+        recruiter_logo_dir = os.path.join(COMPANY_LOGO_FOLDER, str(recruiter_id))
+        os.makedirs(recruiter_logo_dir, exist_ok=True)
+
+        old_logo = existing_company.get('logo')
+        if old_logo and os.path.exists(old_logo):
+            try:
+                os.remove(old_logo)
+            except OSError as e:
+                logger.warning(f"Failed to delete old logo for recruiter {recruiter_id}: {e}")
+
+        unique_name = f"{uuid.uuid4().hex}.{ext}"
+        logo_path = os.path.join(recruiter_logo_dir, unique_name)
+        file.save(logo_path)
+
+        db.save_company(recruiter_id, {'logo': logo_path, **existing_company})
+        company = db.get_company_by_recruiter(recruiter_id)
+
+        return jsonify({'success': True, 'message': 'Logo uploaded.', 'data': company})
+    except Exception as e:
+        logger.error(f"Failed to upload logo for recruiter {recruiter_id}: {e}")
+        return jsonify({'success': False, 'message': 'Failed to upload logo.'}), 500
+
+@app.route('/api/recruiters/<int:recruiter_id>/company/logo', methods=['DELETE'])
+@login_required
+@require_role('recruiter')
+@require_company_owner
+def delete_company_logo(recruiter_id):
+    try:
+        db = JobDatabase()
+        existing_company = db.get_company_by_recruiter(recruiter_id)
+        if not existing_company:
+            return jsonify({'success': False, 'message': 'Company profile not found.'}), 404
+
+        old_logo = existing_company.get('logo')
+        if old_logo and os.path.exists(old_logo):
+            try:
+                os.remove(old_logo)
+            except OSError as e:
+                logger.warning(f"Failed to delete logo file for recruiter {recruiter_id}: {e}")
+
+        updated = {**existing_company, 'logo': ''}
+        db.save_company(recruiter_id, updated)
+        company = db.get_company_by_recruiter(recruiter_id)
+
+        return jsonify({'success': True, 'message': 'Logo deleted.', 'data': company})
+    except Exception as e:
+        logger.error(f"Failed to delete logo for recruiter {recruiter_id}: {e}")
+        return jsonify({'success': False, 'message': 'Failed to delete logo.'}), 500
 
 @app.route('/api/analyze_skill_gap', methods=['POST'])
 @login_required
