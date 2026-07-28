@@ -95,7 +95,7 @@ from roadmap_service import RoadmapService
 from ai_utils import safe_ai_request
 from learning_models import LearningPath, LearningModule, UserLearningProgress
 from extensions import db
-from auth_middleware import require_role, require_company_owner
+from auth_middleware import require_role, require_company_owner, require_recruiter_company_owner
 from company_validation import validate_company, sanitize_company_data
 
 if os.environ.get('ENABLE_GEVENT_PATCH', '0') == '1':
@@ -6706,9 +6706,7 @@ def api_post_job():
         return jsonify({'error': 'Failed to post job'}), 500
 
 @app.route('/api/recruiters/<int:recruiter_id>/company', methods=['GET'])
-@login_required
-@require_role('recruiter')
-@require_company_owner
+@require_recruiter_company_owner
 def get_company(recruiter_id):
     try:
         db = JobDatabase()
@@ -6721,9 +6719,7 @@ def get_company(recruiter_id):
         return jsonify({'success': False, 'message': 'Failed to fetch company profile.'}), 500
 
 @app.route('/api/recruiters/<int:recruiter_id>/company', methods=['POST'])
-@login_required
-@require_role('recruiter')
-@require_company_owner
+@require_recruiter_company_owner
 def create_company(recruiter_id):
     try:
         data = request.get_json()
@@ -6749,9 +6745,7 @@ def create_company(recruiter_id):
         return jsonify({'success': False, 'message': 'Failed to create company profile.'}), 500
 
 @app.route('/api/recruiters/<int:recruiter_id>/company', methods=['PUT'])
-@login_required
-@require_role('recruiter')
-@require_company_owner
+@require_recruiter_company_owner
 def update_company(recruiter_id):
     try:
         data = request.get_json()
@@ -6778,9 +6772,7 @@ def update_company(recruiter_id):
         return jsonify({'success': False, 'message': 'Failed to update company profile.'}), 500
 
 @app.route('/api/recruiters/<int:recruiter_id>/company/logo', methods=['POST'])
-@login_required
-@require_role('recruiter')
-@require_company_owner
+@require_recruiter_company_owner
 def upload_company_logo(recruiter_id):
     try:
         if 'logo' not in request.files:
@@ -6828,9 +6820,7 @@ def upload_company_logo(recruiter_id):
         return jsonify({'success': False, 'message': 'Failed to upload logo.'}), 500
 
 @app.route('/api/recruiters/<int:recruiter_id>/company/logo', methods=['DELETE'])
-@login_required
-@require_role('recruiter')
-@require_company_owner
+@require_recruiter_company_owner
 def delete_company_logo(recruiter_id):
     try:
         db = JobDatabase()
@@ -6853,6 +6843,11 @@ def delete_company_logo(recruiter_id):
     except Exception as e:
         logger.error(f"Failed to delete logo for recruiter {recruiter_id}: {e}")
         return jsonify({'success': False, 'message': 'Failed to delete logo.'}), 500
+
+@app.route('/company/logo/<int:recruiter_id>/<path:filename>')
+def serve_company_logo(recruiter_id, filename):
+    directory = os.path.join(COMPANY_LOGO_FOLDER, str(recruiter_id))
+    return send_from_directory(directory, filename)
 
 @app.route('/api/analyze_skill_gap', methods=['POST'])
 @login_required

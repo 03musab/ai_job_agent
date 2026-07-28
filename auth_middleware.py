@@ -1,6 +1,6 @@
 from functools import wraps
 from flask import flash, redirect, url_for, jsonify, request
-from flask_login import current_user
+from flask_login import current_user, login_required
 
 
 def require_role(role: str):
@@ -38,3 +38,12 @@ def require_company_owner(f):
             return jsonify({'success': False, 'message': 'Access denied. You can only manage your own company.'}), 403
         return f(*args, **kwargs)
     return decorated_function
+
+
+def require_recruiter_company_owner(f):
+    """
+    Combined decorator for all company API routes.
+    Chains @login_required, @require_role('recruiter'), and @require_company_owner.
+    The route must accept a recruiter_id parameter.
+    """
+    return login_required(require_role('recruiter')(require_company_owner(f)))
