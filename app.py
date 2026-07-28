@@ -1764,7 +1764,8 @@ class JobDatabase:
             )
             row = cursor.fetchone()
             if row:
-                return dict(row)
+                column_names = [description[0] for description in cursor.description]
+                return dict(zip(column_names, row))
             return None
         except Exception as e:
             logger.error(f"Error fetching company for recruiter {recruiter_id}: {e}")
@@ -6659,7 +6660,10 @@ def jobs():
 @login_required
 @require_role('recruiter')
 def recruiter_post_job():
-    return render_template('post_job.html')
+    db = JobDatabase()
+    company = db.get_company_by_recruiter(current_user.id)
+    company_name = company['company_name'] if company and company.get('company_name') else ''
+    return render_template('post_job.html', company_name=company_name)
 
 @app.route('/recruiter/company')
 @login_required
