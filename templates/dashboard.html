@@ -104,6 +104,7 @@
         <!-- Left Sidebar: Search & Profiles -->
         <div class="w-full lg:w-1/3 p-6 bg-white rounded-xl shadow-lg border border-gray-200 space-y-8">
             <!-- Search & Scrape Section -->
+            {% if current_user.role != 'recruiter' %}
             <div class="relative">
                 <div class="absolute inset-0 bg-blue-50 rounded-lg"></div>
                 <div class="relative p-6">
@@ -177,6 +178,7 @@
                     </form>
                 </div>
             </div>
+            {% endif %}
 
             <!-- Real-time Progress Bar Section -->
             <div id="progress-container" class="hidden mt-6 relative">
@@ -209,6 +211,7 @@
             </div>
 
             <!-- Saved Profiles Section -->
+            {% if current_user.role != 'recruiter' %}
             <div id="saved-profiles-container" class="relative">
                 <div class="absolute inset-0 bg-gray-50 rounded-lg"></div>
                 <div class="relative p-4">
@@ -244,8 +247,10 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
 
             <!-- User Settings Section (Collapsible) -->
+            {% if current_user.role != 'recruiter' %}
             <div class="relative" x-data="{ open: false }">
                 <button @click="open = !open"
                     class="w-full flex items-center justify-between p-4 rounded-lg text-left transition-all duration-200"
@@ -286,8 +291,10 @@
                     </form>
                 </div>
             </div>
+            {% endif %}
 
             <!-- Calendar Integration Section (Collapsible) -->
+            {% if current_user.role != 'recruiter' %}
             <div class="relative" x-data="{ open: false }">
                 <button @click="open = !open"
                     class="w-full flex items-center justify-between p-4 rounded-lg text-left transition-all duration-200"
@@ -337,8 +344,10 @@
                     </p>
                 </div>
             </div>
+            {% endif %}
 
             <!-- Calendar Events Management (Collapsible) -->
+            {% if current_user.role != 'recruiter' %}
             <div class="relative" x-data="{ open: false }">
                 <button @click="open = !open"
                     class="w-full flex items-center justify-between p-4 rounded-lg text-left transition-all duration-200"
@@ -383,6 +392,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
         </div>
 
         <!-- Right Content: Job Listings & Filters -->
@@ -406,6 +416,7 @@
                 <!-- Left Column: Status & Quotes -->
                 <div class="flex flex-col gap-6">
                     <!-- Application Status Overview -->
+                    {% if current_user.role != 'recruiter' %}
                     <div class="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden flex flex-col"
                         aria-labelledby="chart-heading">
                         <!-- Overview Header -->
@@ -449,6 +460,7 @@
                             </button>
                         </div>
                     </div>
+                    {% endif %}
 
                     <!-- Daily Inspiration Quote Box -->
                     <div class="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden flex flex-col"
@@ -736,6 +748,7 @@
             </div>
 
             <!-- Enhanced Filter Form -->
+            {% if current_user.role != 'recruiter' %}
             <div class="mb-8 bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden"
                 aria-labelledby="filter-heading">
                 <!-- Filter Header -->
@@ -905,8 +918,10 @@
                     </form>
                 </div>
             </div>
+            {% endif %}
 
             <!-- Top Job Picks for You — 3D Fan Carousel -->
+            {% if current_user.role != 'recruiter' %}
             {% if top_picks %}
             <script type="application/json" id="picks-json-data">{{ top_picks | tojson }}</script>
             <script id="picks-data">
@@ -1076,6 +1091,7 @@
                     }
                 }
             </script>
+            {% endif %}
             {% endif %}
 
             <div id="job-listings" class="space-y-6">
