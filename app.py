@@ -4942,6 +4942,7 @@ def logout():
 
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
+@require_role('job_seeker')
 def profile():
     db = JobDatabase()
     if request.method == 'POST':

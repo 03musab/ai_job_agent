@@ -118,6 +118,7 @@
                             class="absolute right-0 mt-3 w-52 rounded-2xl shadow-xl py-2 z-50 border transition-all duration-300"
                             :class="darkMode ? 'bg-premium-black/95 border-premium-teal/30 backdrop-blur-xl' : 'bg-white border-gray-200'"
                             style="display: none;">
+                            {% if current_user.role == 'job_seeker' %}
                             <a href="{{ url_for('profile') }}"
                                 class="flex items-center px-4 py-2.5 text-sm font-medium transition-colors rounded-xl mx-1"
                                 :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-700 hover:bg-gray-100'">
@@ -127,6 +128,7 @@
                                 </svg>
                                 Profile
                             </a>
+                            {% endif %}
                             <a href="{{ url_for('admin_upload_contacts') }}"
                                 class="flex items-center px-4 py-2.5 text-sm font-medium transition-colors rounded-xl mx-1"
                                 :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-700 hover:bg-gray-100'">
@@ -213,9 +215,11 @@
                         Company
                     </a>
                     {% endif %}
+                    {% if current_user.role == 'job_seeker' %}
                     <a href="{{ url_for('profile') }}"
                         class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
                         :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Profile</a>
+                    {% endif %}
                     <div class="border-t my-1.5 mx-1" :class="darkMode ? 'border-premium-teal/20' : 'border-gray-100'">
                     </div>
                     <a href="{{ url_for('logout') }}"
