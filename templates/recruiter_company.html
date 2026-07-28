@@ -29,10 +29,8 @@
   </div>
 
   <!-- Empty State -->
-  <div x-show="!loading && !pageError && !company" class="text-center py-16"
-       :class="darkMode ? 'bg-gray-800/50' : 'bg-white'"
-       class="rounded-xl shadow-lg border" style="border-radius: 0.5rem;"
-       :class="darkMode ? 'border-gray-700' : 'border-gray-200'">
+  <div x-show="!loading && !pageError && !company" class="text-center py-16 rounded-xl shadow-lg border"
+       :class="darkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-200'">
     <div class="text-5xl mb-4">🏢</div>
     <h2 class="text-xl font-semibold mb-2" :class="darkMode ? 'text-white' : 'text-gray-900'">No company profile yet</h2>
     <p class="mb-6" :class="darkMode ? 'text-gray-400' : 'text-gray-500'">Create your company profile to attract better candidates.</p>
