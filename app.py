@@ -6699,7 +6699,6 @@ def api_post_job():
             link='',
             source='Recruiter',
             posted_date=datetime.datetime.now().isoformat(),
-            job_hash='',
         )
 
         db = JobDatabase()
