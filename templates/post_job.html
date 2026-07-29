@@ -1,41 +1,52 @@
 {% extends "base.html" %}
+{% from "macros.html" import page_header, breadcrumb %}
 
 {% block title %}Post a New Job{% endblock %}
+{% block body_class %}light-theme{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">Post a New Job</h1>
+<div class="max-w-4xl mx-auto px-4 py-8 animate-fade-in">
 
-    <div class="bg-white p-8 rounded-lg shadow-lg max-w-4xl mx-auto">
+  {{ breadcrumb([{"label": "Dashboard", "url": url_for('recruiter_dashboard')}, {"label": "Post a New Job"}]) }}
+
+  {{ page_header("Post a New Job", "Create a new job listing to attract top talent.") }}
+
+    <div class="p-6 md:p-8 rounded-lg shadow-lg"
+         :class="darkMode ? 'bg-gray-800/90 border border-gray-700' : 'bg-white border border-gray-200'">
         <form id="post-job-form">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
                 <!-- Job Title -->
                 <div>
-                    <label for="title" class="block text-sm font-medium text-gray-700">Job Title</label>
+                    <label for="title" class="block text-sm font-medium" :class="darkMode ? 'text-white' : 'text-gray-700'">Job Title</label>
                     <input type="text" name="title" id="title" required
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                           class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
+                           :class="darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500'">
                 </div>
 
                 <!-- Company Name -->
                 <div>
-                    <label for="company" class="block text-sm font-medium text-gray-700">Company Name</label>
+                    <label for="company" class="block text-sm font-medium" :class="darkMode ? 'text-white' : 'text-gray-700'">Company Name</label>
                     <input type="text" name="company" id="company" required
                            value="{{ company_name }}"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                           class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
+                           :class="darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500'">
                 </div>
 
                 <!-- Location -->
                 <div>
-                    <label for="location" class="block text-sm font-medium text-gray-700">Location</label>
+                    <label for="location" class="block text-sm font-medium" :class="darkMode ? 'text-white' : 'text-gray-700'">Location</label>
                     <input type="text" name="location" id="location" required placeholder="e.g., San Francisco, CA or Remote"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                           class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
+                           :class="darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500'">
                 </div>
 
                 <!-- Job Type -->
                 <div>
-                    <label for="job_type" class="block text-sm font-medium text-gray-700">Job Type</label>
+                    <label for="job_type" class="block text-sm font-medium" :class="darkMode ? 'text-white' : 'text-gray-700'">Job Type</label>
                     <select id="job_type" name="job_type" required
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
+                            :class="darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500'">
                         <option>Full-time</option>
                         <option>Part-time</option>
                         <option>Contract</option>
@@ -46,37 +57,41 @@
 
                 <!-- Salary Range -->
                 <div>
-                    <label for="salary_range" class="block text-sm font-medium text-gray-700">Salary Range (Optional)</label>
+                    <label for="salary_range" class="block text-sm font-medium" :class="darkMode ? 'text-white' : 'text-gray-700'">Salary Range (Optional)</label>
                     <input type="text" name="salary_range" id="salary_range" placeholder="e.g., $100,000 - $120,000"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                           class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
+                           :class="darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500'">
                 </div>
 
                 <!-- Application Deadline -->
                 <div>
-                    <label for="deadline" class="block text-sm font-medium text-gray-700">Application Deadline (Optional)</label>
+                    <label for="deadline" class="block text-sm font-medium" :class="darkMode ? 'text-white' : 'text-gray-700'">Application Deadline (Optional)</label>
                     <input type="date" name="deadline" id="deadline"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                           class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
+                           :class="darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500'">
                 </div>
             </div>
 
             <!-- Description -->
-            <div class="mt-6">
-                <label for="description" class="block text-sm font-medium text-gray-700">Job Description</label>
+            <div class="mt-5">
+                <label for="description" class="block text-sm font-medium" :class="darkMode ? 'text-white' : 'text-gray-700'">Job Description</label>
                 <textarea id="description" name="description" rows="8" required
-                          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+                          class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none resize-none"
+                          :class="darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500'"></textarea>
             </div>
 
             <!-- Required Skills -->
-            <div class="mt-6">
-                <label for="skills" class="block text-sm font-medium text-gray-700">Required Skills (comma-separated)</label>
+            <div class="mt-5">
+                <label for="skills" class="block text-sm font-medium" :class="darkMode ? 'text-white' : 'text-gray-700'">Required Skills (comma-separated)</label>
                 <input type="text" name="skills" id="skills" placeholder="e.g., Python, React, SQL"
-                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                       class="mt-1 block w-full rounded-lg shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                       :class="darkMode ? 'bg-gray-700 border-gray-500 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'">
             </div>
 
             <!-- Submit Button -->
-            <div class="mt-8 flex justify-end">
+            <div class="mt-5 pt-4 flex justify-end" :class="darkMode ? 'border-t border-gray-700' : 'border-t border-gray-200'">
                 <button type="submit"
-                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        class="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     Post Job
                 </button>
             </div>

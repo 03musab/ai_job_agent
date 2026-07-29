@@ -1,0 +1,92 @@
+{#
+  Reusable Page Header Macro
+
+  Usage (simple — no actions):
+    {% from "macros.html" import page_header %}
+    {{ page_header("Title", "Subtitle text here.") }}
+
+  Usage (with actions):
+    {% from "macros.html" import page_header %}
+    {% call page_header("Title", "Subtitle text here.") %}
+      <a href="..." class="...">Action Link</a>
+    {% endcall %}
+#}
+{% macro page_header(title, subtitle) %}
+<div class="mb-4 animate-fade-in-up">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+      <h1 class="text-3xl font-bold" :class="darkMode ? 'text-white' : 'text-gray-900'">{{ title }}</h1>
+      <p class="mt-1 text-sm" :class="darkMode ? 'text-gray-400' : 'text-gray-500'">{{ subtitle }}</p>
+    </div>
+    {% if caller %}
+    <div class="flex items-center gap-4 flex-shrink-0">
+      {{ caller() }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
+
+{#
+  Reusable Breadcrumb Navigation
+  Usage:
+    {% from "macros.html" import breadcrumb %}
+    {{ breadcrumb([{"label": "Home", "url": url_for('dashboard')}, {"label": "Company Settings"}]) }}
+#}
+{% macro breadcrumb(items) %}
+<nav class="flex items-center gap-1.5 mb-4 text-xs font-medium" aria-label="Breadcrumb">
+  {% for item in items %}
+    {% if item.url %}
+    <a href="{{ item.url }}" class="transition-colors hover:text-blue-600"
+       :class="darkMode ? 'text-gray-400 hover:text-cyan-400' : 'text-gray-500 hover:text-blue-600'">{{ item.label }}</a>
+    {% if not loop.last %}
+    <svg class="w-3 h-3" :class="darkMode ? 'text-gray-600' : 'text-gray-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+    </svg>
+    {% endif %}
+    {% else %}
+    <span :class="darkMode ? 'text-gray-300' : 'text-gray-700'" class="font-semibold">{{ item.label }}</span>
+    {% endif %}
+  {% endfor %}
+</nav>
+{% endmacro %}
+
+{#
+  Empty State Component
+  Usage:
+    {% from "macros.html" import empty_state %}
+    {{ empty_state("No results", "Try adjusting your filters.", "search") }}
+  Icons: search, users, briefcase, mail, chart, upload
+#}
+{% macro empty_state(title, message, icon="search") %}
+<div class="text-center py-16 px-6 animate-fade-in"
+     :class="darkMode ? 'text-gray-400' : 'text-gray-500'">
+  {% if icon == "search" %}
+  <svg class="mx-auto h-10 w-10 mb-4" :class="darkMode ? 'text-gray-600' : 'text-gray-300'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+  </svg>
+  {% elif icon == "users" %}
+  <svg class="mx-auto h-10 w-10 mb-4" :class="darkMode ? 'text-gray-600' : 'text-gray-300'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+  </svg>
+  {% elif icon == "briefcase" %}
+  <svg class="mx-auto h-10 w-10 mb-4" :class="darkMode ? 'text-gray-600' : 'text-gray-300'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+  </svg>
+  {% elif icon == "mail" %}
+  <svg class="mx-auto h-10 w-10 mb-4" :class="darkMode ? 'text-gray-600' : 'text-gray-300'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+  </svg>
+  {% elif icon == "chart" %}
+  <svg class="mx-auto h-10 w-10 mb-4" :class="darkMode ? 'text-gray-600' : 'text-gray-300'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+  </svg>
+  {% elif icon == "upload" %}
+  <svg class="mx-auto h-10 w-10 mb-4" :class="darkMode ? 'text-gray-600' : 'text-gray-300'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+  </svg>
+  {% endif %}
+  <h3 class="text-lg font-semibold mb-1" :class="darkMode ? 'text-white' : 'text-gray-900'">{{ title }}</h3>
+  <p :class="darkMode ? 'text-gray-400' : 'text-gray-500'">{{ message }}</p>
+</div>
+{% endmacro %}

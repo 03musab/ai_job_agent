@@ -1,50 +1,52 @@
 {% extends "base.html" %}
+{% from "macros.html" import page_header, breadcrumb %}
 {% block body_class %}light-theme{% endblock %}
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-8">
-    <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-        <!-- Header Section -->
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900">Outreach Studio</h1>
-                <p class="mt-1 text-gray-600">Your central command for cold outreach and networking.</p>
-            </div>
-            <div class="mt-4 sm:mt-0 flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full text-sm text-green-700">
+<div class="max-w-7xl mx-auto px-4 py-8 animate-fade-in">
+    <div class="rounded-xl shadow-lg p-6" :class="darkMode ? 'bg-gray-800/90 border border-gray-700' : 'bg-white border border-gray-200'">
+        {{ breadcrumb([{"label": "Dashboard", "url": url_for('recruiter_dashboard')}, {"label": "Outreach Studio"}]) }}
+
+        {% call page_header("Outreach Studio", "Your central command for cold outreach and networking.") %}
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm"
+             :class="darkMode ? 'bg-green-900/30 border border-green-800 text-green-300' : 'bg-green-50 border border-green-200 text-green-700'">
                 <div class="w-2 h-2 bg-green-500 rounded-full pulse-dot"></div>
                 <span>Live Sync: <time datetime="{{ last_scan_time }}">{{ last_scan_time.split(' ')[1] }}</time></span>
             </div>
-        </div>
+        {% endcall %}
 
         <!-- Stats Dashboard -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <!-- Total Contacts -->
-            <div class="p-6 bg-gray-50 rounded-lg border border-gray-200 text-center">
-                <h3 class="text-sm font-medium text-gray-500">Total Contacts</h3>
-                <p class="text-4xl font-bold text-blue-600 mt-2">{{ stats.contact_count | default(0) }}</p>
+            <div class="p-6 rounded-lg border text-center" :class="darkMode ? 'bg-gray-900/30 border-gray-700' : 'bg-gray-50 border-gray-200'">
+                <h3 class="text-sm font-medium" :class="darkMode ? 'text-gray-400' : 'text-gray-500'">Total Contacts</h3>
+                <p class="text-4xl font-bold mt-2" :class="darkMode ? 'text-cyan-400' : 'text-blue-600'">{{ stats.contact_count | default(0) }}</p>
             </div>
         </div>
 
         <!-- Main Actions (CTAs) -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <a href="{{ url_for('message_vault') }}" class="group block p-6 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200">
-                <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">Compose Message</h3>
-                <p class="text-sm text-gray-500 mt-2">Draft new emails or messages using your saved templates.</p>
+            <a href="{{ url_for('message_vault') }}" class="group block p-6 rounded-lg border transition-all duration-200"
+               :class="darkMode ? 'bg-gray-900/30 border-gray-700 hover:border-cyan-700' : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-md'">
+                <h3 class="text-xl font-bold transition-colors" :class="darkMode ? 'text-white group-hover:text-cyan-400' : 'text-gray-900 group-hover:text-blue-600'">Compose Message</h3>
+                <p class="text-sm mt-2" :class="darkMode ? 'text-gray-400' : 'text-gray-500'">Draft new emails or messages using your saved templates.</p>
             </a>
-            <a href="{{ url_for('people_radar') }}" class="group block p-6 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200">
-                <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">View Contacts</h3>
-                <p class="text-sm text-gray-500 mt-2">Manage your list of recruiters, hiring managers, and founders.</p>
+            <a href="{{ url_for('people_radar') }}" class="group block p-6 rounded-lg border transition-all duration-200"
+               :class="darkMode ? 'bg-gray-900/30 border-gray-700 hover:border-cyan-700' : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-md'">
+                <h3 class="text-xl font-bold transition-colors" :class="darkMode ? 'text-white group-hover:text-cyan-400' : 'text-gray-900 group-hover:text-blue-600'">View Contacts</h3>
+                <p class="text-sm mt-2" :class="darkMode ? 'text-gray-400' : 'text-gray-500'">Manage your list of recruiters, hiring managers, and founders.</p>
             </a>
         </div>
 
         <!-- Contact Scraping Section -->
-        <div class="p-6 bg-gray-50 rounded-lg border border-gray-200">
-            <h2 class="text-2xl font-bold mb-4 text-gray-900">Find New Contacts</h2>
-            <p class="text-sm text-gray-500 mb-4">
+        <div class="p-6 rounded-lg border" :class="darkMode ? 'bg-gray-900/30 border-gray-700' : 'bg-gray-50 border-gray-200'">
+            <h2 class="text-2xl font-bold mb-4" :class="darkMode ? 'text-white' : 'text-gray-900'">Find New Contacts</h2>
+            <p class="text-sm mb-4" :class="darkMode ? 'text-gray-400' : 'text-gray-500'">
                 Use the AI agent to find relevant people on LinkedIn, X, and other platforms based on hiring signals.
             </p>
             <form id="scrape-contacts-form" class="flex flex-col sm:flex-row gap-4">
                 <input type="text" name="keywords" id="scrape-keywords" placeholder="e.g., 'AI recruiter', 'founder hiring python', 'tech hiring manager'" required
-                    class="flex-grow rounded-md bg-white border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400" style="border-radius: 0.25rem;">
+                    class="flex-grow rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500" style="border-radius: 0.25rem;"
+                    :class="darkMode ? 'bg-gray-800 border-gray-600 text-gray-200 placeholder-gray-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'">
                 <button type="submit" id="scrape-contacts-btn"
                     class="btn-temporal inline-flex items-center justify-center px-6 py-2 text-sm font-medium rounded-md shadow-sm" style="border-radius: 0.25rem;">
                     Scrape Contacts
@@ -65,9 +67,9 @@
         </div>
 
         <!-- Manual Contact Entry Section -->
-        <div class="mt-8 pt-8 border-t border-gray-200">
-            <h2 class="text-2xl font-bold mb-4 text-gray-900">Manually Add HR Contact</h2>
-            <p class="text-sm text-gray-500 mb-6">
+        <div class="mt-8 pt-8" :class="darkMode ? 'border-t border-gray-700' : 'border-t border-gray-200'">
+            <h2 class="text-2xl font-bold mb-4" :class="darkMode ? 'text-white' : 'text-gray-900'">Manually Add HR Contact</h2>
+            <p class="text-sm mb-6" :class="darkMode ? 'text-gray-400' : 'text-gray-500'">
                 Enter contact details below. We will perform a deep verification to ensure the email address is deliverable.
             </p>
             <form id="manual-contact-form" class="space-y-4">
@@ -107,9 +109,9 @@
         </div>
 
         <!-- Bulk Import Section -->
-        <div class="mt-8 pt-8 border-t border-gray-200">
-            <h2 class="text-2xl font-bold mb-4 text-gray-900">Bulk Import Contacts</h2>
-            <p class="text-sm text-gray-500 mb-6">
+        <div class="mt-8 pt-8" :class="darkMode ? 'border-t border-gray-700' : 'border-t border-gray-200'">
+            <h2 class="text-2xl font-bold mb-4" :class="darkMode ? 'text-white' : 'text-gray-900'">Bulk Import Contacts</h2>
+            <p class="text-sm mb-6" :class="darkMode ? 'text-gray-400' : 'text-gray-500'">
                 Upload a CSV file to add multiple contacts at once. Ensure columns like Name, Email, Role, Company are present.
             </p>
             <form id="bulk-import-form" class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">

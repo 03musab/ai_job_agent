@@ -53,7 +53,7 @@
                             :class="darkMode ? 'text-premium-text/80' : 'text-gray-700'">Password</label>
                         <input type="password" name="admin_password" id="admin_password" required
                             class="w-full px-4 py-3 rounded-xl border transition-all focus:ring-2 focus:ring-premium-teal/50 outline-none"
-                            :class="darkMode ? 'bg-premium-black border-premium-teal/30 text-premium-text' : 'bg-gray-50 border-gray-200 text-gray-900'"
+                            :class="darkMode ? 'bg-premium-bg border-premium-teal/30 text-premium-text' : 'bg-gray-50 border-gray-200 text-gray-900'"
                             placeholder="••••••••">
                     </div>
                     <button type="submit"
@@ -81,8 +81,7 @@
                         id="upload-form" class="space-y-4">
                         <div class="relative">
                             <input type="file" name="contacts_csv" id="contacts_csv" required
-                                class="w-full px-4 py-3 rounded-xl border transition-all outline-none"
-                                :class="darkMode ? 'bg-premium-black border-premium-teal/30 text-premium-text file:bg-premium-teal/20 file:text-premium-teal file:border-none file:rounded-lg file:px-3 file:py-1' : 'bg-gray-50 border-gray-200 text-gray-900 file:bg-gray-200 file:border-none file:rounded-lg file:px-3 file:py-1'">
+                                class="w-full px-4 py-3 rounded-xl border transition-all outline-none"                                 :class="darkMode ? 'bg-premium-bg border-premium-teal/30 text-premium-text file:bg-premium-teal/20 file:text-premium-teal file:border-none file:rounded-lg file:px-3 file:py-1' : 'bg-gray-50 border-gray-200 text-gray-900 file:bg-gray-200 file:border-none file:rounded-lg file:px-3 file:py-1'">
                         </div>
                         <button type="submit" id="upload-button"
                             class="w-full bg-premium-teal hover:bg-premium-teal/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-premium-teal/20 transition-all flex items-center justify-center group">

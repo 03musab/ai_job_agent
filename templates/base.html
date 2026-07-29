@@ -6,10 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title | default('JobSnap') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Parisienne&display=swap"
-        rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,800;1,900&family=Parisienne&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
 </head>
 
@@ -27,23 +24,23 @@
             x-data="{ mobileMenuOpen: false }">
             <nav class="max-w-5xl mx-auto rounded-2xl shadow-2xl transition-all duration-300 px-5 py-3 flex items-center justify-between"
                 :class="darkMode 
-                    ? 'bg-premium-black/80 border border-premium-teal/20 backdrop-blur-xl shadow-premium-teal/10' 
+                    ? 'bg-premium-bg/80 border border-premium-teal/20 backdrop-blur-xl shadow-premium-teal/10' 
                     : 'bg-white/90 border border-gray-200/80 backdrop-blur-xl shadow-gray-200/60'">
 
                 <!-- Logo -->
                 <a href="{{ url_for('dashboard') }}" class="flex items-center space-x-2.5 group flex-shrink-0">
                     <!-- Icon -->
-                    <div class="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:scale-110"
+                    <div class="w-[74px] h-9 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:scale-110"
                         :class="darkMode ? 'bg-premium-teal/20' : 'bg-blue-600'">
-                        <svg class="w-4.5 h-4.5" :class="darkMode ? 'text-premium-teal' : 'text-white'" fill="none"
+                        <svg class="w-5 h-5" :class="darkMode ? 'text-premium-teal' : 'text-white'" fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                                 aria-hidden="true"></path>
                         </svg>
                     </div>
-                    <span class="text-xl font-extrabold hidden sm:block tracking-tight"
-                        style="font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -0.04em;"
+                    <span class="text-2xl font-extrabold hidden sm:block tracking-tight"
+                        style="font-family: 'Playfair Display', serif; letter-spacing: -0.02em;"
                         :style="darkMode ? 'background: linear-gradient(135deg, #00D4F7, #822659); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;' : 'background: linear-gradient(135deg, #2563eb, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;'">
                         JobSnap
                     </span>
@@ -55,38 +52,38 @@
                     {% if current_user.role != 'recruiter' %}
                     <a href="{{ url_for('dashboard') }}"
                         class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-premium-text/70 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
+                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
                         Dashboard
                     </a>
                     {% endif %}
                     {% if current_user.role == 'recruiter' %}
                     <a href="{{ url_for('recruiter_dashboard') }}"
                         class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-premium-teal/80 hover:text-premium-teal hover:bg-premium-teal/10' : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'">
+                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'">
                         Recruiter Dashboard
                     </a>
                     {% endif %}
                     {% if current_user.role != 'recruiter' %}
                     <a href="{{ url_for('outreach_studio') }}"
                         class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-premium-text/70 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
+                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
                         Outreach
                     </a>
                     <a href="{{ url_for('learning_path') }}"
                         class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-premium-text/70 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
+                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
                         Learning
                     </a>
                     {% endif %}
                     {% if current_user.role == 'recruiter' %}
                     <a href="{{ url_for('recruiter_post_job') }}"
                         class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-premium-text/70 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
+                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
                         Post a Job
                     </a>
                     <a href="{{ url_for('recruiter_company') }}"
                         class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-premium-text/70 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
+                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
                         Company
                     </a>
                     {% endif %}
@@ -127,22 +124,20 @@
                         <!-- Dropdown -->
                         <div x-show="open" @click.away="open = false" x-transition
                             class="absolute right-0 mt-3 w-52 rounded-2xl shadow-xl py-2 z-50 border transition-all duration-300"
-                            :class="darkMode ? 'bg-premium-black/95 border-premium-teal/30 backdrop-blur-xl' : 'bg-white border-gray-200'"
+                            :class="darkMode ? 'bg-premium-bg/95 border-premium-teal/30 backdrop-blur-xl' : 'bg-white border-gray-200'"
                             style="display: none;">
-                            {% if current_user.role == 'job_seeker' %}
                             <a href="{{ url_for('profile') }}"
                                 class="flex items-center px-4 py-2.5 text-sm font-medium transition-colors rounded-xl mx-1"
-                                :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-700 hover:bg-gray-100'">
+                                :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'">
                                 <svg class="w-4 h-4 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                 </svg>
                                 Profile
                             </a>
-                            {% endif %}
                             <a href="{{ url_for('admin_upload_contacts') }}"
                                 class="flex items-center px-4 py-2.5 text-sm font-medium transition-colors rounded-xl mx-1"
-                                :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-700 hover:bg-gray-100'">
+                                :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'">
                                 <svg class="w-4 h-4 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
@@ -167,7 +162,7 @@
                     {% else %}
                     <a href="{{ url_for('login') }}"
                         class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-premium-text/70 hover:text-premium-text' : 'text-gray-600 hover:text-gray-900'">
+                        :class="darkMode ? 'text-white hover:text-white/90' : 'text-gray-600 hover:text-gray-900'">
                         Sign in
                     </a>
                     <a href="{{ url_for('register') }}"
@@ -199,47 +194,45 @@
             <!-- Mobile menu dropdown -->
             <div id="mobile-menu" role="navigation" aria-label="Mobile menu"
                 class="md:hidden max-w-5xl mx-auto mt-2 rounded-2xl shadow-xl border overflow-hidden transition-all duration-300"
-                :class="darkMode ? 'bg-premium-black/95 border-premium-teal/20 backdrop-blur-xl' : 'bg-white border-gray-200'"
+                :class="darkMode ? 'bg-premium-bg/95 border-premium-teal/20 backdrop-blur-xl' : 'bg-white border-gray-200'"
                 x-show="mobileMenuOpen" x-transition x-cloak>
                 <div class="p-3 space-y-1">
                     {% if current_user.is_authenticated %}
                     {% if current_user.role != 'recruiter' %}
                     <a href="{{ url_for('dashboard') }}"
                         class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Dashboard</a>
+                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Dashboard</a>
                     {% endif %}
                     {% if current_user.role == 'recruiter' %}
                     <a href="{{ url_for('recruiter_dashboard') }}"
                         class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-teal/80 hover:text-premium-teal hover:bg-premium-teal/10' : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'">Recruiter Dashboard</a>
+                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'">Recruiter Dashboard</a>
                     {% endif %}
                     {% if current_user.role != 'recruiter' %}
                     <a href="{{ url_for('outreach_studio') }}"
                         class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Outreach
+                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Outreach
                         Studio</a>
                     <a href="{{ url_for('learning_path') }}"
                         class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Learning
+                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Learning
                         Path</a>
                     {% endif %}
                     {% if current_user.role == 'recruiter' %}
                     <a href="{{ url_for('recruiter_post_job') }}"
                         class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
+                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
                         Post a Job
                     </a>
                     <a href="{{ url_for('recruiter_company') }}"
                         class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
+                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
                         Company
                     </a>
                     {% endif %}
-                    {% if current_user.role == 'job_seeker' %}
                     <a href="{{ url_for('profile') }}"
                         class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Profile</a>
-                    {% endif %}
+                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Profile</a>
                     <div class="border-t my-1.5 mx-1" :class="darkMode ? 'border-premium-teal/20' : 'border-gray-100'">
                     </div>
                     <a href="{{ url_for('logout') }}"
@@ -249,7 +242,7 @@
                     {% else %}
                     <a href="{{ url_for('login') }}"
                         class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Sign
+                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Sign
                         in</a>
                     <a href="{{ url_for('register') }}"
                         class="flex items-center px-4 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors">Get
@@ -258,6 +251,10 @@
                 </div>
             </div>
         </div>
+
+        <!-- Page Transition Overlay (brief flash on navigation) -->
+        <div id="page-transition" class="page-transition"
+             x-init="$el.classList.add('active'); setTimeout(() => $el.classList.remove('active'), 400)"></div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -269,7 +266,7 @@
         {% endif %}
         {% endwith %}
         <main class="flex-1" id="main-content">
-            <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-4">
+            <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 pt-6 pb-4 animate-fade-in">
                 {% block content %}{% endblock %}
             </div>
         </main>
