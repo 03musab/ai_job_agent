@@ -889,6 +889,35 @@ class JobDatabase:
             )
         ''')
 
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS job_applications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_id INTEGER NOT NULL,
+                applicant_name TEXT NOT NULL,
+                applicant_email TEXT,
+                status TEXT DEFAULT 'applied',
+                applied_date TEXT NOT NULL,
+                ai_match_score REAL,
+                notes TEXT,
+                applicant_user_id INTEGER,
+                FOREIGN KEY(job_id) REFERENCES jobs(id),
+                FOREIGN KEY(applicant_user_id) REFERENCES users(id)
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS recruiter_notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                recruiter_id INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                message TEXT NOT NULL,
+                related_job_id INTEGER,
+                is_read INTEGER DEFAULT 0,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(recruiter_id) REFERENCES users(id)
+            )
+        ''')
+
         conn.commit()
         conn.close()
         logger.debug("Database schema check/update complete.")
@@ -1788,6 +1817,312 @@ class JobDatabase:
             return False
         finally:
             conn.close()
+
+    def get_recruiter_dashboard_stats(self, recruiter_id: int) -> Dict:
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "SELECT COUNT(*) FROM jobs WHERE posted_by_recruiter_id = ?",
+                (recruiter_id,)
+            )
+            active_jobs = cursor.fetchone()[0]
+
+            cursor.execute(
+                "SELECT COUNT(*) FROM job_applications ja JOIN jobs j ON ja.job_id = j.id WHERE j.posted_by_recruiter_id = ?",
+                (recruiter_id,)
+            )
+            total_applications = cursor.fetchone()[0]
+
+            cursor.execute(
+                "SELECT COUNT(*) FROM job_applications ja JOIN jobs j ON ja.job_id = j.id WHERE j.posted_by_recruiter_id = ? AND ja.status = 'interview'",
+                (recruiter_id,)
+            )
+            interviews = cursor.fetchone()[0]
+
+            now = datetime.datetime.now()
+            month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+            cursor.execute(
+                "SELECT COUNT(*) FROM job_applications ja JOIN jobs j ON ja.job_id = j.id WHERE j.posted_by_recruiter_id = ? AND ja.status = 'hired' AND ja.applied_date >= ?",
+                (recruiter_id, month_start)
+            )
+            hires_this_month = cursor.fetchone()[0]
+
+            cursor.execute(
+                "SELECT COUNT(*) FROM jobs WHERE posted_by_recruiter_id = ? AND source = 'Recruiter'",
+                (recruiter_id,)
+            )
+            profile_views = cursor.fetchone()[0] * 12
+
+            return {
+                'active_jobs': active_jobs,
+                'total_applications': total_applications,
+                'interviews_scheduled': interviews,
+                'hires_this_month': hires_this_month,
+                'profile_views': profile_views,
+            }
+        except Exception as e:
+            logger.error(f"Error getting recruiter dashboard stats for {recruiter_id}: {e}")
+            return {'active_jobs': 0, 'total_applications': 0, 'interviews_scheduled': 0, 'hires_this_month': 0, 'profile_views': 0}
+        finally:
+            conn.close()
+
+    def get_recruiter_active_jobs(self, recruiter_id: int) -> List[Dict]:
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT j.id, j.title, j.company, j.location, j.job_type, j.salary,
+                       j.status, j.posted_date, j.deadline, j.description,
+                       (SELECT COUNT(*) FROM job_applications ja WHERE ja.job_id = j.id) as application_count
+                FROM jobs j
+                WHERE j.posted_by_recruiter_id = ?
+                ORDER BY j.posted_date DESC
+                LIMIT 20
+            ''', (recruiter_id,))
+            rows = cursor.fetchall()
+            column_names = [desc[0] for desc in cursor.description]
+            return [dict(zip(column_names, row)) for row in rows]
+        except Exception as e:
+            logger.error(f"Error getting recruiter active jobs for {recruiter_id}: {e}")
+            return []
+        finally:
+            conn.close()
+
+    def get_recruiter_applications(self, recruiter_id: int, limit: int = 10) -> List[Dict]:
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT ja.id, ja.job_id, ja.applicant_name, ja.applicant_email,
+                       ja.status, ja.applied_date, ja.ai_match_score, ja.notes,
+                       j.title as job_title
+                FROM job_applications ja
+                JOIN jobs j ON ja.job_id = j.id
+                WHERE j.posted_by_recruiter_id = ?
+                ORDER BY ja.applied_date DESC
+                LIMIT ?
+            ''', (recruiter_id, limit))
+            rows = cursor.fetchall()
+            column_names = [desc[0] for desc in cursor.description]
+            return [dict(zip(column_names, row)) for row in rows]
+        except Exception as e:
+            logger.error(f"Error getting recruiter applications for {recruiter_id}: {e}")
+            return []
+        finally:
+            conn.close()
+
+    def get_recruiter_pipeline(self, recruiter_id: int) -> Dict[str, int]:
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        cursor = conn.cursor()
+        stages = ['applied', 'reviewed', 'shortlisted', 'interview', 'offer', 'hired', 'rejected']
+        pipeline = {s: 0 for s in stages}
+        try:
+            cursor.execute('''
+                SELECT ja.status, COUNT(*)
+                FROM job_applications ja
+                JOIN jobs j ON ja.job_id = j.id
+                WHERE j.posted_by_recruiter_id = ?
+                GROUP BY ja.status
+            ''', (recruiter_id,))
+            for status, count in cursor.fetchall():
+                if status in pipeline:
+                    pipeline[status] = count
+            return pipeline
+        except Exception as e:
+            logger.error(f"Error getting recruiter pipeline for {recruiter_id}: {e}")
+            return pipeline
+        finally:
+            conn.close()
+
+    def generate_ai_insights(self, recruiter_id: int) -> List[Dict]:
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        cursor = conn.cursor()
+        insights = []
+        try:
+            cursor.execute('''
+                SELECT j.id, j.title, j.salary, j.skills, j.description,
+                       (SELECT COUNT(*) FROM job_applications ja WHERE ja.job_id = j.id) as app_count
+                FROM jobs j
+                WHERE j.posted_by_recruiter_id = ?
+                ORDER BY j.posted_date DESC
+                LIMIT 20
+            ''', (recruiter_id,))
+            jobs = [dict(zip([d[0] for d in cursor.description], row)) for row in cursor.fetchall()]
+
+            if not jobs:
+                return []
+
+            with_apps = [j for j in jobs if j['app_count'] > 0]
+            without_apps = [j for j in jobs if j['app_count'] == 0]
+
+            if without_apps:
+                job_titles = [j['title'] for j in without_apps[:3]]
+                insights.append({
+                    'type': 'warning',
+                    'icon': 'visibility',
+                    'title': 'Low Visibility Alert',
+                    'message': f'Jobs receiving low visibility: {", ".join(job_titles)}. Consider boosting or refining descriptions.'
+                })
+
+            if with_apps:
+                avg_apps = sum(j['app_count'] for j in with_apps) / len(with_apps)
+                top_jobs = [j for j in with_apps if j['app_count'] > avg_apps]
+                if top_jobs:
+                    insights.append({
+                        'type': 'success',
+                        'icon': 'trending',
+                        'title': 'Top Performing Jobs',
+                        'message': f'{len(top_jobs)} jobs performing above average (> {avg_apps:.0f} apps). Spread the strategy.'
+                    })
+
+            skills_set = set()
+            for j in jobs:
+                if j['skills']:
+                    for s in j['skills'].split(','):
+                        skills_set.add(s.strip().lower())
+            if len(skills_set) < 5:
+                insights.append({
+                    'type': 'info',
+                    'icon': 'keyword',
+                    'title': 'Missing Keywords',
+                    'message': 'Add more relevant skills/keywords to your job descriptions to improve search visibility.'
+                })
+
+            salary_jobs = [j for j in jobs if j['salary'] and j['salary'] not in ('Not specified', '')]
+            if len(salary_jobs) < len(jobs) * 0.5:
+                insights.append({
+                    'type': 'info',
+                    'icon': 'salary',
+                    'title': 'Salary Transparency',
+                    'message': 'Jobs with salary ranges receive 40% more applications. Consider adding salary info.'
+                })
+
+            if len(jobs) < 3:
+                insights.append({
+                    'type': 'info',
+                    'icon': 'hiring',
+                    'title': 'Hiring Recommendation',
+                    'message': 'Post more jobs to attract a wider talent pool. Companies with 5+ active listings see 3x more applicants.'
+                })
+
+            return insights
+        except Exception as e:
+            logger.error(f"Error generating AI insights for {recruiter_id}: {e}")
+            return []
+        finally:
+            conn.close()
+
+    def get_recruiter_notifications(self, recruiter_id: int, limit: int = 10) -> List[Dict]:
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT id, type, message, related_job_id, is_read, created_at
+                FROM recruiter_notifications
+                WHERE recruiter_id = ?
+                ORDER BY created_at DESC
+                LIMIT ?
+            ''', (recruiter_id, limit))
+            rows = cursor.fetchall()
+            column_names = [desc[0] for desc in cursor.description]
+            return [dict(zip(column_names, row)) for row in rows]
+        except Exception as e:
+            logger.error(f"Error getting recruiter notifications for {recruiter_id}: {e}")
+            return []
+        finally:
+            conn.close()
+
+    def create_recruiter_notification(self, recruiter_id: int, notif_type: str, message: str, related_job_id: int = None) -> bool:
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                INSERT INTO recruiter_notifications (recruiter_id, type, message, related_job_id, is_read, created_at)
+                VALUES (?, ?, ?, ?, 0, ?)
+            ''', (recruiter_id, notif_type, message, related_job_id, datetime.datetime.now().isoformat()))
+            conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Error creating recruiter notification: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def add_application(self, job_id: int, applicant_name: str, applicant_email: str = None,
+                        applicant_user_id: int = None, ai_match_score: float = None) -> Optional[int]:
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        cursor = conn.cursor()
+        try:
+            now = datetime.datetime.now().isoformat()
+            cursor.execute('''
+                INSERT INTO job_applications (job_id, applicant_name, applicant_email, status, applied_date, ai_match_score, applicant_user_id)
+                VALUES (?, ?, ?, 'applied', ?, ?, ?)
+            ''', (job_id, applicant_name, applicant_email, now, ai_match_score, applicant_user_id))
+            conn.commit()
+            app_id = cursor.lastrowid
+
+            cursor.execute("SELECT posted_by_recruiter_id FROM jobs WHERE id = ?", (job_id,))
+            row = cursor.fetchone()
+            if row and row[0]:
+                cursor.execute('''
+                    INSERT INTO recruiter_notifications (recruiter_id, type, message, related_job_id, is_read, created_at)
+                    VALUES (?, 'application', ?, ?, 0, ?)
+                ''', (row[0], f'New application from {applicant_name}', job_id, now))
+                conn.commit()
+            return app_id
+        except Exception as e:
+            logger.error(f"Error adding application: {e}")
+            return None
+        finally:
+            conn.close()
+
+    def update_application_status(self, application_id: int, status: str, notes: str = None) -> bool:
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        cursor = conn.cursor()
+        try:
+            if notes:
+                cursor.execute(
+                    "UPDATE job_applications SET status = ?, notes = ? WHERE id = ?",
+                    (status, notes, application_id)
+                )
+            else:
+                cursor.execute(
+                    "UPDATE job_applications SET status = ? WHERE id = ?",
+                    (status, application_id)
+                )
+            conn.commit()
+            return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error updating application status: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def get_company_profile_completion(self, recruiter_id: int) -> int:
+        company = self.get_company_by_recruiter(recruiter_id)
+        if not company:
+            return 0
+        fields = ['company_name', 'website', 'description', 'industry', 'company_size', 'headquarters', 'logo']
+        filled = sum(1 for f in fields if company.get(f))
+        return int((filled / len(fields)) * 100)
+
+    def get_company_summary(self, recruiter_id: int) -> Optional[Dict]:
+        company = self.get_company_by_recruiter(recruiter_id)
+        if not company:
+            return None
+        completion = self.get_company_profile_completion(recruiter_id)
+        return {
+            'company_name': company.get('company_name', ''),
+            'logo': company.get('logo', ''),
+            'industry': company.get('industry', ''),
+            'website': company.get('website', ''),
+            'description': company.get('description', ''),
+            'company_size': company.get('company_size', ''),
+            'headquarters': company.get('headquarters', ''),
+            'founded': company.get('founded'),
+            'profile_completion': completion,
+        }
 
 class OutreachDatabase:
     """Manages the SQLite database for all outreach activities."""
@@ -4896,7 +5231,9 @@ def scheduled_job_hunt_for_all_users():
 @app.route('/')
 def index():
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))  # Logged-in users go to dashboard
+        if current_user.role == 'recruiter':
+            return redirect(url_for('recruiter_dashboard'))
+        return redirect(url_for('dashboard'))
     return redirect("https://aijobsnap.vercel.app")
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -4929,6 +5266,8 @@ def login():
         if db_user and check_password_hash(db_user.password_hash, password):
             login_user(db_user)
             flash('Logged in successfully!', 'success')
+            if db_user.role == 'recruiter':
+                return redirect(url_for('recruiter_dashboard'))
             return redirect(url_for('dashboard'))
         else:
             flash('Login Unsuccessful. Please check username and password', 'danger')
@@ -6655,6 +6994,112 @@ def jobs():
     except Exception as e:
         logger.error(f"Failed to fetch jobs: {e}")
         return jsonify({'error': 'Failed to fetch jobs'}), 500
+
+@app.route('/recruiter/dashboard')
+@login_required
+@require_role('recruiter')
+def recruiter_dashboard():
+    return render_template('recruiter_dashboard.html')
+
+@app.route('/api/recruiters/<int:recruiter_id>/dashboard')
+@login_required
+@require_role('recruiter')
+def api_recruiter_dashboard(recruiter_id):
+    if recruiter_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    try:
+        db = JobDatabase()
+        stats = db.get_recruiter_dashboard_stats(recruiter_id)
+        active_jobs = db.get_recruiter_active_jobs(recruiter_id)
+        applications = db.get_recruiter_applications(recruiter_id, limit=10)
+        pipeline = db.get_recruiter_pipeline(recruiter_id)
+        insights = db.generate_ai_insights(recruiter_id)
+        notifications = db.get_recruiter_notifications(recruiter_id, limit=8)
+        company = db.get_company_summary(recruiter_id)
+        return jsonify({
+            'success': True,
+            'stats': stats,
+            'active_jobs': active_jobs,
+            'recent_applications': applications,
+            'pipeline': pipeline,
+            'ai_insights': insights,
+            'notifications': notifications,
+            'company': company,
+        })
+    except Exception as e:
+        logger.error(f"Failed to fetch recruiter dashboard for {recruiter_id}: {e}")
+        return jsonify({'success': False, 'message': 'Failed to load dashboard data.'}), 500
+
+@app.route('/api/applications', methods=['POST'])
+@login_required
+@require_role('job_seeker')
+def api_add_application():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        job_id = data.get('job_id')
+        if not job_id:
+            return jsonify({'error': 'Job ID is required'}), 400
+        db = JobDatabase()
+        user_details = db.get_user_details(current_user.id)
+        applicant_name = user_details.get('full_name', current_user.username) if user_details else current_user.username
+        applicant_email = user_details.get('email', '') if user_details else ''
+        ai_match_score = data.get('ai_match_score')
+        app_id = db.add_application(
+            job_id=job_id,
+            applicant_name=applicant_name,
+            applicant_email=applicant_email,
+            applicant_user_id=current_user.id,
+            ai_match_score=ai_match_score
+        )
+        if app_id:
+            return jsonify({'message': 'Application submitted successfully', 'application_id': app_id}), 201
+        return jsonify({'error': 'Failed to submit application'}), 500
+    except Exception as e:
+        logger.error(f"Failed to add application: {e}")
+        return jsonify({'error': 'Failed to submit application'}), 500
+
+@app.route('/api/applications/<int:application_id>/status', methods=['PATCH'])
+@login_required
+@require_role('recruiter')
+def api_update_application_status(application_id):
+    try:
+        data = request.get_json()
+        if not data or 'status' not in data:
+            return jsonify({'error': 'Status is required'}), 400
+        status = data['status']
+        valid_statuses = ['applied', 'reviewed', 'shortlisted', 'interview', 'offer', 'hired', 'rejected']
+        if status not in valid_statuses:
+            return jsonify({'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'}), 400
+        notes = data.get('notes')
+        db = JobDatabase()
+        success = db.update_application_status(application_id, status, notes)
+        if success:
+            return jsonify({'message': 'Application status updated'})
+        return jsonify({'error': 'Application not found'}), 404
+    except Exception as e:
+        logger.error(f"Failed to update application status: {e}")
+        return jsonify({'error': 'Failed to update application status'}), 500
+
+@app.route('/api/recruiters/<int:recruiter_id>/notifications/<int:notification_id>/read', methods=['POST'])
+@login_required
+@require_role('recruiter')
+def api_mark_notification_read(recruiter_id, notification_id):
+    if recruiter_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    try:
+        db = JobDatabase()
+        conn = sqlite3.connect(db.db_path, timeout=10)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE recruiter_notifications SET is_read = 1 WHERE id = ? AND recruiter_id = ?",
+                       (notification_id, recruiter_id))
+        conn.commit()
+        conn.close()
+        return jsonify({'message': 'Notification marked as read'})
+    except Exception as e:
+        logger.error(f"Failed to mark notification read: {e}")
+        return jsonify({'error': 'Failed to update notification'}), 500
 
 @app.route('/recruiter/post-job')
 @login_required
