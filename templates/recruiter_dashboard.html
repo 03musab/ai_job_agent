@@ -48,10 +48,13 @@
     }
 
     .chart-section { background: #fff; border: 1px solid #f3f4f6; border-radius: 14px; padding: 20px 24px; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
-    .funnel-bar { height: 38px; border-radius: 8px; position: relative; overflow: hidden; min-width: 4px; transition: width 1s cubic-bezier(.4,0,.2,1); }
-    .funnel-bar-inner { height: 100%; border-radius: 8px; display: flex; align-items: center; padding: 0 14px; transition: width 1s cubic-bezier(.4,0,.2,1); }
-    .funnel-label { font-size: 13px; font-weight: 600; white-space: nowrap; }
-    .funnel-count { font-size: 13px; font-weight: 700; margin-left: auto; }
+    .funnel-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .funnel-row:last-child { margin-bottom: 0; }
+    .funnel-label { width: 90px; flex-shrink: 0; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; }
+    .funnel-bar-wrapper { flex: 1; height: 42px; background: #f3f4f6; border-radius: 8px; overflow: hidden; position: relative; }
+    .funnel-bar-fill { height: 100%; border-radius: 8px; display: flex; align-items: center; padding: 0 16px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+    .funnel-bar-fill.loading { width: 0; }
+    .funnel-count { font-size: 14px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.2); }
 
     .trend-svg { width: 100%; height: 200px; }
     .trend-area { opacity: 0.12; }
@@ -72,7 +75,7 @@
     <p class="mt-4 text-sm text-gray-500 font-medium">Loading dashboard</p>
 </div>
 
-<div id="dashboard-content" class="opacity-0" x-data="recruiterDashboard()" x-init="init()">
+<div id="dashboard-content" class="opacity-0 px-4 lg:px-8" x-data="recruiterDashboard()" x-init="init()">
 
     {# ═══════════ 1. HEADER ═══════════ #}
     <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -88,12 +91,12 @@
                 </div>
             </template>
             <div class="min-w-0">
-                <p id="greeting-text" class="text-xs text-gray-400 font-medium">Good morning</p>
+                <p id="greeting-text" class="text-sm text-gray-400 font-medium">Good morning</p>
                 <h1 class="text-xl font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;" x-text="'{{ current_user.username }}'"></h1>
                 <div class="flex items-center gap-2 mt-0.5 flex-wrap">
-                    <span class="text-xs text-gray-400 truncate max-w-[200px]" x-text="companyName || 'Set up your company'"></span>
+                    <span class="text-sm text-gray-400 truncate max-w-[200px]" x-text="companyName || 'Set up your company'"></span>
                     <template x-if="company">
-                        <span class="inline-flex items-center gap-1 px-2 py-px rounded-full text-[10px] font-semibold"
+                        <span class="inline-flex items-center gap-1 px-2 py-px rounded-full text-[11px] font-semibold"
                               :class="company.profile_completion >= 80 ? 'bg-green-50 text-green-700 ring-1 ring-green-200/50' : company.profile_completion >= 40 ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/50' : 'bg-red-50 text-red-700 ring-1 ring-red-200/50'"
                               x-text="company.profile_completion + '%'"></span>
                     </template>
@@ -112,11 +115,11 @@
 
         {# 2a. KPI Donut Rings #}
         <div class="chart-section">
-            <h2 class="text-sm font-bold text-gray-900 tracking-tight mb-4" style="font-family: 'Plus Jakarta Sans', sans-serif;">Key Metrics</h2>
+            <h2 class="text-base font-bold text-gray-900 tracking-tight mb-4" style="font-family: 'Plus Jakarta Sans', sans-serif;">Key Metrics</h2>
             <div class="grid grid-cols-3 md:grid-cols-6 gap-4">
                 <template x-for="ring in kpiRings" :key="ring.key">
                     <div class="ring-group flex flex-col items-center text-center cursor-pointer" @click="ring.onClick ? ring.onClick() : null">
-                        <div class="relative w-16 h-16 mb-2">
+                        <div class="relative w-[72px] h-[72px] mb-2">
                             <svg viewBox="0 0 72 72" class="w-full h-full -rotate-90">
                                 <circle cx="36" cy="36" r="30" class="ring-circle-bg" fill="none" stroke-width="5"/>
                                 <circle cx="36" cy="36" r="30" class="ring-circle-fg" fill="none" stroke-width="5"
@@ -126,10 +129,10 @@
                                     style="transition: stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1);"/>
                             </svg>
                             <div class="absolute inset-0 flex items-center justify-center">
-                                <span class="text-[15px] font-bold text-gray-900" x-text="ring.count"></span>
+                                <span class="text-lg font-bold text-gray-900" x-text="ring.count"></span>
                             </div>
                         </div>
-                        <span class="text-[11px] font-medium text-gray-500 leading-tight" x-text="ring.label"></span>
+                        <span class="text-[13px] font-medium text-gray-500 leading-tight" x-text="ring.label"></span>
                     </div>
                 </template>
             </div>
@@ -137,32 +140,33 @@
 
         {# 2b. Pipeline Funnel Bar Chart #}
         <div class="chart-section">
-            <h2 class="text-sm font-bold text-gray-900 tracking-tight mb-4" style="font-family: 'Plus Jakarta Sans', sans-serif;">Hiring Funnel</h2>
-            <div class="space-y-2">
-                <template x-for="(stage, idx) in pipelineStages" :key="stage.key">
-                    <div class="flex items-center gap-3">
-                        <span class="text-xs font-semibold text-gray-500 w-[85px] flex-shrink-0 text-right" x-text="stage.label"></span>
-                        <div class="flex-1 funnel-bar bg-gray-100">
-                            <div class="funnel-bar-inner"
-                                :class="stage.barColor"
-                                :style="'width: ' + funnelPct(stage.key) + '%'"
-                                x-init="$el.style.width = '0%'; setTimeout(() => $el.style.width = funnelPct(stage.key) + '%', 100 + idx * 120)">
-                                <span class="funnel-count text-white drop-shadow-sm" x-show="pipeline[stage.key] > 0" x-text="pipeline[stage.key] || 0"></span>
+            <h2 class="text-base font-bold text-gray-900 tracking-tight mb-4" style="font-family: 'Plus Jakarta Sans', sans-serif;">Hiring Funnel</h2>
+            <template x-if="funnelTotal() > 0">
+                <div>
+                    <template x-for="(stage, idx) in pipelineStages" :key="stage.key">
+                        <div class="funnel-row">
+                            <span class="funnel-label" x-text="stage.label"></span>
+                            <div class="funnel-bar-wrapper">
+                                <div class="funnel-bar-fill loading"
+                                    :class="stage.barColor"
+                                    x-init="const el = $el; el.classList.remove('loading'); el.style.width = funnelPct(stage.key) + '%'">
+                                    <span class="funnel-count" x-text="pipeline[stage.key] || 0"></span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </template>
-            </div>
+                    </template>
+                </div>
+            </template>
             <div x-show="funnelTotal() === 0" class="text-center py-6">
-                <p class="text-xs text-gray-400">No candidates in pipeline yet</p>
+                <p class="text-sm text-gray-400">No candidates in pipeline yet</p>
             </div>
         </div>
 
         {# 2c. Application Trend Sparkline #}
         <div class="chart-section">
             <div class="flex items-center justify-between mb-3">
-                <h2 class="text-sm font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;">Application Trend</h2>
-                <span class="text-[11px] text-gray-400" x-text="trendPoints.length > 1 ? 'Last ' + trendPoints.length + ' days' : ''"></span>
+                <h2 class="text-base font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;">Application Trend</h2>
+                <span class="text-xs text-gray-400" x-text="trendPoints.length > 1 ? 'Last ' + trendPoints.length + ' days' : ''"></span>
             </div>
             <template x-if="trendPoints.length > 1">
                 <div x-data="{ hoverIdx: -1 }" class="trend-group relative">
@@ -181,7 +185,7 @@
                                 @mouseenter="hoverIdx = i" @mouseleave="hoverIdx = -1"/>
                         </template>
                     </svg>
-                    <div x-show="hoverIdx >= 0" class="absolute bg-gray-900 text-white text-[11px] px-2 py-1 rounded shadow-lg pointer-events-none transform -translate-x-1/2"
+                    <div x-show="hoverIdx >= 0" class="absolute bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg pointer-events-none transform -translate-x-1/2"
                         :style="'left: ' + (hoverIdx >= 0 ? trendSvgPoints[hoverIdx].x / 600 * 100 : 0) + '%; top: -28px;'"
                         x-text="hoverIdx >= 0 ? trendPoints[hoverIdx].count + ' apps' : ''"></div>
                 </div>
@@ -190,8 +194,8 @@
                 <div class="kpi-icon bg-indigo-50 mx-auto mb-3" style="width:40px;height:40px;">
                     <svg class="text-indigo-400" style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
                 </div>
-                <p class="text-xs text-gray-400">Not enough data for trend chart</p>
-                <p class="text-[10px] text-gray-300 mt-1">Trends appear after receiving applications over multiple days</p>
+                <p class="text-sm text-gray-400">Not enough data for trend chart</p>
+                <p class="text-xs text-gray-300 mt-1">Trends appear after receiving applications over multiple days</p>
             </div>
         </div>
 
@@ -203,19 +207,19 @@
         {# Recent Applications #}
         <div id="applications-section" class="lg:col-span-8 dash-card rounded-xl overflow-hidden">
             <div class="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between">
-                <h2 class="text-sm font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;">Recent Applications</h2>
-                <span class="text-[11px] text-gray-400 font-medium" x-show="applications.length > 0" x-text="applications.length + ' total'"></span>
+                <h2 class="text-base font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;">Recent Applications</h2>
+                <span class="text-xs text-gray-400 font-medium" x-show="applications.length > 0" x-text="applications.length + ' total'"></span>
             </div>
             <template x-if="applications.length > 0">
                 <div class="overflow-x-auto">
                     <table class="w-full">
                         <thead>
                             <tr class="border-b border-gray-50">
-                                <th class="text-left px-5 py-2.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Candidate</th>
-                                <th class="text-left px-5 py-2.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider hidden sm:table-cell">Position</th>
-                                <th class="text-left px-5 py-2.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Applied</th>
-                                <th class="text-left px-5 py-2.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Stage</th>
-                                <th class="text-center px-5 py-2.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell w-16">Match</th>
+                                <th class="text-left px-5 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Candidate</th>
+                                <th class="text-left px-5 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden sm:table-cell">Position</th>
+                                <th class="text-left px-5 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Applied</th>
+                                <th class="text-left px-5 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Stage</th>
+                                <th class="text-center px-5 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell w-16">Match</th>
                                 <th class="text-right px-5 py-2.5"></th>
                             </tr>
                         </thead>
@@ -224,26 +228,26 @@
                                 <tr class="table-row hover:bg-gray-50/60">
                                     <td class="px-5 py-3">
                                         <div class="flex items-center gap-3">
-                                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0" :class="statusAvatarBg(app.status)" x-text="app.applicant_name.charAt(0).toUpperCase()"></div>
+                                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" :class="statusAvatarBg(app.status)" x-text="app.applicant_name.charAt(0).toUpperCase()"></div>
                                             <div class="min-w-0">
-                                                <p class="text-xs font-semibold text-gray-900 truncate" x-text="app.applicant_name"></p>
-                                                <p class="text-[10px] text-gray-400 truncate hidden sm:block" x-text="app.applicant_email || ''"></p>
+                                                <p class="text-[13px] font-semibold text-gray-900 truncate" x-text="app.applicant_name"></p>
+                                                <p class="text-[11px] text-gray-400 truncate hidden sm:block" x-text="app.applicant_email || ''"></p>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-5 py-3 hidden sm:table-cell"><p class="text-xs text-gray-600 truncate max-w-[180px]" x-text="app.job_title"></p></td>
-                                    <td class="px-5 py-3 hidden md:table-cell"><span class="text-[11px] text-gray-400 whitespace-nowrap" x-text="formatDate(app.applied_date)"></span></td>
-                                    <td class="px-5 py-3"><span class="inline-flex px-2 py-0.5 text-[10px] font-semibold rounded-full" :class="statusBadge(app.status)" x-text="app.status"></span></td>
+                                    <td class="px-5 py-3 hidden sm:table-cell"><p class="text-[13px] text-gray-600 truncate max-w-[180px]" x-text="app.job_title"></p></td>
+                                    <td class="px-5 py-3 hidden md:table-cell"><span class="text-xs text-gray-400 whitespace-nowrap" x-text="formatDate(app.applied_date)"></span></td>
+                                    <td class="px-5 py-3"><span class="inline-flex px-2 py-0.5 text-[11px] font-semibold rounded-full" :class="statusBadge(app.status)" x-text="app.status"></span></td>
                                     <td class="px-5 py-3 text-center hidden lg:table-cell">
                                         <template x-if="app.ai_match_score !== null && app.ai_match_score !== undefined">
-                                            <span class="text-xs font-bold" :class="{ 'text-green-600': app.ai_match_score >= 80, 'text-amber-600': app.ai_match_score >= 60 && app.ai_match_score < 80, 'text-red-500': app.ai_match_score < 60 }" x-text="Math.round(app.ai_match_score) + '%'"></span>
+                                            <span class="text-[13px] font-bold" :class="{ 'text-green-600': app.ai_match_score >= 80, 'text-amber-600': app.ai_match_score >= 60 && app.ai_match_score < 80, 'text-red-500': app.ai_match_score < 60 }" x-text="Math.round(app.ai_match_score) + '%'"></span>
                                         </template>
-                                        <template x-if="app.ai_match_score === null || app.ai_match_score === undefined"><span class="text-xs text-gray-300">--</span></template>
+                                        <template x-if="app.ai_match_score === null || app.ai_match_score === undefined"><span class="text-[13px] text-gray-300">--</span></template>
                                     </td>
                                     <td class="px-5 py-3 text-right whitespace-nowrap">
                                         <div class="flex items-center justify-end gap-1">
-                                            <button @click="updateAppStatus(app.id, 'shortlisted')" class="action-btn px-2.5 py-1 text-[11px] font-medium text-green-600 hover:bg-green-50 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500/30">Shortlist</button>
-                                            <button @click="updateAppStatus(app.id, 'rejected')" class="action-btn px-2.5 py-1 text-[11px] font-medium text-red-500 hover:bg-red-50 rounded-md hidden sm:inline-block focus:outline-none focus:ring-2 focus:ring-red-500/30">Reject</button>
+                                            <button @click="updateAppStatus(app.id, 'shortlisted')" class="action-btn px-2.5 py-1 text-xs font-medium text-green-600 hover:bg-green-50 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500/30">Shortlist</button>
+                                            <button @click="updateAppStatus(app.id, 'rejected')" class="action-btn px-2.5 py-1 text-xs font-medium text-red-500 hover:bg-red-50 rounded-md hidden sm:inline-block focus:outline-none focus:ring-2 focus:ring-red-500/30">Reject</button>
                                         </div>
                                     </td>
                                 </tr>
@@ -256,37 +260,37 @@
                 <div class="text-center py-10 px-4">
                     <div class="kpi-icon bg-purple-50 mx-auto mb-3" style="width:40px;height:40px;"><svg class="text-purple-400" style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
                     <p class="text-sm font-medium text-gray-500">No applications yet</p>
-                    <p class="text-xs text-gray-400 mt-1">Candidates will appear here once they apply to your open positions.</p>
+                    <p class="text-[13px] text-gray-400 mt-1">Candidates will appear here once they apply to your open positions.</p>
                 </div>
             </template>
         </div>
 
-        {# Sidebar: Active Jobs + Insights + Quick Actions + Company + Notifications #}
-        <div class="lg:col-span-4 space-y-4">
+        {# Sidebar: Active Jobs + AI Insights + Company + Notifications side by side #}
+        <div class="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
 
             {# Active Jobs #}
             <div id="active-jobs-section" class="dash-card rounded-xl overflow-hidden">
-                <div class="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between">
+                <div class="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
                     <h2 class="text-sm font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;">Active Jobs</h2>
-                    <a href="{{ url_for('recruiter_post_job') }}" class="text-[11px] font-semibold text-blue-600 hover:text-blue-700 transition-colors">+ New</a>
+                    <a href="{{ url_for('recruiter_post_job') }}" class="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors">+ New</a>
                 </div>
                 <template x-if="activeJobs.length > 0">
-                    <div class="divide-y divide-gray-50 max-h-[300px] overflow-y-auto">
+                    <div class="divide-y divide-gray-50 max-h-[280px] overflow-y-auto">
                         <template x-for="job in activeJobs" :key="job.id">
-                            <div class="px-5 py-3.5 hover:bg-gray-50/60 transition-colors duration-100">
+                            <div class="px-4 py-3 hover:bg-gray-50/60 transition-colors duration-100">
                                 <div class="flex items-start justify-between gap-2">
                                     <div class="min-w-0 flex-1">
-                                        <a :href="'/job/' + job.id" class="text-xs font-semibold text-gray-900 truncate block hover:text-blue-600 transition-colors" x-text="job.title"></a>
-                                        <p class="text-[10px] text-gray-400 mt-0.5" x-text="job.location || 'Remote'"></p>
+                                        <a :href="'/job/' + job.id" class="text-[13px] font-semibold text-gray-900 truncate block hover:text-blue-600 transition-colors" x-text="job.title"></a>
+                                        <p class="text-[11px] text-gray-400 mt-0.5" x-text="job.location || 'Remote'"></p>
                                     </div>
-                                    <span class="inline-flex px-2 py-px text-[9px] font-semibold rounded-full flex-shrink-0" :class="job.status === 'new' ? 'bg-green-50 text-green-700 ring-1 ring-green-200/60' : 'bg-gray-100 text-gray-600 ring-1 ring-gray-200/60'" x-text="job.status === 'new' ? 'Active' : job.status"></span>
+                                    <span class="inline-flex px-2 py-px text-[10px] font-semibold rounded-full flex-shrink-0" :class="job.status === 'new' ? 'bg-green-50 text-green-700 ring-1 ring-green-200/60' : 'bg-gray-100 text-gray-600 ring-1 ring-gray-200/60'" x-text="job.status === 'new' ? 'Active' : job.status"></span>
                                 </div>
-                                <div class="flex items-center justify-between mt-2.5">
+                                <div class="flex items-center justify-between mt-2">
                                     <div class="flex items-center gap-3">
-                                        <span class="text-[10px] text-gray-400"><span class="font-semibold text-gray-600" x-text="job.application_count || 0"></span> apps</span>
-                                        <span class="text-[10px] text-gray-400" x-text="formatDate(job.posted_date)"></span>
+                                        <span class="text-[11px] text-gray-400"><span class="font-semibold text-gray-600" x-text="job.application_count || 0"></span> apps</span>
+                                        <span class="text-[11px] text-gray-400" x-text="formatDate(job.posted_date)"></span>
                                     </div>
-                                    <button @click="closeJob(job.id)" class="action-btn px-2 py-0.5 text-[10px] font-medium text-red-500 hover:bg-red-50 rounded focus:outline-none focus:ring-2 focus:ring-red-500/30">Close</button>
+                                    <button @click="closeJob(job.id)" class="action-btn px-2 py-0.5 text-[11px] font-medium text-red-500 hover:bg-red-50 rounded focus:outline-none focus:ring-2 focus:ring-red-500/30">Close</button>
                                 </div>
                             </div>
                         </template>
@@ -295,14 +299,14 @@
                 <template x-if="activeJobs.length === 0">
                     <div class="text-center py-8 px-4">
                         <div class="kpi-icon bg-blue-50 mx-auto mb-2.5" style="width:36px;height:36px;"><svg class="text-blue-400" style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></div>
-                        <p class="text-xs text-gray-400">No active jobs</p>
+                        <p class="text-[13px] text-gray-400">No active jobs</p>
                     </div>
                 </template>
             </div>
 
             {# AI Insights #}
             <div class="dash-card rounded-xl overflow-hidden">
-                <div class="px-5 py-3.5 border-b border-gray-50 flex items-center gap-2.5">
+                <div class="px-4 py-3 border-b border-gray-50 flex items-center gap-2.5">
                     <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span></span>
                     <h2 class="text-sm font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;">AI Insights</h2>
                 </div>
@@ -325,8 +329,8 @@
                                     <svg x-show="insight.icon !== 'trending'" class="text-blue-600" style="width:11px;height:11px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-[11px] font-semibold text-gray-800" x-text="insight.title"></p>
-                                    <p class="text-[10px] mt-0.5 leading-relaxed text-gray-500" x-text="insight.message"></p>
+                                    <p class="text-xs font-semibold text-gray-800" x-text="insight.title"></p>
+                                    <p class="text-[11px] mt-0.5 leading-relaxed text-gray-500" x-text="insight.message"></p>
                                 </div>
                             </div>
                         </template>
@@ -334,88 +338,59 @@
                 </template>
                 <template x-if="aiInsights.length === 0">
                     <div class="text-center py-6 px-4">
-                        <p class="text-[11px] text-gray-400">No insights yet</p>
+                        <p class="text-xs text-gray-400">No insights yet</p>
                     </div>
                 </template>
             </div>
 
             {# Company #}
             <div class="dash-card rounded-xl overflow-hidden">
-                <div class="px-5 py-3.5 border-b border-gray-50">
+                <div class="px-4 py-3 border-b border-gray-50">
                     <h2 class="text-sm font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;">Company</h2>
                 </div>
                 <template x-if="company">
-                    <div class="p-5">
-                        <div class="flex items-center gap-3.5">
+                    <div class="p-4">
+                        <div class="flex items-center gap-3">
                             <template x-if="company.logo">
-                                <div class="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                                    <img :src="'/company/logo/{{ current_user.id }}/' + company.logo.split('/').pop()" class="w-8 h-8 object-contain" alt="Logo"/>
+                                <div class="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                    <img :src="'/company/logo/{{ current_user.id }}/' + company.logo.split('/').pop()" class="w-7 h-7 object-contain" alt="Logo"/>
                                 </div>
                             </template>
                             <template x-if="!company.logo">
-                                <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-                                    <span class="text-base font-bold text-blue-600" x-text="company.company_name ? company.company_name.charAt(0).toUpperCase() : 'C'"></span>
+                                <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                                    <span class="text-sm font-bold text-blue-600" x-text="company.company_name ? company.company_name.charAt(0).toUpperCase() : 'C'"></span>
                                 </div>
                             </template>
                             <div class="min-w-0 flex-1">
-                                <p class="text-xs font-semibold text-gray-900 truncate" x-text="company.company_name"></p>
-                                <p class="text-[10px] text-gray-400 truncate" x-text="company.industry || 'Add your industry'"></p>
+                                <p class="text-[13px] font-semibold text-gray-900 truncate" x-text="company.company_name"></p>
+                                <p class="text-[11px] text-gray-400 truncate" x-text="company.industry || 'Add your industry'"></p>
                                 <div class="flex items-center gap-2 mt-2">
                                     <div class="flex-1 bg-gray-100 rounded-full h-1.5"><div class="h-full rounded-full bg-blue-600 transition-all duration-500" :style="'width: ' + company.profile_completion + '%'"></div></div>
-                                    <span class="text-[10px] text-gray-400 font-medium flex-shrink-0" x-text="company.profile_completion + '%'"></span>
+                                    <span class="text-[11px] text-gray-400 font-medium flex-shrink-0" x-text="company.profile_completion + '%'"></span>
                                 </div>
                             </div>
                         </div>
-                        <a href="{{ url_for('recruiter_company') }}" class="block w-full text-center mt-4 px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30">Manage Company</a>
+                        <a href="{{ url_for('recruiter_company') }}" class="block w-full text-center mt-3 px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30">Manage Company</a>
                     </div>
                 </template>
                 <template x-if="!company">
                     <div class="text-center py-6 px-4">
-                        <div class="kpi-icon bg-gray-100 mx-auto mb-2.5" style="width:36px;height:36px;"><svg class="text-gray-400" style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg></div>
-                        <p class="text-xs text-gray-400">No company profile</p>
-                        <a href="{{ url_for('recruiter_company') }}" class="inline-flex items-center mt-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors">Set up company</a>
+                        <div class="kpi-icon bg-gray-100 mx-auto mb-2.5" style="width:32px;height:32px;"><svg class="text-gray-400" style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg></div>
+                        <p class="text-[13px] text-gray-400">No company profile</p>
+                        <a href="{{ url_for('recruiter_company') }}" class="inline-flex items-center mt-1.5 text-[13px] font-semibold text-blue-600 hover:text-blue-700 transition-colors">Set up company</a>
                     </div>
                 </template>
             </div>
 
-            {# Quick Actions #}
-            <div class="dash-card rounded-xl overflow-hidden">
-                <div class="px-5 py-3.5 border-b border-gray-50">
-                    <h2 class="text-sm font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;">Quick Actions</h2>
-                </div>
-                <div class="grid grid-cols-3 p-2 gap-1.5">
-                    <a href="{{ url_for('recruiter_post_job') }}" class="flex flex-col items-center justify-center py-2.5 rounded-lg hover:bg-gray-50 transition-colors duration-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
-                        <div class="kpi-icon bg-blue-50 mb-1.5" style="width:28px;height:28px;"><svg class="text-blue-600" style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></div>
-                        <span class="text-[10px] font-medium text-gray-500">Post Job</span>
-                    </a>
-                    <a href="#applications-section" class="flex flex-col items-center justify-center py-2.5 rounded-lg hover:bg-gray-50 transition-colors duration-100 focus:outline-none focus:ring-2 focus:ring-purple-500/30">
-                        <div class="kpi-icon bg-purple-50 mb-1.5" style="width:28px;height:28px;"><svg class="text-purple-600" style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
-                        <span class="text-[10px] font-medium text-gray-500">Apps</span>
-                    </a>
-                    <a href="{{ url_for('recruiter_company') }}" class="flex flex-col items-center justify-center py-2.5 rounded-lg hover:bg-gray-50 transition-colors duration-100 focus:outline-none focus:ring-2 focus:ring-green-500/30">
-                        <div class="kpi-icon bg-green-50 mb-1.5" style="width:28px;height:28px;"><svg class="text-green-600" style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg></div>
-                        <span class="text-[10px] font-medium text-gray-500">Company</span>
-                    </a>
-                    <a href="#pipeline-section" class="flex flex-col items-center justify-center py-2.5 rounded-lg hover:bg-gray-50 transition-colors duration-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/30">
-                        <div class="kpi-icon bg-cyan-50 mb-1.5" style="width:28px;height:28px;"><svg class="text-cyan-600" style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
-                        <span class="text-[10px] font-medium text-gray-500">Pipeline</span>
-                    </a>
-                    <a href="{{ url_for('recruiter_post_job') }}" class="flex flex-col items-center justify-center py-2.5 rounded-lg hover:bg-gray-50 transition-colors duration-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
-                        <div class="kpi-icon bg-indigo-50 mb-1.5" style="width:28px;height:28px;"><svg class="text-indigo-600" style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></div>
-                        <span class="text-[10px] font-medium text-gray-500">Search</span>
-                    </a>
-                </div>
-            </div>
-
             {# Notifications #}
             <div class="dash-card rounded-xl overflow-hidden" x-show="notifications.length > 0">
-                <div class="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between">
+                <div class="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
                     <h2 class="text-sm font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;">Notifications</h2>
-                    <span class="text-[11px] text-gray-400 font-medium" x-text="notifications.filter(n=>!n.is_read).length > 0 ? notifications.filter(n=>!n.is_read).length + ' new' : ''"></span>
+                    <span class="text-xs text-gray-400 font-medium" x-text="notifications.filter(n=>!n.is_read).length > 0 ? notifications.filter(n=>!n.is_read).length + ' new' : ''"></span>
                 </div>
-                <div class="divide-y divide-gray-50 max-h-72 overflow-y-auto">
+                <div class="divide-y divide-gray-50 max-h-64 overflow-y-auto">
                     <template x-for="notif in notifications" :key="notif.id">
-                        <div class="notif-item flex items-start gap-3 px-5 py-3 cursor-pointer hover:bg-gray-50/60" @click="markNotifRead(notif.id)">
+                        <div class="notif-item flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50/60" @click="markNotifRead(notif.id)">
                             <div class="flex-shrink-0 mt-0.5">
                                 <div class="kpi-icon" style="width:26px;height:26px;" :class="{
                                     'bg-purple-50': notif.type === 'application',
@@ -430,8 +405,8 @@
                                 </div>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-xs leading-snug" :class="notif.is_read ? 'text-gray-400' : 'text-gray-700'" x-text="notif.message"></p>
-                                <p class="text-[10px] text-gray-400 mt-0.5" x-text="formatDate(notif.created_at)"></p>
+                                <p class="text-[13px] leading-snug" :class="notif.is_read ? 'text-gray-400' : 'text-gray-700'" x-text="notif.message"></p>
+                                <p class="text-[11px] text-gray-400 mt-0.5" x-text="formatDate(notif.created_at)"></p>
                             </div>
                             <span x-show="!notif.is_read" class="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0 mt-1.5"></span>
                         </div>
@@ -470,7 +445,6 @@
 
             get kpiRings() {
                 const s = this.stats;
-                const targets = { active_jobs: 10, total_applications: 100, interviews_scheduled: 30, hires_this_month: 5, profile_views: 200, ai_score: 100 };
                 return [
                     { key: 'active_jobs', label: 'Active Jobs', count: s.active_jobs, pct: Math.min(100, Math.round(s.active_jobs / 10 * 100)), color: '#3b82f6', onClick: () => document.getElementById('active-jobs-section')?.scrollIntoView({behavior:'smooth'}) },
                     { key: 'total_applications', label: 'Applications', count: s.total_applications, pct: Math.min(100, Math.round(s.total_applications / 100 * 100)), color: '#8b5cf6', onClick: () => document.getElementById('applications-section')?.scrollIntoView({behavior:'smooth'}) },
@@ -506,7 +480,7 @@
 
             funnelPct(key) {
                 const max = Math.max(...Object.values(this.pipeline).map(v => v || 0), 1);
-                return Math.max(4, Math.round(((this.pipeline[key] || 0) / max) * 100));
+                return Math.max(6, Math.round(((this.pipeline[key] || 0) / max) * 100));
             },
 
             funnelTotal() {
