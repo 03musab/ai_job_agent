@@ -54,7 +54,8 @@ module.exports = {
                 }
             },
             fontFamily: {
-                sans: ['Inter', 'system-ui', 'sans-serif']
+                sans: ['Inter', 'system-ui', 'sans-serif'],
+                display: ['"Plus Jakarta Sans"', 'sans-serif']
             },
             spacing: {
                 '18': '4.5rem',

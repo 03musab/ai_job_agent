@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-gray-50">
+<html lang="en" class="h-full">
 
 <head>
     <meta charset="UTF-8">
@@ -13,38 +13,36 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
 </head>
 
-<body class="h-full {% block body_class %}{% endblock %}" style="{% block body_style %}{% endblock %}" x-data="{ 
+<body class="h-full {% block body_class %}{% endblock %}" x-data="{
           darkMode: localStorage.getItem('darkMode') === 'true',
           toggleTheme() {
               this.darkMode = !this.darkMode;
               localStorage.setItem('darkMode', this.darkMode);
           }
-      }" :class="{ 'dark-theme': darkMode }">
+      }" :class="{ 'dark-theme': darkMode, 'page-bg': true }">
     <div class="min-h-full relative z-10 transition-colors duration-500"
-        :class="darkMode ? 'bg-premium-bg' : 'bg-gray-50'">
-        <!-- Floating Pill Navbar -->
+        :class="darkMode ? '' : 'bg-gray-50'">
+        <!-- Sticky Navbar -->
         <div class="sticky top-0 z-50 px-4 pt-4" role="navigation" aria-label="Main menu"
             x-data="{ mobileMenuOpen: false }">
-            <nav class="max-w-5xl mx-auto rounded-2xl shadow-2xl transition-all duration-300 px-5 py-3 flex items-center justify-between"
-                :class="darkMode 
-                    ? 'bg-premium-black/80 border border-premium-teal/20 backdrop-blur-xl shadow-premium-teal/10' 
-                    : 'bg-white/90 border border-gray-200/80 backdrop-blur-xl shadow-gray-200/60'">
+            <nav class="max-w-5xl mx-auto rounded-xl shadow-sm transition-all duration-300 px-5 py-3 flex items-center justify-between nav-glass"
+                :class="darkMode
+                    ? 'bg-black/70 border border-white/10'
+                    : 'bg-white/80 border border-gray-200/60'">
 
                 <!-- Logo -->
                 <a href="{{ url_for('dashboard') }}" class="flex items-center space-x-2.5 group flex-shrink-0">
-                    <!-- Icon -->
-                    <div class="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:scale-110"
-                        :class="darkMode ? 'bg-premium-teal/20' : 'bg-blue-600'">
-                        <svg class="w-4.5 h-4.5" :class="darkMode ? 'text-premium-teal' : 'text-white'" fill="none"
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm transition-all duration-300 group-hover:scale-110"
+                        :class="darkMode ? 'bg-blue-600/30' : 'bg-blue-600'">
+                        <svg class="w-4 h-4" :class="darkMode ? 'text-blue-400' : 'text-white'" fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                                d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                                 aria-hidden="true"></path>
                         </svg>
                     </div>
                     <span class="text-xl font-extrabold hidden sm:block tracking-tight"
-                        style="font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -0.04em;"
-                        :style="darkMode ? 'background: linear-gradient(135deg, #00D4F7, #822659); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;' : 'background: linear-gradient(135deg, #2563eb, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;'">
+                        style="font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -0.04em;">
                         JobSnap
                     </span>
                 </a>
@@ -54,39 +52,39 @@
                     {% if current_user.is_authenticated %}
                     {% if current_user.role != 'recruiter' %}
                     <a href="{{ url_for('dashboard') }}"
-                        class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-premium-text/70 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
+                        class="px-4 py-2 rounded-lg text-base font-medium transition-all duration-200"
+                        :class="darkMode ? 'text-white/60 hover:text-white hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
                         Dashboard
                     </a>
                     {% endif %}
                     {% if current_user.role == 'recruiter' %}
                     <a href="{{ url_for('recruiter_dashboard') }}"
-                        class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-premium-teal/80 hover:text-premium-teal hover:bg-premium-teal/10' : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'">
-                        Recruiter Dashboard
+                        class="px-4 py-2 rounded-lg text-base font-medium transition-all duration-200"
+                        :class="darkMode ? 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/10' : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'">
+                        Dashboard
                     </a>
                     {% endif %}
                     {% if current_user.role != 'recruiter' %}
                     <a href="{{ url_for('outreach_studio') }}"
-                        class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-premium-text/70 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
+                        class="px-4 py-2 rounded-lg text-base font-medium transition-all duration-200"
+                        :class="darkMode ? 'text-white/60 hover:text-white hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
                         Outreach
                     </a>
                     <a href="{{ url_for('learning_path') }}"
-                        class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-premium-text/70 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
+                        class="px-4 py-2 rounded-lg text-base font-medium transition-all duration-200"
+                        :class="darkMode ? 'text-white/60 hover:text-white hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
                         Learning
                     </a>
                     {% endif %}
                     {% if current_user.role == 'recruiter' %}
                     <a href="{{ url_for('recruiter_post_job') }}"
-                        class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-premium-text/70 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
+                        class="px-4 py-2 rounded-lg text-base font-medium transition-all duration-200"
+                        :class="darkMode ? 'text-white/60 hover:text-white hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
                         Post a Job
                     </a>
                     <a href="{{ url_for('recruiter_company') }}"
-                        class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-premium-text/70 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
+                        class="px-4 py-2 rounded-lg text-base font-medium transition-all duration-200"
+                        :class="darkMode ? 'text-white/60 hover:text-white hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
                         Company
                     </a>
                     {% endif %}
@@ -96,44 +94,38 @@
                 <!-- Right Side Actions -->
                 <div class="flex items-center space-x-2">
                     {% if current_user.is_authenticated %}
-
-                    <!-- Theme Toggle -->
                     <button @click="toggleTheme()" type="button"
-                        class="p-2 rounded-xl transition-all duration-200 focus:outline-none"
-                        :class="darkMode ? 'text-premium-ruby bg-premium-ruby/10 hover:bg-premium-ruby/20' : 'text-amber-500 bg-amber-50 hover:bg-amber-100'">
-                        <svg x-show="!darkMode" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        class="p-2 rounded-lg transition-all duration-200 focus:outline-none"
+                        :class="darkMode ? 'text-amber-400 bg-amber-400/10 hover:bg-amber-400/20' : 'text-amber-500 bg-amber-50 hover:bg-amber-100'">
+                        <svg x-show="!darkMode" class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.071 16.071l.707.707M7.929 7.929l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z">
                             </path>
                         </svg>
-                        <svg x-show="darkMode" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                            x-cloak>
+                        <svg x-show="darkMode" class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" x-cloak>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
                             </path>
                         </svg>
                     </button>
-
-                    <!-- Profile Dropdown -->
                     <div class="relative" x-data="{ open: false }">
                         <button @click="open = !open" type="button"
-                            class="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 focus:outline-none shadow-sm"
-                            :class="darkMode ? 'bg-premium-ruby/20 hover:bg-premium-ruby/30 text-premium-ruby' : 'bg-blue-600 hover:bg-blue-700 text-white'">
+                            class="flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 focus:outline-none shadow-sm"
+                            :class="darkMode ? 'bg-blue-600/30 hover:bg-blue-600/40 text-blue-400' : 'bg-blue-600 hover:bg-blue-700 text-white'">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                             </svg>
                         </button>
-                        <!-- Dropdown -->
                         <div x-show="open" @click.away="open = false" x-transition
-                            class="absolute right-0 mt-3 w-52 rounded-2xl shadow-xl py-2 z-50 border transition-all duration-300"
-                            :class="darkMode ? 'bg-premium-black/95 border-premium-teal/30 backdrop-blur-xl' : 'bg-white border-gray-200'"
+                            class="absolute right-0 mt-3 w-52 rounded-xl shadow-lg py-2 z-50 border transition-all duration-300"
+                            :class="darkMode ? 'bg-gray-900 border-white/10' : 'bg-white border-gray-200'"
                             style="display: none;">
                             {% if current_user.role == 'job_seeker' %}
                             <a href="{{ url_for('profile') }}"
-                                class="flex items-center px-4 py-2.5 text-sm font-medium transition-colors rounded-xl mx-1"
-                                :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-700 hover:bg-gray-100'">
-                                <svg class="w-4 h-4 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                class="flex items-center px-4 py-2.5 text-base font-medium transition-colors rounded-lg mx-1"
+                                :class="darkMode ? 'text-white/70 hover:text-white hover:bg-white/5' : 'text-gray-700 hover:bg-gray-100'">
+                                <svg class="w-4.5 h-4.5 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                 </svg>
@@ -141,20 +133,20 @@
                             </a>
                             {% endif %}
                             <a href="{{ url_for('admin_upload_contacts') }}"
-                                class="flex items-center px-4 py-2.5 text-sm font-medium transition-colors rounded-xl mx-1"
-                                :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-700 hover:bg-gray-100'">
-                                <svg class="w-4 h-4 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                class="flex items-center px-4 py-2.5 text-base font-medium transition-colors rounded-lg mx-1"
+                                :class="darkMode ? 'text-white/70 hover:text-white hover:bg-white/5' : 'text-gray-700 hover:bg-gray-100'">
+                                <svg class="w-4.5 h-4.5 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
                                 </svg>
                                 Admin Upload
                             </a>
                             <div class="border-t my-1.5 mx-3"
-                                :class="darkMode ? 'border-premium-teal/20' : 'border-gray-100'"></div>
+                                :class="darkMode ? 'border-white/10' : 'border-gray-100'"></div>
                             <a href="{{ url_for('logout') }}"
-                                class="flex items-center px-4 py-2.5 text-sm font-medium transition-colors rounded-xl mx-1"
-                                :class="darkMode ? 'text-premium-ruby/80 hover:text-premium-ruby hover:bg-premium-ruby/10' : 'text-red-600 hover:bg-red-50'">
-                                <svg class="w-4 h-4 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                class="flex items-center px-4 py-2.5 text-base font-medium transition-colors rounded-lg mx-1"
+                                :class="darkMode ? 'text-red-400/80 hover:text-red-300 hover:bg-red-500/10' : 'text-red-600 hover:bg-red-50'">
+                                <svg class="w-4.5 h-4.5 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
                                     </path>
@@ -163,23 +155,20 @@
                             </a>
                         </div>
                     </div>
-
                     {% else %}
                     <a href="{{ url_for('login') }}"
-                        class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-premium-text/70 hover:text-premium-text' : 'text-gray-600 hover:text-gray-900'">
+                        class="px-4 py-2 text-base font-medium rounded-lg transition-all duration-200"
+                        :class="darkMode ? 'text-white/70 hover:text-white' : 'text-gray-600 hover:text-gray-900'">
                         Sign in
                     </a>
                     <a href="{{ url_for('register') }}"
-                        class="inline-flex items-center px-4 py-2 text-sm font-bold rounded-xl transition-all duration-200 active:scale-95 bg-blue-600 text-white hover:bg-blue-700 shadow-sm">
+                        class="btn btn-primary">
                         Get started
                     </a>
                     {% endif %}
-
-                    <!-- Mobile menu button -->
                     <button type="button" @click="mobileMenuOpen = !mobileMenuOpen"
-                        class="md:hidden p-2 rounded-xl transition-all duration-200 focus:outline-none"
-                        :class="darkMode ? 'text-premium-text/60 hover:text-premium-teal hover:bg-premium-teal/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'"
+                        class="md:hidden p-2 rounded-lg transition-all duration-200 focus:outline-none"
+                        :class="darkMode ? 'text-white/60 hover:text-white hover:bg-white/5' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'"
                         aria-controls="mobile-menu" :aria-expanded="mobileMenuOpen">
                         <span class="sr-only">Menu</span>
                         <svg class="h-5 w-5" :class="{'hidden': mobileMenuOpen, 'block': !mobileMenuOpen}" fill="none"
@@ -198,62 +187,52 @@
 
             <!-- Mobile menu dropdown -->
             <div id="mobile-menu" role="navigation" aria-label="Mobile menu"
-                class="md:hidden max-w-5xl mx-auto mt-2 rounded-2xl shadow-xl border overflow-hidden transition-all duration-300"
-                :class="darkMode ? 'bg-premium-black/95 border-premium-teal/20 backdrop-blur-xl' : 'bg-white border-gray-200'"
+                class="md:hidden max-w-5xl mx-auto mt-2 rounded-xl shadow-lg border overflow-hidden transition-all duration-300"
+                :class="darkMode ? 'bg-gray-900 border-white/10' : 'bg-white border-gray-200'"
                 x-show="mobileMenuOpen" x-transition x-cloak>
                 <div class="p-3 space-y-1">
                     {% if current_user.is_authenticated %}
                     {% if current_user.role != 'recruiter' %}
                     <a href="{{ url_for('dashboard') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Dashboard</a>
+                        class="flex items-center px-4 py-2.5 text-base font-medium rounded-lg transition-colors"
+                        :class="darkMode ? 'text-white/70 hover:text-white hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Dashboard</a>
                     {% endif %}
                     {% if current_user.role == 'recruiter' %}
                     <a href="{{ url_for('recruiter_dashboard') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-teal/80 hover:text-premium-teal hover:bg-premium-teal/10' : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'">Recruiter Dashboard</a>
+                        class="flex items-center px-4 py-2.5 text-base font-medium rounded-lg transition-colors"
+                        :class="darkMode ? 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/10' : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'">Dashboard</a>
                     {% endif %}
                     {% if current_user.role != 'recruiter' %}
                     <a href="{{ url_for('outreach_studio') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Outreach
-                        Studio</a>
+                        class="flex items-center px-4 py-2.5 text-base font-medium rounded-lg transition-colors"
+                        :class="darkMode ? 'text-white/70 hover:text-white hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Outreach Studio</a>
                     <a href="{{ url_for('learning_path') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Learning
-                        Path</a>
+                        class="flex items-center px-4 py-2.5 text-base font-medium rounded-lg transition-colors"
+                        :class="darkMode ? 'text-white/70 hover:text-white hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Learning Path</a>
                     {% endif %}
                     {% if current_user.role == 'recruiter' %}
                     <a href="{{ url_for('recruiter_post_job') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
-                        Post a Job
-                    </a>
+                        class="flex items-center px-4 py-2.5 text-base font-medium rounded-lg transition-colors"
+                        :class="darkMode ? 'text-white/70 hover:text-white hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Post a Job</a>
                     <a href="{{ url_for('recruiter_company') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
-                        Company
-                    </a>
+                        class="flex items-center px-4 py-2.5 text-base font-medium rounded-lg transition-colors"
+                        :class="darkMode ? 'text-white/70 hover:text-white hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Company</a>
                     {% endif %}
                     {% if current_user.role == 'job_seeker' %}
                     <a href="{{ url_for('profile') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Profile</a>
+                        class="flex items-center px-4 py-2.5 text-base font-medium rounded-lg transition-colors"
+                        :class="darkMode ? 'text-white/70 hover:text-white hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Profile</a>
                     {% endif %}
-                    <div class="border-t my-1.5 mx-1" :class="darkMode ? 'border-premium-teal/20' : 'border-gray-100'">
-                    </div>
+                    <div class="border-t my-1.5 mx-1" :class="darkMode ? 'border-white/10' : 'border-gray-100'"></div>
                     <a href="{{ url_for('logout') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-ruby/80 hover:text-premium-ruby hover:bg-premium-ruby/10' : 'text-red-600 hover:bg-red-50'">Sign
-                        out</a>
+                        class="flex items-center px-4 py-2.5 text-base font-medium rounded-lg transition-colors"
+                        :class="darkMode ? 'text-red-400/80 hover:text-red-300 hover:bg-red-500/10' : 'text-red-600 hover:bg-red-50'">Sign out</a>
                     {% else %}
                     <a href="{{ url_for('login') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Sign
-                        in</a>
+                        class="flex items-center px-4 py-2.5 text-base font-medium rounded-lg transition-colors"
+                        :class="darkMode ? 'text-white/70 hover:text-white hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Sign in</a>
                     <a href="{{ url_for('register') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors">Get
-                        started</a>
+                        class="flex items-center px-4 py-2.5 text-base font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Get started</a>
                     {% endif %}
                 </div>
             </div>
@@ -269,7 +248,7 @@
         {% endif %}
         {% endwith %}
         <main class="flex-1" id="main-content">
-            <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-4">
+            <div class="page-container">
                 {% block content %}{% endblock %}
             </div>
         </main>
@@ -277,62 +256,40 @@
     <!-- Alpine.js Core -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
-        // Add temporal hover effects to interactive elements
-        document.addEventListener('DOMContentLoaded', function () {
-            const interactiveElements = document.querySelectorAll('button, .btn-temporal, a');
-
-            interactiveElements.forEach(element => {
-                element.addEventListener('mouseenter', function () {
-                    this.style.transition = 'all 0.3s ease';
-                });
-            });
-        });
-
-        // --- Dynamic Toast Notification System ---
         function showToast(message, type = 'info', triggerElement = null) {
             let cardBackdrop = null;
             const jobCard = triggerElement ? triggerElement.closest('.job-item') : null;
 
             const existingToast = document.getElementById('dynamic-toast');
-            if (existingToast) {
-                existingToast.remove();
-            }
+            if (existingToast) existingToast.remove();
             const existingBackdrop = document.querySelector('.toast-card-backdrop');
-            if (existingBackdrop) {
-                existingBackdrop.remove();
-            }
+            if (existingBackdrop) existingBackdrop.remove();
 
             const toast = document.createElement('div');
             toast.id = 'dynamic-toast';
             toast.setAttribute('role', 'status');
             toast.setAttribute('aria-live', 'polite');
 
-            let classes = 'absolute z-[1001] px-4 py-2.5 shadow-lg text-sm font-medium transition-all duration-300 ease-in-out';
-
+            let classes = 'absolute z-[1001] px-4 py-2.5 shadow-lg text-base font-medium transition-all duration-300 ease-in-out rounded-xl';
             const typeStyles = {
-                success: 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20',
-                error: 'bg-red-500/10 text-red-300 border border-red-500/20',
-                warning: 'bg-amber-500/10 text-amber-300 border border-amber-500/20',
-                info: 'bg-sky-500/10 text-sky-300 border border-sky-500/20'
+                success: 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20',
+                error: 'bg-red-500/10 text-red-700 border border-red-500/20',
+                warning: 'bg-amber-500/10 text-amber-700 border border-amber-500/20',
+                info: 'bg-sky-500/10 text-sky-700 border border-sky-500/20'
             };
-            toast.className = `${classes} ${typeStyles[type] || typeStyles.info}`;
-            toast.style.borderRadius = '0.25rem';
-            toast.textContent = message;
-
+            toast.className = classes + ' ' + (typeStyles[type] || typeStyles.info);
             toast.style.opacity = '0';
             toast.style.transform = 'translateY(10px)';
-
             document.body.appendChild(toast);
 
             if (jobCard) {
                 cardBackdrop = document.createElement('div');
-                cardBackdrop.className = 'toast-card-backdrop fixed bg-indigo-500/10 z-[1] transition-all duration-300 ease-in-out';
-                cardBackdrop.style.borderRadius = '0.25rem';
+                cardBackdrop.className = 'toast-card-backdrop fixed bg-indigo-500/10 z-[1] transition-all duration-300 ease-in-out rounded-xl';
                 const cardRect = jobCard.getBoundingClientRect();
-                cardBackdrop.style.top = `${cardRect.top + window.scrollY}px`;
-                cardBackdrop.style.left = `${cardRect.left + window.scrollX}px`;
-                cardBackdrop.style.width = `${cardRect.width}px`;
-                cardBackdrop.style.height = `${cardRect.height}px`;
+                cardBackdrop.style.top = (cardRect.top + window.scrollY) + 'px';
+                cardBackdrop.style.left = (cardRect.left + window.scrollX) + 'px';
+                cardBackdrop.style.width = cardRect.width + 'px';
+                cardBackdrop.style.height = cardRect.height + 'px';
                 cardBackdrop.style.opacity = '0';
                 cardBackdrop.style.transform = 'scale(0.98)';
                 document.body.appendChild(cardBackdrop);
@@ -347,31 +304,24 @@
                 const toastHeight = toast.offsetHeight;
                 const toastWidth = toast.offsetWidth;
                 const spaceAbove = rect.top;
-
-                let topPosition;
-                if (spaceAbove > toastHeight + 15) {
-                    topPosition = rect.top + window.scrollY - toastHeight - 10;
-                } else {
-                    topPosition = rect.bottom + window.scrollY + 10;
-                }
-                toast.style.top = `${topPosition}px`;
-
+                let topPosition = spaceAbove > toastHeight + 15
+                    ? rect.top + window.scrollY - toastHeight - 10
+                    : rect.bottom + window.scrollY + 10;
+                toast.style.top = topPosition + 'px';
                 let leftPosition = rect.left + (rect.width / 2) - (toastWidth / 2);
                 leftPosition = Math.max(10, leftPosition);
                 leftPosition = Math.min(leftPosition, window.innerWidth - toastWidth - 10);
-                toast.style.left = `${leftPosition}px`;
+                toast.style.left = leftPosition + 'px';
             } else {
                 toast.style.top = '20px';
                 toast.style.left = '50%';
                 toast.style.transform = 'translateX(-50%) translateY(10px)';
                 toast.style.position = 'fixed';
             }
-
             requestAnimationFrame(() => {
                 toast.style.opacity = '1';
                 toast.style.transform = triggerElement ? 'translateY(0)' : 'translateX(-50%) translateY(0)';
             });
-
             const hideToast = () => {
                 toast.style.opacity = '0';
                 toast.style.transform = triggerElement ? 'translateY(-10px)' : 'translateX(-50%) translateY(-10px)';
@@ -380,11 +330,9 @@
                     if (cardBackdrop) cardBackdrop.remove();
                 }, 350);
             };
-
             setTimeout(hideToast, 3500);
         }
     </script>
     {% block scripts %}{% endblock %}
 </body>
-
 </html>
