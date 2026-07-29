@@ -1,14 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Register - JobSnap{% endblock %}
 {% block body_class %}light-theme{% endblock %}
 {% block content %}
-<script>window.location.href = "{{ url_for('login') }}#register";</script>
-<div class="card max-w-md mx-auto" style="text-align:center;">
-    <div class="empty-state">
-        <div class="empty-state-icon">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
-        </div>
-        <p class="text-body">Redirecting to registration...</p>
-    </div>
-</div>
+
+<script>
+  // Redirect to login page with register mode active
+  window.location.href = "{{ url_for('login') }}#register";
+</script>
+
 {% endblock %}
