@@ -6171,8 +6171,6 @@ def add_status_colors(job):
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    if current_user.role == 'recruiter':
-        return redirect(url_for('recruiter_dashboard'))
     db = JobDatabase()
     page = request.args.get('page', 1, type=int)
     limit = request.args.get('limit', 10, type=int)
