@@ -627,7 +627,6 @@ class User(UserMixin):
         db = JobDatabase()
         conn = sqlite3.connect(db.db_path, timeout=10)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, username, password_hash, email_recipients, send_excel_attachment FROM users WHERE id = ?", (user_id,))
         cursor.execute("SELECT id, username, password_hash, role, email_recipients, send_excel_attachment FROM users WHERE id = ?", (user_id,))
         user_data = cursor.fetchone()
         conn.close()
@@ -640,7 +639,6 @@ class User(UserMixin):
         db = JobDatabase()
         conn = sqlite3.connect(db.db_path, timeout=10)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, username, password_hash, email_recipients, send_excel_attachment FROM users WHERE username = ?", (username,))
         cursor.execute("SELECT id, username, password_hash, role, email_recipients, send_excel_attachment FROM users WHERE username = ?", (username,))
         user_data = cursor.fetchone()
         conn.close()
@@ -685,6 +683,9 @@ class JobDatabase:
         if 'send_excel_attachment' not in user_columns:
             try: cursor.execute("ALTER TABLE users ADD COLUMN send_excel_attachment BOOLEAN DEFAULT TRUE"); conn.commit(); logger.info("Added send_excel_attachment column to users table.")
             except sqlite3.OperationalError as e: logger.warning(f"send_excel_attachment column already exists or error altering users table: {e}")
+        if 'email_recipients' not in user_columns:
+            try: cursor.execute("ALTER TABLE users ADD COLUMN email_recipients TEXT DEFAULT ''"); conn.commit(); logger.info("Added email_recipients column to users table.")
+            except sqlite3.OperationalError as e: logger.warning(f"email_recipients column already exists or error altering users table: {e}")
 
         # --- Jobs Table ---
         cursor.execute('''
