@@ -52,7 +52,7 @@
                 <!-- Center Nav Links (desktop) -->
                 <div class="hidden md:flex items-center space-x-1">
                     {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('dashboard') if current_user.role != 'recruiter' else url_for('recruiter_dashboard') }}"
+                    <a href="{{ url_for('dashboard') }}"
                         class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
                         :class="darkMode ? 'text-premium-text/70 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
                         Dashboard
@@ -192,7 +192,7 @@
                 x-show="mobileMenuOpen" x-transition x-cloak>
                 <div class="p-3 space-y-1">
                     {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('dashboard') if current_user.role != 'recruiter' else url_for('recruiter_dashboard') }}"
+                    <a href="{{ url_for('dashboard') }}"
                         class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
                         :class="darkMode ? 'text-premium-text/80 hover:text-premium-text hover:bg-premium-teal/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Dashboard</a>
                     <a href="{{ url_for('outreach_studio') }}"
