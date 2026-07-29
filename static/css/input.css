@@ -288,19 +288,19 @@ body {
     position: relative;
     overflow-x: hidden;
     scroll-behavior: smooth;
-    font-size: 13px;
+    font-size: 15px;
 }
 
 /* Global font size reduction */
 h1 {
-    font-size: 1.75rem !important;
+    font-size: 2rem !important;
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 700;
     letter-spacing: -0.02em;
 }
 
 h2 {
-    font-size: 1.5rem !important;
+    font-size: 1.625rem !important;
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 700;
     letter-spacing: -0.02em;
@@ -335,16 +335,16 @@ h6 {
 }
 
 p {
-    font-size: 0.9rem !important;
+    font-size: 0.875rem !important;
 }
 
 a {
-    font-size: 0.9rem !important;
+    font-size: 0.875rem !important;
 }
 
 button,
 .btn {
-    font-size: 0.85rem !important;
+    font-size: 0.875rem !important;
     font-family: 'Inter', sans-serif;
     font-weight: 600;
 }
@@ -352,35 +352,35 @@ button,
 input,
 textarea,
 select {
-    font-size: 0.9rem !important;
+    font-size: 0.875rem !important;
 }
 
 .text-sm {
-    font-size: 0.75rem !important;
+    font-size: 0.8125rem !important;
 }
 
 .text-xs {
-    font-size: 0.65rem !important;
+    font-size: 0.75rem !important;
 }
 
 .text-base {
-    font-size: 0.9rem !important;
+    font-size: 0.9375rem !important;
 }
 
 .text-lg {
-    font-size: 1.05rem !important;
+    font-size: 1.0625rem !important;
 }
 
 .text-xl {
-    font-size: 1.2rem !important;
+    font-size: 1.25rem !important;
 }
 
 .text-2xl {
-    font-size: 1.4rem !important;
+    font-size: 2.125rem !important;
 }
 
 .text-3xl {
-    font-size: 1.65rem !important;
+    font-size: 2.5rem !important;
 }
 
 /* Stats / Numbers */
