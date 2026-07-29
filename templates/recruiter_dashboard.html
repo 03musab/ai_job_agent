@@ -58,9 +58,16 @@
     {# ── 1. HEADER ── #}
     <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div class="flex items-center gap-3.5 min-w-0">
-            <div class="w-11 h-11 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                <span class="text-sm font-bold text-white tracking-tight" x-text="'{{ current_user.username }}'.charAt(0).toUpperCase()"></span>
-            </div>
+            <template x-if="company && company.logo">
+                <div class="w-11 h-11 rounded-xl bg-white border border-gray-100 flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden">
+                    <img :src="'/company/logo/{{ current_user.id }}/' + company.logo.split('/').pop()" class="w-8 h-8 object-contain" alt="Logo"/>
+                </div>
+            </template>
+            <template x-if="!company || !company.logo">
+                <div class="w-11 h-11 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <span class="text-sm font-bold text-white tracking-tight" x-text="'{{ current_user.username }}'.charAt(0).toUpperCase()"></span>
+                </div>
+            </template>
             <div class="min-w-0">
                 <p id="greeting-text" class="text-xs text-gray-400 font-medium">Good morning</p>
                 <h1 class="text-xl font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;" :class="darkMode ? 'text-premium-text' : ''">
@@ -305,11 +312,13 @@
                     <div class="p-5">
                         <div class="flex items-center gap-3.5">
                             <template x-if="company.logo">
-                                <img :src="'/company/logo/{{ current_user.id }}/' + company.logo.split('/').pop()" class="w-11 h-11 rounded-lg object-cover border border-gray-100 flex-shrink-0" alt="Logo"/>
+                                <div class="w-14 h-14 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                    <img :src="'/company/logo/{{ current_user.id }}/' + company.logo.split('/').pop()" class="w-10 h-10 object-contain" alt="Logo"/>
+                                </div>
                             </template>
                             <template x-if="!company.logo">
-                                <div class="w-11 h-11 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0" :class="darkMode ? 'bg-premium-teal/20' : ''">
-                                    <span class="text-sm font-bold text-blue-600" :class="darkMode ? 'text-premium-teal' : ''" x-text="company.company_name ? company.company_name.charAt(0).toUpperCase() : 'C'"></span>
+                                <div class="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0" :class="darkMode ? 'bg-premium-teal/20' : ''">
+                                    <span class="text-lg font-bold text-blue-600" :class="darkMode ? 'text-premium-teal' : ''" x-text="company.company_name ? company.company_name.charAt(0).toUpperCase() : 'C'"></span>
                                 </div>
                             </template>
                             <div class="min-w-0 flex-1">

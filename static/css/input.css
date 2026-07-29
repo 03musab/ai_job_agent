@@ -846,3 +846,20 @@ body::before {
         transform: translateY(0);
     }
 }
+
+/* Logo containers */
+.logo-container {
+    background-color: #ffffff;
+    border: 1px solid #f3f4f6;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1 / 1;
+}
+.logo-container .logo-img {
+    max-width: 70%;
+    max-height: 70%;
+    object-fit: contain;
+}
