@@ -56,8 +56,8 @@
 <div id="dashboard-content" class="opacity-0" x-data="recruiterDashboard()" x-init="init()">
 
     {# ── 1. HEADER ── #}
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
-        <div class="flex items-center gap-3.5 min-w-0">
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-10">
+        <div class="flex items-center gap-5 min-w-0">
             <div class="w-11 h-11 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
                 <span class="text-sm font-bold text-white tracking-tight" x-text="'{{ current_user.username }}'.charAt(0).toUpperCase()"></span>
             </div>
@@ -84,33 +84,33 @@
     </div>
 
     {# ── 2. KPI CARDS ── #}
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-        <div class="kpi-card dash-card rounded-xl p-4" onclick="document.getElementById('active-jobs-section')?.scrollIntoView({behavior:'smooth'})">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-10">
+        <div class="kpi-card dash-card rounded-xl p-5" onclick="document.getElementById('active-jobs-section')?.scrollIntoView({behavior:'smooth'})">
             <div class="kpi-icon bg-blue-50 mb-2.5"><svg class="text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></div>
             <p class="text-2xl font-bold text-gray-900 tracking-tight" :class="darkMode ? 'text-premium-text' : ''" x-text="stats.active_jobs">0</p>
             <p class="text-[11px] text-gray-400 font-medium mt-0.5">Active Jobs</p>
         </div>
-        <div class="kpi-card dash-card rounded-xl p-4" onclick="document.getElementById('applications-section')?.scrollIntoView({behavior:'smooth'})">
+        <div class="kpi-card dash-card rounded-xl p-5" onclick="document.getElementById('applications-section')?.scrollIntoView({behavior:'smooth'})">
             <div class="kpi-icon bg-purple-50 mb-2.5"><svg class="text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
             <p class="text-2xl font-bold text-gray-900 tracking-tight" :class="darkMode ? 'text-premium-text' : ''" x-text="stats.total_applications">0</p>
             <p class="text-[11px] text-gray-400 font-medium mt-0.5">Applications</p>
         </div>
-        <div class="kpi-card dash-card rounded-xl p-4">
+        <div class="kpi-card dash-card rounded-xl p-5">
             <div class="kpi-icon bg-amber-50 mb-2.5"><svg class="text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
             <p class="text-2xl font-bold text-gray-900 tracking-tight" :class="darkMode ? 'text-premium-text' : ''" x-text="stats.interviews_scheduled">0</p>
             <p class="text-[11px] text-gray-400 font-medium mt-0.5">Interviews</p>
         </div>
-        <div class="kpi-card dash-card rounded-xl p-4">
+        <div class="kpi-card dash-card rounded-xl p-5">
             <div class="kpi-icon bg-green-50 mb-2.5"><svg class="text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
             <p class="text-2xl font-bold text-gray-900 tracking-tight" :class="darkMode ? 'text-premium-text' : ''" x-text="stats.hires_this_month">0</p>
             <p class="text-[11px] text-gray-400 font-medium mt-0.5">Hires</p>
         </div>
-        <div class="kpi-card dash-card rounded-xl p-4">
+        <div class="kpi-card dash-card rounded-xl p-5">
             <div class="kpi-icon bg-cyan-50 mb-2.5"><svg class="text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></div>
             <p class="text-2xl font-bold text-gray-900 tracking-tight" :class="darkMode ? 'text-premium-text' : ''" x-text="stats.profile_views">0</p>
             <p class="text-[11px] text-gray-400 font-medium mt-0.5">Views</p>
         </div>
-        <div class="kpi-card dash-card rounded-xl p-4">
+        <div class="kpi-card dash-card rounded-xl p-5">
             <div class="kpi-icon bg-indigo-50 mb-2.5"><svg class="text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></div>
             <p class="text-2xl font-bold text-gray-900 tracking-tight" :class="darkMode ? 'text-premium-text' : ''" x-text="stats.active_jobs > 0 ? Math.min(Math.round(stats.active_jobs * 16 + Math.random() * 5), 95) : 0">0</p>
             <p class="text-[11px] text-gray-400 font-medium mt-0.5">AI Score</p>
@@ -118,14 +118,14 @@
     </div>
 
     {# ── 3. AI HIRING INSIGHTS ── #}
-    <div class="dash-card rounded-xl overflow-hidden mb-8">
-        <div class="px-5 py-3.5 border-b border-gray-50 flex items-center gap-2.5" :class="darkMode ? 'border-premium-teal/10' : ''">
+    <div class="dash-card rounded-xl overflow-hidden mb-10">
+        <div class="px-6 py-4 border-b border-gray-50 flex items-center gap-2.5" :class="darkMode ? 'border-premium-teal/10' : ''">
             <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span></span>
             <h2 class="text-sm font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;" :class="darkMode ? 'text-premium-text' : ''">AI Hiring Insights</h2>
             <span class="text-[11px] text-gray-300 font-medium" x-text="aiInsights.length > 0 ? aiInsights.length + ' recommendation' + (aiInsights.length !== 1 ? 's' : '') : ''"></span>
         </div>
         <template x-if="aiInsights.length > 0">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
                 <template x-for="insight in aiInsights" :key="insight.title">
                     <div class="insight-card flex items-start gap-3 p-3.5 rounded-lg" :class="{
                         'bg-yellow-50/70 border-yellow-300': !darkMode && insight.type === 'warning',
@@ -168,11 +168,11 @@
     </div>
 
     {# ── 4. MAIN CONTENT (8/4) ── #}
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
 
         {# Recent Applications ── 8 cols #}
         <div id="applications-section" class="lg:col-span-8 dash-card rounded-xl overflow-hidden">
-            <div class="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between" :class="darkMode ? 'border-premium-teal/10' : ''">
+            <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between" :class="darkMode ? 'border-premium-teal/10' : ''">
                 <h2 class="text-sm font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;" :class="darkMode ? 'text-premium-text' : ''">Recent Applications</h2>
                 <span class="text-[11px] text-gray-400 font-medium" x-show="applications.length > 0" x-text="applications.length + ' total'"></span>
             </div>
@@ -181,18 +181,18 @@
                     <table class="w-full">
                         <thead>
                             <tr class="border-b border-gray-50" :class="darkMode ? 'border-premium-teal/10' : ''">
-                                <th class="text-left px-5 py-2.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Candidate</th>
-                                <th class="text-left px-5 py-2.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider hidden sm:table-cell">Position</th>
-                                <th class="text-left px-5 py-2.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Applied</th>
-                                <th class="text-left px-5 py-2.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Stage</th>
-                                <th class="text-center px-5 py-2.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell w-16">Match</th>
-                                <th class="text-right px-5 py-2.5"></th>
+                                <th class="text-left px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Candidate</th>
+                                <th class="text-left px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider hidden sm:table-cell">Position</th>
+                                <th class="text-left px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Applied</th>
+                                <th class="text-left px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Stage</th>
+                                <th class="text-center px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell w-16">Match</th>
+                                <th class="text-right px-6 py-3"></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-50" :class="darkMode ? 'divide-premium-teal/10' : ''">
                             <template x-for="app in applications" :key="app.id">
                                 <tr class="table-row hover:bg-gray-50/60" :class="darkMode ? 'hover:bg-premium-teal/5' : ''">
-                                    <td class="px-5 py-3">
+                                    <td class="px-6 py-3.5">
                                         <div class="flex items-center gap-3">
                                             <div class="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0" :class="statusAvatarBg(app.status)" x-text="app.applicant_name.charAt(0).toUpperCase()"></div>
                                             <div class="min-w-0">
@@ -201,16 +201,16 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-5 py-3 hidden sm:table-cell"><p class="text-xs text-gray-600 truncate max-w-[180px]" :class="darkMode ? 'text-premium-text/70' : ''" x-text="app.job_title"></p></td>
-                                    <td class="px-5 py-3 hidden md:table-cell"><span class="text-[11px] text-gray-400 whitespace-nowrap" x-text="formatDate(app.applied_date)"></span></td>
-                                    <td class="px-5 py-3"><span class="inline-flex px-2 py-0.5 text-[10px] font-semibold rounded-full" :class="statusBadge(app.status)" x-text="app.status"></span></td>
-                                    <td class="px-5 py-3 text-center hidden lg:table-cell">
+                                    <td class="px-6 py-3.5 hidden sm:table-cell"><p class="text-xs text-gray-600 truncate max-w-[180px]" :class="darkMode ? 'text-premium-text/70' : ''" x-text="app.job_title"></p></td>
+                                    <td class="px-6 py-3.5 hidden md:table-cell"><span class="text-[11px] text-gray-400 whitespace-nowrap" x-text="formatDate(app.applied_date)"></span></td>
+                                    <td class="px-6 py-3.5"><span class="inline-flex px-2 py-0.5 text-[10px] font-semibold rounded-full" :class="statusBadge(app.status)" x-text="app.status"></span></td>
+                                    <td class="px-6 py-3.5 text-center hidden lg:table-cell">
                                         <template x-if="app.ai_match_score !== null && app.ai_match_score !== undefined">
                                             <span class="text-xs font-bold" :class="{ 'text-green-600': app.ai_match_score >= 80, 'text-amber-600': app.ai_match_score >= 60 && app.ai_match_score < 80, 'text-red-500': app.ai_match_score < 60 }" x-text="Math.round(app.ai_match_score) + '%'"></span>
                                         </template>
                                         <template x-if="app.ai_match_score === null || app.ai_match_score === undefined"><span class="text-xs text-gray-300">--</span></template>
                                     </td>
-                                    <td class="px-5 py-3 text-right whitespace-nowrap">
+                                    <td class="px-6 py-3.5 text-right whitespace-nowrap">
                                         <div class="flex items-center justify-end gap-1">
                                             <button @click="updateAppStatus(app.id, 'shortlisted')" class="action-btn px-2.5 py-1 text-[11px] font-medium text-green-600 hover:bg-green-50 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500/30">Shortlist</button>
                                             <button @click="updateAppStatus(app.id, 'rejected')" class="action-btn px-2.5 py-1 text-[11px] font-medium text-red-500 hover:bg-red-50 rounded-md hidden sm:inline-block focus:outline-none focus:ring-2 focus:ring-red-500/30">Reject</button>
@@ -233,14 +233,14 @@
 
         {# Active Jobs ── 4 cols #}
         <div id="active-jobs-section" class="lg:col-span-4 dash-card rounded-xl overflow-hidden">
-            <div class="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between" :class="darkMode ? 'border-premium-teal/10' : ''">
+            <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between" :class="darkMode ? 'border-premium-teal/10' : ''">
                 <h2 class="text-sm font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;" :class="darkMode ? 'text-premium-text' : ''">Active Jobs</h2>
                 <a href="{{ url_for('recruiter_post_job') }}" class="text-[11px] font-semibold text-blue-600 hover:text-blue-700 transition-colors">+ New</a>
             </div>
             <template x-if="activeJobs.length > 0">
                 <div class="divide-y divide-gray-50 max-h-[460px] overflow-y-auto" :class="darkMode ? 'divide-premium-teal/10' : ''">
                     <template x-for="job in activeJobs" :key="job.id">
-                        <div class="px-5 py-3.5 hover:bg-gray-50/60 transition-colors duration-100" :class="darkMode ? 'hover:bg-premium-teal/5' : ''">
+                        <div class="px-6 py-4 hover:bg-gray-50/60 transition-colors duration-100" :class="darkMode ? 'hover:bg-premium-teal/5' : ''">
                             <div class="flex items-start justify-between gap-2">
                                 <div class="min-w-0 flex-1">
                                     <a :href="'/job/' + job.id" class="text-xs font-semibold text-gray-900 truncate block hover:text-blue-600 transition-colors" :class="darkMode ? 'text-premium-text hover:text-premium-teal' : ''" x-text="job.title"></a>
@@ -271,14 +271,14 @@
     </div>
 
     {# ── 5. SECOND ROW (8/4) ── #}
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
 
         {# Hiring Pipeline ── 8 cols #}
         <div id="pipeline-section" class="lg:col-span-8 dash-card rounded-xl overflow-hidden">
-            <div class="px-5 py-3.5 border-b border-gray-50" :class="darkMode ? 'border-premium-teal/10' : ''">
+            <div class="px-6 py-4 border-b border-gray-50" :class="darkMode ? 'border-premium-teal/10' : ''">
                 <h2 class="text-sm font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;" :class="darkMode ? 'text-premium-text' : ''">Hiring Pipeline</h2>
             </div>
-            <div class="p-5">
+            <div class="p-6">
                 <div class="grid grid-cols-3 sm:grid-cols-6 gap-3">
                     <template x-for="stage in pipelineStages" :key="stage.key">
                         <div class="text-center">
@@ -298,11 +298,11 @@
 
             {# Company #}
             <div class="dash-card rounded-xl overflow-hidden">
-                <div class="px-5 py-3.5 border-b border-gray-50" :class="darkMode ? 'border-premium-teal/10' : ''">
+                <div class="px-6 py-4 border-b border-gray-50" :class="darkMode ? 'border-premium-teal/10' : ''">
                     <h2 class="text-sm font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;" :class="darkMode ? 'text-premium-text' : ''">Company</h2>
                 </div>
                 <template x-if="company">
-                    <div class="p-5">
+                    <div class="p-6">
                         <div class="flex items-center gap-3.5">
                             <template x-if="company.logo">
                                 <img :src="'/company/logo/{{ current_user.id }}/' + company.logo.split('/').pop()" class="w-11 h-11 rounded-lg object-cover border border-gray-100 flex-shrink-0" alt="Logo"/>
@@ -323,11 +323,11 @@
                                 </div>
                             </div>
                         </div>
-                        <a href="{{ url_for('recruiter_company') }}" class="block w-full text-center mt-4 px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30" :class="darkMode ? 'text-premium-teal border-premium-teal/20 hover:bg-premium-teal/10' : ''">Manage Company</a>
+                        <a href="{{ url_for('recruiter_company') }}" class="block w-full text-center mt-5 px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30" :class="darkMode ? 'text-premium-teal border-premium-teal/20 hover:bg-premium-teal/10' : ''">Manage Company</a>
                     </div>
                 </template>
                 <template x-if="!company">
-                    <div class="text-center py-6 px-4">
+                    <div class="text-center py-8 px-4">
                         <div class="kpi-icon bg-gray-100 mx-auto mb-2.5" style="width:36px;height:36px;"><svg class="text-gray-400" style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg></div>
                         <p class="text-xs text-gray-400">No company profile</p>
                         <a href="{{ url_for('recruiter_company') }}" class="inline-flex items-center mt-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors">Set up company</a>
@@ -337,10 +337,10 @@
 
             {# Quick Actions #}
             <div class="dash-card rounded-xl overflow-hidden">
-                <div class="px-5 py-3.5 border-b border-gray-50" :class="darkMode ? 'border-premium-teal/10' : ''">
+                <div class="px-6 py-4 border-b border-gray-50" :class="darkMode ? 'border-premium-teal/10' : ''">
                     <h2 class="text-sm font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;" :class="darkMode ? 'text-premium-text' : ''">Quick Actions</h2>
                 </div>
-                <div class="grid grid-cols-3 p-2 gap-1.5">
+                <div class="grid grid-cols-3 p-3 gap-1.5">
                     <a href="{{ url_for('recruiter_post_job') }}" class="flex flex-col items-center justify-center py-2.5 rounded-lg hover:bg-gray-50 transition-colors duration-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30" :class="darkMode ? 'hover:bg-premium-teal/5' : ''">
                         <div class="kpi-icon bg-blue-50 mb-1.5" style="width:28px;height:28px;"><svg class="text-blue-600" style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></div>
                         <span class="text-[10px] font-medium text-gray-500">Post Job</span>
@@ -370,13 +370,13 @@
 
             {# Notifications #}
             <div class="dash-card rounded-xl overflow-hidden" :class="darkMode ? 'card-glass' : ''" x-show="notifications.length > 0">
-                <div class="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between" :class="darkMode ? 'border-premium-teal/10' : ''">
+                <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between" :class="darkMode ? 'border-premium-teal/10' : ''">
                     <h2 class="text-sm font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;" :class="darkMode ? 'text-premium-text' : ''">Notifications</h2>
                     <span class="text-[11px] text-gray-400 font-medium" x-text="notifications.filter(n=>!n.is_read).length > 0 ? notifications.filter(n=>!n.is_read).length + ' new' : ''"></span>
                 </div>
                 <div class="divide-y divide-gray-50 max-h-72 overflow-y-auto" :class="darkMode ? 'divide-premium-teal/10' : ''">
                     <template x-for="notif in notifications" :key="notif.id">
-                        <div class="notif-item flex items-start gap-3 px-5 py-3 cursor-pointer hover:bg-gray-50/60" :class="darkMode ? 'hover:bg-premium-teal/5' : ''" @click="markNotifRead(notif.id)">
+                        <div class="notif-item flex items-start gap-3 px-6 py-4 cursor-pointer hover:bg-gray-50/60" :class="darkMode ? 'hover:bg-premium-teal/5' : ''" @click="markNotifRead(notif.id)">
                             <div class="flex-shrink-0 mt-0.5">
                                 <div class="kpi-icon" style="width:26px;height:26px;" :class="{
                                     'bg-purple-50': notif.type === 'application',
