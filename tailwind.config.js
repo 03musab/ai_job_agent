@@ -4,6 +4,7 @@ module.exports = {
         "./templates/**/*.html",
         "./static/**/*.js",
     ],
+    darkMode: 'class',
     theme: {
         extend: {
             colors: {
@@ -13,60 +14,45 @@ module.exports = {
                     500: '#3b82f6',
                     600: '#2563eb',
                     700: '#1d4ed8',
+                    800: '#1e40af',
                     900: '#1e3a8a'
                 },
-                gray: {
-                    50: '#f8fafc',
-                    100: '#f1f5f9',
-                    200: '#e2e8f0',
-                    300: '#cbd5e1',
-                    400: '#94a3b8',
-                    500: '#64748b',
-                    600: '#475569',
-                    700: '#334155',
+                slate: {
+                    950: '#090d16',
+                    900: '#0b0f19',
+                    850: '#111827',
                     800: '#1e293b',
-                    900: '#0f172a'
-                },
-                temporal: {
-                    50: '#f0f9ff',
-                    100: '#e0f2fe',
-                    200: '#bae6fd',
-                    300: '#7dd3fc',
-                    400: '#38bdf8',
-                    500: '#0ea5e9',
-                    600: '#0284c7',
-                    700: '#0369a1',
-                    800: '#075985',
-                    900: '#0c4a6e'
-                },
-                neon: {
-                    cyan: '#00ffff',
-                    purple: '#a855f7',
-                    pink: '#ec4899',
-                    green: '#10b981'
-                },
-                premium: {
-                    bg: '#1A1A1A',
-                    text: '#F0F0F0',
-                    teal: '#004D61',
-                    ruby: '#822659',
-                    forest: '#3E5641'
+                    700: '#334155',
+                    600: '#475569',
+                    500: '#64748b',
+                    400: '#94a3b8',
+                    300: '#cbd5e1',
+                    200: '#e2e8f0',
+                    100: '#f1f5f9',
+                    50: '#f8fafc'
                 }
             },
             fontFamily: {
-                sans: ['Inter', 'system-ui', 'sans-serif']
+                sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                display: ['Plus Jakarta Sans', 'Inter', '-apple-system', 'sans-serif']
             },
             spacing: {
                 '18': '4.5rem',
                 '88': '22rem'
             },
             borderRadius: {
-                'square-sm': '0.125rem',
-                'square': '0',
-                'sharp-md': '0.25rem',
-                'sharp-lg': '0.5rem'
+                'none': '0px',
+                'sm': '0.125rem',   /* 2px */
+                'DEFAULT': '0.25rem', /* 4px */
+                'md': '0.25rem',   /* 4px */
+                'lg': '0.25rem',   /* 4px */
+                'xl': '0.375rem',  /* 6px */
+                '2xl': '0.375rem', /* 6px */
+                '3xl': '0.5rem',   /* 8px max */
+                'full': '9999px'
             }
         }
     },
     plugins: [],
 }
+

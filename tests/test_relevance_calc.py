@@ -48,14 +48,9 @@ class TestRelevanceScoring(unittest.TestCase):
         self.mock_scraper.location = "Remote"
         self.mock_scraper.job_type = "Full-time"
         
-        # We need to manually inject the helper methods if they are used
-        from app import LinkedInScraper # Assuming Scraper class or similar
-        # Actually _calculate_relevance_score is a method of Scraper? 
-        # Let's check where it belongs. It belongs to whatever class was being edited.
-        # It was inside a class in app.py. Let's find out which one.
-        # Based on context it was likely 'LinkedInScraper' or 'JobScraper'.
-        # Let me check the file content again to be sure.
+        # Test setup
         pass
+
 
     def test_relevance_range(self):
         # This is a bit tricky because _calculate_relevance_score is an instance method

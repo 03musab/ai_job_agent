@@ -1,7 +1,6 @@
 {% extends "base.html" %}
-{% block body_class %}light-theme{% endblock %}
 {% block content %}
-<div class="max-w-5xl mx-auto" x-data="learningPath()">
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12" x-data="learningPath()">
 
     <!-- Toast Notifications -->
     <div class="fixed top-4 right-4 z-50 space-y-2">
@@ -22,20 +21,20 @@
 
     <!-- Header -->
     <div class="mb-8 text-center">
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">
+        <h1 class="text-3xl font-bold text-slate-900 dark:text-white mb-2">
             Skill Gap & Learning Path
         </h1>
-        <p class="text-gray-500 mb-6">Analyze your profile against industry standards and generate a custom roadmap.</p>
+        <p class="text-slate-500 dark:text-slate-400 mb-6">Analyze your profile against industry standards and generate a custom roadmap.</p>
 
         <div class="flex justify-center gap-4">
             <button @click="startNewPath"
-                :class="viewMode === 'generate' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'"
-                class="px-6 py-2 rounded-full font-medium transition-all duration-300" style="border-radius: 9999px;">
+                :class="viewMode === 'generate' ? 'bg-blue-600 text-white shadow-md' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700'"
+                class="px-6 py-2 font-medium transition-all duration-300 rounded-md">
                 Generate New
             </button>
             <button @click="loadMyPaths"
-                :class="viewMode === 'list' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'"
-                class="px-6 py-2 rounded-full font-medium transition-all duration-300" style="border-radius: 9999px;">
+                :class="viewMode === 'list' ? 'bg-blue-600 text-white shadow-md' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700'"
+                class="px-6 py-2 font-medium transition-all duration-300 rounded-md">
                 My Saved Paths
             </button>
         </div>
@@ -45,14 +44,12 @@
         x-transition:enter-start="opacity-0 transform scale-95"
         x-transition:enter-end="opacity-100 transform scale-100">
         <!-- Role Selection Card -->
-        <div x-show="!roadmap" class="bg-white border border-gray-200 rounded-lg p-6 mb-8 shadow-md"
-            style="border-radius: 0.5rem;">
+        <div x-show="!roadmap" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md p-6 mb-8 shadow-sm">
             <div class="flex flex-col md:flex-row gap-4 items-end">
                 <div class="w-full md:w-1/3">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Target Job Role</label>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Target Job Role</label>
                     <select x-model="targetRole"
-                        class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        style="border-radius: 0.25rem;">
+                        class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-4 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600 focus:outline-none">
                         <option value="" disabled>Select a role...</option>
                         <option value="Frontend Developer">Frontend Developer</option>
                         <option value="Backend Developer">Backend Developer</option>
@@ -62,14 +59,13 @@
                     </select>
                 </div>
                 <div class="w-full md:w-1/3">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Target Company (Optional)</label>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Target Company (Optional)</label>
                     <input type="text" x-model="targetCompany" placeholder="e.g. Google, Amazon"
-                        class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        style="border-radius: 0.25rem;">
+                        class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-4 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-600 focus:outline-none">
                 </div>
                 <div class="w-full md:w-auto">
                     <button @click="analyzeGap" :disabled="!targetRole || loading"
-                        class="w-full md:w-auto btn-temporal px-6 py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        class="w-full md:w-auto btn-temporal px-6 py-2.5 rounded-md font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         <span x-show="loading"
                             class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
                         <span x-text="loading ? 'Analyzing...' : 'Analyze Skill Gap'"></span>
@@ -83,66 +79,92 @@
 
             <!-- 1. Skill Gap Summary & 2. Readiness Progress -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Readiness Score -->
+                <!-- Readiness Score Card -->
                 <div
-                    class="md:col-span-1 bg-white border border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center relative overflow-hidden shadow-sm">
-                    <div class="absolute inset-0 bg-blue-50/50"></div>
-                    <h3 class="text-gray-900 font-medium mb-4 relative z-10">Job Readiness</h3>
+                    class="md:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md p-6 flex flex-col items-center justify-center relative overflow-hidden shadow-sm">
+                    <div class="absolute inset-0 bg-blue-50/30 dark:bg-blue-950/20"></div>
+                    <h3 class="text-slate-900 dark:text-white font-semibold text-base mb-4 relative z-10">Job Readiness</h3>
                     <div class="relative w-32 h-32 flex items-center justify-center">
                         <!-- Circular Progress SVG -->
                         <svg class="w-full h-full transform -rotate-90">
                             <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="12" fill="transparent"
-                                class="text-gray-200" />
+                                class="text-slate-200 dark:text-slate-800" />
                             <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="12" fill="transparent"
                                 :class="getScoreColor(analysis?.readiness_score)" :stroke-dasharray="351.86"
                                 :stroke-dashoffset="351.86 - (351.86 * (analysis?.readiness_score || 0) / 100)"
                                 class="transition-all duration-1000 ease-out" />
                         </svg>
-                        <span class="absolute text-3xl font-bold text-gray-900"
+                        <span class="absolute text-3xl font-extrabold text-slate-900 dark:text-white font-display"
                             x-text="(analysis?.readiness_score || 0) + '%'"></span>
                     </div>
-                    <p class="mt-4 text-sm text-center text-gray-600 relative z-10"
+                    <p class="mt-4 text-xs font-medium text-center text-slate-600 dark:text-slate-300 relative z-10"
                         x-text="getReadinessText(analysis?.readiness_score)"></p>
                 </div>
 
                 <!-- Summary Stats -->
                 <div class="md:col-span-2 grid grid-cols-2 gap-4">
-                    <div class="bg-gray-50 border border-green-200 rounded-xl p-5 flex flex-col justify-between">
+                    <div x-data="{ showAllStrong: false, popoverOpen: false }" class="bg-slate-50 dark:bg-slate-950 border border-emerald-200 dark:border-emerald-900/60 rounded-md p-5 flex flex-col justify-between relative">
                         <div class="flex items-start justify-between">
                             <div>
-                                <p class="text-sm text-gray-500">Strong Skills</p>
-                                <h4 class="stat-number text-2xl text-green-600 mt-1"
+                                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Strong Skills</p>
+                                <h4 class="stat-number text-2xl text-emerald-600 dark:text-emerald-400 font-bold mt-1"
                                     x-text="analysis?.strong_skills?.length || 0"></h4>
                             </div>
-                            <div class="p-2 bg-green-100 rounded-lg">
-                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor"
+                            <div class="p-2 bg-emerald-100 dark:bg-emerald-950/60 rounded-md">
+                                <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor"
                                     viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                             </div>
                         </div>
-                        <div class="mt-4 flex flex-wrap gap-2">
-                            <template x-for="skill in (analysis?.strong_skills || []).slice(0, 3)">
+                        <div class="mt-4 flex flex-wrap gap-2 items-center">
+                            <!-- Display skills (either first 3 or all depending on showAllStrong) -->
+                            <template x-for="skill in (showAllStrong ? (analysis?.strong_skills || []) : (analysis?.strong_skills || []).slice(0, 3))">
                                 <span
-                                    class="text-xs px-2 py-1 rounded bg-green-100 text-green-800 border border-green-200"
+                                    class="text-xs px-2 py-1 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 transition-all"
                                     x-text="skill"></span>
                             </template>
-                            <span x-show="(analysis?.strong_skills?.length || 0) > 3"
-                                class="text-xs px-2 py-1 text-gray-500"
-                                x-text="'+' + (analysis.strong_skills.length - 3) + ' more'"></span>
+                            
+                            <!-- Interactive +X More Button / Hover Tooltip -->
+                            <div x-show="(analysis?.strong_skills?.length || 0) > 3" class="relative inline-block">
+                                <button type="button" 
+                                    @click="showAllStrong = !showAllStrong" 
+                                    @mouseenter="popoverOpen = true" 
+                                    @mouseleave="popoverOpen = false"
+                                    class="text-xs px-2 py-1 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-200 dark:hover:bg-emerald-800 transition-all font-semibold cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                    <span x-text="showAllStrong ? 'Show Less' : '+' + (analysis.strong_skills.length - 3) + ' more'"></span>
+                                </button>
+
+                                <!-- Hover Tooltip Popover (lists all remaining skills) -->
+                                <div x-show="popoverOpen && !showAllStrong" 
+                                    x-transition:enter="transition ease-out duration-150"
+                                    x-transition:enter-start="opacity-0 scale-95"
+                                    x-transition:enter-end="opacity-100 scale-100"
+                                    x-transition:leave="transition ease-in duration-100"
+                                    x-transition:leave-start="opacity-100 scale-100"
+                                    x-transition:leave-end="opacity-0 scale-95"
+                                    class="absolute left-0 bottom-full mb-2 z-50 p-3 bg-slate-900 dark:bg-slate-950 text-white rounded-md shadow-xl border border-slate-700 min-w-[200px] max-w-[300px] pointer-events-none">
+                                    <p class="text-[11px] font-semibold text-emerald-400 mb-1.5 border-b border-slate-800 pb-1">All Remaining Skills:</p>
+                                    <div class="flex flex-wrap gap-1">
+                                        <template x-for="skill in (analysis?.strong_skills || []).slice(3)">
+                                            <span class="px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded text-[11px] font-medium" x-text="skill"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="bg-gray-50 border border-red-200 rounded-xl p-5 flex flex-col justify-between">
+                    <div class="bg-slate-50 dark:bg-slate-950 border border-red-200 dark:border-red-900/60 rounded-md p-5 flex flex-col justify-between">
                         <div class="flex items-start justify-between">
                             <div>
-                                <p class="text-sm text-gray-500">Missing Skills</p>
-                                <h4 class="stat-number text-2xl text-red-600 mt-1"
+                                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Missing Skills</p>
+                                <h4 class="stat-number text-2xl text-red-600 dark:text-red-400 font-bold mt-1"
                                     x-text="analysis?.missing_skills?.length || 0"></h4>
                             </div>
-                            <div class="p-2 bg-red-100 rounded-lg">
-                                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="p-2 bg-red-100 dark:bg-red-950/60 rounded-md">
+                                <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
                                     </path>
@@ -150,15 +172,15 @@
                             </div>
                         </div>
                         <div class="mt-4">
-                            <p class="text-xs text-gray-500">Critical gaps to bridge for this role.</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Critical gaps to bridge for this role.</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Company Insights Section -->
-            <div x-show="analysis?.company_insights" class="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                <h3 class="text-lg font-semibold text-blue-800 mb-3 flex items-center gap-2">
+            <div x-show="analysis?.company_insights" class="bg-blue-50/50 dark:bg-slate-900 border border-blue-200 dark:border-blue-900/60 rounded-md p-6">
+                <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-3 flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
@@ -166,23 +188,22 @@
                     </svg>
                     Company Insights: <span x-text="targetCompany"></span>
                 </h3>
-                <p class="text-gray-700 text-sm leading-relaxed mb-4" x-text="analysis?.company_insights"></p>
+                <p class="text-slate-700 dark:text-slate-300 text-sm leading-relaxed mb-4" x-text="analysis?.company_insights"></p>
 
                 <div x-show="analysis?.company_specific_skills?.length > 0">
-                    <h4 class="text-xs font-medium text-blue-700 uppercase tracking-wider mb-2">Key Skills for this
-                        Company</h4>
+                    <h4 class="text-xs font-semibold text-blue-800 dark:text-blue-400 uppercase tracking-wider mb-2">Key Skills for this Company</h4>
                     <div class="flex flex-wrap gap-2">
                         <template x-for="skill in analysis?.company_specific_skills">
-                            <span class="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800 border border-blue-200"
+                            <span class="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
                                 x-text="skill"></span>
                         </template>
                     </div>
                 </div>
 
-                <div class="mt-5 pt-4 border-t border-blue-200">
+                <div class="mt-5 pt-4 border-t border-blue-200 dark:border-blue-900/60">
                     <a :href="'https://www.google.com/search?q=' + encodeURIComponent(targetCompany) + '+interview+questions'"
                         target="_blank"
-                        class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md transition-colors shadow-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -193,43 +214,43 @@
             </div>
 
             <!-- 3. Accordion for Missing Skills -->
-            <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-900">Skill Gap Details</h3>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md overflow-hidden shadow-sm">
+                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+                    <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Skill Gap Details</h3>
                 </div>
-                <div class="divide-y divide-gray-200">
+                <div class="divide-y divide-slate-200 dark:divide-slate-800">
                     <template x-for="(skill, index) in analysis?.missing_skills" :key="index">
                         <div x-data="{ expanded: false }" class="group">
                             <button @click="expanded = !expanded"
-                                class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors text-left">
+                                class="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-2 h-2 rounded-full bg-red-400"></div>
-                                    <span class="font-medium text-gray-900" x-text="skill"></span>
+                                    <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                                    <span class="font-medium text-slate-900 dark:text-white" x-text="skill"></span>
                                 </div>
-                                <svg class="w-5 h-5 text-gray-500 transform transition-transform duration-200"
+                                <svg class="w-5 h-5 text-slate-500 dark:text-slate-400 transform transition-transform duration-200"
                                     :class="{'rotate-180': expanded}" fill="none" stroke="currentColor"
                                     viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M19 9l-7 7-7-7"></path>
                                 </svg>
                             </button>
-                            <div x-show="expanded" x-collapse class="px-6 pb-4 bg-gray-50">
-                                <p class="text-sm text-gray-600 mb-3">Recommended actions to acquire this skill:</p>
+                            <div x-show="expanded" x-collapse class="px-6 pb-4 bg-slate-50 dark:bg-slate-950">
+                                <p class="text-xs text-slate-600 dark:text-slate-400 mb-3">Recommended actions to acquire this skill:</p>
                                 <div class="flex gap-3">
                                     <a :href="'https://www.google.com/search?q=learn+' + skill" target="_blank"
-                                        class="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-md hover:bg-blue-100 transition-colors">
+                                        class="text-xs bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-3 py-1.5 rounded-md hover:bg-blue-100 transition-colors">
                                         Search Resources
                                     </a>
                                     <a :href="'https://www.youtube.com/results?search_query=' + skill + '+tutorial'"
                                         target="_blank"
-                                        class="text-xs bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-md hover:bg-red-100 transition-colors">
+                                        class="text-xs bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 px-3 py-1.5 rounded-md hover:bg-red-100 transition-colors">
                                         Video Tutorials
                                     </a>
                                 </div>
                             </div>
                         </div>
                     </template>
-                    <div x-show="!analysis?.missing_skills?.length" class="px-6 py-8 text-center text-gray-500">
+                    <div x-show="!analysis?.missing_skills?.length" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
                         <p>No missing skills identified! You are well matched.</p>
                     </div>
                 </div>
@@ -265,34 +286,29 @@
         <!-- 5. Generated Roadmap Display -->
         <div x-show="roadmap" x-ref="roadmapContainer" x-transition.opacity class="space-y-6 pb-12"
             style="display: none;">
-            <div class="border-t border-gray-200 pt-8">
+            <div class="border-t border-slate-200 dark:border-slate-800 pt-8">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <h2 class="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <span>Your Personalized Roadmap</span>
                         <span
-                            class="text-sm font-normal text-gray-600 bg-gray-100 px-3 py-1 rounded-full border border-gray-200"
-                            x-text="roadmap?.total_weeks + ' Weeks'" style="border-radius: 9999px;"></span>
-                        <button @click="saveRoadmap" x-show="!saved" :disabled="isSaving"
-                            class="text-sm font-semibold px-6 py-2 rounded-lg bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border-0 transition-all duration-200 flex items-center gap-2 disabled:opacity-50 shadow-md hover:shadow-lg">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4">
-                                </path>
-                            </svg>
-                            Save Roadmap
-                        </button>
+                            class="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-md border border-slate-200 dark:border-slate-700"
+                            x-text="roadmap?.total_weeks + ' Weeks'"></span>
                     </h2>
                     <div class="flex items-center gap-4">
                         <div class="flex flex-col items-end mr-2">
-                            <span class="text-xs text-gray-500 mb-1">Progress</span>
-                            <div class="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div class="h-full bg-green-600 transition-all duration-500"
+                            <span class="text-xs text-slate-500 dark:text-slate-400 mb-1">Progress</span>
+                            <div class="w-32 h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-emerald-600 transition-all duration-500"
                                     :style="'width: ' + progress + '%'"></div>
                             </div>
                         </div>
+                        <span x-show="saved" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-3 py-1.5 rounded-md flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            Auto-Saved
+                        </span>
                         <a x-show="saved && pathId && progress === 100"
                             :href="'/learning-path/' + pathId + '/export?format=certificate'" target="_blank"
-                            class="text-sm px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-medium transition-colors flex items-center gap-2 shadow-sm">
+                            class="text-xs px-4 py-2 rounded-md bg-amber-500 hover:bg-amber-600 text-white font-semibold transition-colors flex items-center gap-2 shadow-sm">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -301,7 +317,7 @@
                         </a>
                         <a x-show="saved && pathId" :href="'/learning-path/' + pathId + '/export?format=pdf'"
                             target="_blank"
-                            class="text-sm px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium transition-colors flex items-center gap-2">
+                            class="text-xs px-4 py-2 rounded-md bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold transition-colors flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
@@ -309,44 +325,21 @@
                             </svg>
                             Export PDF
                         </a>
-                        <button @click="saveRoadmap" :disabled="isSaving"
-                            class="text-sm px-6 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 disabled:opacity-50 shadow-md hover:shadow-lg"
-                            :class="saved ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold' : 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold'">
-                            <svg x-show="!isSaving && !saved" class="w-4 h-4" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4">
-                                </path>
-                            </svg>
-                            <svg x-show="isSaving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                    stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                </path>
-                            </svg>
-                            <svg x-show="saved && !isSaving" class="w-4 h-4" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7"></path>
-                            </svg>
-                            <span x-text="saved ? 'Saved' : (isSaving ? 'Saving...' : 'Save Progress')"></span>
-                        </button>
                     </div>
                 </div>
 
                 <div class="space-y-4">
                     <template x-for="(week, wIndex) in roadmap?.weekly_breakdown" :key="week.week_number">
                         <div
-                            class="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all min-h-[500px]">
+                            class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md p-6 shadow-sm transition-all min-h-[400px]">
                             <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
-                                <h3 class="text-lg font-semibold text-blue-700" x-text="'Week ' + week.week_number">
+                                <h3 class="text-lg font-semibold text-blue-600 dark:text-blue-400" x-text="'Week ' + week.week_number">
                                 </h3>
                                 <div class="flex flex-wrap gap-2">
                                     <template x-for="(topic, tIndex) in week.focus_topics" :key="tIndex">
                                         <button @click="toggleTopic(wIndex, tIndex)"
-                                            class="text-xs px-2 py-1 rounded border transition-all duration-200 cursor-pointer select-none"
-                                            :class="topic.completed ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200' : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'">
+                                            class="text-xs px-2.5 py-1 rounded-md border transition-all duration-200 cursor-pointer select-none"
+                                            :class="topic.completed ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' : 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'">
                                             <span x-text="topic.title"></span>
                                         </button>
                                     </template>
@@ -464,10 +457,9 @@
                                                 <p class="text-xs font-medium text-gray-700">How to complete: <span
                                                         x-text="week.mini_project.title"></span></p>
                                             </div>
-                                            <div class="relative bg-white p-4"
-                                                x-data="{ pdfLoading: false, pdfUrl: '', pdfError: '' }">
-                                                <p class="text-sm text-gray-600 mb-3">AI-generated step-by-step guide
-                                                </p>
+                                            <div class="relative bg-white dark:bg-slate-900 p-4"
+                                                x-data="{ pdfLoading: false, pdfUrl: (week.mini_project && week.mini_project.pdf_url) || '', pdfError: '' }">
+                                                <p class="text-xs text-slate-600 dark:text-slate-400 mb-3">AI-generated step-by-step guide</p>
 
                                                 <!-- Generate PDF Button -->
                                                 <button @click="
@@ -482,6 +474,10 @@
                                                     .then(data => {
                                                         if (data.success) {
                                                             pdfUrl = data.pdf_url;
+                                                            if (week.mini_project) {
+                                                                week.mini_project.pdf_url = data.pdf_url;
+                                                            }
+                                                            saveRoadmap();
                                                         } else {
                                                             pdfError = data.error || 'Failed to generate PDF';
                                                         }
@@ -492,7 +488,7 @@
                                                         pdfLoading = false;
                                                     });
                                                 " x-show="!pdfUrl" :disabled="pdfLoading"
-                                                    class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50">
+                                                    class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md transition-colors disabled:opacity-50">
                                                     <svg x-show="!pdfLoading" class="w-4 h-4" fill="none"
                                                         stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -512,18 +508,20 @@
 
                                                 <!-- Error -->
                                                 <div x-show="pdfError"
-                                                    class="mt-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700"
+                                                    class="mt-3 p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 rounded-md text-xs text-red-700 dark:text-red-300"
                                                     x-text="pdfError"></div>
 
                                                 <!-- PDF Viewer -->
                                                 <div x-show="pdfUrl" class="mt-3">
                                                     <embed :src="pdfUrl" type="application/pdf"
-                                                        class="w-full h-96 border border-gray-300 rounded">
+                                                        class="w-full h-96 border border-slate-300 dark:border-slate-700 rounded-md">
                                                     <div class="mt-2 flex justify-between items-center">
-                                                        <span class="text-xs text-gray-600 flex items-center gap-1"><svg class="w-3.5 h-3.5 text-green-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.06-1.06l-4.5 4.5-1.72-1.72a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.06 0l5.03-5.03Z" clip-rule="evenodd" /></svg> PDF ready!</span>
+                                                        <span class="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                                                            <svg class="w-3.5 h-3.5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.06-1.06l-4.5 4.5-1.72-1.72a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.06 0l5.03-5.03Z" clip-rule="evenodd" /></svg> 
+                                                            PDF Guide Saved!
+                                                        </span>
                                                         <a :href="pdfUrl" download
-                                                            class="text-xs text-blue-600 hover:underline">Download
-                                                            PDF</a>
+                                                            class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium">Download PDF</a>
                                                     </div>
                                                 </div>
                                             </div>
@@ -732,8 +730,8 @@
                     if (response.ok) {
                         this.roadmap = this.processRoadmapData(data);
                         this.calculateProgress();
-                        this.saved = false;
-                        this.showToast('Roadmap generated successfully!', 'success');
+                        this.showToast('Roadmap generated and saved automatically!', 'success');
+                        await this.saveRoadmap();
                     } else {
                         this.showToast('Failed to generate roadmap: ' + (data.error || 'Unknown error'), 'error');
                     }
@@ -773,15 +771,11 @@
             },
 
             calculateProgress() {
-                if (!this.roadmap) return;
+                if (!this.roadmap || !this.roadmap.weekly_breakdown) return;
                 let total = 0;
                 let completed = 0;
 
                 this.roadmap.weekly_breakdown.forEach(week => {
-                    if (week.focus_topics) {
-                        total += week.focus_topics.length;
-                        completed += week.focus_topics.filter(t => t.completed).length;
-                    }
                     if (week.mini_project) {
                         total += 1;
                         if (week.mini_project.completed) completed += 1;

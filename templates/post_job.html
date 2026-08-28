@@ -1,102 +1,94 @@
 {% extends "base.html" %}
 {% from "macros.html" import page_header, breadcrumb %}
 
-{% block title %}Post a New Job{% endblock %}
-{% block body_class %}light-theme{% endblock %}
+{% block title %}Post a New Job — Recruiter Portal{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 py-8 animate-fade-in">
+<div class="max-w-4xl mx-auto px-4 py-8 space-y-6 animate-fade-in">
 
-  {{ breadcrumb([{"label": "Dashboard", "url": url_for('recruiter_dashboard')}, {"label": "Post a New Job"}]) }}
+  {{ breadcrumb([{"label": "Recruiter Dashboard", "url": url_for('recruiter_dashboard')}, {"label": "Post a New Job"}]) }}
 
-  {{ page_header("Post a New Job", "Create a new job listing to attract top talent.") }}
+  <div class="space-y-1">
+      <h1 class="font-display font-extrabold text-2xl text-slate-900 dark:text-white tracking-tight">Post a New Job</h1>
+      <p class="text-xs text-slate-500 dark:text-slate-400">Create a job listing to attract engineering talent.</p>
+  </div>
 
-    <div class="p-6 md:p-8 rounded-lg shadow-lg"
-         :class="darkMode ? 'bg-gray-800/90 border border-gray-700' : 'bg-white border border-gray-200'">
-        <form id="post-job-form">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div class="p-6 md:p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md shadow-sm">
+      <form id="post-job-form" class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                <!-- Job Title -->
-                <div>
-                    <label for="title" class="block text-sm font-medium" :class="darkMode ? 'text-white' : 'text-gray-700'">Job Title</label>
-                    <input type="text" name="title" id="title" required
-                           class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
-                           :class="darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500'">
-                </div>
+              <!-- Job Title -->
+              <div class="space-y-1">
+                  <label for="title" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Job Title</label>
+                  <input type="text" name="title" id="title" required placeholder="e.g. Senior Backend Engineer"
+                         class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600">
+              </div>
 
-                <!-- Company Name -->
-                <div>
-                    <label for="company" class="block text-sm font-medium" :class="darkMode ? 'text-white' : 'text-gray-700'">Company Name</label>
-                    <input type="text" name="company" id="company" required
-                           value="{{ company_name }}"
-                           class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
-                           :class="darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500'">
-                </div>
+              <!-- Company Name -->
+              <div class="space-y-1">
+                  <label for="company" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Company Name</label>
+                  <input type="text" name="company" id="company" required value="{{ company_name }}" placeholder="e.g. Acme Corp"
+                         class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600">
+              </div>
 
-                <!-- Location -->
-                <div>
-                    <label for="location" class="block text-sm font-medium" :class="darkMode ? 'text-white' : 'text-gray-700'">Location</label>
-                    <input type="text" name="location" id="location" required placeholder="e.g., San Francisco, CA or Remote"
-                           class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
-                           :class="darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500'">
-                </div>
+              <!-- Location -->
+              <div class="space-y-1">
+                  <label for="location" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Location</label>
+                  <input type="text" name="location" id="location" required placeholder="e.g. San Francisco, CA or Remote"
+                         class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600">
+              </div>
 
-                <!-- Job Type -->
-                <div>
-                    <label for="job_type" class="block text-sm font-medium" :class="darkMode ? 'text-white' : 'text-gray-700'">Job Type</label>
-                    <select id="job_type" name="job_type" required
-                            class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
-                            :class="darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500'">
-                        <option>Full-time</option>
-                        <option>Part-time</option>
-                        <option>Contract</option>
-                        <option>Internship</option>
-                        <option>Temporary</option>
-                    </select>
-                </div>
+              <!-- Job Type -->
+              <div class="space-y-1">
+                  <label for="job_type" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Job Type</label>
+                  <select id="job_type" name="job_type" required
+                          class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600">
+                      <option>Full-time</option>
+                      <option>Part-time</option>
+                      <option>Contract</option>
+                      <option>Internship</option>
+                      <option>Temporary</option>
+                  </select>
+              </div>
 
-                <!-- Salary Range -->
-                <div>
-                    <label for="salary_range" class="block text-sm font-medium" :class="darkMode ? 'text-white' : 'text-gray-700'">Salary Range (Optional)</label>
-                    <input type="text" name="salary_range" id="salary_range" placeholder="e.g., $100,000 - $120,000"
-                           class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
-                           :class="darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500'">
-                </div>
+              <!-- Salary Range -->
+              <div class="space-y-1">
+                  <label for="salary_range" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Salary Range (Optional)</label>
+                  <input type="text" name="salary_range" id="salary_range" placeholder="e.g. $120,000 - $150,000"
+                         class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600">
+              </div>
 
-                <!-- Application Deadline -->
-                <div>
-                    <label for="deadline" class="block text-sm font-medium" :class="darkMode ? 'text-white' : 'text-gray-700'">Application Deadline (Optional)</label>
-                    <input type="date" name="deadline" id="deadline"
-                           class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none"
-                           :class="darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500'">
-                </div>
-            </div>
+              <!-- Application Deadline -->
+              <div class="space-y-1">
+                  <label for="deadline" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Application Deadline (Optional)</label>
+                  <input type="date" name="deadline" id="deadline"
+                         class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600">
+              </div>
+          </div>
 
-            <!-- Description -->
-            <div class="mt-5">
-                <label for="description" class="block text-sm font-medium" :class="darkMode ? 'text-white' : 'text-gray-700'">Job Description</label>
-                <textarea id="description" name="description" rows="8" required
-                          class="mt-1 block w-full rounded-lg border shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none resize-none"
-                          :class="darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500'"></textarea>
-            </div>
+          <!-- Description -->
+          <div class="space-y-1">
+              <label for="description" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Job Description</label>
+              <textarea id="description" name="description" rows="6" required placeholder="Describe core responsibilities, tech stack, and qualifications..."
+                        class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 resize-y"></textarea>
+          </div>
 
-            <!-- Required Skills -->
-            <div class="mt-5">
-                <label for="skills" class="block text-sm font-medium" :class="darkMode ? 'text-white' : 'text-gray-700'">Required Skills (comma-separated)</label>
-                <input type="text" name="skills" id="skills" placeholder="e.g., Python, React, SQL"
-                       class="mt-1 block w-full rounded-lg shadow-sm transition-all duration-200 px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                       :class="darkMode ? 'bg-gray-700 border-gray-500 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'">
-            </div>
+          <!-- Required Skills -->
+          <div class="space-y-1">
+              <label for="skills" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Required Skills (comma-separated)</label>
+              <input type="text" name="skills" id="skills" placeholder="e.g. Python, Flask, Redis, PostgreSQL"
+                     class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600">
+          </div>
 
-            <!-- Submit Button -->
-            <div class="mt-5 pt-4 flex justify-end" :class="darkMode ? 'border-t border-gray-700' : 'border-t border-gray-200'">
-                <button type="submit"
-                        class="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Post Job
-                </button>
-            </div>
-        </form>
-    </div>
+          <!-- Submit Button -->
+          <div class="pt-4 flex justify-end border-t border-slate-200 dark:border-slate-800">
+              <button type="submit"
+                      class="px-5 py-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+                  Publish Job Listing
+              </button>
+          </div>
+      </form>
+  </div>
 </div>
 {% endblock %}
 
@@ -110,7 +102,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
 
-        // Convert skills string to an array
         if (data.skills) {
             data.skills = data.skills.split(',').map(skill => skill.trim()).filter(skill => skill);
         } else {
@@ -132,14 +123,10 @@ document.addEventListener('DOMContentLoaded', function () {
             return response.json();
         })
         .then(result => {
-            // Use the existing flash message system by redirecting with a query param
-            // This is a simple way to show feedback without adding a new UI component
-            window.location.href = '/dashboard?flash_success=Job posted successfully!';
+            window.location.href = '/recruiter/dashboard?flash_success=Job posted successfully!';
         })
         .catch(error => {
             console.error('Error posting job:', error);
-            // For simplicity, we'll use an alert for errors.
-            // A more integrated solution would be to show the error message in the UI.
             alert('Error: ' + error.message);
         });
     });

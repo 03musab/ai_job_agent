@@ -1,386 +1,253 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-gray-50">
+<html lang="en" class="h-full bg-slate-50 dark:bg-slate-950" :class="{ 'dark': darkMode }" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title | default('JobSnap') }}</title>
+    <title>{{ title | default('AI JobSnap — Intelligent Job Search Automation') }}</title>
+    <meta name="description" content="Automate your job search with multi-source scraping, resume-aware relevance scoring, outreach generation, and scheduled application reports.">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="canonical" href="{{ request.url }}">
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:title" content="{{ title | default('AI JobSnap — Intelligent Job Search Automation') }}">
+    <meta property="og:description" content="Automate your job search with multi-source scraping, resume-aware relevance scoring, outreach generation, and scheduled application reports.">
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ title | default('AI JobSnap — Intelligent Job Search Automation') }}">
+    <meta name="twitter:description" content="Automate your job search with multi-source scraping, resume-aware relevance scoring, outreach generation, and scheduled application reports.">
+    
+    <!-- Typography: Plus Jakarta Sans (Headings) & Inter (Body) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,800;1,900&family=Parisienne&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
 </head>
 
-<body class="h-full {% block body_class %}{% endblock %}" style="{% block body_style %}{% endblock %}" x-data="{ 
-          darkMode: localStorage.getItem('darkMode') === 'true',
+<body class="h-full flex flex-col font-sans antialiased text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-950 transition-colors duration-200 {% block body_class %}{% endblock %}"
+      x-data="{ 
           toggleTheme() {
               this.darkMode = !this.darkMode;
               localStorage.setItem('darkMode', this.darkMode);
           }
-      }" :class="{ 'dark-theme': darkMode }">
-    <div class="min-h-full relative z-10 transition-colors duration-500"
-        :class="darkMode ? 'bg-premium-bg' : 'bg-gray-50'">
-        <!-- Floating Pill Navbar -->
-        <div class="sticky top-0 z-50 px-4 pt-4" role="navigation" aria-label="Main menu"
-            x-data="{ mobileMenuOpen: false }">
-            <nav class="max-w-5xl mx-auto rounded-2xl shadow-2xl transition-all duration-300 px-5 py-3 flex items-center justify-between"
-                :class="darkMode 
-                    ? 'bg-premium-bg/80 border border-premium-teal/20 backdrop-blur-xl shadow-premium-teal/10' 
-                    : 'bg-white/90 border border-gray-200/80 backdrop-blur-xl shadow-gray-200/60'">
+      }" :class="{ 'dark-theme': darkMode, 'dark': darkMode }">
 
-                <!-- Logo -->
-                <a href="{{ url_for('dashboard') }}" class="flex items-center space-x-2.5 group flex-shrink-0">
-                    <!-- Icon -->
-                    <div class="w-[74px] h-9 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:scale-110"
-                        :class="darkMode ? 'bg-premium-teal/20' : 'bg-blue-600'">
-                        <svg class="w-5 h-5" :class="darkMode ? 'text-premium-teal' : 'text-white'" fill="none"
-                            stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                                aria-hidden="true"></path>
-                        </svg>
-                    </div>
-                    <span class="text-2xl font-extrabold hidden sm:block tracking-tight"
-                        style="font-family: 'Playfair Display', serif; letter-spacing: -0.02em;"
-                        :style="darkMode ? 'background: linear-gradient(135deg, #00D4F7, #822659); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;' : 'background: linear-gradient(135deg, #2563eb, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;'">
-                        JobSnap
-                    </span>
-                </a>
 
-                <!-- Center Nav Links (desktop) -->
-                <div class="hidden md:flex items-center space-x-1">
-                    {% if current_user.is_authenticated %}
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-md focus:shadow-lg focus:outline-none">
+        Skip to main content
+    </a>
+
+    <!-- Header & Navigation -->
+    <header class="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 backdrop-blur-md transition-colors duration-200">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between" aria-label="Main menu" x-data="{ mobileMenuOpen: false }">
+            
+            <!-- Brand Logo -->
+            <a href="{{ url_for('index') }}" class="flex items-center space-x-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-md">
+                <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <div class="flex flex-col">
+                    <span class="font-display font-extrabold text-xl tracking-tight text-slate-900 dark:text-white">AI JobSnap</span>
+                </div>
+            </a>
+
+            <!-- Desktop Navigation -->
+            <div class="hidden md:flex items-center space-x-1">
+                {% if current_user.is_authenticated %}
                     {% if current_user.role != 'recruiter' %}
-                    <a href="{{ url_for('dashboard') }}"
-                        class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
+                    <a href="{{ url_for('dashboard') }}" class="px-3 py-2 text-sm font-semibold rounded-md transition-colors text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-200 dark:hover:text-white dark:hover:bg-slate-800">
                         Dashboard
                     </a>
-                    {% endif %}
-                    {% if current_user.role == 'recruiter' %}
-                    <a href="{{ url_for('recruiter_dashboard') }}"
-                        class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'">
-                        Recruiter Dashboard
-                    </a>
-                    {% endif %}
-                    {% if current_user.role != 'recruiter' %}
-                    <a href="{{ url_for('outreach_studio') }}"
-                        class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
+                    <a href="{{ url_for('outreach_studio') }}" class="px-3 py-2 text-sm font-semibold rounded-md transition-colors text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-200 dark:hover:text-white dark:hover:bg-slate-800">
                         Outreach
                     </a>
-                    <a href="{{ url_for('learning_path') }}"
-                        class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
-                        Learning
+                    <a href="{{ url_for('learning_path') }}" class="px-3 py-2 text-sm font-semibold rounded-md transition-colors text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-200 dark:hover:text-white dark:hover:bg-slate-800">
+                        Learning Path
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('recruiter_dashboard') }}" class="px-3 py-2 text-sm font-semibold rounded-md transition-colors text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-slate-800">
+                        Recruiter Dashboard
+                    </a>
+                    <a href="{{ url_for('recruiter_post_job') }}" class="px-3 py-2 text-sm font-semibold rounded-md transition-colors text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-200 dark:hover:text-white dark:hover:bg-slate-800">
+                        Post Job
+                    </a>
+                    <a href="{{ url_for('recruiter_company') }}" class="px-3 py-2 text-sm font-semibold rounded-md transition-colors text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-200 dark:hover:text-white dark:hover:bg-slate-800">
+                        Company Profile
                     </a>
                     {% endif %}
-                    {% if current_user.role == 'recruiter' %}
-                    <a href="{{ url_for('recruiter_post_job') }}"
-                        class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
-                        Post a Job
-                    </a>
-                    <a href="{{ url_for('recruiter_company') }}"
-                        class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
-                        Company
-                    </a>
-                    {% endif %}
-                    {% endif %}
-                </div>
+                {% else %}
+                    <a href="{{ url_for('index') }}#features" class="px-3 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">Product</a>
+                    <a href="{{ url_for('index') }}#architecture" class="px-3 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">Architecture</a>
+                    <a href="{{ url_for('index') }}#setup" class="px-3 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">Self-Hosting</a>
+                    <a href="{{ url_for('index') }}#faq" class="px-3 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">FAQ</a>
+                {% endif %}
+            </div>
 
-                <!-- Right Side Actions -->
-                <div class="flex items-center space-x-2">
-                    {% if current_user.is_authenticated %}
+            <!-- Right Actions (Theme + Auth) -->
+            <div class="flex items-center space-x-3">
+                
+                <!-- Theme Toggle Button -->
+                <button @click="toggleTheme()" type="button" 
+                        class="p-2 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                        aria-label="Toggle dark theme">
+                    <svg x-show="!darkMode" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.071 16.071l.707.707M7.929 7.929l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path>
+                    </svg>
+                    <svg x-show="darkMode" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" x-cloak aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                    </svg>
+                </button>
 
-                    <!-- Theme Toggle -->
-                    <button @click="toggleTheme()" type="button"
-                        class="p-2 rounded-xl transition-all duration-200 focus:outline-none"
-                        :class="darkMode ? 'text-premium-ruby bg-premium-ruby/10 hover:bg-premium-ruby/20' : 'text-amber-500 bg-amber-50 hover:bg-amber-100'">
-                        <svg x-show="!darkMode" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.071 16.071l.707.707M7.929 7.929l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z">
-                            </path>
-                        </svg>
-                        <svg x-show="darkMode" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                            x-cloak>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
-                            </path>
+                {% if current_user.is_authenticated %}
+                <!-- Profile Dropdown -->
+                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open" @keydown.escape="open = false" type="button"
+                            class="flex items-center justify-center w-9 h-9 rounded-md bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                            aria-haspopup="true" :aria-expanded="open">
+                        <span class="sr-only">Open user menu</span>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                         </svg>
                     </button>
-
-                    <!-- Profile Dropdown -->
-                    <div class="relative" x-data="{ open: false }">
-                        <button @click="open = !open" type="button"
-                            class="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 focus:outline-none shadow-sm"
-                            :class="darkMode ? 'bg-premium-ruby/20 hover:bg-premium-ruby/30 text-premium-ruby' : 'bg-blue-600 hover:bg-blue-700 text-white'">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                            </svg>
-                        </button>
-                        <!-- Dropdown -->
-                        <div x-show="open" @click.away="open = false" x-transition
-                            class="absolute right-0 mt-3 w-52 rounded-2xl shadow-xl py-2 z-50 border transition-all duration-300"
-                            :class="darkMode ? 'bg-premium-bg/95 border-premium-teal/30 backdrop-blur-xl' : 'bg-white border-gray-200'"
-                            style="display: none;">
-                            <a href="{{ url_for('profile') }}"
-                                class="flex items-center px-4 py-2.5 text-sm font-medium transition-colors rounded-xl mx-1"
-                                :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'">
-                                <svg class="w-4 h-4 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                </svg>
-                                Profile
-                            </a>
-                            <a href="{{ url_for('admin_upload_contacts') }}"
-                                class="flex items-center px-4 py-2.5 text-sm font-medium transition-colors rounded-xl mx-1"
-                                :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'">
-                                <svg class="w-4 h-4 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-                                </svg>
-                                Admin Upload
-                            </a>
-                            <div class="border-t my-1.5 mx-3"
-                                :class="darkMode ? 'border-premium-teal/20' : 'border-gray-100'"></div>
-                            <a href="{{ url_for('logout') }}"
-                                class="flex items-center px-4 py-2.5 text-sm font-medium transition-colors rounded-xl mx-1"
-                                :class="darkMode ? 'text-premium-ruby/80 hover:text-premium-ruby hover:bg-premium-ruby/10' : 'text-red-600 hover:bg-red-50'">
-                                <svg class="w-4 h-4 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
-                                    </path>
-                                </svg>
-                                Sign out
-                            </a>
-                        </div>
+                    
+                    <div x-show="open" @click.away="open = false" x-transition
+                         class="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-md shadow-lg py-1 border border-slate-200 dark:border-slate-700 z-50"
+                         style="display: none;" role="menu">
+                        <a href="{{ url_for('profile') }}" class="flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700" role="menuitem">
+                            Profile Settings
+                        </a>
+                        <a href="{{ url_for('admin_upload_contacts') }}" class="flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700" role="menuitem">
+                            Admin Uploads
+                        </a>
+                        <div class="border-t border-slate-200 dark:border-slate-700 my-1"></div>
+                        <a href="{{ url_for('logout') }}" class="flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20" role="menuitem">
+                            Sign out
+                        </a>
                     </div>
-
-                    {% else %}
-                    <a href="{{ url_for('login') }}"
-                        class="px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200"
-                        :class="darkMode ? 'text-white hover:text-white/90' : 'text-gray-600 hover:text-gray-900'">
-                        Sign in
-                    </a>
-                    <a href="{{ url_for('register') }}"
-                        class="inline-flex items-center px-4 py-2 text-sm font-bold rounded-xl transition-all duration-200 active:scale-95 bg-blue-600 text-white hover:bg-blue-700 shadow-sm">
-                        Get started
-                    </a>
-                    {% endif %}
-
-                    <!-- Mobile menu button -->
-                    <button type="button" @click="mobileMenuOpen = !mobileMenuOpen"
-                        class="md:hidden p-2 rounded-xl transition-all duration-200 focus:outline-none"
-                        :class="darkMode ? 'text-premium-text/60 hover:text-premium-teal hover:bg-premium-teal/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'"
-                        aria-controls="mobile-menu" :aria-expanded="mobileMenuOpen">
-                        <span class="sr-only">Menu</span>
-                        <svg class="h-5 w-5" :class="{'hidden': mobileMenuOpen, 'block': !mobileMenuOpen}" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                        <svg class="h-5 w-5" :class="{'block': mobileMenuOpen, 'hidden': !mobileMenuOpen}" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor" x-cloak>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
                 </div>
-            </nav>
+                {% else %}
+                <a href="{{ url_for('login') }}" class="px-3 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">
+                    Sign in
+                </a>
+                <a href="{{ url_for('register') }}" class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+                    Get started
+                </a>
+                {% endif %}
 
-            <!-- Mobile menu dropdown -->
-            <div id="mobile-menu" role="navigation" aria-label="Mobile menu"
-                class="md:hidden max-w-5xl mx-auto mt-2 rounded-2xl shadow-xl border overflow-hidden transition-all duration-300"
-                :class="darkMode ? 'bg-premium-bg/95 border-premium-teal/20 backdrop-blur-xl' : 'bg-white border-gray-200'"
-                x-show="mobileMenuOpen" x-transition x-cloak>
-                <div class="p-3 space-y-1">
-                    {% if current_user.is_authenticated %}
-                    {% if current_user.role != 'recruiter' %}
-                    <a href="{{ url_for('dashboard') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Dashboard</a>
-                    {% endif %}
-                    {% if current_user.role == 'recruiter' %}
-                    <a href="{{ url_for('recruiter_dashboard') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'">Recruiter Dashboard</a>
-                    {% endif %}
-                    {% if current_user.role != 'recruiter' %}
-                    <a href="{{ url_for('outreach_studio') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Outreach
-                        Studio</a>
-                    <a href="{{ url_for('learning_path') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Learning
-                        Path</a>
-                    {% endif %}
-                    {% if current_user.role == 'recruiter' %}
-                    <a href="{{ url_for('recruiter_post_job') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
-                        Post a Job
-                    </a>
-                    <a href="{{ url_for('recruiter_company') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
-                        Company
-                    </a>
-                    {% endif %}
-                    <a href="{{ url_for('profile') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Profile</a>
-                    <div class="border-t my-1.5 mx-1" :class="darkMode ? 'border-premium-teal/20' : 'border-gray-100'">
-                    </div>
-                    <a href="{{ url_for('logout') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-premium-ruby/80 hover:text-premium-ruby hover:bg-premium-ruby/10' : 'text-red-600 hover:bg-red-50'">Sign
-                        out</a>
-                    {% else %}
-                    <a href="{{ url_for('login') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        :class="darkMode ? 'text-white hover:text-white/90 hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">Sign
-                        in</a>
-                    <a href="{{ url_for('register') }}"
-                        class="flex items-center px-4 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors">Get
-                        started</a>
-                    {% endif %}
-                </div>
+                <!-- Mobile Navigation Button -->
+                <button type="button" @click="mobileMenuOpen = !mobileMenuOpen"
+                        class="md:hidden p-2 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        aria-controls="mobile-menu" :aria-expanded="mobileMenuOpen" aria-label="Toggle mobile menu">
+                    <svg class="h-6 w-6" :class="{'hidden': mobileMenuOpen, 'block': !mobileMenuOpen}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                    <svg class="h-6 w-6" :class="{'block': mobileMenuOpen, 'hidden': !mobileMenuOpen}" fill="none" viewBox="0 0 24 24" stroke="currentColor" x-cloak>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
-        </div>
+        </nav>
 
-        <!-- Page Transition Overlay (brief flash on navigation) -->
-        <div id="page-transition" class="page-transition"
-             x-init="$el.classList.add('active'); setTimeout(() => $el.classList.remove('active'), 400)"></div>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        <div class="flash-messages">
-            {% for category, message in messages %}
-            <div class="flash-message flash-{{ category }}" role="alert">{{ message }}</div>
-            {% endfor %}
+        <!-- Mobile Menu Drawer -->
+        <div id="mobile-menu" class="md:hidden border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 pt-2 pb-4 space-y-1"
+             x-show="mobileMenuOpen" x-transition x-cloak>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('dashboard') }}" class="block px-3 py-2 text-base font-medium rounded-md text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">Dashboard</a>
+                <a href="{{ url_for('outreach_studio') }}" class="block px-3 py-2 text-base font-medium rounded-md text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">Outreach Studio</a>
+                <a href="{{ url_for('learning_path') }}" class="block px-3 py-2 text-base font-medium rounded-md text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">Learning Path</a>
+                <a href="{{ url_for('profile') }}" class="block px-3 py-2 text-base font-medium rounded-md text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">Profile Settings</a>
+                <a href="{{ url_for('logout') }}" class="block px-3 py-2 text-base font-medium rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">Sign out</a>
+            {% else %}
+                <a href="{{ url_for('index') }}#features" class="block px-3 py-2 text-base font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">Product Features</a>
+                <a href="{{ url_for('index') }}#architecture" class="block px-3 py-2 text-base font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">Architecture</a>
+                <a href="{{ url_for('index') }}#setup" class="block px-3 py-2 text-base font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">Self-Hosting</a>
+                <a href="{{ url_for('login') }}" class="block px-3 py-2 text-base font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">Sign in</a>
+                <a href="{{ url_for('register') }}" class="block w-full text-center px-4 py-2 mt-2 text-base font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md">Get started</a>
+            {% endif %}
         </div>
-        {% endif %}
-        {% endwith %}
-        <main class="flex-1" id="main-content">
-            <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 pt-6 pb-4 animate-fade-in">
-                {% block content %}{% endblock %}
-            </div>
-        </main>
+    </header>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4" role="region" aria-label="Notifications">
+        {% for category, message in messages %}
+        <div class="flash-message flash-{{ category }} p-4 rounded-md text-sm font-medium mb-2 border shadow-sm flex items-center justify-between" role="alert">
+            <span>{{ message }}</span>
+            <button type="button" onclick="this.parentElement.remove()" class="ml-4 text-slate-400 hover:text-slate-700 focus:outline-none" aria-label="Dismiss alert">&times;</button>
+        </div>
+        {% endfor %}
     </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Main Content Area -->
+    <main class="flex-1 pb-16 md:pb-24" id="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-12 transition-colors duration-200" role="contentinfo">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                
+                <!-- Column 1: Brand & Tagline -->
+                <div class="md:col-span-1 space-y-3">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-7 h-7 rounded bg-blue-600 flex items-center justify-center text-white font-bold text-xs">JS</div>
+                        <span class="font-display font-extrabold text-lg tracking-tight text-slate-900 dark:text-white">AI JobSnap</span>
+                    </div>
+                    <p class="text-sm text-slate-600 dark:text-slate-400">
+                        Intelligent, self-hosted job search automation. Multi-source scraping, resume scoring, and scheduled reporting.
+                    </p>
+                </div>
+
+                <!-- Column 2: Product Links -->
+                <div>
+                    <h3 class="font-display text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-3">Product</h3>
+                    <ul class="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                        <li><a href="{{ url_for('index') }}#features" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Features</a></li>
+                        <li><a href="{{ url_for('index') }}#architecture" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Architecture</a></li>
+                        <li><a href="{{ url_for('index') }}#setup" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Self-Hosting</a></li>
+                        <li><a href="{{ url_for('index') }}#faq" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">FAQ</a></li>
+                    </ul>
+                </div>
+
+                <!-- Column 3: Trust & Legal -->
+                <div>
+                    <h3 class="font-display text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-3">Trust & Transparency</h3>
+                    <ul class="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                        <li><a href="{{ url_for('privacy') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Privacy Policy</a></li>
+                        <li><a href="{{ url_for('terms') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Terms of Service</a></li>
+                        <li><a href="{{ url_for('sitemap_xml') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Sitemap</a></li>
+                        <li><a href="{{ url_for('robots_txt') }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Robots.txt</a></li>
+                    </ul>
+                </div>
+
+                <!-- Column 4: System Specs -->
+                <div>
+                    <h3 class="font-display text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-3">Stack Specifications</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Engineered with Flask, Celery, Redis, SQLite, Selenium, and Gmail OAuth API. Zero external tracking scripts.
+                    </p>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-200 dark:border-slate-800 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                <p>&copy; {{ now.year if now else '2026' }} AI JobSnap. Open-source self-hosted edition.</p>
+                <p class="mt-2 sm:mt-0">Production-Grade Visual & Technical Standards.</p>
+            </div>
+        </div>
+    </footer>
+
     <!-- Alpine.js Core -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script>
-        // Add temporal hover effects to interactive elements
-        document.addEventListener('DOMContentLoaded', function () {
-            const interactiveElements = document.querySelectorAll('button, .btn-temporal, a');
-
-            interactiveElements.forEach(element => {
-                element.addEventListener('mouseenter', function () {
-                    this.style.transition = 'all 0.3s ease';
-                });
-            });
-        });
-
-        // --- Dynamic Toast Notification System ---
-        function showToast(message, type = 'info', triggerElement = null) {
-            let cardBackdrop = null;
-            const jobCard = triggerElement ? triggerElement.closest('.job-item') : null;
-
-            const existingToast = document.getElementById('dynamic-toast');
-            if (existingToast) {
-                existingToast.remove();
-            }
-            const existingBackdrop = document.querySelector('.toast-card-backdrop');
-            if (existingBackdrop) {
-                existingBackdrop.remove();
-            }
-
-            const toast = document.createElement('div');
-            toast.id = 'dynamic-toast';
-            toast.setAttribute('role', 'status');
-            toast.setAttribute('aria-live', 'polite');
-
-            let classes = 'absolute z-[1001] px-4 py-2.5 shadow-lg text-sm font-medium transition-all duration-300 ease-in-out';
-
-            const typeStyles = {
-                success: 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20',
-                error: 'bg-red-500/10 text-red-300 border border-red-500/20',
-                warning: 'bg-amber-500/10 text-amber-300 border border-amber-500/20',
-                info: 'bg-sky-500/10 text-sky-300 border border-sky-500/20'
-            };
-            toast.className = `${classes} ${typeStyles[type] || typeStyles.info}`;
-            toast.style.borderRadius = '0.25rem';
-            toast.textContent = message;
-
-            toast.style.opacity = '0';
-            toast.style.transform = 'translateY(10px)';
-
-            document.body.appendChild(toast);
-
-            if (jobCard) {
-                cardBackdrop = document.createElement('div');
-                cardBackdrop.className = 'toast-card-backdrop fixed bg-indigo-500/10 z-[1] transition-all duration-300 ease-in-out';
-                cardBackdrop.style.borderRadius = '0.25rem';
-                const cardRect = jobCard.getBoundingClientRect();
-                cardBackdrop.style.top = `${cardRect.top + window.scrollY}px`;
-                cardBackdrop.style.left = `${cardRect.left + window.scrollX}px`;
-                cardBackdrop.style.width = `${cardRect.width}px`;
-                cardBackdrop.style.height = `${cardRect.height}px`;
-                cardBackdrop.style.opacity = '0';
-                cardBackdrop.style.transform = 'scale(0.98)';
-                document.body.appendChild(cardBackdrop);
-                requestAnimationFrame(() => {
-                    cardBackdrop.style.opacity = '1';
-                    cardBackdrop.style.transform = 'scale(1)';
-                });
-            }
-
-            if (triggerElement) {
-                const rect = triggerElement.getBoundingClientRect();
-                const toastHeight = toast.offsetHeight;
-                const toastWidth = toast.offsetWidth;
-                const spaceAbove = rect.top;
-
-                let topPosition;
-                if (spaceAbove > toastHeight + 15) {
-                    topPosition = rect.top + window.scrollY - toastHeight - 10;
-                } else {
-                    topPosition = rect.bottom + window.scrollY + 10;
-                }
-                toast.style.top = `${topPosition}px`;
-
-                let leftPosition = rect.left + (rect.width / 2) - (toastWidth / 2);
-                leftPosition = Math.max(10, leftPosition);
-                leftPosition = Math.min(leftPosition, window.innerWidth - toastWidth - 10);
-                toast.style.left = `${leftPosition}px`;
-            } else {
-                toast.style.top = '20px';
-                toast.style.left = '50%';
-                toast.style.transform = 'translateX(-50%) translateY(10px)';
-                toast.style.position = 'fixed';
-            }
-
-            requestAnimationFrame(() => {
-                toast.style.opacity = '1';
-                toast.style.transform = triggerElement ? 'translateY(0)' : 'translateX(-50%) translateY(0)';
-            });
-
-            const hideToast = () => {
-                toast.style.opacity = '0';
-                toast.style.transform = triggerElement ? 'translateY(-10px)' : 'translateX(-50%) translateY(-10px)';
-                setTimeout(() => {
-                    toast.remove();
-                    if (cardBackdrop) cardBackdrop.remove();
-                }, 350);
-            };
-
-            setTimeout(hideToast, 3500);
-        }
-    </script>
     {% block scripts %}{% endblock %}
 </body>
 

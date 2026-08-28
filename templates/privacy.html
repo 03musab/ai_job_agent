@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-12 px-4 space-y-8 animate-fade-in-up">
+    <div class="space-y-2">
+        <h1 class="font-display font-extrabold text-3xl text-slate-900 dark:text-white">
+            Data Privacy Policy
+        </h1>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Last Updated: August 2026 • AI JobSnap Self-Hosted Architecture
+        </p>
+    </div>
+
+    <div class="prose prose-slate dark:prose-invert text-sm leading-relaxed space-y-6 bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
+        <section class="space-y-2">
+            <h2 class="font-display font-bold text-lg text-slate-900 dark:text-white">1. Local-First Data Storage</h2>
+            <p class="text-slate-600 dark:text-slate-400">
+                AI JobSnap is designed as a local-first application. All user profiles, resume uploads, search criteria, scraped job listings, and application status records are stored in your local SQLite database (`jobs.db`).
+            </p>
+        </section>
+
+        <section class="space-y-2">
+            <h2 class="font-bold text-lg text-slate-900 dark:text-white">2. Resume Parsing & Processing</h2>
+            <p class="text-slate-600 dark:text-slate-400">
+                When you upload a PDF or Docx resume to your profile, the file is saved directly into your local machine’s `uploads/` directory. Text parsing and keyword extraction are performed locally using standard Python libraries.
+            </p>
+        </section>
+
+        <section class="space-y-2">
+            <h2 class="font-bold text-lg text-slate-900 dark:text-white">3. Gmail OAuth Integration</h2>
+            <p class="text-slate-600 dark:text-slate-400">
+                If you enable automated email reports, AI JobSnap uses your own `credentials.json` file to request OAuth access to the Gmail API. Your OAuth refresh tokens (`token.pickle`) are stored strictly on your device.
+            </p>
+        </section>
+
+        <section class="space-y-2">
+            <h2 class="font-bold text-lg text-slate-900 dark:text-white">4. Zero External Telemetry</h2>
+            <p class="text-slate-600 dark:text-slate-400">
+                AI JobSnap does not incorporate third-party analytics scripts, tracking pixels, or remote data collection services.
+            </p>
+        </section>
+    </div>
+</div>
+{% endblock %}

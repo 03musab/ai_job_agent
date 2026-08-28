@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-20 py-8">
+
+    <!-- Hero Section -->
+    <section class="max-w-5xl mx-auto text-center space-y-6 animate-fade-in-up">
+        <div class="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-semibold uppercase tracking-wider">
+            <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+            <span>Self-Hosted Job Automation Platform</span>
+        </div>
+
+        <h1 class="font-display font-extrabold text-3xl sm:text-4xl md:text-5xl text-slate-900 dark:text-white tracking-tight leading-tight max-w-4xl mx-auto">
+            Automate Your Job Search With Intelligent Local Agents
+        </h1>
+
+        <p class="text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
+            AI JobSnap aggregates listings across platforms, scores relevance against your resume, generates recruiter outreach, and sends daily Excel digests—all from your local machine.
+        </p>
+
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+            <a href="{{ url_for('register') }}" class="w-full sm:w-auto px-6 py-3 text-base font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 text-center">
+                Start Self-Hosted Hunt
+            </a>
+            <a href="#demo" class="w-full sm:w-auto px-6 py-3 text-base font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-md shadow-sm transition-all text-center">
+                Interactive Product Demo
+            </a>
+        </div>
+
+        <!-- Metric Callouts (Factual System Metrics) -->
+        <div class="pt-10 grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-slate-200 dark:border-slate-800 max-w-4xl mx-auto text-left">
+            <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md">
+                <span class="block font-display font-extrabold text-2xl text-blue-600 dark:text-blue-400">100%</span>
+                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Local Data Ownership</span>
+            </div>
+            <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md">
+                <span class="block font-display font-extrabold text-2xl text-blue-600 dark:text-blue-400">Celery + Redis</span>
+                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Background Task Queue</span>
+            </div>
+            <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md">
+                <span class="block font-display font-extrabold text-2xl text-blue-600 dark:text-blue-400">Gmail OAuth</span>
+                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Native Email & Excel Reports</span>
+            </div>
+            <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md">
+                <span class="block font-display font-extrabold text-2xl text-blue-600 dark:text-blue-400">SQLite + Heuristics</span>
+                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Resume-Match Engine</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Live Product Demonstration Component -->
+    <section id="demo" class="max-w-6xl mx-auto space-y-6" x-data="{
+        activeTab: 'scoring',
+        minScore: 70,
+        sampleJobs: [
+            { id: 1, title: 'Senior Backend Engineer (Python/Flask)', company: 'DataFlow Systems', location: 'Remote / Bangalore', score: 94, keywords: ['Python', 'Flask', 'Redis', 'Celery'], status: 'New' },
+            { id: 2, title: 'Full Stack Engineer', company: 'Nexus Infrastructure', location: 'Hybrid / Mumbai', score: 82, keywords: ['Python', 'TypeScript', 'Docker'], status: 'Applied' },
+            { id: 3, title: 'Frontend Systems Engineer', company: 'Veloce Labs', location: 'Remote', score: 68, keywords: ['React', 'CSS Grid', 'Tailwind'], status: 'New' },
+            { id: 4, title: 'Software Engineer - Platform & Queue', company: 'Streamline AI', location: 'Remote', score: 88, keywords: ['Python', 'SQL', 'Celery'], status: 'Interview' }
+        ],
+        targetRole: 'Senior Python Engineer',
+        parsedSkills: ['Python', 'Flask', 'SQL', 'Redis', 'Celery', 'REST APIs'],
+        missingSkills: ['Kubernetes', 'GraphQL'],
+        outreachRole: 'Engineering Manager',
+        outreachCompany: 'Tech Corp'
+    }">
+        <div class="text-center space-y-2">
+            <h2 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-white">
+                Interactive Workflow Demonstration
+            </h2>
+            <p class="text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
+                Test how AI JobSnap processes listings, evaluates candidate skill fit, and structures outreach drafts.
+            </p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm overflow-hidden">
+            <!-- Demo Tab Header -->
+            <div class="flex flex-wrap border-b border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-800/50 p-2 gap-2" role="tablist" aria-label="Product Demos">
+                <button @click="activeTab = 'scoring'" 
+                        :class="activeTab === 'scoring' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+                        class="px-4 py-2 text-xs sm:text-sm font-semibold rounded-md transition-all focus:outline-none" role="tab" :aria-selected="activeTab === 'scoring'">
+                    1. Relevance Scoring Engine
+                </button>
+                <button @click="activeTab = 'skillgap'" 
+                        :class="activeTab === 'skillgap' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+                        class="px-4 py-2 text-xs sm:text-sm font-semibold rounded-md transition-all focus:outline-none" role="tab" :aria-selected="activeTab === 'skillgap'">
+                    2. Resume Skill Gap Analysis
+                </button>
+                <button @click="activeTab = 'outreach'" 
+                        :class="activeTab === 'outreach' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+                        class="px-4 py-2 text-xs sm:text-sm font-semibold rounded-md transition-all focus:outline-none" role="tab" :aria-selected="activeTab === 'outreach'">
+                    3. Outreach Studio Generator
+                </button>
+            </div>
+
+            <div class="p-6">
+                <!-- TAB 1: RELEVANCE SCORING DEMO -->
+                <div x-show="activeTab === 'scoring'" class="space-y-6">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-md border border-slate-200 dark:border-slate-700/60">
+                        <div class="space-y-1">
+                            <label for="minScoreSlider" class="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                Minimum Relevance Score Threshold: <span x-text="minScore + '%'" class="text-blue-600 dark:text-blue-400 font-bold"></span>
+                            </label>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Filter aggregated listings based on title keyword heuristic weights.</p>
+                        </div>
+                        <input id="minScoreSlider" type="range" min="50" max="95" step="5" x-model="minScore" class="w-full sm:w-48 accent-blue-600">
+                    </div>
+
+                    <div class="space-y-3">
+                        <template x-for="job in sampleJobs.filter(j => j.score >= minScore)" :key="job.id">
+                            <div class="p-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all hover:border-blue-400">
+                                <div class="space-y-1">
+                                    <div class="flex items-center space-x-2">
+                                        <h4 x-text="job.title" class="font-display font-semibold text-sm text-slate-900 dark:text-white"></h4>
+                                        <span x-text="job.status" :class="{
+                                            'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300': job.status === 'New',
+                                            'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300': job.status === 'Applied',
+                                            'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300': job.status === 'Interview'
+                                        }" class="px-2 py-0.5 text-xs font-bold rounded border uppercase tracking-wider"></span>
+                                    </div>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400" x-text="job.company + ' • ' + job.location"></p>
+                                    <div class="flex flex-wrap gap-1 pt-1">
+                                        <template x-for="kw in job.keywords" :key="kw">
+                                            <span class="px-2 py-0.5 text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded" x-text="kw"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100 dark:border-slate-800">
+                                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Match Score:</span>
+                                    <span class="px-3 py-1 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-bold text-xs rounded-md border border-blue-200 dark:border-blue-800" x-text="job.score + '%'"></span>
+                                </div>
+                            </div>
+                        </template>
+                        <div x-show="sampleJobs.filter(j => j.score >= minScore).length === 0" class="p-8 text-center text-slate-500 dark:text-slate-400 text-sm bg-slate-50 dark:bg-slate-950 rounded-md border border-dashed border-slate-300 dark:border-slate-800">
+                            No listings match this strict relevance score threshold. Try lowering the slider.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: SKILL GAP DEMO -->
+                <div x-show="activeTab === 'skillgap'" class="space-y-6" x-cloak>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-md border border-slate-200 dark:border-slate-700/60 space-y-3">
+                            <h4 class="font-display text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Parsed Resume Skills</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <template x-for="skill in parsedSkills" :key="skill">
+                                    <span class="px-2.5 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-md flex items-center">
+                                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        <span x-text="skill"></span>
+                                    </span>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-md border border-slate-200 dark:border-slate-700/60 space-y-3">
+                            <h4 class="font-display text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Identified Skill Gaps for Senior Role</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <template x-for="skill in missingSkills" :key="skill">
+                                    <span class="px-2.5 py-1 text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-md flex items-center">
+                                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                        <span x-text="skill"></span>
+                                    </span>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-blue-50/50 dark:bg-blue-950/30 rounded-md border border-blue-200 dark:border-blue-900 space-y-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">Recommended Learning Action</span>
+                        <p class="text-xs text-slate-700 dark:text-slate-300">
+                            Based on target job postings for Senior Python Engineer, adding <strong>Kubernetes deployment fundamentals</strong> increases match score by an estimated +15%.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- TAB 3: OUTREACH GENERATOR DEMO -->
+                <div x-show="activeTab === 'outreach'" class="space-y-6" x-cloak>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Target Recruiter Title</label>
+                            <input type="text" x-model="outreachRole" class="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Target Company Name</label>
+                            <input type="text" x-model="outreachCompany" class="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md">
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-slate-900 text-slate-100 rounded-md font-mono text-xs space-y-2 border border-slate-800">
+                        <div class="text-slate-400">Subject: Application Follow-up — Senior Python Engineer (<span x-text="outreachCompany"></span>)</div>
+                        <div class="border-t border-slate-800 pt-2 text-slate-300 leading-relaxed">
+                            Hi [<span x-text="outreachRole"></span>],<br><br>
+                            I recently submitted my application for the Backend Engineering position at <span x-text="outreachCompany"></span>. With experience in Python, Flask, Redis, and Celery task queues, I’ve built high-throughput asynchronous services.<br><br>
+                            I would welcome the opportunity to discuss how my technical background aligns with your engineering roadmap.<br><br>
+                            Best regards,<br>
+                            [Your Name]
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Product Deep-Dives (4 Key Pillars) -->
+    <section id="features" class="max-w-6xl mx-auto space-y-12">
+        <div class="text-center space-y-2">
+            <h2 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-white">
+                Engineered for Complete Job Search Control
+            </h2>
+            <p class="text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
+                No subscription paywalls. No black-box AI algorithms. Full transparency and local execution.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <!-- Pillar 1 -->
+            <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-4 shadow-sm">
+                <div class="w-10 h-10 rounded-md bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-lg">
+                    01
+                </div>
+                <h3 class="font-display font-bold text-lg text-slate-900 dark:text-white">Multi-Source Listing Scraper</h3>
+                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Scrapes popular job boards (LinkedIn, Internshala) using Selenium headless drivers and HTML parsers. Automatically cleans and deduplicates listings into your local SQLite database.
+                </p>
+                <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center text-xs text-slate-500">
+                    <svg class="w-4 h-4 mr-1.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <span>Configurable keyword, location & experience filters</span>
+                </div>
+            </div>
+
+            <!-- Pillar 2 -->
+            <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-4 shadow-sm">
+                <div class="w-10 h-10 rounded-md bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-lg">
+                    02
+                </div>
+                <h3 class="font-display font-bold text-lg text-slate-900 dark:text-white">Celery & Redis Background Worker</h3>
+                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Long-running scraping operations run completely asynchronously in the background. Your Web UI remains fast, crisp, and responsive while background workers process search queries.
+                </p>
+                <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center text-xs text-slate-500">
+                    <svg class="w-4 h-4 mr-1.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <span>Non-blocking Celery task queue with progress tracking</span>
+                </div>
+            </div>
+
+            <!-- Pillar 3 -->
+            <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-4 shadow-sm">
+                <div class="w-10 h-10 rounded-md bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-lg">
+                    03
+                </div>
+                <h3 class="font-display font-bold text-lg text-slate-900 dark:text-white">Resume Parsing & Heuristic Match</h3>
+                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Extracts text from PDF/Docx resumes to compute term frequency keyword matches, missing technical skills, and tailored cover letter placeholders.
+                </p>
+                <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center text-xs text-slate-500">
+                    <svg class="w-4 h-4 mr-1.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <span>Skill gap mapping and personalized learning roadmaps</span>
+                </div>
+            </div>
+
+            <!-- Pillar 4 -->
+            <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-4 shadow-sm">
+                <div class="w-10 h-10 rounded-md bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-lg">
+                    04
+                </div>
+                <h3 class="font-display font-bold text-lg text-slate-900 dark:text-white">Gmail API Digest & Excel Reports</h3>
+                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Integrate your own Gmail OAuth credentials to deliver daily automated email summaries containing top-matched opportunities and formatted Excel attachments.
+                </p>
+                <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center text-xs text-slate-500">
+                    <svg class="w-4 h-4 mr-1.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <span>Direct Gmail OAuth sending with zero third-party middleman</span>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Architecture & Local Privacy Guarantee -->
+    <section id="architecture" class="max-w-6xl mx-auto space-y-6">
+        <div class="p-8 bg-slate-900 text-white rounded-lg border border-slate-800 space-y-6">
+            <div class="max-w-2xl space-y-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-blue-400">System Architecture</span>
+                <h2 class="font-display font-extrabold text-2xl text-white">
+                    Local Data Privacy & Direct API Integrations
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-400">
+                    Your resume data, search profiles, and credentials never touch a central SaaS server. Everything runs on your machine or private server instance.
+                </p>
+            </div>
+
+            <!-- Architecture Diagram Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 text-xs font-mono">
+                <div class="p-4 bg-slate-950 rounded border border-slate-800 space-y-2">
+                    <div class="text-blue-400 font-bold">1. Web UI & Flask App</div>
+                    <div class="text-slate-400">Flask Server + Jinja2 Templates + Alpine.js + Tailwind CSS</div>
+                </div>
+                <div class="p-4 bg-slate-950 rounded border border-slate-800 space-y-2">
+                    <div class="text-blue-400 font-bold">2. Background Execution</div>
+                    <div class="text-slate-400">Celery Workers + Redis Broker + Selenium Headless Browsers</div>
+                </div>
+                <div class="p-4 bg-slate-950 rounded border border-slate-800 space-y-2">
+                    <div class="text-blue-400 font-bold">3. Persistence & Export</div>
+                    <div class="text-slate-400">SQLite Database + Gmail API OAuth + OpenPyXL Excel Engine</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Self-Hosting Setup Options -->
+    <section id="setup" class="max-w-4xl mx-auto space-y-6">
+        <div class="text-center space-y-2">
+            <h2 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-white">
+                Transparent Software Model
+            </h2>
+            <p class="text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
+                No hidden pricing tiers or fake subscription timers. Deploy locally or on your own VPS.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-4">
+                <h3 class="font-display font-bold text-lg text-slate-900 dark:text-white">Community Self-Hosted</h3>
+                <div class="text-2xl font-extrabold text-blue-600 dark:text-blue-400">Free / Open Source</div>
+                <ul class="text-xs text-slate-600 dark:text-slate-400 space-y-2">
+                    <li class="flex items-center"><svg class="w-4 h-4 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Full source code access</li>
+                    <li class="flex items-center"><svg class="w-4 h-4 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Local SQLite database storage</li>
+                    <li class="flex items-center"><svg class="w-4 h-4 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Unlimited search profiles & job saves</li>
+                </ul>
+                <a href="{{ url_for('register') }}" class="block w-full py-2.5 text-center text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md">Create Local Account</a>
+            </div>
+
+            <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-4">
+                <h3 class="font-display font-bold text-lg text-slate-900 dark:text-white">Local Python Server</h3>
+                <div class="text-2xl font-extrabold text-slate-900 dark:text-white">Custom Deployment</div>
+                <ul class="text-xs text-slate-600 dark:text-slate-400 space-y-2">
+                    <li class="flex items-center"><svg class="w-4 h-4 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Celery task queue orchestration</li>
+                    <li class="flex items-center"><svg class="w-4 h-4 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Native Gmail OAuth client setup</li>
+                    <li class="flex items-center"><svg class="w-4 h-4 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Assisted ATS form filler module</li>
+                </ul>
+                <a href="https://github.com/your-username/ai-job-agent" target="_blank" rel="noopener" class="block w-full py-2.5 text-center text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md">View Repository Docs</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Accordion Section -->
+    <section id="faq" class="max-w-4xl mx-auto space-y-6" x-data="{ openFaq: null }">
+        <div class="text-center space-y-2">
+            <h2 class="font-display font-extrabold text-2xl text-slate-900 dark:text-white">
+                Frequently Asked Questions
+            </h2>
+        </div>
+
+        <div class="space-y-3">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md overflow-hidden">
+                <button @click="openFaq = openFaq === 1 ? null : 1" class="w-full p-4 text-left font-display font-semibold text-sm text-slate-900 dark:text-white flex justify-between items-center focus:outline-none">
+                    <span>How does multi-source job scraping work?</span>
+                    <span x-text="openFaq === 1 ? '−' : '+'" class="font-mono text-lg text-slate-400"></span>
+                </button>
+                <div x-show="openFaq === 1" class="p-4 pt-0 text-xs text-slate-600 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800 leading-relaxed" x-cloak>
+                    AI JobSnap utilizes Selenium WebDrivers and BeautifulSoup parsers inside Celery background tasks to extract job title, company, location, and description data without blocking your user interface.
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md overflow-hidden">
+                <button @click="openFaq = openFaq === 2 ? null : 2" class="w-full p-4 text-left font-display font-semibold text-sm text-slate-900 dark:text-white flex justify-between items-center focus:outline-none">
+                    <span>Are my credentials or uploaded resumes sent to external servers?</span>
+                    <span x-text="openFaq === 2 ? '−' : '+'" class="font-mono text-lg text-slate-400"></span>
+                </button>
+                <div x-show="openFaq === 2" class="p-4 pt-0 text-xs text-slate-600 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800 leading-relaxed" x-cloak>
+                    No. Resumes are parsed locally using Python text extraction scripts, and database entries are stored in your local SQLite instance (`jobs.db`).
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md overflow-hidden">
+                <button @click="openFaq = openFaq === 3 ? null : 3" class="w-full p-4 text-left font-display font-semibold text-sm text-slate-900 dark:text-white flex justify-between items-center focus:outline-none">
+                    <span>How do I configure daily email reports?</span>
+                    <span x-text="openFaq === 3 ? '−' : '+'" class="font-mono text-lg text-slate-400"></span>
+                </button>
+                <div x-show="openFaq === 3" class="p-4 pt-0 text-xs text-slate-600 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800 leading-relaxed" x-cloak>
+                    Provide your `credentials.json` from your Google Cloud Console (Gmail API). The application authenticates via OAuth2 and uses `openpyxl` to build formatted Excel attachments.
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+{% endblock %}

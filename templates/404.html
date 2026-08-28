@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-20 px-4 text-center space-y-6 animate-fade-in-up">
+    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 font-display font-extrabold text-2xl border border-blue-200 dark:border-blue-900">
+        404
+    </div>
+    
+    <h1 class="font-display font-extrabold text-3xl text-slate-900 dark:text-white">
+        Page Not Found
+    </h1>
+
+    <p class="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+        The requested URL was not found on this server. Check your link or return to the dashboard.
+    </p>
+
+    <div class="flex items-center justify-center gap-4 pt-4">
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('dashboard') }}" class="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors">
+                Return to Dashboard
+            </a>
+        {% else %}
+            <a href="{{ url_for('index') }}" class="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors">
+                Return to Homepage
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

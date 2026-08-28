@@ -5235,7 +5235,42 @@ def index():
         if current_user.role == 'recruiter':
             return redirect(url_for('recruiter_dashboard'))
         return redirect(url_for('dashboard'))
-    return redirect("https://aijobsnap.vercel.app")
+    return render_template('landing.html', now=datetime.datetime.now())
+
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html', now=datetime.datetime.now())
+
+@app.route('/terms')
+def terms():
+    return render_template('terms.html', now=datetime.datetime.now())
+
+@app.route('/robots.txt')
+def robots_txt():
+    content = "User-agent: *\nAllow: /\nDisallow: /dashboard\nDisallow: /profile\nDisallow: /admin\nSitemap: " + request.url_root.rstrip('/') + "/sitemap.xml\n"
+    return Response(content, mimetype='text/plain')
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    base_url = request.url_root.rstrip('/')
+    urls = [
+        base_url + '/',
+        base_url + '/login',
+        base_url + '/register',
+        base_url + '/privacy',
+        base_url + '/terms'
+    ]
+    xml = ['<?xml version="1.0" encoding="UTF-8"?>']
+    xml.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+    for u in urls:
+        xml.append('  <url><loc>' + u + '</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>')
+    xml.append('</urlset>')
+    return Response('\n'.join(xml), mimetype='application/xml')
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html', now=datetime.datetime.now()), 404
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -7438,19 +7473,12 @@ def save_roadmap():
                 module = LearningModule.query.filter_by(path_id=path.id, order_index=idx).first()
                 if module:
                     module.topics_data = week # Save granular progress
-                    # Determine completion: All topics AND mini-project must be done
+                    from sqlalchemy.orm.attributes import flag_modified
+                    flag_modified(module, "topics_data")
+
+                    # Determine completion: strictly driven by mini_project completed status
                     mini_project = week.get('mini_project', {})
-                    is_project_completed = mini_project.get('completed', False) if isinstance(mini_project, dict) else False
-                    
-                    focus_topics = week.get('focus_topics', [])
-                    all_topics_completed = True
-                    if isinstance(focus_topics, list):
-                        for t in focus_topics:
-                            if isinstance(t, dict) and not t.get('completed'):
-                                all_topics_completed = False
-                                break
-                    
-                    is_completed = is_project_completed and all_topics_completed
+                    is_completed = mini_project.get('completed', False) if isinstance(mini_project, dict) else False
                     
                     progress = UserLearningProgress.query.filter_by(user_id=current_user.id, module_id=module.id).first()
                     if not progress:
@@ -7497,6 +7525,7 @@ def save_roadmap():
                 # Handle mini_project
                 mini_project = week.get('mini_project', {})
                 project_title = mini_project.get('title', '') if isinstance(mini_project, dict) else str(mini_project)
+                is_completed = mini_project.get('completed', False) if isinstance(mini_project, dict) else False
                     
                 description = f"Why it matters: {week.get('why_this_matters', '')}\n\nProject: {project_title}"
                 
@@ -7510,18 +7539,13 @@ def save_roadmap():
                 db.session.add(new_module)
                 db.session.flush() # Get ID for progress
 
-                # Check initial completion status
-                is_project_completed = mini_project.get('completed', False) if isinstance(mini_project, dict) else False
-                all_topics_completed = True
-                if isinstance(focus_topics, list):
-                    for t in focus_topics:
-                        if isinstance(t, dict) and not t.get('completed'):
-                            all_topics_completed = False
-                            break
-                
-                if is_project_completed and all_topics_completed:
-                    prog = UserLearningProgress(user_id=current_user.id, module_id=new_module.id, is_completed=True, completed_at=datetime.datetime.utcnow())
-                    db.session.add(prog)
+                prog = UserLearningProgress(
+                    user_id=current_user.id, 
+                    module_id=new_module.id, 
+                    is_completed=is_completed, 
+                    completed_at=datetime.datetime.utcnow() if is_completed else None
+                )
+                db.session.add(prog)
         
             db.session.commit()
             return jsonify({'success': True, 'path_id': new_path.id})
@@ -7664,13 +7688,51 @@ Format the response as valid JSON with a single key 'content' containing HTML-fo
 Use proper HTML tags: <h2>, <h3>, <p>, <code>, <pre>, <ul>, <ol>, <li>, etc.
 Make it practical, detailed, and beginner-friendly."""
         
-        # Call Cerebras API
-        response_data = safe_ai_request(system_prompt, user_prompt, model="qwen-3-235b-a22b-instruct-2507", retries=2)
+        # Call AI API (Gemini preferred) with fallback protection
+        try:
+            response_data = safe_ai_request(system_prompt, user_prompt, model="gemini-3.6-flash", retries=2)
+        except Exception as e:
+            logger.error(f"Error in safe_ai_request for project guide: {e}")
+            response_data = None
         
-        if not response_data or 'content' not in response_data:
-            return jsonify({'error': 'Failed to generate guide content'}), 500
+        html_content = None
+        if isinstance(response_data, dict):
+            for key in ['content', 'html', 'guide', 'tutorial', 'project_guide', 'text', 'guide_content']:
+                if key in response_data and response_data[key]:
+                    html_content = response_data[key]
+                    break
+            if not html_content and response_data:
+                first_val = list(response_data.values())[0]
+                if isinstance(first_val, (str, list)):
+                    html_content = first_val
+                elif isinstance(first_val, dict):
+                    html_content = first_val.get('content') or first_val.get('html') or str(first_val)
+        elif isinstance(response_data, str):
+            html_content = response_data
         
-        html_content = response_data['content']
+        if not html_content:
+            logger.warning(f"Using fallback guide template for project: {project_title}")
+            html_content = f"""
+            <h2>1. Project Overview</h2>
+            <p>This tutorial provides a structured, step-by-step guide for completing <strong>{project_title}</strong>. Follow these instructions to build a production-ready application.</p>
+            
+            <h2>2. Prerequisites</h2>
+            <ul>
+                <li>Basic understanding of core software development principles</li>
+                <li>Local environment set up (Code Editor, Git, Node.js/Python)</li>
+            </ul>
+            
+            <h2>3. Step-by-Step Implementation</h2>
+            <ol>
+                <li><strong>Initialize Project:</strong> Set up your repository, folder layout, and install required dependencies.</li>
+                <li><strong>Build Core Architecture:</strong> Create primary modules and baseline functionality.</li>
+                <li><strong>Implement UI & Logic:</strong> Connect frontend components with backend API endpoints or state management.</li>
+                <li><strong>Testing & Verification:</strong> Execute test cases and refine edge-case error handling.</li>
+            </ol>
+            
+            <h2>4. Expected Outcome</h2>
+            <p>A functional, tested implementation of <strong>{project_title}</strong> adhering to industry best practices.</p>
+            """
         
         # Handle if content is an array of strings (join them)
         if isinstance(html_content, list):
@@ -7736,6 +7798,23 @@ li {{ margin: 8px 0; }}
         logger.error(f"Error generating project guide: {e}", exc_info=True)
         return jsonify({'error': 'Internal server error'}), 500
 
+def _is_module_completed(user_id, module):
+    prog = UserLearningProgress.query.filter_by(user_id=user_id, module_id=module.id).first()
+    if prog and prog.is_completed:
+        return True
+    if module.topics_data:
+        t_data = module.topics_data
+        if isinstance(t_data, str):
+            try:
+                t_data = json.loads(t_data)
+            except Exception:
+                t_data = {}
+        if isinstance(t_data, dict):
+            mp = t_data.get('mini_project', {})
+            if isinstance(mp, dict) and mp.get('completed'):
+                return True
+    return False
+
 @app.route('/learning-paths', methods=['GET'])
 @login_required
 def get_learning_paths():
@@ -7745,16 +7824,13 @@ def get_learning_paths():
         
         for path in paths:
             total_modules = len(path.modules)
+            completed_count = 0
+            completed_module_ids = set()
             
-            # Get completed modules for this path
-            completed_progress = UserLearningProgress.query.join(LearningModule).filter(
-                UserLearningProgress.user_id == current_user.id,
-                UserLearningProgress.is_completed == True,
-                LearningModule.path_id == path.id
-            ).all()
-            
-            completed_module_ids = {p.module_id for p in completed_progress}
-            completed_count = len(completed_module_ids)
+            for mod in path.modules:
+                if _is_module_completed(current_user.id, mod):
+                    completed_count += 1
+                    completed_module_ids.add(mod.id)
             
             progress = (completed_count / total_modules * 100) if total_modules > 0 else 0
             
@@ -7799,14 +7875,7 @@ def resume_learning():
         if not last_path:
             return jsonify({'has_path': False, 'message': 'No learning paths started yet.'})
             
-        # Calculate progress to find next module
-        completed_progress = UserLearningProgress.query.join(LearningModule).filter(
-            UserLearningProgress.user_id == current_user.id,
-            UserLearningProgress.is_completed == True,
-            LearningModule.path_id == last_path.id
-        ).all()
-        
-        completed_module_ids = {p.module_id for p in completed_progress}
+        completed_module_ids = {mod.id for mod in last_path.modules if _is_module_completed(current_user.id, mod)}
         
         next_module = None
         for mod in last_path.modules:
@@ -7836,8 +7905,6 @@ def delete_learning_path(path_id):
     try:
         path = LearningPath.query.filter_by(id=path_id, user_id=current_user.id).first_or_404()
         
-        # Manually delete progress records first to avoid foreign key constraints
-        # if the database schema doesn't have ON DELETE CASCADE configured.
         module_ids = [m.id for m in path.modules]
         if module_ids:
             UserLearningProgress.query.filter(UserLearningProgress.module_id.in_(module_ids)).delete(synchronize_session=False)
@@ -7861,12 +7928,11 @@ def get_learning_path_detail(path_id):
 
     modules_data = []
     for mod in path.modules:
-        progress = UserLearningProgress.query.filter_by(user_id=current_user.id, module_id=mod.id).first()
         modules_data.append({
             'id': mod.id,
             'title': mod.title,
             'description': mod.description,
-            'is_completed': progress.is_completed if progress else False,
+            'is_completed': _is_module_completed(current_user.id, mod),
             'topics_data': mod.topics_data
         })
 

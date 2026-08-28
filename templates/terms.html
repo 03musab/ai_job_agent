@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-12 px-4 space-y-8 animate-fade-in-up">
+    <div class="space-y-2">
+        <h1 class="font-display font-extrabold text-3xl text-slate-900 dark:text-white">
+            Terms of Service
+        </h1>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Last Updated: August 2026 • AI JobSnap Self-Hosted Edition
+        </p>
+    </div>
+
+    <div class="prose prose-slate dark:prose-invert text-sm leading-relaxed space-y-6 bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
+        <section class="space-y-2">
+            <h2 class="font-display font-bold text-lg text-slate-900 dark:text-white">1. Self-Hosted Software License</h2>
+            <p class="text-slate-600 dark:text-slate-400">
+                AI JobSnap is provided under open-source software license terms. You are permitted to run, modify, and host this application on your local workstation or personal private server.
+            </p>
+        </section>
+
+        <section class="space-y-2">
+            <h2 class="font-bold text-lg text-slate-900 dark:text-white">2. Responsible Scraping & Automation Usage</h2>
+            <p class="text-slate-600 dark:text-slate-400">
+                When using background scraping modules (LinkedIn, Internshala, etc.), users are responsible for complying with target platform Terms of Service and rate limits.
+            </p>
+        </section>
+
+        <section class="space-y-2">
+            <h2 class="font-bold text-lg text-slate-900 dark:text-white">3. Email & Form Filling Compliance</h2>
+            <p class="text-slate-600 dark:text-slate-400">
+                The Outreach Studio and Assisted Form Filling features are human-in-the-loop utilities. Users are solely responsible for reviewing outgoing messages and application responses.
+            </p>
+        </section>
+    </div>
+</div>
+{% endblock %}
