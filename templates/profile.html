@@ -1,512 +1,201 @@
 {% extends "base.html" %}
-{% block body_class %}light-theme{% endblock %}
+{% block title %}Profile & Settings — AI JobSnap{% endblock %}
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 py-8 animate-fade-in">
-    <div class="rounded-xl shadow-lg p-8 md:p-12"
-         :class="darkMode ? 'bg-premium-bg/95 border border-premium-teal/20' : 'bg-white border border-gray-200'">
-    <div class="text-center mb-10" role="main" aria-labelledby="page-title">
-        <h1 id="page-title" class="text-3xl font-bold" :class="darkMode ? 'text-white' : 'text-gray-900'">Your Profile</h1>
-        <p class="mt-2" :class="darkMode ? 'text-gray-400' : 'text-gray-600'">
-            {% if current_user.role == 'recruiter' %}
-                Manage your professional profile and contact information.
-            {% else %}
-                Keep your application details up-to-date for seamless job hunting.
-            {% endif %}
-        </p>
+<div class="max-w-[760px] mx-auto px-container-padding py-8 flex-1 flex flex-col gap-6 w-full">
+    
+    <!-- Top Header -->
+    <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex justify-between items-center">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Candidate Credentials</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+            </div>
+            <h1 class="font-headline-lg text-on-surface text-[20px] font-bold">Profile Settings</h1>
+            <p class="font-body-sm text-[12px] text-on-surface-variant">
+                Configure your resume intelligence, contact parameters, and automated cover letters.
+            </p>
+        </div>
     </div>
 
-    <form id="main-profile-form" action="{{ url_for('profile') }}" method="POST" enctype="multipart/form-data" class="space-y-8">
-        
-        <!-- Personal Information -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Main Profile Card Form -->
+    <div class="border border-outline-variant rounded-xl p-6 bg-surface-container">
+        <form id="main-profile-form" action="{{ url_for('profile') }}" method="POST" enctype="multipart/form-data" class="space-y-6" novalidate>
+            
+            <!-- 1. Identity Information -->
             <div>
-                <label for="full_name" class="block text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Full Name</label>
-                <input type="text" name="full_name" id="full_name" value="{{ user_details.full_name if user_details else '' }}" autocomplete="name" class="mt-1 block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 pl-4" style="border-radius: 0.25rem;" :class="darkMode ? 'bg-premium-bg border-premium-teal/30 text-premium-text placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'">
+                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest mb-3 block">01 / Contact Telemetry (Optional)</span>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label for="full_name" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Full Name</label>
+                        <input type="text" name="full_name" id="full_name" value="{{ user_details.full_name if user_details else '' }}" autocomplete="name" placeholder="Optional"
+                            class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-1.5 text-body-sm text-on-surface focus:border-primary focus:outline-none">
+                    </div>
+                    <div>
+                        <label for="email" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Email</label>
+                        <input type="text" name="email" id="email" value="{{ user_details.email if user_details else '' }}" autocomplete="email" placeholder="Optional"
+                            class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-1.5 text-body-sm text-on-surface focus:border-primary focus:outline-none">
+                    </div>
+                    <div>
+                        <label for="phone" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Phone</label>
+                        <input type="text" name="phone" id="phone" value="{{ user_details.phone if user_details else '' }}" autocomplete="tel" placeholder="Optional"
+                            class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-1.5 text-body-sm text-on-surface focus:border-primary focus:outline-none">
+                    </div>
+                    {% if current_user.role != 'recruiter' %}
+                    <div>
+                        <label for="address" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Location / Address</label>
+                        <input type="text" name="address" id="address" value="{{ user_details.address if user_details else '' }}" autocomplete="street-address" placeholder="Optional"
+                            class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-1.5 text-body-sm text-on-surface focus:border-primary focus:outline-none">
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            <div>
-                <label for="email" class="block text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Email</label>
-                <input type="email" name="email" id="email" value="{{ user_details.email if user_details else '' }}" autocomplete="email" class="mt-1 block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 pl-4" style="border-radius: 0.25rem;" :class="darkMode ? 'bg-premium-bg border-premium-teal/30 text-premium-text placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'">
-            </div>
-            <div>
-                <label for="phone" class="block text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Phone</label>
-                <input type="tel" name="phone" id="phone" value="{{ user_details.phone if user_details else '' }}" autocomplete="tel" class="mt-1 block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 pl-4" style="border-radius: 0.25rem;" :class="darkMode ? 'bg-premium-bg border-premium-teal/30 text-premium-text placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'">
-            </div>
-            {% if current_user.role != 'recruiter' %}
-            <div>
-                <label for="address" class="block text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Address</label>
-                <input type="text" name="address" id="address" value="{{ user_details.address if user_details else '' }}" autocomplete="street-address" class="mt-1 block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 pl-4" style="border-radius: 0.25rem;" :class="darkMode ? 'bg-premium-bg border-premium-teal/30 text-premium-text placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'">
-            </div>
-            {% endif %}
-        </div>
 
-        <!-- Professional Links -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div>
-                <label for="linkedin_url" class="block text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">LinkedIn URL</label>
-                <input type="url" name="linkedin_url" id="linkedin_url" value="{{ user_details.linkedin_url if user_details else '' }}" autocomplete="url" class="mt-1 block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 pl-4" style="border-radius: 0.25rem;" :class="darkMode ? 'bg-premium-bg border-premium-teal/30 text-premium-text placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'">
+            <!-- 2. Web & Professional Presence -->
+            <div class="border-t border-outline-variant pt-5">
+                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest mb-3 block">02 / Professional Links (Optional)</span>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                        <label for="linkedin_url" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">LinkedIn</label>
+                        <input type="text" name="linkedin_url" id="linkedin_url" value="{{ user_details.linkedin_url if user_details else '' }}" placeholder="linkedin.com/in/..."
+                            class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-1.5 text-body-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none">
+                    </div>
+                    {% if current_user.role != 'recruiter' %}
+                    <div>
+                        <label for="github_url" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">GitHub</label>
+                        <input type="text" name="github_url" id="github_url" value="{{ user_details.github_url if user_details else '' }}" placeholder="github.com/..."
+                            class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-1.5 text-body-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none">
+                    </div>
+                    <div>
+                        <label for="portfolio_url" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Portfolio</label>
+                        <input type="text" name="portfolio_url" id="portfolio_url" value="{{ user_details.portfolio_url if user_details else '' }}" placeholder="myportfolio.dev"
+                            class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-1.5 text-body-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none">
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            {% if current_user.role != 'recruiter' %}
-            <div>
-                <label for="github_url" class="block text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">GitHub URL</label>
-                <input type="url" name="github_url" id="github_url" value="{{ user_details.github_url if user_details else '' }}" autocomplete="url" class="mt-1 block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 pl-4" style="border-radius: 0.25rem;" :class="darkMode ? 'bg-premium-bg border-premium-teal/30 text-premium-text placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'">
-            </div>
-            <div>
-                <label for="portfolio_url" class="block text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Portfolio URL</label>
-                <input type="url" name="portfolio_url" id="portfolio_url" value="{{ user_details.portfolio_url if user_details else '' }}" autocomplete="url" class="mt-1 block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 pl-4" style="border-radius: 0.25rem;" :class="darkMode ? 'bg-premium-bg border-premium-teal/30 text-premium-text placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'">
-            </div>
-            {% endif %}
-        </div>
 
-        {% if current_user.role != 'recruiter' %}
-        <!-- Resume and Cover Letter -->
-        <div>
-            <label for="resume" class="block text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Upload Resume</label>
-            <div id="resume-drop-zone" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg shadow-sm transition-colors duration-200" :class="darkMode ? 'border-premium-teal/30 bg-premium-teal/5 hover:bg-premium-teal/10 hover:border-premium-teal/50' : 'border-blue-200 bg-blue-50 hover:bg-blue-100 hover:border-blue-300'" style="border-radius: 0.5rem;">
-                <div class="space-y-1 text-center">
-                    <svg class="mx-auto h-12 w-12" :class="darkMode ? 'text-premium-teal' : 'text-blue-500'" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" />
-                    </svg>
-                    <div class="flex text-sm" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">
-                        <label for="resume" class="relative cursor-pointer bg-transparent rounded-md font-medium focus-within:outline-none" :class="darkMode ? 'text-premium-teal hover:text-premium-teal/80' : 'text-blue-600 hover:text-blue-800'" style="border-radius: 0.25rem;">
-                            <span id="resume-upload-text">Upload a file</span>
+            <!-- 3. Resume Upload & AI Parser -->
+            {% if current_user.role != 'recruiter' %}
+            <div class="border-t border-outline-variant pt-5">
+                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest mb-3 block">03 / Resume Parser Intelligence</span>
+                
+                <div id="resume-drop-zone" class="border-2 border-dashed border-outline-variant/60 rounded-xl p-6 text-center hover:border-primary transition-colors bg-surface-container-lowest cursor-pointer">
+                    <span class="material-symbols-outlined text-[32px] text-primary mb-2">description</span>
+                    <div class="text-body-sm text-on-surface">
+                        <label for="resume" class="cursor-pointer font-semibold text-primary hover:underline">
+                            <span>Select Document</span>
                             <input id="resume" name="resume" type="file" class="sr-only">
                         </label>
-                        <p class="pl-1" :class="darkMode ? 'text-gray-400' : 'text-gray-500'">or drag and drop</p>
+                        <span class="text-on-surface-variant"> or drag and drop</span>
                     </div>
-                    <p class="text-xs text-gray-500">PDF, DOCX up to 10MB</p>
+                    <p class="font-data-mono text-[10px] text-on-surface-variant/60 mt-1">PDF or DOCX up to 10MB</p>
+                </div>
+
+                {% if user_details and user_details.resume_path %}
+                <div class="mt-2 flex items-center justify-between p-2 rounded bg-surface-container-high border border-outline-variant/40">
+                    <div class="flex items-center gap-2 text-body-sm">
+                        <span class="material-symbols-outlined text-[16px] text-secondary">task_alt</span>
+                        <span class="font-data-mono text-[11px] text-on-surface">{{ user_details.resume_path.split('/')[-1].split('\\')[-1] }}</span>
+                    </div>
+                    <span class="font-data-mono text-[10px] text-secondary uppercase">Active Parse</span>
+                </div>
+                {% endif %}
+
+                <!-- AI-Ready Skill Chips -->
+                {% if user_details and user_details.resume_parsed_data %}
+                    {% set parsed_resume = user_details.resume_parsed_data | fromjson %}
+                    {% if parsed_resume and parsed_resume.skills %}
+                    <div class="mt-3 p-3 rounded-lg bg-secondary/5 border border-secondary/20 flex flex-col gap-2">
+                        <div class="flex items-center gap-1.5 text-secondary font-data-mono text-[10px] uppercase tracking-wider font-semibold">
+                            <span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+                            <span>Resume AI-Ready ({{ parsed_resume.skills | length }} Skills Indexed)</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1">
+                            {% for skill in parsed_resume.skills[:8] %}
+                            <span class="font-data-mono text-[9px] px-2 py-0.5 rounded bg-secondary/10 text-secondary border border-secondary/30">{{ skill }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <!-- 4. Work Authorization & Relocation -->
+            <div class="border-t border-outline-variant pt-5">
+                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest mb-3 block">04 / Legal Eligibility</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="font-body-sm text-[12px] text-on-surface block mb-2 font-medium">Willing to Relocate?</label>
+                        <div class="flex items-center gap-4 text-[12px]">
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="radio" name="willing_to_relocate" value="yes" {% if user_details and user_details.willing_to_relocate == 'yes' %}checked{% endif %} class="text-primary">
+                                <span class="text-on-surface">Yes</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="radio" name="willing_to_relocate" value="no" {% if not user_details or user_details.willing_to_relocate == 'no' %}checked{% endif %} class="text-primary">
+                                <span class="text-on-surface">No</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="font-body-sm text-[12px] text-on-surface block mb-2 font-medium">Legally Authorized to Work?</label>
+                        <div class="flex items-center gap-4 text-[12px]">
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="radio" name="authorized_to_work" value="yes" {% if user_details and user_details.authorized_to_work == 'yes' %}checked{% endif %} class="text-primary">
+                                <span class="text-on-surface">Yes</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="radio" name="authorized_to_work" value="no" {% if not user_details or user_details.authorized_to_work == 'no' %}checked{% endif %} class="text-primary">
+                                <span class="text-on-surface">No (Require Sponsorship)</span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
             </div>
-            {% if user_details and user_details.resume_path %}
-            <div id="current-file-display" class="mt-2 flex items-center justify-center gap-4">
-                <p id="current-file-text" class="text-sm" :class="darkMode ? 'text-green-400' : 'text-green-600'">Current file: <span class="font-medium">{{ user_details.resume_path.split('/')[-1].split('\\')[-1] }}</span></p>
-            </div>
-            {% endif %}
-            <div id="new-file-display" class="hidden mt-3 text-center">
-                <p id="new-file-name" class="text-lg text-blue-600 font-semibold"></p>
-                <div id="upload-new-resume-container" class="mt-4" role="status" aria-live="polite">
-                    <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors shadow-lg">
-                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M9.25 13.25a.75.75 0 0 0 1.5 0V4.636l2.955 3.129a.75.75 0 0 0 1.09-1.03l-4.25-4.5a.75.75 0 0 0-1.09 0l-4.25 4.5a.75.75 0 1 0 1.09 1.03L9.25 4.636v8.614Z" /><path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" /></svg>
-                        Upload and Save New Resume
+
+            <!-- 5. Cover Letter Template -->
+            <div class="border-t border-outline-variant pt-5" x-data="{ generatingCL: false }">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block">05 / Default Cover Letter</span>
+                    <button type="button" @click="
+                        generatingCL = true;
+                        fetch('/api/generate-cover-letter', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({})
+                        })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.cover_letter) {
+                                const ta = document.getElementById('cover_letter_template');
+                                if (ta) ta.value = data.cover_letter;
+                            }
+                            generatingCL = false;
+                        })
+                        .catch(err => {
+                            console.error('Error generating cover letter:', err);
+                            generatingCL = false;
+                        });
+                    " :disabled="generatingCL"
+                        class="px-2.5 py-1 bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary font-data-mono text-[10px] rounded transition-colors flex items-center gap-1.5 disabled:opacity-50">
+                        <span x-show="generatingCL" class="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></span>
+                        <span class="material-symbols-outlined text-[13px] text-primary" x-show="!generatingCL">auto_awesome</span>
+                        <span x-text="generatingCL ? 'Synthesizing Cover Letter...' : 'AI Generate'"></span>
                     </button>
                 </div>
+                <textarea id="cover_letter_template" name="cover_letter_template" rows="8"
+                    class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded-lg p-3 text-body-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none font-mono text-[12px] leading-relaxed">{{ user_details.cover_letter_template if user_details else '' }}</textarea>
             </div>
-
-            {% if user_details and user_details.resume_parsed_data %}
-                {% set parsed_resume = user_details.resume_parsed_data | fromjson %}
-                {% if parsed_resume and parsed_resume.skills %}
-                <div id="ai-ready-status" class="mt-4 p-4 rounded-lg text-center" :class="darkMode ? 'bg-green-900/20 border border-green-500/20' : 'bg-green-50 border border-green-200'" role="status" style="border-radius: 0.25rem;">
-                    <div class="flex items-center justify-center gap-2 font-semibold" :class="darkMode ? 'text-green-400' : 'text-green-700'">
-                        <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd" /></svg>
-                        <span>Resume is AI-Ready</span>
-                    </div>
-                    <p class="text-xs mt-1" :class="darkMode ? 'text-gray-400' : 'text-gray-600'">The AI has identified the following skills to help write your cover letter:</p>
-                    <div class="mt-2 flex flex-wrap justify-center gap-2">
-                        {% for skill in parsed_resume.skills | slice(6) %}<span class="px-2 py-1 text-xs font-medium rounded-full" :class="darkMode ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'" style="border-radius: 9999px;">{{ skill }}</span>{% endfor %}
-                    </div>
-                </div>
-                {% endif %}
             {% endif %}
-        </div>
 
-        <!-- Additional Questions -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <fieldset>
-                <legend class="text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Willing to Relocate?</legend>
-                <div class="mt-2 space-y-2">
-                    <div class="flex items-center">
-                        <input id="relocate_yes" name="willing_to_relocate" type="radio" value="yes" {% if user_details and user_details.willing_to_relocate == 'yes' %}checked{% endif %} class="h-4 w-4 text-blue-600 focus:ring-blue-500" :class="darkMode ? 'border-gray-600 bg-premium-bg' : 'border-gray-300 bg-white'">
-                        <label for="relocate_yes" class="ml-3 block text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Yes</label>
-                    </div>
-                    <div class="flex items-center">
-                        <input id="relocate_no" name="willing_to_relocate" type="radio" value="no" {% if not user_details or user_details.willing_to_relocate == 'no' %}checked{% endif %} class="h-4 w-4 text-blue-600 focus:ring-blue-500" :class="darkMode ? 'border-gray-600 bg-premium-bg' : 'border-gray-300 bg-white'">
-                        <label for="relocate_no" class="ml-3 block text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">No</label>
-                    </div>
-                    <div class="flex items-center">
-                        <input id="relocate_case" name="willing_to_relocate" type="radio" value="case-by-case" {% if user_details and user_details.willing_to_relocate == 'case-by-case' %}checked{% endif %} class="h-4 w-4 text-blue-600 focus:ring-blue-500" :class="darkMode ? 'border-gray-600 bg-premium-bg' : 'border-gray-300 bg-white'">
-                        <label for="relocate_case" class="ml-3 block text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">On a case-by-case basis</label>
-                    </div>
-                </div>
-            </fieldset>
-            <fieldset>
-                <legend class="text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Legally Authorized to Work?</legend>
-                <div class="mt-2 space-y-2">
-                    <div class="flex items-center">
-                        <input id="auth_yes" name="authorized_to_work" type="radio" value="yes" {% if user_details and user_details.authorized_to_work == 'yes' %}checked{% endif %} class="h-4 w-4 text-blue-600 focus:ring-blue-500" :class="darkMode ? 'border-gray-600 bg-premium-bg' : 'border-gray-300 bg-white'">
-                        <label for="auth_yes" class="ml-3 block text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Yes</label>
-                    </div>
-                    <div class="flex items-center">
-                        <input id="auth_no" name="authorized_to_work" type="radio" value="no" {% if not user_details or user_details.authorized_to_work == 'no' %}checked{% endif %} class="h-4 w-4 text-blue-600 focus:ring-blue-500" :class="darkMode ? 'border-gray-600 bg-premium-bg' : 'border-gray-300 bg-white'">
-                        <label for="auth_no" class="ml-3 block text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">No, I require sponsorship</label>
-                    </div>
-                </div>
-                <p class="mt-2 text-xs" :class="darkMode ? 'text-gray-400' : 'text-gray-500'">This helps answer questions about work authorization and visa sponsorship.</p>
-            </fieldset>
-        </div>
-
-        <!-- Cover Letter Template -->
-        <div>
-            <h2 class="text-lg font-bold mb-4" :class="darkMode ? 'text-white' : 'text-gray-900'">Cover Letter Template</h2>
-            <div class="flex items-center gap-3 mb-3">
-                <button type="button" onclick="generateAICoverLetter({{ user_details | tojson }})"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 shadow-sm"
-                    :class="darkMode ? 'bg-premium-teal/20 text-premium-teal hover:bg-premium-teal/30 border border-premium-teal/30' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    AI Generate
-                </button>
-                <button type="button" id="copy-cover-letter-btn" onclick="copyCoverLetterToClipboard()"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200"
-                    :class="darkMode ? 'text-gray-300 hover:text-white hover:bg-premium-teal/10 border border-gray-600' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 border border-gray-200'">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                    Copy
+            <!-- Save Action Button -->
+            <div class="border-t border-outline-variant pt-5 flex justify-end gap-3">
+                <button type="submit"
+                    class="px-6 py-2.5 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-primary-container transition-colors shadow-sm">
+                    Save Profile Settings
                 </button>
             </div>
-            <textarea id="cover_letter_template" name="cover_letter_template" rows="10"
-                :class="darkMode ? 'bg-premium-bg border-premium-teal/30 text-premium-text placeholder-gray-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'"
-                class="mt-1 block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 p-4"
-                style="min-height:12rem;">{{ user_details.cover_letter_template if user_details else '' }}</textarea>
-        </div>
-        {% endif %}
-
-        <!-- Submit Button -->
-        <div class="pt-8 mt-8" :class="darkMode ? 'border-t border-gray-700' : 'border-t border-gray-200'">
-            <div class="flex justify-between items-center">
-                {% if current_user.role != 'recruiter' %}
-                <button type="button" id="clear-profile-btn" class="text-sm font-medium transition-colors" :class="darkMode ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-800'">
-                    Clear All Profile Data
-                </button>
-                {% endif %}
-                <button type="submit" form="main-profile-form" class="btn-temporal inline-flex justify-center py-3 px-8 border border-transparent shadow-sm text-base font-medium rounded-md text-white" :class="darkMode ? 'bg-premium-teal hover:bg-premium-teal/80' : 'bg-blue-600 hover:bg-blue-700'">
-                    Save Profile
-                </button>
-            </div>
-        </div>
-    </form>
+        </form>
     </div>
 </div>
-
-<!-- Toast Notification Placeholder -->
-<div id="toast-container" class="fixed top-6 right-6 z-[1000]"></div>
-<script src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
-
-{% if current_user.role != 'recruiter' %}
-<script>
-    /**
-     * Generates a cover letter template when the "AI Generate" button is clicked.
-     * It uses the user's profile details and parsed resume skills to populate a template.
-     */
-    function generateAICoverLetter(userDetails) {
-        const templates = [];
-        const coverLetterTextarea = document.getElementById('cover_letter_template');
-        const generateBtn = document.querySelector("button[onclick^='generateAICoverLetter']");
-        const copyBtn = document.getElementById('copy-cover-letter-btn');
-
-        const fullName = userDetails ? userDetails.full_name || '[Your Name]' : '[Your Name]';
-        const email = userDetails ? userDetails.email || '[Your Email]' : '[Your Email]';
-        const phone = userDetails ? userDetails.phone || '[Your Phone]' : '[Your Phone]';
-        
-        let skills = [];
-        if (userDetails && userDetails.resume_parsed_data) {
-            try {
-                let parsedResume = userDetails.resume_parsed_data;
-                if (typeof parsedResume === 'string') {
-                    parsedResume = JSON.parse(parsedResume);
-                }
-
-                if (parsedResume && parsedResume.skills && Array.isArray(parsedResume.skills) && parsedResume.skills.length > 0) {
-                    skills = parsedResume.skills;
-                }
-            } catch (e) {
-                console.error("Could not parse resume data:", e);
-            }
-        }
-
-        let skillsParagraph = "Throughout my career, I have developed a strong skill set that I believe is a great match for this role.";
-        if (skills.length > 0) {
-            const skillsList = skills.slice(0, 5).join(', ');
-            skillsParagraph = `I am proficient in a variety of technologies and methodologies, including ${skillsList}. My experience in these areas has prepared me to tackle the challenges of this position and contribute effectively to your team.`;
-        }
-
-        templates.push(`Dear [Hiring Manager Name],
-
-I am writing to express my enthusiastic interest in the [Job Title] position at [Company Name], which I discovered on [Platform, e.g., LinkedIn]. Having followed [Company Name]'s work for some time, I am deeply impressed by your commitment to [Company Value or Product], and I am confident that my skills and experience align perfectly with the requirements of this role.
-
-${skillsParagraph}
-
-I am particularly drawn to this opportunity because [Reason you are interested in the company or role]. I am eager to bring my background in [Your Key Experience Area] to your team and contribute to your continued success.
-
-Thank you for considering my application. I have attached my resume for your review and welcome the opportunity to discuss how my qualifications can benefit [Company Name].
-
-Sincerely,
-${fullName}
-${email}
-${phone}`);
-
-        templates.push(`Dear [Hiring Manager Name],
-
-It is with great excitement that I submit my application for the [Job Title] role at [Company Name]. For years, I have admired your company's impact in the [Industry] space, particularly your work on [Specific Project or Product]. Your dedication to [Company Mission/Value] resonates deeply with my own professional values.
-
-My background in [Your Key Experience Area] and my hands-on experience with skills such as ${skills.slice(0, 3).join(', ')} have prepared me to not only meet but exceed the expectations for this role. I am a collaborative problem-solver who is passionate about building solutions that make a difference.
-
-The opportunity to contribute to your team would be a privilege. I am eager to learn more about how I can help [Company Name] achieve its future goals.
-
-Thank you for your time and consideration.
-
-Best regards,
-${fullName}
-${email}
-${phone}`);
-
-        templates.push(`Dear [Hiring Manager Name],
-
-I am writing to apply for the [Job Title] position at [Company Name]. With a proven track record of delivering results in [Your Field], I was immediately drawn to this opportunity to leverage my skills to drive success for your team.
-
-In my previous role at [Previous Company], I was responsible for [Your Key Responsibility], where I successfully [Quantifiable Achievement, e.g., increased efficiency by 20% or led a project that generated $50k in revenue]. My expertise in ${skills.slice(0, 4).join(', ')} would allow me to make a direct and immediate impact at [Company Name].
-
-I am confident that my results-oriented approach and dedication to excellence would make me a valuable asset to your organization.
-
-I have attached my resume for your detailed review and look forward to discussing this exciting opportunity with you further.
-
-Sincerely,
-${fullName}
-${email}
-${phone}`);
-
-        templates.push(`Dear [Hiring Manager Name],
-
-I was thrilled to see the opening for a [Job Title] at [Company Name] and am submitting my application with great enthusiasm.
-
-My experience in [Your Key Experience Area] and skills in ${skills.slice(0, 3).join(', ')} are a strong match for the responsibilities outlined in the job description. I am a proactive and adaptable professional, always eager to learn and contribute to a forward-thinking team.
-
-The prospect of joining [Company Name] is incredibly appealing, and I am confident I have the drive and expertise to excel in this role.
-
-Thank you for your consideration. I hope to speak with you soon.
-
-Best,
-${fullName}
-${email}
-${phone}`);
-
-        const template = templates[Math.floor(Math.random() * templates.length)];
-
-        generateBtn.disabled = true;
-        copyBtn.disabled = true;
-        coverLetterTextarea.readOnly = true;
-        coverLetterTextarea.value = '';
-        coverLetterTextarea.placeholder = 'AI is crafting a new cover letter...';
-
-        const thinkingTimeout = setTimeout(() => {
-            coverLetterTextarea.placeholder = 'Generating your cover letter...';
-            
-            let i = 0;
-            const typingSpeed = 8;
-            const typingInterval = setInterval(() => {
-                if (i < template.length) {
-                    const char = template.charAt(i);
-                    requestAnimationFrame(() => {
-                        coverLetterTextarea.value += char;
-                        if (coverLetterTextarea.scrollHeight > coverLetterTextarea.clientHeight) {
-                            coverLetterTextarea.scrollTop = coverLetterTextarea.scrollHeight;
-                        }
-                    });
-                    i++;
-                } else {
-                    clearInterval(typingInterval);
-                    generateBtn.disabled = false;
-                    copyBtn.disabled = false;
-                    coverLetterTextarea.readOnly = false;
-
-                    coverLetterTextarea.classList.add('glow-effect');
-                    setTimeout(() => coverLetterTextarea.classList.remove('glow-effect'), 1500);
-                }
-            }, typingSpeed);
-        }, 700);
-    }
-
-    const style = document.createElement('style');
-    style.innerHTML = `
-        .glow-effect {
-            transition: box-shadow 0.3s ease-in-out;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
-        }
-    `;
-    document.head.appendChild(style);
-
-    function copyCoverLetterToClipboard() {
-        const textarea = document.getElementById('cover_letter_template');
-        const copyButton = document.getElementById('copy-cover-letter-btn');
-
-        if (!textarea.value) {
-            alert('Nothing to copy. Generate a cover letter first.');
-            return;
-        }
-
-        navigator.clipboard.writeText(textarea.value).then(() => {
-            const originalContent = copyButton.innerHTML;
-            copyButton.disabled = true;
-            copyButton.innerHTML = `
-                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.052-.143Z" clip-rule="evenodd" />
-                </svg>
-                Copied!
-            `;
-
-            setTimeout(() => {
-                copyButton.innerHTML = originalContent;
-                copyButton.disabled = false;
-            }, 2000);
-        }).catch(err => {
-            console.error('Failed to copy text: ', err);
-            alert('Failed to copy text. Please try again.');
-        });
-    }
-</script>
-{% endif %}
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const resumeInput = document.getElementById('resume');
-        const newFileNameDisplay = document.getElementById('new-file-name');
-        const newFileDisplayContainer = document.getElementById('new-file-display');
-        const currentFileText = document.getElementById('current-file-text');
-        const currentFileDisplayContainer = document.getElementById('current-file-display');
-        const resumeDropZone = document.getElementById('resume-drop-zone');
-        const resumeUploadText = document.getElementById('resume-upload-text');
-        const uploadNewResumeContainer = document.getElementById('upload-new-resume-container');
-
-        if (resumeInput) {
-            resumeInput.addEventListener('change', function() {
-                if (this.files && this.files.length > 0) {
-                    const file = this.files[0];
-                    const fileName = file.name;
-                    
-                    newFileNameDisplay.textContent = `Selected: ${fileName}`;
-                    newFileDisplayContainer.classList.remove('hidden');
-                    uploadNewResumeContainer.classList.remove('hidden');
-
-                    if (currentFileDisplayContainer) {
-                        currentFileDisplayContainer.classList.add('hidden');
-                    }
-                    resumeUploadText.textContent = 'Change file';
-                }
-            });
-        }
-
-        if (resumeDropZone) {
-            ['dragenter', 'dragover'].forEach(eventName => {
-                resumeDropZone.addEventListener(eventName, () => resumeDropZone.classList.add('bg-blue-100', 'border-blue-400'), false);
-            });
-
-            ['dragleave', 'drop'].forEach(eventName => {
-                resumeDropZone.addEventListener(eventName, () => resumeDropZone.classList.remove('bg-blue-100', 'border-blue-400'), false);
-            });
-        }
-
-        const clearProfileBtn = document.getElementById('clear-profile-btn');
-        if (clearProfileBtn) {
-            clearProfileBtn.addEventListener('click', function() {
-                if (confirm('Are you sure you want to permanently delete all your profile information? This action cannot be undone.')) {
-                    fetch("{{ url_for('clear_profile') }}", {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            const form = document.getElementById('main-profile-form');
-                            form.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="url"], textarea').forEach(el => el.value = '');
-                            
-                            form.querySelectorAll('input[name="willing_to_relocate"]').forEach(radio => radio.checked = false);
-                            const relocateNo = document.getElementById('relocate_no');
-                            if (relocateNo) relocateNo.checked = true;
-                            const authNo = document.getElementById('auth_no');
-                            if (authNo) authNo.checked = true;
-
-                            if (currentFileDisplayContainer) currentFileDisplayContainer.classList.add('hidden');
-                            const aiReadyStatus = document.getElementById('ai-ready-status');
-                            if (aiReadyStatus) aiReadyStatus.classList.add('hidden');
-
-                            newFileDisplayContainer.classList.add('hidden');
-                            uploadNewResumeContainer.classList.add('hidden');
-                            resumeUploadText.textContent = 'Upload a file';
-
-                            showToast('Profile data cleared successfully!', 'success');
-                        } else {
-                            showToast('Failed to clear profile data.', 'danger');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error clearing profile:', error);
-                        showToast('An error occurred. Please try again.', 'danger');
-                    });
-                }
-            });
-        }
-
-        const testConnectionBtn = document.getElementById('testConnectionBtn');
-        const testResultDiv = document.getElementById('test-connection-result');
-        if(testConnectionBtn) {
-            testConnectionBtn.addEventListener('click', function() {
-                testResultDiv.innerHTML = `
-                    <div class="flex items-center gap-2 text-cyan-300">
-                        <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        <span>Testing connection...</span>
-                    </div>`;
-                
-                fetch("{{ url_for('test_assisted_apply_connection') }}", {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        testResultDiv.innerHTML = `<div class="p-3 rounded-md bg-green-900/50 text-green-300 border border-green-500/30">${data.message}</div>`;
-                    } else {
-                        testResultDiv.innerHTML = `<div class="p-3 rounded-md bg-red-900/50 text-red-300 border border-red-500/30">${data.message}</div>`;
-                    }
-                })
-                .catch(error => {
-                    testResultDiv.innerHTML = `<div class="p-3 rounded-md bg-red-900/50 text-red-300 border border-red-500/30">An error occurred while testing.</div>`;
-                    console.error('Error:', error);
-                });
-            });
-        }
-
-        const openBrowserBtn = document.getElementById('openBrowserBtn');
-        if (openBrowserBtn) {
-            openBrowserBtn.addEventListener('click', function() {
-                showToast('Opening browser session...', 'info');
-                fetch("{{ url_for('open_browser_session') }}", {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        showToast(data.message, 'success');
-                    } else {
-                        showToast(data.message, 'danger');
-                    }
-                }).catch(error => showToast('An error occurred.', 'danger'));
-            });
-        }
-
-        function showToast(message, type = 'info') {
-            const toastContainer = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `flash-message flash-${type}`;
-            toast.textContent = message;
-            
-            toast.style.animation = 'slideInRight 0.3s ease-out forwards';
-
-            toastContainer.appendChild(toast);
-
-            setTimeout(() => {
-                toast.style.animation = 'fadeout 0.5s ease-out forwards';
-                setTimeout(() => toast.remove(), 500);
-            }, 4000);
-        }
-    });
-</script>
 {% endblock %}

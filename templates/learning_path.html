@@ -1,56 +1,60 @@
 {% extends "base.html" %}
-{% block content %}
-<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12" x-data="learningPath()">
+{% block title %}Skill Gap & Roadmap Engine — AI JobSnap{% endblock %}
 
-    <!-- Toast Notifications -->
-    <div class="fixed top-4 right-4 z-50 space-y-2">
+{% block content %}
+<div class="max-w-[1400px] mx-auto px-container-padding py-8 flex-1 flex flex-col gap-6 w-full" x-data="learningPath()">
+
+    <!-- Toast Notifications (Stitch Precision Toast) -->
+    <div class="fixed top-14 right-6 z-50 space-y-2 pointer-events-none">
         <template x-for="toast in toasts" :key="toast.id">
-            <div x-show="toast.visible" x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 transform translate-x-8"
-                x-transition:enter-end="opacity-100 transform translate-x-0"
-                x-transition:leave="transition ease-in duration-200"
-                x-transition:leave-start="opacity-100 transform translate-x-0"
-                x-transition:leave-end="opacity-0 transform translate-x-8"
-                class="px-4 py-3 rounded-lg shadow-lg border flex items-center gap-3 min-w-[300px]"
-                :class="toast.type === 'error' ? 'bg-red-100 border-red-300 text-red-700' : 'bg-green-100 border-green-300 text-green-700'"
-                style="border-radius: 0.25rem;">
-                <span x-text="toast.message"></span>
+            <div x-show="toast.visible" x-transition
+                class="px-4 py-2.5 rounded-lg border flex items-center gap-2.5 text-body-sm shadow-2xl pointer-events-auto backdrop-blur-md"
+                :class="toast.type === 'error' ? 'bg-surface-container-high border-error/40 text-error' : 'bg-surface-container-high border-secondary/40 text-secondary'">
+                <span class="material-symbols-outlined text-[18px]" x-text="toast.type === 'error' ? 'error' : 'check_circle'"></span>
+                <span class="font-data-mono text-[11px]" x-text="toast.message"></span>
             </div>
         </template>
     </div>
 
-    <!-- Header -->
-    <div class="mb-8 text-center">
-        <h1 class="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-            Skill Gap & Learning Path
-        </h1>
-        <p class="text-slate-500 dark:text-slate-400 mb-6">Analyze your profile against industry standards and generate a custom roadmap.</p>
+    <!-- Header Console -->
+    <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Skill Intelligence Engine</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+            </div>
+            <h1 class="font-headline-lg text-on-surface text-[20px] font-bold">Skill Gap & Roadmap Engine</h1>
+            <p class="font-body-sm text-[12px] text-on-surface-variant">
+                Analyze your resume against industry benchmarks, diagnose critical skill gaps, and generate step-by-step learning roadmaps.
+            </p>
+        </div>
 
-        <div class="flex justify-center gap-4">
+        <!-- Mode Toggle Segmented Control -->
+        <div class="flex bg-surface-container-lowest border border-outline-variant rounded-lg p-1">
             <button @click="startNewPath"
-                :class="viewMode === 'generate' ? 'bg-blue-600 text-white shadow-md' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700'"
-                class="px-6 py-2 font-medium transition-all duration-300 rounded-md">
-                Generate New
+                :class="viewMode === 'generate' ? 'bg-primary text-on-primary font-bold shadow-sm' : 'text-on-surface-variant hover:text-on-surface'"
+                class="px-4 py-1.5 rounded font-label-caps text-label-caps transition-all text-[12px]">
+                Generate Plan
             </button>
             <button @click="loadMyPaths"
-                :class="viewMode === 'list' ? 'bg-blue-600 text-white shadow-md' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700'"
-                class="px-6 py-2 font-medium transition-all duration-300 rounded-md">
-                My Saved Paths
+                :class="viewMode === 'list' ? 'bg-primary text-on-primary font-bold shadow-sm' : 'text-on-surface-variant hover:text-on-surface'"
+                class="px-4 py-1.5 rounded font-label-caps text-label-caps transition-all text-[12px]">
+                Saved Curriculums
             </button>
         </div>
     </div>
 
-    <div x-show="viewMode === 'generate'" x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 transform scale-95"
-        x-transition:enter-end="opacity-100 transform scale-100">
+    <!-- Generate Mode -->
+    <div x-show="viewMode === 'generate'" x-transition class="space-y-6">
+        
         <!-- Role Selection Card -->
-        <div x-show="!roadmap" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md p-6 mb-8 shadow-sm">
-            <div class="flex flex-col md:flex-row gap-4 items-end">
-                <div class="w-full md:w-1/3">
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Target Job Role</label>
+        <div x-show="!roadmap" class="border border-outline-variant rounded-xl p-5 bg-surface-container shadow-sm">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                <div class="md:col-span-5 flex flex-col gap-1.5">
+                    <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Target Requisition Role</label>
                     <select x-model="targetRole"
-                        class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-4 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600 focus:outline-none">
-                        <option value="" disabled>Select a role...</option>
+                        class="w-full h-[42px] bg-surface-container-lowest border border-outline-variant/50 rounded-lg px-3 text-body-sm text-on-surface focus:border-primary focus:outline-none text-[13px]">
+                        <option value="" disabled selected>Select Benchmark Role...</option>
                         <option value="Frontend Developer">Frontend Developer</option>
                         <option value="Backend Developer">Backend Developer</option>
                         <option value="Full Stack Developer">Full Stack Developer</option>
@@ -58,945 +62,775 @@
                         <option value="UI/UX Designer">UI/UX Designer</option>
                     </select>
                 </div>
-                <div class="w-full md:w-1/3">
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Target Company (Optional)</label>
-                    <input type="text" x-model="targetCompany" placeholder="e.g. Google, Amazon"
-                        class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-4 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                <div class="md:col-span-4 flex flex-col gap-1.5">
+                    <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Target Organization (Optional)</label>
+                    <input type="text" x-model="targetCompany" placeholder="e.g. Stripe, Google, Anthropic"
+                        class="w-full h-[42px] bg-surface-container-lowest border border-outline-variant/50 rounded-lg px-3 text-body-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none text-[13px]">
                 </div>
-                <div class="w-full md:w-auto">
+                <div class="md:col-span-3 flex flex-col gap-1.5 justify-end">
+                    <div class="h-[15px] hidden md:block" aria-hidden="true"></div>
                     <button @click="analyzeGap" :disabled="!targetRole || loading"
-                        class="w-full md:w-auto btn-temporal px-6 py-2.5 rounded-md font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <span x-show="loading"
-                            class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                        <span x-text="loading ? 'Analyzing...' : 'Analyze Skill Gap'"></span>
+                        class="w-full h-[42px] bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-primary-container disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5 shadow-sm text-[12px]">
+                        <span x-show="loading" class="w-4 h-4 border-2 border-on-primary/20 border-t-on-primary rounded-full animate-spin"></span>
+                        <span class="material-symbols-outlined text-[17px]" x-show="!loading">insights</span>
+                        <span x-text="loading ? 'Evaluating...' : 'Analyze Competency Gap'"></span>
                     </button>
                 </div>
             </div>
         </div>
 
         <!-- Analysis Results -->
-        <div x-show="analysis && !roadmap" x-transition.opacity.duration.500ms class="space-y-8" style="display: none;">
-
-            <!-- 1. Skill Gap Summary & 2. Readiness Progress -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Readiness Score Card -->
-                <div
-                    class="md:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md p-6 flex flex-col items-center justify-center relative overflow-hidden shadow-sm">
-                    <div class="absolute inset-0 bg-blue-50/30 dark:bg-blue-950/20"></div>
-                    <h3 class="text-slate-900 dark:text-white font-semibold text-base mb-4 relative z-10">Job Readiness</h3>
+        <div x-show="analysis && !roadmap" x-transition class="space-y-6" style="display: none;">
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Readiness Score Radial -->
+                <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex flex-col items-center justify-center text-center">
+                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest mb-3">Job Readiness Ratio</span>
                     <div class="relative w-32 h-32 flex items-center justify-center">
-                        <!-- Circular Progress SVG -->
                         <svg class="w-full h-full transform -rotate-90">
-                            <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="12" fill="transparent"
-                                class="text-slate-200 dark:text-slate-800" />
-                            <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="12" fill="transparent"
-                                :class="getScoreColor(analysis?.readiness_score)" :stroke-dasharray="351.86"
-                                :stroke-dashoffset="351.86 - (351.86 * (analysis?.readiness_score || 0) / 100)"
-                                class="transition-all duration-1000 ease-out" />
+                            <circle cx="64" cy="64" r="54" stroke="currentColor" stroke-width="8" fill="transparent" class="text-surface-container-high" />
+                            <circle cx="64" cy="64" r="54" stroke="currentColor" stroke-width="8" fill="transparent"
+                                :class="analysis?.readiness_score >= 70 ? 'text-secondary' : (analysis?.readiness_score >= 40 ? 'text-tertiary' : 'text-error')"
+                                :stroke-dasharray="339.29"
+                                :stroke-dashoffset="339.29 - (339.29 * (analysis?.readiness_score || 0) / 100)"
+                                class="transition-all duration-700 ease-out" />
                         </svg>
-                        <span class="absolute text-3xl font-extrabold text-slate-900 dark:text-white font-display"
+                        <span class="absolute font-data-mono text-[24px] font-bold text-on-surface"
                             x-text="(analysis?.readiness_score || 0) + '%'"></span>
                     </div>
-                    <p class="mt-4 text-xs font-medium text-center text-slate-600 dark:text-slate-300 relative z-10"
-                        x-text="getReadinessText(analysis?.readiness_score)"></p>
+                    <p class="font-data-mono text-[11px] text-on-surface-variant mt-3" x-text="getReadinessText(analysis?.readiness_score)"></p>
                 </div>
 
-                <!-- Summary Stats -->
-                <div class="md:col-span-2 grid grid-cols-2 gap-4">
-                    <div x-data="{ showAllStrong: false, popoverOpen: false }" class="bg-slate-50 dark:bg-slate-950 border border-emerald-200 dark:border-emerald-900/60 rounded-md p-5 flex flex-col justify-between relative">
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Strong Skills</p>
-                                <h4 class="stat-number text-2xl text-emerald-600 dark:text-emerald-400 font-bold mt-1"
-                                    x-text="analysis?.strong_skills?.length || 0"></h4>
+                <!-- Strong & Missing Skills Matrix -->
+                <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Strong Skills -->
+                    <div x-data="{ showAllStrong: false, popoverOpen: false }" class="border border-outline-variant rounded-xl p-4 bg-surface-container flex flex-col justify-between relative">
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-data-mono text-[10px] text-secondary uppercase tracking-widest font-semibold">Matched Skills</span>
+                                <span class="font-data-mono text-[11px] font-bold text-secondary" x-text="analysis?.strong_skills?.length || 0"></span>
                             </div>
-                            <div class="p-2 bg-emerald-100 dark:bg-emerald-950/60 rounded-md">
-                                <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="mt-4 flex flex-wrap gap-2 items-center">
-                            <!-- Display skills (either first 3 or all depending on showAllStrong) -->
-                            <template x-for="skill in (showAllStrong ? (analysis?.strong_skills || []) : (analysis?.strong_skills || []).slice(0, 3))">
-                                <span
-                                    class="text-xs px-2 py-1 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 transition-all"
-                                    x-text="skill"></span>
-                            </template>
-                            
-                            <!-- Interactive +X More Button / Hover Tooltip -->
-                            <div x-show="(analysis?.strong_skills?.length || 0) > 3" class="relative inline-block">
-                                <button type="button" 
-                                    @click="showAllStrong = !showAllStrong" 
-                                    @mouseenter="popoverOpen = true" 
-                                    @mouseleave="popoverOpen = false"
-                                    class="text-xs px-2 py-1 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-200 dark:hover:bg-emerald-800 transition-all font-semibold cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                                    <span x-text="showAllStrong ? 'Show Less' : '+' + (analysis.strong_skills.length - 3) + ' more'"></span>
-                                </button>
+                            <div class="flex flex-wrap gap-1.5">
+                                <template x-for="skill in (showAllStrong ? (analysis?.strong_skills || []) : (analysis?.strong_skills || []).slice(0, 4))">
+                                    <span class="font-data-mono text-[10px] px-2 py-0.5 rounded border border-secondary/30 bg-secondary/10 text-secondary"
+                                        x-text="skill"></span>
+                                </template>
 
-                                <!-- Hover Tooltip Popover (lists all remaining skills) -->
-                                <div x-show="popoverOpen && !showAllStrong" 
-                                    x-transition:enter="transition ease-out duration-150"
-                                    x-transition:enter-start="opacity-0 scale-95"
-                                    x-transition:enter-end="opacity-100 scale-100"
-                                    x-transition:leave="transition ease-in duration-100"
-                                    x-transition:leave-start="opacity-100 scale-100"
-                                    x-transition:leave-end="opacity-0 scale-95"
-                                    class="absolute left-0 bottom-full mb-2 z-50 p-3 bg-slate-900 dark:bg-slate-950 text-white rounded-md shadow-xl border border-slate-700 min-w-[200px] max-w-[300px] pointer-events-none">
-                                    <p class="text-[11px] font-semibold text-emerald-400 mb-1.5 border-b border-slate-800 pb-1">All Remaining Skills:</p>
-                                    <div class="flex flex-wrap gap-1">
-                                        <template x-for="skill in (analysis?.strong_skills || []).slice(3)">
-                                            <span class="px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded text-[11px] font-medium" x-text="skill"></span>
-                                        </template>
+                                <!-- +X More Toggle -->
+                                <div x-show="(analysis?.strong_skills?.length || 0) > 4" class="relative inline-block">
+                                    <button type="button" 
+                                        @click="showAllStrong = !showAllStrong"
+                                        @mouseenter="popoverOpen = true"
+                                        @mouseleave="popoverOpen = false"
+                                        class="font-data-mono text-[10px] px-2 py-0.5 rounded border border-secondary/40 bg-secondary/20 text-secondary hover:bg-secondary/30 transition-colors font-bold">
+                                        <span x-text="showAllStrong ? 'Show Less' : '+' + (analysis.strong_skills.length - 4) + ' more'"></span>
+                                    </button>
+
+                                    <!-- Popover Preview -->
+                                    <div x-show="popoverOpen && !showAllStrong" 
+                                        class="absolute left-0 bottom-full mb-2 z-50 p-3 bg-surface-container-high border border-outline-variant text-on-surface rounded-lg shadow-2xl min-w-[220px] pointer-events-none">
+                                        <p class="font-data-mono text-[9px] text-secondary uppercase mb-1.5 border-b border-outline-variant pb-1">Additional Matched Skills:</p>
+                                        <div class="flex flex-wrap gap-1">
+                                            <template x-for="skill in (analysis?.strong_skills || []).slice(4)">
+                                                <span class="font-data-mono text-[9px] px-1.5 py-0.5 bg-surface-container-lowest text-on-surface rounded border border-outline-variant/40" x-text="skill"></span>
+                                            </template>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                        <p class="font-data-mono text-[10px] text-on-surface-variant mt-3">Verified competencies from your parsed profile.</p>
                     </div>
 
-                    <div class="bg-slate-50 dark:bg-slate-950 border border-red-200 dark:border-red-900/60 rounded-md p-5 flex flex-col justify-between">
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Missing Skills</p>
-                                <h4 class="stat-number text-2xl text-red-600 dark:text-red-400 font-bold mt-1"
-                                    x-text="analysis?.missing_skills?.length || 0"></h4>
+                    <!-- Missing Skills -->
+                    <div class="border border-outline-variant rounded-xl p-4 bg-surface-container flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-data-mono text-[10px] text-error uppercase tracking-widest font-semibold">Missing Competencies</span>
+                                <span class="font-data-mono text-[11px] font-bold text-error" x-text="analysis?.missing_skills?.length || 0"></span>
                             </div>
-                            <div class="p-2 bg-red-100 dark:bg-red-950/60 rounded-md">
-                                <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
-                                    </path>
-                                </svg>
+                            <div class="flex flex-wrap gap-1.5">
+                                <template x-for="skill in (analysis?.missing_skills || []).slice(0, 6)">
+                                    <span class="font-data-mono text-[10px] px-2 py-0.5 rounded border border-error/30 bg-error/10 text-error"
+                                        x-text="skill"></span>
+                                </template>
                             </div>
                         </div>
-                        <div class="mt-4">
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Critical gaps to bridge for this role.</p>
-                        </div>
+                        <p class="font-data-mono text-[10px] text-on-surface-variant mt-3">Critical prerequisites required for benchmark parity.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Company Insights Section -->
-            <div x-show="analysis?.company_insights" class="bg-blue-50/50 dark:bg-slate-900 border border-blue-200 dark:border-blue-900/60 rounded-md p-6">
-                <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-3 flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
-                        </path>
-                    </svg>
-                    Company Insights: <span x-text="targetCompany"></span>
-                </h3>
-                <p class="text-slate-700 dark:text-slate-300 text-sm leading-relaxed mb-4" x-text="analysis?.company_insights"></p>
+            <!-- Company Insights Card (if company specified) -->
+            <div x-show="analysis?.company_insights" class="border border-primary/30 rounded-xl p-5 bg-surface-container space-y-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px] text-primary">domain</span>
+                        <h3 class="font-headline-md text-on-surface text-[15px] font-bold">
+                            Organization Intel: <span class="text-primary" x-text="targetCompany"></span>
+                        </h3>
+                    </div>
+                    <a :href="'https://www.google.com/search?q=' + encodeURIComponent(targetCompany) + '+software+engineer+interview+questions'"
+                        target="_blank"
+                        class="font-data-mono text-[10px] px-3 py-1.5 rounded border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[14px]">search</span>
+                        Search Interview Questions ↗
+                    </a>
+                </div>
+                <p class="font-body-sm text-[13px] text-on-surface-variant leading-relaxed" x-text="analysis?.company_insights"></p>
 
                 <div x-show="analysis?.company_specific_skills?.length > 0">
-                    <h4 class="text-xs font-semibold text-blue-800 dark:text-blue-400 uppercase tracking-wider mb-2">Key Skills for this Company</h4>
-                    <div class="flex flex-wrap gap-2">
+                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1.5">Target Stack & Tools for this Team:</span>
+                    <div class="flex flex-wrap gap-1.5">
                         <template x-for="skill in analysis?.company_specific_skills">
-                            <span class="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
-                                x-text="skill"></span>
+                            <span class="font-data-mono text-[10px] px-2 py-0.5 rounded bg-surface-container-highest text-on-surface border border-outline-variant" x-text="skill"></span>
                         </template>
                     </div>
                 </div>
-
-                <div class="mt-5 pt-4 border-t border-blue-200 dark:border-blue-900/60">
-                    <a :href="'https://www.google.com/search?q=' + encodeURIComponent(targetCompany) + '+interview+questions'"
-                        target="_blank"
-                        class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md transition-colors shadow-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                        Search Interview Questions
-                    </a>
-                </div>
             </div>
 
-            <!-- 3. Accordion for Missing Skills -->
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md overflow-hidden shadow-sm">
-                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
-                    <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Skill Gap Details</h3>
+            <!-- Accordion for Detailed Missing Skills -->
+            <div class="border border-outline-variant rounded-xl bg-surface-container overflow-hidden">
+                <div class="p-4 border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px] text-error">warning</span>
+                        <h3 class="font-headline-md text-on-surface text-[15px] font-bold">Competency Gap Diagnostics</h3>
+                    </div>
+                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase">Click to expand learning recommendations</span>
                 </div>
-                <div class="divide-y divide-slate-200 dark:divide-slate-800">
+
+                <div class="divide-y divide-outline-variant/40">
                     <template x-for="(skill, index) in analysis?.missing_skills" :key="index">
-                        <div x-data="{ expanded: false }" class="group">
-                            <button @click="expanded = !expanded"
-                                class="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-2 h-2 rounded-full bg-red-500"></div>
-                                    <span class="font-medium text-slate-900 dark:text-white" x-text="skill"></span>
+                        <div x-data="{ expanded: false }" class="transition-colors">
+                            <button type="button" @click="expanded = !expanded"
+                                class="w-full px-5 py-3.5 flex items-center justify-between hover:bg-surface-container-high transition-colors text-left">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-2 h-2 rounded-full bg-error"></span>
+                                    <span class="font-body-sm font-semibold text-on-surface text-[13px]" x-text="skill"></span>
                                 </div>
-                                <svg class="w-5 h-5 text-slate-500 dark:text-slate-400 transform transition-transform duration-200"
-                                    :class="{'rotate-180': expanded}" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 9l-7 7-7-7"></path>
-                                </svg>
+                                <span class="material-symbols-outlined text-[18px] text-on-surface-variant transition-transform duration-200"
+                                    :class="{'rotate-180': expanded}">expand_more</span>
                             </button>
-                            <div x-show="expanded" x-collapse class="px-6 pb-4 bg-slate-50 dark:bg-slate-950">
-                                <p class="text-xs text-slate-600 dark:text-slate-400 mb-3">Recommended actions to acquire this skill:</p>
-                                <div class="flex gap-3">
-                                    <a :href="'https://www.google.com/search?q=learn+' + skill" target="_blank"
-                                        class="text-xs bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-3 py-1.5 rounded-md hover:bg-blue-100 transition-colors">
-                                        Search Resources
+                            <div x-show="expanded" x-transition class="px-5 pb-4 pt-1 bg-surface-container-low flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <span class="font-data-mono text-[11px] text-on-surface-variant">Recommended learning tracks for <span class="text-on-surface font-semibold" x-text="skill"></span>:</span>
+                                <div class="flex items-center gap-2">
+                                    <a :href="'https://www.google.com/search?q=learn+' + encodeURIComponent(skill)" target="_blank"
+                                        class="font-data-mono text-[10px] px-3 py-1 rounded bg-surface-container border border-outline-variant text-primary hover:border-primary transition-colors flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-[13px]">menu_book</span>
+                                        Docs & Guides
                                     </a>
-                                    <a :href="'https://www.youtube.com/results?search_query=' + skill + '+tutorial'"
-                                        target="_blank"
-                                        class="text-xs bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 px-3 py-1.5 rounded-md hover:bg-red-100 transition-colors">
+                                    <a :href="'https://www.youtube.com/results?search_query=' + encodeURIComponent(skill + ' tutorial')" target="_blank"
+                                        class="font-data-mono text-[10px] px-3 py-1 rounded bg-surface-container border border-outline-variant text-error hover:border-error transition-colors flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-[13px]">play_circle</span>
                                         Video Tutorials
                                     </a>
                                 </div>
                             </div>
                         </div>
                     </template>
-                    <div x-show="!analysis?.missing_skills?.length" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
-                        <p>No missing skills identified! You are well matched.</p>
-                    </div>
                 </div>
             </div>
 
-            <!-- 4. Generate Roadmap Button -->
-            <div class="flex justify-center pt-4 pb-12">
-                <button @click="generateRoadmap" :disabled="roadmapLoading || roadmapUnlockCountdown > 0"
-                    class="group relative inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-blue-600 rounded-full overflow-hidden shadow-md hover:bg-blue-700 transition-all duration-300 hover:scale-105 disabled:opacity-70 disabled:scale-100 disabled:cursor-not-allowed"
-                    style="border-radius: 9999px;">
-                    <div
-                        class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer">
-                    </div>
-                    <svg x-show="!roadmapLoading" class="w-5 h-5 mr-2" fill="none" stroke="currentColor"
-                        viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0121 18.382V7.618a1 1 0 01-1.447-.894L15 7m0 13V7">
-                        </path>
-                    </svg>
-                    <svg x-show="roadmapLoading" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                        </circle>
-                        <path class="opacity-75" fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                        </path>
-                    </svg>
-                    <span
-                        x-text="roadmapLoading ? 'Generating Plan...' : (roadmapUnlockCountdown > 0 ? 'Create Your own Personalized Roadmap in ' + roadmapUnlockCountdown + 's' : 'Generate Personalized Roadmap')"></span>
+            <!-- Generate Personalized Roadmap Trigger -->
+            <div class="flex justify-center pt-2 pb-6">
+                <button @click="generateRoadmap" :disabled="roadmapLoading"
+                    class="px-8 py-3 bg-primary text-on-primary font-label-caps text-label-caps rounded-xl hover:bg-primary-container disabled:opacity-50 transition-all flex items-center gap-2 shadow-lg text-[13px]">
+                    <span x-show="roadmapLoading" class="w-4 h-4 border-2 border-on-primary/20 border-t-on-primary rounded-full animate-spin"></span>
+                    <span class="material-symbols-outlined text-[18px]" x-show="!roadmapLoading">auto_awesome</span>
+                    <span x-text="roadmapLoading ? 'Synthesizing Curriculum Plan...' : 'Generate Step-by-Step Learning Roadmap'"></span>
                 </button>
             </div>
         </div>
 
-        <!-- 5. Generated Roadmap Display -->
-        <div x-show="roadmap" x-ref="roadmapContainer" x-transition.opacity class="space-y-6 pb-12"
-            style="display: none;">
-            <div class="border-t border-slate-200 dark:border-slate-800 pt-8">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <h2 class="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <span>Your Personalized Roadmap</span>
-                        <span
-                            class="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-md border border-slate-200 dark:border-slate-700"
-                            x-text="roadmap?.total_weeks + ' Weeks'"></span>
-                    </h2>
-                    <div class="flex items-center gap-4">
-                        <div class="flex flex-col items-end mr-2">
-                            <span class="text-xs text-slate-500 dark:text-slate-400 mb-1">Progress</span>
-                            <div class="w-32 h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                                <div class="h-full bg-emerald-600 transition-all duration-500"
-                                    :style="'width: ' + progress + '%'"></div>
-                            </div>
-                        </div>
-                        <span x-show="saved" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-3 py-1.5 rounded-md flex items-center gap-1.5">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                            Auto-Saved
-                        </span>
-                        <a x-show="saved && pathId && progress === 100"
-                            :href="'/learning-path/' + pathId + '/export?format=certificate'" target="_blank"
-                            class="text-xs px-4 py-2 rounded-md bg-amber-500 hover:bg-amber-600 text-white font-semibold transition-colors flex items-center gap-2 shadow-sm">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            Get Certificate
-                        </a>
-                        <a x-show="saved && pathId" :href="'/learning-path/' + pathId + '/export?format=pdf'"
-                            target="_blank"
-                            class="text-xs px-4 py-2 rounded-md bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold transition-colors flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                                </path>
-                            </svg>
-                            Export PDF
-                        </a>
+        <!-- Generated Roadmap Workspace -->
+        <div x-show="roadmap" x-ref="roadmapContainer" x-transition class="space-y-6 pb-12" style="display: none;">
+            
+            <!-- Roadmap Controls & Progress Header -->
+            <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="font-data-mono text-[10px] text-primary uppercase tracking-widest font-bold" x-text="targetRole + ' Curriculum'"></span>
+                        <span class="font-data-mono text-[10px] px-2 py-0.5 rounded bg-surface-container-highest border border-outline-variant text-on-surface-variant font-bold" x-text="roadmap?.total_weeks + ' Weeks'"></span>
                     </div>
+                    <h2 class="font-headline-lg text-on-surface text-[18px] font-bold">Your Custom Curriculum Roadmap</h2>
                 </div>
 
-                <div class="space-y-4">
-                    <template x-for="(week, wIndex) in roadmap?.weekly_breakdown" :key="week.week_number">
-                        <div
-                            class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md p-6 shadow-sm transition-all min-h-[400px]">
-                            <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
-                                <h3 class="text-lg font-semibold text-blue-600 dark:text-blue-400" x-text="'Week ' + week.week_number">
-                                </h3>
-                                <div class="flex flex-wrap gap-2">
-                                    <template x-for="(topic, tIndex) in week.focus_topics" :key="tIndex">
-                                        <button @click="toggleTopic(wIndex, tIndex)"
-                                            class="text-xs px-2.5 py-1 rounded-md border transition-all duration-200 cursor-pointer select-none"
-                                            :class="topic.completed ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' : 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'">
-                                            <span x-text="topic.title"></span>
-                                        </button>
-                                    </template>
-                                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <!-- Progress Telemetry -->
+                    <div class="flex flex-col items-end mr-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="font-data-mono text-[10px] text-on-surface-variant uppercase">Progress</span>
+                            <span class="font-data-mono text-[11px] font-bold text-secondary" x-text="progress + '%'"></span>
+                        </div>
+                        <div class="w-36 h-2 bg-surface-container-highest rounded-full overflow-hidden border border-outline-variant/40">
+                            <div class="h-full bg-secondary transition-all duration-500 rounded-full" :style="'width: ' + progress + '%'"></div>
+                        </div>
+                    </div>
+
+                    <!-- Auto-Saved Badge -->
+                    <span x-show="saved" class="font-data-mono text-[10px] text-secondary border border-secondary/30 bg-secondary/10 px-2.5 py-1.5 rounded-lg flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[14px]">cloud_done</span>
+                        Auto-Saved
+                    </span>
+
+                    <!-- Certificate Button (if 100% complete) -->
+                    <a x-show="saved && pathId && progress === 100"
+                        :href="'/learning-path/' + pathId + '/export?format=certificate'" target="_blank"
+                        class="px-3 py-1.5 bg-tertiary text-surface-container-lowest font-label-caps text-label-caps rounded-lg hover:opacity-90 transition-colors flex items-center gap-1 text-[11px] font-bold">
+                        <span class="material-symbols-outlined text-[16px]">workspace_premium</span>
+                        Get Certificate
+                    </a>
+
+                    <!-- Export PDF Button -->
+                    <a x-show="saved && pathId" :href="'/learning-path/' + pathId + '/export?format=pdf'" target="_blank"
+                        class="px-3 py-1.5 border border-outline-variant bg-surface-container-high text-on-surface font-label-caps text-label-caps rounded-lg hover:border-primary hover:text-primary transition-colors flex items-center gap-1 text-[11px]">
+                        <span class="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+                        Export PDF
+                    </a>
+
+                    <button type="button" @click="startNewPath" class="px-3 py-1.5 border border-outline-variant text-on-surface-variant rounded-lg font-data-mono text-[11px] hover:text-on-surface">
+                        New Analysis
+                    </button>
+                </div>
+            </div>
+
+            <!-- Weekly Modules List -->
+            <div class="space-y-4">
+                <template x-for="(week, wIndex) in roadmap?.weekly_breakdown" :key="week.week_number">
+                    <div class="border border-outline-variant rounded-xl p-5 bg-surface-container space-y-4">
+                        
+                        <!-- Module Title & Topic Badges -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between pb-3 border-b border-outline-variant gap-3">
+                            <div class="flex items-center gap-2.5">
+                                <span class="font-data-mono text-[11px] px-2.5 py-1 rounded bg-primary/10 border border-primary/30 text-primary font-bold" x-text="'WEEK ' + week.week_number"></span>
+                                <h3 class="font-headline-md text-on-surface text-[15px] font-bold">Focus Modules & Key Competencies</h3>
                             </div>
-                            <div class="grid md:grid-cols-2 gap-6">
-                                <div class="space-y-4">
-                                    <div>
-                                        <h4 class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Why
-                                            this
-                                            matters</h4>
-                                        <p class="text-gray-700 text-sm leading-relaxed" x-text="week.why_this_matters">
-                                        </p>
-                                    </div>
-                                    <!-- Learning Resources Section -->
-                                    <div>
-                                        <h4 class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-                                            Learning
-                                            Resources</h4>
-                                        <div class="space-y-3">
-                                            <!-- Example Video Resource -->
-                                            <template x-for="(topic, idx) in week.focus_topics"
-                                                :key="'resource-' + wIndex + '-' + idx">
-                                                <div x-data="{ videoExpanded: false }"
-                                                    class="border border-gray-200 rounded-lg overflow-hidden hover:border-blue-300 transition-colors">
-                                                    <button @click="videoExpanded = !videoExpanded"
-                                                        class="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors">
-                                                        <div class="flex items-center gap-3">
-                                                            <svg class="w-5 h-5 text-red-600" fill="currentColor"
-                                                                viewBox="0 0 24 24">
-                                                                <path
-                                                                    d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                                                            </svg>
-                                                            <span class="text-sm font-medium text-gray-900"
-                                                                x-text="topic.title + ' - Tutorial'"></span>
-                                                        </div>
-                                                        <svg class="w-4 h-4 text-gray-500 transform transition-transform duration-200"
-                                                            :class="{'rotate-180': videoExpanded}" fill="none"
-                                                            stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                                        </svg>
-                                                    </button>
-                                                    <div x-show="videoExpanded" x-collapse class="p-3 bg-white">
-                                                        <div class="aspect-w-16 aspect-h-9 mb-2">
-                                                            <iframe
-                                                                :src="'https://www.youtube-nocookie.com/embed/' + getVideoId(topic.title)"
-                                                                frameborder="0"
-                                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                                allowfullscreen class="w-full h-64 rounded"></iframe>
-                                                        </div>
-                                                        <p class="text-xs text-gray-600">Video tutorial for <span
-                                                                x-text="topic.title"></span></p>
+
+                            <!-- Interactive Topics Chips (Toggleable) -->
+                            <div class="flex flex-wrap gap-1.5">
+                                <template x-for="(topic, tIndex) in week.focus_topics" :key="tIndex">
+                                    <button type="button" @click="toggleTopic(wIndex, tIndex)"
+                                        class="font-data-mono text-[10px] px-2.5 py-1 rounded-md border transition-colors flex items-center gap-1.5 cursor-pointer"
+                                        :class="topic.completed ? 'bg-secondary/20 border-secondary/40 text-secondary' : 'bg-surface-container-highest border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary'">
+                                        <span class="material-symbols-outlined text-[13px]" x-text="topic.completed ? 'check_box' : 'check_box_outline_blank'"></span>
+                                        <span x-text="topic.title"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- 2-Column Module Details: Why It Matters + Video Tutorials & Mini Project -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            
+                            <!-- Left: Why this matters & Embedded Video Resources -->
+                            <div class="space-y-3">
+                                <div>
+                                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Architectural Context:</span>
+                                    <p class="font-body-sm text-[12px] text-on-surface leading-relaxed bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/40" x-text="week.why_this_matters"></p>
+                                </div>
+
+                                <!-- Learning Video Resources -->
+                                <div>
+                                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1.5">Curated Video Tutorials:</span>
+                                    <div class="space-y-2">
+                                        <template x-for="(topic, idx) in week.focus_topics" :key="'resource-' + wIndex + '-' + idx">
+                                            <div x-data="{ videoExpanded: false }" class="border border-outline-variant/60 rounded-lg overflow-hidden bg-surface-container-low">
+                                                <button type="button" @click="videoExpanded = !videoExpanded"
+                                                    class="w-full px-3 py-2 flex items-center justify-between hover:bg-surface-container-high transition-colors text-left">
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="material-symbols-outlined text-[16px] text-error">smart_display</span>
+                                                        <span class="font-data-mono text-[11px] text-on-surface" x-text="topic.title + ' — Video Guide'"></span>
+                                                    </div>
+                                                    <span class="material-symbols-outlined text-[16px] text-on-surface-variant transition-transform" :class="{'rotate-180': videoExpanded}">expand_more</span>
+                                                </button>
+                                                <div x-show="videoExpanded" x-transition class="p-3 bg-surface-container-lowest border-t border-outline-variant/40 space-y-2">
+                                                    <div class="aspect-video w-full rounded overflow-hidden border border-outline-variant/40">
+                                                        <iframe :src="'https://www.youtube-nocookie.com/embed/' + getVideoId(topic.title)"
+                                                            frameborder="0" allowfullscreen class="w-full h-48 sm:h-56"></iframe>
+                                                    </div>
+                                                    <div class="flex justify-between items-center pt-1">
+                                                        <span class="font-data-mono text-[10px] text-on-surface-variant">Recommended stream</span>
                                                         <a :href="'https://www.youtube.com/results?search_query=' + encodeURIComponent(topic.title + ' tutorial')"
-                                                            target="_blank"
-                                                            class="text-xs text-blue-600 hover:underline mt-1 inline-block">
-                                                            Find more videos
-                                                            <svg class="inline w-3 h-3 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+                                                            target="_blank" class="font-data-mono text-[10px] text-primary hover:underline flex items-center gap-0.5">
+                                                            More Videos ↗
                                                         </a>
                                                     </div>
                                                 </div>
-                                            </template>
-                                        </div>
+                                            </div>
+                                        </template>
                                     </div>
                                 </div>
-                                <div>
-                                    <h4 class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Mini
-                                        Project / Task</h4>
-                                    <div @click="toggleProject(wIndex)"
-                                        class="bg-gray-50 rounded-lg p-3 border border-gray-200 cursor-pointer hover:border-blue-300 transition-colors group">
-                                        <div class="flex items-start gap-3">
-                                            <div class="mt-0.5 min-w-[16px]">
-                                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors"
-                                                    :class="week.mini_project.completed ? 'bg-green-600 border-green-600' : 'border-gray-400 group-hover:border-blue-400'">
-                                                    <svg x-show="week.mini_project.completed" class="w-3 h-3 text-white"
-                                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="3" d="M5 13l4 4L19 7"></path>
-                                                    </svg>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <p class="text-sm font-medium transition-colors"
-                                                    :class="week.mini_project.completed ? 'text-gray-400 line-through' : 'text-gray-900'"
-                                                    x-text="week.mini_project.title"></p>
-                                            </div>
-                                        </div>
-                                    </div>
+                            </div>
 
-                                    <!-- Project Guide PDF Section -->
-                                    <div x-data="{ pdfExpanded: false }" class="mt-3">
-                                        <button @click="pdfExpanded = !pdfExpanded"
-                                            class="w-full flex items-center justify-between px-4 py-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors">
-                                            <div class="flex items-center gap-2">
-                                                <svg class="w-5 h-5 text-blue-600" fill="currentColor"
-                                                    viewBox="0 0 20 20">
-                                                    <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z"></path>
-                                                    <path fill-rule="evenodd"
-                                                        d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"
-                                                        clip-rule="evenodd"></path>
-                                                </svg>
-                                                <span class="text-sm font-medium text-blue-900">Project Guide</span>
-                                            </div>
-                                            <svg class="w-4 h-4 text-blue-600 transform transition-transform duration-200"
-                                                :class="{'rotate-180': pdfExpanded}" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M19 9l-7 7-7-7"></path>
-                                            </svg>
+                            <!-- Right: Mini Project & AI Step-by-Step PDF Guide -->
+                            <div class="space-y-3">
+                                <div>
+                                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Practical Milestone / Task:</span>
+                                    <div @click="toggleProject(wIndex)"
+                                        class="p-3 rounded-lg border cursor-pointer transition-colors flex items-center gap-3"
+                                        :class="week.mini_project.completed ? 'bg-secondary/10 border-secondary/40 text-secondary' : 'bg-surface-container-lowest border-outline-variant/50 hover:border-primary'">
+                                        <span class="material-symbols-outlined text-[20px]" x-text="week.mini_project.completed ? 'check_circle' : 'radio_button_unchecked'"></span>
+                                        <span class="font-body-sm text-[13px] font-semibold" :class="week.mini_project.completed ? 'line-through opacity-80' : 'text-on-surface'" x-text="week.mini_project.title"></span>
+                                    </div>
+                                </div>
+
+                                <!-- AI Project Guide Generator -->
+                                <div x-data="{ pdfExpanded: false, pdfLoading: false, pdfUrl: (week.mini_project && week.mini_project.pdf_url) || '', pdfError: '' }"
+                                     class="border border-outline-variant/60 rounded-lg overflow-hidden bg-surface-container-low">
+                                    <button type="button" @click="pdfExpanded = !pdfExpanded"
+                                        class="w-full px-3 py-2.5 flex items-center justify-between hover:bg-surface-container-high transition-colors">
+                                        <div class="flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-[16px] text-primary">description</span>
+                                            <span class="font-headline-md text-on-surface text-[12px] font-bold">AI Step-by-Step Project Guide</span>
+                                        </div>
+                                        <span class="material-symbols-outlined text-[16px] text-on-surface-variant transition-transform" :class="{'rotate-180': pdfExpanded}">expand_more</span>
+                                    </button>
+
+                                    <div x-show="pdfExpanded" x-transition class="p-3 bg-surface-container-lowest border-t border-outline-variant/40 space-y-3">
+                                        <p class="font-body-sm text-[11px] text-on-surface-variant">Generates complete technical instructions, architecture diagrams, and testing requirements.</p>
+                                        
+                                        <!-- Generate Button -->
+                                        <button type="button" x-show="!pdfUrl" :disabled="pdfLoading"
+                                            @click="
+                                                pdfLoading = true;
+                                                pdfError = '';
+                                                fetch('/api/generate-project-guide', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ project_title: week.mini_project.title })
+                                                })
+                                                .then(res => res.json())
+                                                .then(data => {
+                                                    if (data.success) {
+                                                        pdfUrl = data.pdf_url;
+                                                        if (week.mini_project) {
+                                                            week.mini_project.pdf_url = data.pdf_url;
+                                                        }
+                                                        saveRoadmap();
+                                                    } else {
+                                                        pdfError = data.error || 'Failed to generate PDF';
+                                                    }
+                                                    pdfLoading = false;
+                                                })
+                                                .catch(err => {
+                                                    pdfError = 'Network error generating guide';
+                                                    pdfLoading = false;
+                                                });
+                                            "
+                                            class="px-4 py-2 bg-primary text-on-primary font-label-caps text-label-caps rounded hover:bg-primary-container disabled:opacity-50 transition-colors flex items-center gap-1.5 text-[11px]">
+                                            <span x-show="pdfLoading" class="w-3.5 h-3.5 border-2 border-on-primary/20 border-t-on-primary rounded-full animate-spin"></span>
+                                            <span class="material-symbols-outlined text-[15px]" x-show="!pdfLoading">auto_awesome</span>
+                                            <span x-text="pdfLoading ? 'Compiling Guide...' : 'Generate PDF Guide'"></span>
                                         </button>
 
-                                        <div x-show="pdfExpanded" x-collapse
-                                            class="mt-2 border border-gray-200 rounded-lg overflow-hidden bg-white">
-                                            <div class="p-3 bg-gray-50 border-b border-gray-200">
-                                                <p class="text-xs font-medium text-gray-700">How to complete: <span
-                                                        x-text="week.mini_project.title"></span></p>
-                                            </div>
-                                            <div class="relative bg-white dark:bg-slate-900 p-4"
-                                                x-data="{ pdfLoading: false, pdfUrl: (week.mini_project && week.mini_project.pdf_url) || '', pdfError: '' }">
-                                                <p class="text-xs text-slate-600 dark:text-slate-400 mb-3">AI-generated step-by-step guide</p>
+                                        <div x-show="pdfError" class="p-2 rounded bg-error/10 border border-error/30 text-error font-data-mono text-[10px]" x-text="pdfError"></div>
 
-                                                <!-- Generate PDF Button -->
-                                                <button @click="
-                                                    pdfLoading = true;
-                                                    pdfError = '';
-                                                    fetch('/api/generate-project-guide', {
-                                                        method: 'POST',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({ project_title: week.mini_project.title })
-                                                    })
-                                                    .then(res => res.json())
-                                                    .then(data => {
-                                                        if (data.success) {
-                                                            pdfUrl = data.pdf_url;
-                                                            if (week.mini_project) {
-                                                                week.mini_project.pdf_url = data.pdf_url;
-                                                            }
-                                                            saveRoadmap();
-                                                        } else {
-                                                            pdfError = data.error || 'Failed to generate PDF';
-                                                        }
-                                                        pdfLoading = false;
-                                                    })
-                                                    .catch(err => {
-                                                        pdfError = 'Network error';
-                                                        pdfLoading = false;
-                                                    });
-                                                " x-show="!pdfUrl" :disabled="pdfLoading"
-                                                    class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md transition-colors disabled:opacity-50">
-                                                    <svg x-show="!pdfLoading" class="w-4 h-4" fill="none"
-                                                        stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                                    </svg>
-                                                    <svg x-show="pdfLoading" class="w-4 h-4 animate-spin" fill="none"
-                                                        viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10"
-                                                            stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor"
-                                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                                        </path>
-                                                    </svg>
-                                                    <span
-                                                        x-text="pdfLoading ? 'Generating...' : 'Generate PDF Guide'"></span>
-                                                </button>
-
-                                                <!-- Error -->
-                                                <div x-show="pdfError"
-                                                    class="mt-3 p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 rounded-md text-xs text-red-700 dark:text-red-300"
-                                                    x-text="pdfError"></div>
-
-                                                <!-- PDF Viewer -->
-                                                <div x-show="pdfUrl" class="mt-3">
-                                                    <embed :src="pdfUrl" type="application/pdf"
-                                                        class="w-full h-96 border border-slate-300 dark:border-slate-700 rounded-md">
-                                                    <div class="mt-2 flex justify-between items-center">
-                                                        <span class="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1">
-                                                            <svg class="w-3.5 h-3.5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.06-1.06l-4.5 4.5-1.72-1.72a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.06 0l5.03-5.03Z" clip-rule="evenodd" /></svg> 
-                                                            PDF Guide Saved!
-                                                        </span>
-                                                        <a :href="pdfUrl" download
-                                                            class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium">Download PDF</a>
-                                                    </div>
-                                                </div>
+                                        <!-- PDF Embed Preview & Download -->
+                                        <div x-show="pdfUrl" class="space-y-2">
+                                            <embed :src="pdfUrl" type="application/pdf" class="w-full h-64 rounded border border-outline-variant">
+                                            <div class="flex justify-between items-center pt-1">
+                                                <span class="font-data-mono text-[10px] text-secondary flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-[14px]">check</span> Guide Ready
+                                                </span>
+                                                <a :href="pdfUrl" download class="font-data-mono text-[10px] text-primary hover:underline flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-[13px]">download</span> Download PDF
+                                                </a>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-
                             </div>
+
                         </div>
-                    </template>
-                </div>
+                    </div>
+                </template>
             </div>
         </div>
     </div>
 
-    <!-- Saved Paths List View -->
-    <div x-show="viewMode === 'list'" x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 transform scale-95" x-transition:enter-end="opacity-100 transform scale-100"
-        style="display: none;">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <template x-for="path in savedPaths" :key="path.path_id">
-                <div
-                    class="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-300 group relative overflow-hidden">
-                    <div class="absolute inset-0 bg-blue-50/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                    </div>
+    <!-- Saved Curriculums / Paths List Mode -->
+    <div x-show="viewMode === 'list'" x-transition class="space-y-4" style="display: none;">
+        <div class="flex justify-between items-center mb-2">
+            <div>
+                <h2 class="font-headline-md text-on-surface text-[16px] font-bold">Your Saved Learning Paths</h2>
+                <p class="font-body-sm text-[12px] text-on-surface-variant">Resume active curriculums and monitor milestone completion.</p>
+            </div>
+            <button type="button" @click="startNewPath" class="px-3 py-1.5 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-primary-container text-[11px]">
+                + New Analysis
+            </button>
+        </div>
 
-                    <div class="relative z-10">
-                        <div class="flex justify-between items-start mb-4">
-                            <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors"
-                                x-text="path.target_role"></h3>
-                            <span class="px-2 py-1 rounded text-xs font-medium"
-                                :class="path.is_completed ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-blue-50 text-blue-700 border border-blue-200'"
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <template x-for="path in savedPaths" :key="path.path_id">
+                <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex flex-col justify-between hover:border-primary/50 transition-colors gap-4">
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-headline-md text-on-surface text-[15px] font-bold" x-text="path.target_role"></h3>
+                            <span class="font-data-mono text-[9px] px-2 py-0.5 rounded uppercase font-semibold"
+                                :class="path.is_completed ? 'bg-secondary/10 border border-secondary/30 text-secondary' : 'bg-primary/10 border border-primary/30 text-primary'"
                                 x-text="path.is_completed ? 'Completed' : 'In Progress'"></span>
                         </div>
 
-                        <div class="mb-4">
-                            <div class="flex justify-between text-xs text-gray-500 mb-1">
-                                <span>Progress</span>
-                                <span x-text="path.progress + '%'"></span>
+                        <!-- Progress Bar -->
+                        <div class="space-y-1 my-3">
+                            <div class="flex justify-between font-data-mono text-[10px] text-on-surface-variant">
+                                <span>Mastery Progress</span>
+                                <span class="font-bold text-on-surface" x-text="path.progress + '%'"></span>
                             </div>
-                            <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div class="h-full bg-blue-600 transition-all duration-500"
-                                    :style="'width: ' + path.progress + '%'"></div>
+                            <div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+                                <div class="h-full bg-secondary transition-all" :style="'width: ' + path.progress + '%'"></div>
                             </div>
                         </div>
 
-                        <div class="flex justify-between items-center mt-4">
-                            <span class="text-xs text-gray-500"
-                                x-text="'Last accessed: ' + new Date(path.last_accessed).toLocaleDateString()"></span>
-                            <div class="flex items-center gap-2">
-                                <button @click="deletePath(path.path_id)"
-                                    class="text-sm px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors"
-                                    title="Delete Path">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
-                                        </path>
-                                    </svg>
-                                </button>
-                                <button @click="resumePath(path.path_id)"
-                                    class="text-sm px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
-                                    Resume
-                                </button>
-                            </div>
-                        </div>
+                        <span class="font-data-mono text-[10px] text-on-surface-variant"
+                            x-text="'Last accessed: ' + new Date(path.last_accessed).toLocaleDateString()"></span>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-outline-variant">
+                        <button type="button" @click="deletePath(path.path_id)"
+                            class="p-1.5 text-error/70 hover:text-error rounded hover:bg-error/10 transition-colors" title="Delete Curriculum">
+                            <span class="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                        <button type="button" @click="resumePath(path.path_id)"
+                            class="px-3 py-1.5 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-primary-container transition-colors text-[11px]">
+                            Resume Roadmap
+                        </button>
                     </div>
                 </div>
             </template>
 
             <div x-show="savedPaths.length === 0 && !loadingPaths"
-                class="col-span-full text-center py-12 text-gray-500">
-                <p>No saved paths found. Generate one to get started!</p>
+                class="col-span-full border border-dashed border-outline-variant/60 rounded-xl p-12 text-center text-on-surface-variant">
+                <span class="material-symbols-outlined text-[36px] text-outline mb-2">school</span>
+                <p class="font-body-sm text-[13px] font-semibold text-on-surface">No saved learning roadmaps yet</p>
+                <p class="font-data-mono text-[11px] text-on-surface-variant/70 mt-1">Generate a curriculum plan from your skill gap analysis above.</p>
             </div>
         </div>
     </div>
+
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('learningPath', () => ({
-            targetRole: '',
-            targetCompany: '',
-            loading: false,
-            roadmapLoading: false,
-            analysis: null,
-            roadmap: null,
-            progress: 0,
-            saved: false,
-            isSaving: false,
-            toasts: [],
-            pathId: null,
-            viewMode: 'generate', // 'generate' or 'list'
-            savedPaths: [],
-            loadingPaths: false,
-            roadmapUnlockCountdown: 0,
-            unlockInterval: null,
+document.addEventListener('alpine:init', () => {
+    Alpine.data('learningPath', () => ({
+        targetRole: '',
+        targetCompany: '',
+        loading: false,
+        roadmapLoading: false,
+        analysis: null,
+        roadmap: null,
+        progress: 0,
+        saved: false,
+        isSaving: false,
+        toasts: [],
+        pathId: null,
+        viewMode: 'generate', // 'generate' or 'list'
+        savedPaths: [],
+        loadingPaths: false,
 
-            init() {
-                // Removed localStorage persistence as per user request for fresh start on page load
-            },
+        init() {},
 
-            startNewPath() {
-                this.viewMode = 'generate';
+        startNewPath() {
+            this.viewMode = 'generate';
+            this.roadmap = null;
+            this.analysis = null;
+            this.saved = false;
+            this.targetRole = '';
+            this.targetCompany = '';
+            this.pathId = null;
+            this.progress = 0;
+        },
+
+        async analyzeGap() {
+            if (!this.targetRole) return;
+            this.loading = true;
+            this.analysis = null;
+
+            try {
+                const response = await fetch('/api/analyze_skill_gap', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        target_role: this.targetRole,
+                        target_company: this.targetCompany
+                    })
+                });
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    throw new Error(`Server Error: ${response.status}`);
+                }
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Evaluation failed');
+                }
+
+                this.analysis = data;
                 this.roadmap = null;
-                this.analysis = null;
-                this.saved = false;
-                this.targetRole = '';
-                this.targetCompany = '';
-                this.pathId = null;
-                this.progress = 0;
-                if (this.unlockInterval) clearInterval(this.unlockInterval);
-                this.roadmapUnlockCountdown = 0;
-                localStorage.removeItem('lp_unlockTime');
-            },
-
-            async analyzeGap() {
-                if (!this.targetRole) return;
-                this.loading = true;
-                this.analysis = null; // Reset previous analysis
-
-                try {
-                    const response = await fetch('/api/analyze_skill_gap', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            target_role: this.targetRole,
-                            target_company: this.targetCompany
-                        })
-                    });
-
-                    let data;
-                    try {
-                        data = await response.json();
-                    } catch (e) {
-                        throw new Error(`Server Error: ${response.status} ${response.statusText}`);
-                    }
-
-                    if (!response.ok) {
-                        throw new Error(data.error || 'Unknown error');
-                    }
-
-                    this.analysis = data;
-                    this.roadmap = null; // Reset roadmap on new analysis
-                    this.startUnlockCountdown();
-                    // Scroll to results
-                    this.$nextTick(() => {
-                        window.scrollTo({ top: 300, behavior: 'smooth' });
-                    });
-                    this.showToast('Analysis complete!', 'success');
-
-                } catch (error) {
-                    console.error('Error:', error);
-                    this.showToast(error.message || 'Failed to connect to analysis service.', 'error');
-                } finally {
-                    this.loading = false;
-                }
-            },
-
-            startUnlockCountdown() {
-                this.roadmapUnlockCountdown = 60;
-                this.startCountdownInterval();
-            },
-
-            checkUnlockCountdown() {
-                // Persistence removed, countdown resets on refresh
-                this.roadmapUnlockCountdown = 0;
-            },
-
-            startCountdownInterval() {
-                if (this.unlockInterval) clearInterval(this.unlockInterval);
-                this.unlockInterval = setInterval(() => {
-                    this.roadmapUnlockCountdown--;
-                    if (this.roadmapUnlockCountdown <= 0) {
-                        clearInterval(this.unlockInterval);
-                        this.roadmapUnlockCountdown = 0;
-                    }
-                }, 1000);
-            },
-
-            async generateRoadmap() {
-                if (!this.analysis || !this.analysis.missing_skills || this.analysis.missing_skills.length === 0) {
-                    this.showToast('No missing skills to generate a roadmap for!', 'error');
-                    return;
-                }
-
-                this.roadmapLoading = true;
-
-                try {
-                    const response = await fetch('/learning-path/generate', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            target_role: this.targetRole,
-                            missing_skills: this.analysis.missing_skills,
-                            // Optional: Add UI controls for these later
-                            availability_hours: 10,
-                            learning_style: 'Project-based'
-                        })
-                    });
-
-                    const data = await response.json();
-                    if (response.ok) {
-                        this.roadmap = this.processRoadmapData(data);
-                        this.calculateProgress();
-                        this.showToast('Roadmap generated and saved automatically!', 'success');
-                        await this.saveRoadmap();
-                    } else {
-                        this.showToast('Failed to generate roadmap: ' + (data.error || 'Unknown error'), 'error');
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    this.showToast('Failed to connect to roadmap service.', 'error');
-                }
-                this.roadmapLoading = false;
-            },
-
-            // Helper to transform raw API data into stateful objects
-            processRoadmapData(data) {
-                if (!data || !data.weekly_breakdown) return data;
-
-                // Deep copy to avoid mutation issues if re-processing
-                const processed = JSON.parse(JSON.stringify(data));
-
-                processed.weekly_breakdown.forEach(week => {
-                    // Transform string topics to objects
-                    if (week.focus_topics) {
-                        week.focus_topics = week.focus_topics.map(t => ({
-                            title: typeof t === 'string' ? t : t.title,
-                            completed: (typeof t === 'object' && t.completed) || false
-                        }));
-                    }
-
-                    // Transform project string to object
-                    const projectTitle = week.mini_project || week.practice_task;
-                    if (typeof projectTitle === 'string') {
-                        week.mini_project = {
-                            title: projectTitle,
-                            completed: false
-                        };
-                    }
-                });
-                return processed;
-            },
-
-            calculateProgress() {
-                if (!this.roadmap || !this.roadmap.weekly_breakdown) return;
-                let total = 0;
-                let completed = 0;
-
-                this.roadmap.weekly_breakdown.forEach(week => {
-                    if (week.mini_project) {
-                        total += 1;
-                        if (week.mini_project.completed) completed += 1;
-                    }
-                });
-
-                this.progress = total === 0 ? 0 : Math.round((completed / total) * 100);
-            },
-
-            toggleTopic(wIndex, tIndex) {
-                this.roadmap.weekly_breakdown[wIndex].focus_topics[tIndex].completed = !this.roadmap.weekly_breakdown[wIndex].focus_topics[tIndex].completed;
-                this.calculateProgress();
-                if (this.saved) this.saveRoadmap(); // Auto-update if already saved
-            },
-
-            toggleProject(wIndex) {
-                this.roadmap.weekly_breakdown[wIndex].mini_project.completed = !this.roadmap.weekly_breakdown[wIndex].mini_project.completed;
-                this.calculateProgress();
-                if (this.saved) this.saveRoadmap(); // Auto-update if already saved
-            },
-
-            async saveRoadmap() {
-                this.isSaving = true;
-                try {
-                    const response = await fetch('/api/save_roadmap', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            roadmap: this.roadmap,
-                            progress: this.progress,
-                            target_role: this.targetRole,
-                            path_id: this.pathId
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok && data.success) {
-                        this.saved = true;
-                        this.pathId = data.path_id;
-                        this.showToast('Progress saved successfully!', 'success');
-                    } else {
-                        this.showToast('Failed to save progress: ' + (data.error || 'Unknown error'), 'error');
-                    }
-                } catch (error) {
-                    console.error('Error saving roadmap:', error);
-                    this.showToast('Network error while saving.', 'error');
-                } finally {
-                    this.isSaving = false;
-                }
-            },
-
-            async loadMyPaths() {
-                this.viewMode = 'list';
-                this.loadingPaths = true;
-                try {
-                    const response = await fetch('/learning-paths');
-                    if (response.ok) {
-                        this.savedPaths = await response.json();
-                    } else {
-                        this.showToast('Failed to load saved paths', 'error');
-                    }
-                } catch (error) {
-                    console.error('Error loading paths:', error);
-                    this.showToast('Network error loading paths', 'error');
-                } finally {
-                    this.loadingPaths = false;
-                }
-            },
-
-            async resumePath(pathId) {
-                try {
-                    const response = await fetch(`/learning-path/${pathId}`);
-                    if (response.ok) {
-                        const data = await response.json();
-
-                        // Map the detailed module structure back to the roadmap structure with better parsing
-                        this.roadmap = {
-                            total_weeks: data.modules.length,
-                            weekly_breakdown: data.modules.map((mod, index) => {
-                                // Use stored granular data if available (preserves checkboxes)
-                                if (mod.topics_data) {
-                                    return mod.topics_data;
-                                }
-
-                                let desc = mod.description || '';
-                                let projectTitle = 'Complete Module Task';
-
-                                // Extract Project title from description if present
-                                const projMatch = desc.match(/Project:\s*(.+)$/s);
-                                if (projMatch) {
-                                    projectTitle = projMatch[1].trim();
-                                    desc = desc.replace(/Project:\s*.+$/s, '').trim();
-                                }
-
-                                // Clean up 'Why it matters:' prefix
-                                desc = desc.replace(/^Why it matters:\s*/i, '').trim();
-
-                                // Parse title to extract topics
-                                // Format saved: "Week {num}: {topic1}, {topic2}"
-                                let topics = [];
-                                let titleContent = mod.title;
-                                // Remove "Week X: " prefix if present
-                                titleContent = titleContent.replace(/^Week\s+\d+:\s*/i, '');
-
-                                if (titleContent) {
-                                    // Split by comma and trim
-                                    topics = titleContent.split(',').map(t => ({
-                                        title: t.trim(),
-                                        completed: mod.is_completed
-                                    }));
-                                } else {
-                                    topics = [{ title: mod.title, completed: mod.is_completed }];
-                                }
-
-                                return {
-                                    week_number: index + 1,
-                                    focus_topics: topics,
-                                    why_this_matters: desc,
-                                    mini_project: { title: projectTitle, completed: mod.is_completed }
-                                };
-                            })
-                        };
-                        this.targetRole = data.target_role;
-                        this.pathId = data.path_id;
-                        this.saved = true;
-                        this.calculateProgress();
-                        this.viewMode = 'generate';
-                        this.analysis = null; // Hide analysis view when resuming
-
-                        // Scroll to roadmap view
-                        this.$nextTick(() => {
-                            if (this.$refs.roadmapContainer) {
-                                this.$refs.roadmapContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error resuming path:', error);
-                    this.showToast('Failed to resume path', 'error');
-                }
-            },
-
-            async deletePath(pathId) {
-                if (!confirm('Are you sure you want to delete this learning path? This action cannot be undone.')) return;
-
-                try {
-                    const response = await fetch(`/learning-path/${pathId}`, {
-                        method: 'DELETE'
-                    });
-
-                    if (response.ok) {
-                        this.showToast('Learning path deleted successfully', 'success');
-                        this.loadMyPaths(); // Refresh the list
-                    } else {
-                        const data = await response.json();
-                        this.showToast(data.error || 'Failed to delete path', 'error');
-                    }
-                } catch (error) {
-                    console.error('Error deleting path:', error);
-                    this.showToast('Network error deleting path', 'error');
-                }
-            },
-
-            showToast(message, type = 'success') {
-                const id = Date.now();
-                this.toasts.push({ id, message, type, visible: true });
-                setTimeout(() => {
-                    const index = this.toasts.findIndex(t => t.id === id);
-                    if (index > -1) this.toasts.splice(index, 1);
-                }, 3000);
-            },
-
-            getScoreColor(score) {
-                if (score >= 80) return 'text-green-600';
-                if (score >= 50) return 'text-amber-500';
-                return 'text-red-600';
-            },
-
-            getReadinessText(score) {
-                if (score >= 80) return 'Job Ready! Polish your portfolio.';
-                if (score >= 50) return 'Getting there. Focus on critical gaps.';
-                return 'Significant gaps. Structured learning needed.';
-            },
-
-            getVideoId(topicTitle) {
-                // Simple hash function to generate consistent "video IDs" from topic titles
-                // In production, this would query YouTube API or use a curated database
-                const hash = topicTitle.split('').reduce((acc, char) => {
-                    return ((acc << 5) - acc) + char.charCodeAt(0);
-                }, 0);
-
-                // Popular programming tutorial video IDs (curated list)
-                const videoIds = [
-                    'Hl-zzrqQoSE', // JavaScript Tutorial
-                    'rfscVS0vtbw', // Python Tutorial
-                    'W6NZfCO5SIk', // React Tutorial
-                    '2JYT5f2isg4', // Node.js Tutorial
-                    'PkZNo7MFNFg', // Git Tutorial
-                    'SqcY0GlETPk', // SQL Tutorial
-                    'HXV3zeQKqGY', // CSS Tutorial
-                    '2ji0qw_JNFo', // HTML Tutorial  
-                ];
-
-                // Use hash to pick a consistent video ID for this topic
-                const index = Math.abs(hash) % videoIds.length;
-                return videoIds[index];
+                this.showToast('Competency gap evaluation complete!', 'success');
+            } catch (error) {
+                console.error('Error:', error);
+                this.showToast(error.message || 'Failed to connect to analysis engine.', 'error');
+            } finally {
+                this.loading = false;
             }
-        }));
-    });
-</script>
+        },
 
-<style>
-    @keyframes shimmer {
-        100% {
-            transform: translateX(100%);
+        async generateRoadmap() {
+            if (!this.analysis || !this.analysis.missing_skills || this.analysis.missing_skills.length === 0) {
+                this.showToast('No missing competencies identified for roadmap generation.', 'error');
+                return;
+            }
+
+            this.roadmapLoading = true;
+
+            try {
+                const response = await fetch('/learning-path/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        target_role: this.targetRole,
+                        missing_skills: this.analysis.missing_skills,
+                        availability_hours: 10,
+                        learning_style: 'Project-based'
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    this.roadmap = this.processRoadmapData(data);
+                    this.calculateProgress();
+                    this.showToast('Roadmap generated and auto-saved!', 'success');
+                    await this.saveRoadmap();
+                } else {
+                    this.showToast('Failed to generate plan: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                this.showToast('Network error during roadmap generation.', 'error');
+            } finally {
+                this.roadmapLoading = false;
+            }
+        },
+
+        processRoadmapData(data) {
+            if (!data || !data.weekly_breakdown) return data;
+            const processed = JSON.parse(JSON.stringify(data));
+
+            processed.weekly_breakdown.forEach((week, wIndex) => {
+                if (Array.isArray(week.focus_topics)) {
+                    week.focus_topics = week.focus_topics.map(topic => {
+                        if (typeof topic === 'string') {
+                            return { title: topic, completed: false };
+                        }
+                        return { title: topic.title || 'Topic', completed: !!topic.completed };
+                    });
+                } else {
+                    week.focus_topics = [];
+                }
+
+                if (typeof week.mini_project === 'string') {
+                    week.mini_project = { title: week.mini_project, completed: false, pdf_url: '' };
+                } else if (week.mini_project) {
+                    week.mini_project.completed = !!week.mini_project.completed;
+                    week.mini_project.pdf_url = week.mini_project.pdf_url || '';
+                } else {
+                    week.mini_project = { title: 'Complete Module Practical Task', completed: false, pdf_url: '' };
+                }
+            });
+
+            return processed;
+        },
+
+        toggleTopic(weekIndex, topicIndex) {
+            if (!this.roadmap || !this.roadmap.weekly_breakdown[weekIndex]) return;
+            const topic = this.roadmap.weekly_breakdown[weekIndex].focus_topics[topicIndex];
+            topic.completed = !topic.completed;
+            this.calculateProgress();
+            this.saveRoadmap();
+        },
+
+        toggleProject(weekIndex) {
+            if (!this.roadmap || !this.roadmap.weekly_breakdown[weekIndex]) return;
+            const proj = this.roadmap.weekly_breakdown[weekIndex].mini_project;
+            proj.completed = !proj.completed;
+            this.calculateProgress();
+            this.saveRoadmap();
+        },
+
+        calculateProgress() {
+            if (!this.roadmap || !this.roadmap.weekly_breakdown) {
+                this.progress = 0;
+                return;
+            }
+
+            let totalItems = 0;
+            let completedItems = 0;
+
+            this.roadmap.weekly_breakdown.forEach(week => {
+                if (week.focus_topics) {
+                    week.focus_topics.forEach(t => {
+                        totalItems++;
+                        if (t.completed) completedItems++;
+                    });
+                }
+                if (week.mini_project) {
+                    totalItems++;
+                    if (week.mini_project.completed) completedItems++;
+                }
+            });
+
+            this.progress = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+        },
+
+        async saveRoadmap() {
+            if (!this.roadmap || this.isSaving) return;
+            this.isSaving = true;
+
+            try {
+                const payload = {
+                    target_role: this.targetRole,
+                    total_weeks: this.roadmap.total_weeks,
+                    roadmap_data: this.roadmap,
+                    path_id: this.pathId,
+                    progress: this.progress
+                };
+
+                const response = await fetch('/learning-path/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    this.saved = true;
+                    this.pathId = data.path_id;
+                }
+            } catch (error) {
+                console.error('Error saving roadmap:', error);
+            } finally {
+                this.isSaving = false;
+            }
+        },
+
+        async loadMyPaths() {
+            this.viewMode = 'list';
+            this.loadingPaths = true;
+            try {
+                const response = await fetch('/learning-paths');
+                if (response.ok) {
+                    this.savedPaths = await response.json();
+                } else {
+                    this.showToast('Failed to load saved roadmaps', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading paths:', error);
+                this.showToast('Network error loading saved roadmaps', 'error');
+            } finally {
+                this.loadingPaths = false;
+            }
+        },
+
+        async resumePath(pathId) {
+            try {
+                const response = await fetch(`/learning-path/${pathId}`);
+                if (response.ok) {
+                    const data = await response.json();
+
+                    this.roadmap = {
+                        total_weeks: data.modules.length,
+                        weekly_breakdown: data.modules.map((mod, index) => {
+                            if (mod.topics_data) {
+                                return mod.topics_data;
+                            }
+
+                            let desc = mod.description || '';
+                            let projectTitle = 'Complete Module Task';
+
+                            const projMatch = desc.match(/Project:\s*(.+)$/s);
+                            if (projMatch) {
+                                projectTitle = projMatch[1].trim();
+                                desc = desc.replace(/Project:\s*.+$/s, '').trim();
+                            }
+                            desc = desc.replace(/^Why it matters:\s*/i, '').trim();
+
+                            let topics = [];
+                            let titleContent = (mod.title || '').replace(/^Week\s+\d+:\s*/i, '');
+                            if (titleContent) {
+                                topics = titleContent.split(',').map(t => ({
+                                    title: t.trim(),
+                                    completed: mod.is_completed
+                                }));
+                            } else {
+                                topics = [{ title: mod.title, completed: mod.is_completed }];
+                            }
+
+                            return {
+                                week_number: index + 1,
+                                focus_topics: topics,
+                                why_this_matters: desc,
+                                mini_project: { title: projectTitle, completed: mod.is_completed, pdf_url: '' }
+                            };
+                        })
+                    };
+                    this.targetRole = data.target_role;
+                    this.pathId = data.path_id;
+                    this.saved = true;
+                    this.calculateProgress();
+                    this.viewMode = 'generate';
+                    this.analysis = null;
+                }
+            } catch (error) {
+                console.error('Error resuming path:', error);
+                this.showToast('Failed to resume learning path', 'error');
+            }
+        },
+
+        async deletePath(pathId) {
+            if (!confirm('Permanently delete this learning roadmap?')) return;
+
+            try {
+                const response = await fetch(`/learning-path/${pathId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    this.showToast('Roadmap deleted', 'success');
+                    this.loadMyPaths();
+                } else {
+                    this.showToast('Failed to delete roadmap', 'error');
+                }
+            } catch (error) {
+                this.showToast('Network error deleting roadmap', 'error');
+            }
+        },
+
+        showToast(message, type = 'success') {
+            const id = Date.now();
+            this.toasts.push({ id, message, type, visible: true });
+            setTimeout(() => {
+                const index = this.toasts.findIndex(t => t.id === id);
+                if (index > -1) this.toasts.splice(index, 1);
+            }, 3000);
+        },
+
+        getReadinessText(score) {
+            if (score >= 80) return 'Job Ready! Ready for technical interview rounds.';
+            if (score >= 50) return 'Good foundation. Bridge target gaps below.';
+            return 'Significant skill delta. Follow structured curriculum.';
+        },
+
+        getVideoId(topicTitle) {
+            const hash = (topicTitle || '').split('').reduce((acc, char) => ((acc << 5) - acc) + char.charCodeAt(0), 0);
+            const videoIds = [
+                'Hl-zzrqQoSE', 'rfscVS0vtbw', 'W6NZfCO5SIk', '2JYT5f2isg4',
+                'PkZNo7MFNFg', 'SqcY0GlETPk', 'HXV3zeQKqGY', '2ji0qw_JNFo'
+            ];
+            return videoIds[Math.abs(hash) % videoIds.length];
         }
-    }
-
-    .animate-shimmer {
-        animation: shimmer 2s infinite;
-    }
-</style>
+    }));
+});
+</script>
 {% endblock %}

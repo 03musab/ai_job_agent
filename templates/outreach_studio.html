@@ -1,132 +1,410 @@
 {% extends "base.html" %}
-{% from "macros.html" import page_header, breadcrumb %}
+{% block title %}Outreach Studio & People Radar — AI JobSnap{% endblock %}
+
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-8 animate-fade-in">
-    <div class="rounded-md shadow-sm p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-        {{ breadcrumb([{"label": "Dashboard", "url": url_for('recruiter_dashboard')}, {"label": "Outreach Studio"}]) }}
-
-        {% call page_header("Outreach Studio", "Your central command for cold outreach and networking.") %}
-        <div class="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300">
-            <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-            <span>Live Sync: <time datetime="{{ last_scan_time }}">{{ last_scan_time.split(' ')[1] if last_scan_time and ' ' in last_scan_time else 'Active' }}</time></span>
-        </div>
-        {% endcall %}
-
-        <!-- Stats Dashboard -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <!-- Total Contacts -->
-            <div class="p-6 rounded-md border text-center bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800">
-                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Contacts</h3>
-                <p class="text-4xl font-extrabold mt-2 text-blue-600 dark:text-blue-400 font-display">{{ stats.contact_count | default(0) }}</p>
+<div class="max-w-[1400px] mx-auto px-container-padding py-6 flex-1 flex flex-col gap-5 w-full" x-data="{ activePanel: null }">
+    
+    <!-- Top Header -->
+    <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Outreach Intelligence & Radar</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
             </div>
-        </div>
-
-        <!-- Main Actions (CTAs) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <a href="{{ url_for('message_vault') }}" class="group block p-6 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:border-blue-500 dark:hover:border-blue-500 transition-all duration-200 shadow-sm">
-                <h3 class="text-lg font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Compose Message</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Draft new emails or messages using your saved templates.</p>
-            </a>
-            <a href="{{ url_for('people_radar') }}" class="group block p-6 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:border-blue-500 dark:hover:border-blue-500 transition-all duration-200 shadow-sm">
-                <h3 class="text-lg font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">View Contacts</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Manage your list of recruiters, hiring managers, and founders.</p>
-            </a>
-        </div>
-
-        <!-- Contact Scraping Section -->
-        <div class="p-6 rounded-md border bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 mb-8">
-            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Find New Contacts</h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                Use the AI agent to find relevant people on LinkedIn, X, and other platforms based on hiring signals.
+            <h1 class="font-headline-lg text-on-surface text-[20px] font-bold">Outreach Studio</h1>
+            <p class="font-body-sm text-[12px] text-on-surface-variant">
+                Manage verified talent contacts, launch AI discovery crawlers, and dispatch personalized email sequences.
             </p>
-            <form id="scrape-contacts-form" class="flex flex-col sm:flex-row gap-4">
-                <input type="text" name="keywords" id="scrape-keywords" placeholder="e.g. 'AI recruiter', 'founder hiring python', 'tech hiring manager'" required
-                    class="flex-grow px-3 py-2 text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600">
-                <button type="submit" id="scrape-contacts-btn"
-                    class="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600">
-                    Scrape Contacts
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+            <button type="button" @click="activePanel = (activePanel === 'scraper' ? null : 'scraper')"
+                :class="activePanel === 'scraper' ? 'bg-primary text-on-primary' : 'bg-surface-container-high border border-outline-variant text-on-surface hover:border-primary'"
+                class="px-3 py-1.5 font-label-caps text-label-caps rounded-lg transition-colors flex items-center gap-1.5 text-[12px]">
+                <span class="material-symbols-outlined text-[16px]">person_search</span>
+                AI Discover
+            </button>
+
+            <button type="button" @click="activePanel = (activePanel === 'manual' ? null : 'manual')"
+                :class="activePanel === 'manual' ? 'bg-primary text-on-primary' : 'bg-surface-container-high border border-outline-variant text-on-surface hover:border-primary'"
+                class="px-3 py-1.5 font-label-caps text-label-caps rounded-lg transition-colors flex items-center gap-1.5 text-[12px]">
+                <span class="material-symbols-outlined text-[16px]">person_add</span>
+                + Add Contact
+            </button>
+
+            <button type="button" @click="activePanel = (activePanel === 'csv' ? null : 'csv')"
+                :class="activePanel === 'csv' ? 'bg-primary text-on-primary' : 'bg-surface-container-high border border-outline-variant text-on-surface hover:border-primary'"
+                class="px-3 py-1.5 font-label-caps text-label-caps rounded-lg transition-colors flex items-center gap-1.5 text-[12px]">
+                <span class="material-symbols-outlined text-[16px]">upload_file</span>
+                Import CSV
+            </button>
+
+            <a href="{{ url_for('message_vault') }}"
+               class="px-3 py-1.5 bg-surface-container-high border border-outline-variant text-on-surface font-label-caps text-label-caps rounded-lg hover:border-primary hover:text-primary transition-colors flex items-center gap-1.5 text-[12px]">
+                <span class="material-symbols-outlined text-[16px]">mail</span>
+                Message Vault
+            </a>
+
+            <form action="{{ url_for('delete_all_personal_contacts') }}" method="POST"
+                onsubmit="return confirm('Permanently delete ALL contacts in your directory?');" class="inline">
+                <button type="submit"
+                    class="font-data-mono text-[10px] text-error hover:text-error/80 border border-error/30 hover:bg-error/10 px-2.5 py-1.5 rounded-lg uppercase tracking-wider transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">delete</span>
+                    Clear
                 </button>
             </form>
-            <div class="mt-4 flex flex-wrap gap-2 items-center">
-                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Quick Search:</span>
-                <button type="button" class="px-3 py-1 text-xs bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-md transition-colors quick-search-btn" data-term="HR Manager">HR Manager</button>
-                <button type="button" class="px-3 py-1 text-xs bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-950 rounded-md transition-colors quick-search-btn" data-term="Technical Recruiter">Tech Recruiter</button>
-                <button type="button" class="px-3 py-1 text-xs bg-white dark:bg-slate-900 text-pink-600 dark:text-pink-400 border border-pink-200 dark:border-pink-800 hover:bg-pink-50 dark:hover:bg-pink-950 rounded-md transition-colors quick-search-btn" data-term="Head of People">Head of People</button>
-            </div>
-            <div id="scrape-status-container" class="mt-4 hidden">
-                <div class="w-full bg-slate-200 dark:bg-slate-800 rounded-md h-2 mb-2 overflow-hidden">
-                    <div id="scrape-progress-bar" class="bg-blue-600 h-full rounded-md transition-all duration-500 ease-out" style="width: 0%;"></div>
-                </div>
-                <p id="scrape-status-text" class="text-xs text-center text-slate-500 dark:text-slate-400">Starting contact scraping...</p>
-            </div>
-        </div>
-
-        <!-- Manual Contact Entry Section -->
-        <div class="pt-6 border-t border-slate-200 dark:border-slate-800">
-            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Manually Add HR Contact</h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">
-                Enter contact details below. We will perform a deep verification to ensure the email address is deliverable.
-            </p>
-            <form id="manual-contact-form" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="contact-name" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
-                        <input type="text" id="contact-name" name="name" required 
-                            class="w-full px-3 py-2 text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600">
-                    </div>
-                    <div>
-                        <label for="contact-role" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Role</label>
-                        <input type="text" id="contact-role" name="role" placeholder="e.g. HR Manager" required 
-                            class="w-full px-3 py-2 text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600">
-                    </div>
-                    <div>
-                        <label for="contact-company" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Company</label>
-                        <input type="text" id="contact-company" name="company" required 
-                            class="w-full px-3 py-2 text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600">
-                    </div>
-                    <div>
-                        <label for="contact-email" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
-                        <div class="relative">
-                            <input type="email" id="contact-email" name="email" required 
-                                class="w-full px-3 py-2 text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-white placeholder-slate-400 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-600">
-                            <div id="email-status-icon" class="absolute right-3 top-2.5 text-slate-400"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex items-center justify-end gap-4 pt-2">
-                    <span id="manual-add-status" class="text-xs text-slate-500 dark:text-slate-400"></span>
-                    <button type="submit" id="add-contact-btn"
-                        class="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600">
-                        Verify & Add Contact
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Bulk Import Section -->
-        <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
-            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Bulk Import Contacts</h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                Upload a CSV file to add multiple contacts at once. Ensure columns like Name, Email, Role, Company are present.
-            </p>
-            <form id="bulk-import-form" class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                <input type="file" name="contacts_csv" id="contacts_csv" accept=".csv" required
-                    class="block w-full text-xs text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-blue-950 dark:file:text-blue-300 hover:file:bg-blue-100 cursor-pointer">
-                <button type="submit" id="bulk-import-btn"
-                    class="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-600">
-                    Upload CSV
-                </button>
-            </form>
-            <p id="bulk-import-status" class="mt-2 text-xs text-slate-500 dark:text-slate-400"></p>
         </div>
     </div>
 
+    <!-- Quick Stats Telemetry Row -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="border border-outline-variant rounded-xl p-3.5 bg-surface-container flex items-center justify-between">
+            <div>
+                <span class="font-data-mono text-[9px] text-on-surface-variant uppercase tracking-widest">Active Database Records</span>
+                <div class="font-headline-lg text-primary text-[22px] font-bold mt-0.5">
+                    {{ contacts|length if contacts else (stats.contact_count | default(0)) }} Contacts
+                </div>
+            </div>
+            <div class="w-8 h-8 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center text-primary">
+                <span class="material-symbols-outlined text-[18px]">groups</span>
+            </div>
+        </div>
+
+        <div class="border border-outline-variant rounded-xl p-3.5 bg-surface-container flex items-center justify-between">
+            <div>
+                <span class="font-data-mono text-[9px] text-on-surface-variant uppercase tracking-widest">SMTP Verification</span>
+                <div class="flex items-center gap-1.5 mt-1 font-data-mono text-[12px] text-secondary font-semibold">
+                    <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                    MX Handshake Active
+                </div>
+            </div>
+            <div class="w-8 h-8 rounded-lg bg-secondary/10 border border-secondary/30 flex items-center justify-center text-secondary">
+                <span class="material-symbols-outlined text-[18px]">verified</span>
+            </div>
+        </div>
+
+        <a href="{{ url_for('message_vault') }}" class="border border-outline-variant rounded-xl p-3.5 bg-surface-container hover:border-primary/50 transition-colors flex items-center justify-between group">
+            <div>
+                <span class="font-data-mono text-[9px] text-on-surface-variant uppercase tracking-widest">Outreach Vault</span>
+                <div class="font-headline-md text-on-surface group-hover:text-primary text-[13px] font-semibold mt-1">
+                    Manage Templates →
+                </div>
+            </div>
+            <div class="w-8 h-8 rounded-lg bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors">
+                <span class="material-symbols-outlined text-[18px]">outgoing_mail</span>
+            </div>
+        </a>
+    </div>
+
+    <!-- Collapsible Action Panels -->
+    <!-- 1. AI Discovery Panel -->
+    <div x-show="activePanel === 'scraper'" x-transition x-cloak class="border border-primary/40 rounded-xl p-5 bg-surface-container space-y-3">
+        <div class="flex justify-between items-center border-b border-outline-variant pb-2">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[18px] text-primary">person_search</span>
+                <h3 class="font-headline-md text-on-surface text-[15px] font-bold">AI Automated Contact Discovery</h3>
+            </div>
+            <button @click="activePanel = null" class="text-on-surface-variant hover:text-on-surface text-[12px] font-data-mono uppercase">Close [×]</button>
+        </div>
+        <form id="scrape-contacts-form" class="flex flex-col sm:flex-row gap-2">
+            <input type="text" name="keywords" id="scrape-keywords" placeholder="e.g. 'AI recruiter Google', 'Tech Recruiter Stripe', 'Founder hiring python'" required
+                class="flex-1 bg-surface-container-lowest border border-outline-variant/50 rounded-lg px-3 py-2 text-body-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none">
+            <button type="submit" id="scrape-contacts-btn"
+                class="px-5 py-2 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-primary-container transition-colors shrink-0 flex items-center justify-center gap-1.5 shadow-sm">
+                <span class="material-symbols-outlined text-[16px]">search</span>
+                Start Discovery
+            </button>
+        </form>
+        <div class="flex flex-wrap items-center gap-1.5">
+            <span class="font-data-mono text-[9px] text-on-surface-variant uppercase">Presets:</span>
+            <button type="button" class="quick-search-btn font-data-mono text-[9px] px-2 py-0.5 rounded border border-outline-variant bg-surface-container-high text-on-surface-variant hover:border-primary hover:text-primary" data-term="Technical Recruiter">Tech Recruiter</button>
+            <button type="button" class="quick-search-btn font-data-mono text-[9px] px-2 py-0.5 rounded border border-outline-variant bg-surface-container-high text-on-surface-variant hover:border-primary hover:text-primary" data-term="HR Manager">HR Manager</button>
+            <button type="button" class="quick-search-btn font-data-mono text-[9px] px-2 py-0.5 rounded border border-outline-variant bg-surface-container-high text-on-surface-variant hover:border-primary hover:text-primary" data-term="Engineering Lead">Engineering Lead</button>
+            <button type="button" class="quick-search-btn font-data-mono text-[9px] px-2 py-0.5 rounded border border-outline-variant bg-surface-container-high text-on-surface-variant hover:border-primary hover:text-primary" data-term="Founder hiring python">Founder</button>
+        </div>
+        <div id="scrape-status-container" class="hidden border border-outline-variant/60 rounded-lg p-3 bg-surface-container-low mt-2">
+            <div class="w-full bg-surface-container-high rounded h-1.5 mb-2 overflow-hidden">
+                <div id="scrape-progress-bar" class="bg-primary h-full rounded transition-all duration-500" style="width: 0%;"></div>
+            </div>
+            <p id="scrape-status-text" class="font-data-mono text-[11px] text-on-surface-variant text-center">Initializing background crawler...</p>
+        </div>
+    </div>
+
+    <!-- 2. Manual Add Contact Panel -->
+    <div x-show="activePanel === 'manual'" x-transition x-cloak class="border border-secondary/40 rounded-xl p-5 bg-surface-container space-y-3">
+        <div class="flex justify-between items-center border-b border-outline-variant pb-2">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[18px] text-secondary">person_add</span>
+                <h3 class="font-headline-md text-on-surface text-[15px] font-bold">Verify & Add Single Contact</h3>
+            </div>
+            <button @click="activePanel = null" class="text-on-surface-variant hover:text-on-surface text-[12px] font-data-mono uppercase">Close [×]</button>
+        </div>
+        <form id="manual-contact-form" class="space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div>
+                    <label class="font-data-mono text-[9px] text-on-surface-variant uppercase block mb-1">Full Name</label>
+                    <input type="text" id="contact-name" name="name" required 
+                        class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-2.5 py-1.5 text-body-sm text-on-surface focus:border-primary focus:outline-none">
+                </div>
+                <div>
+                    <label class="font-data-mono text-[9px] text-on-surface-variant uppercase block mb-1">Title / Role</label>
+                    <input type="text" id="contact-role" name="role" placeholder="e.g. Lead Recruiter" required 
+                        class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-2.5 py-1.5 text-body-sm text-on-surface focus:border-primary focus:outline-none">
+                </div>
+                <div>
+                    <label class="font-data-mono text-[9px] text-on-surface-variant uppercase block mb-1">Company</label>
+                    <input type="text" id="contact-company" name="company" required 
+                        class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-2.5 py-1.5 text-body-sm text-on-surface focus:border-primary focus:outline-none">
+                </div>
+                <div>
+                    <label class="font-data-mono text-[9px] text-on-surface-variant uppercase block mb-1">Email (Verified via SMTP)</label>
+                    <div class="relative">
+                        <input type="email" id="contact-email" name="email" required 
+                            class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-2.5 py-1.5 text-body-sm text-on-surface pr-7 focus:border-primary focus:outline-none">
+                        <div id="email-status-icon" class="absolute right-2 top-1/2 -translate-y-1/2"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-outline-variant">
+                <span id="manual-add-status" class="font-data-mono text-[10px] text-on-surface-variant"></span>
+                <button type="submit" id="add-contact-btn" class="px-4 py-1.5 bg-primary text-on-primary font-label-caps text-label-caps rounded hover:bg-primary-container">
+                    Verify & Add
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 3. Bulk CSV Ingestion Panel -->
+    <div x-show="activePanel === 'csv'" x-transition x-cloak class="border border-tertiary/40 rounded-xl p-5 bg-surface-container space-y-3">
+        <div class="flex justify-between items-center border-b border-outline-variant pb-2">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[18px] text-tertiary">upload_file</span>
+                <h3 class="font-headline-md text-on-surface text-[15px] font-bold">Bulk CSV Ingestion</h3>
+            </div>
+            <button @click="activePanel = null" class="text-on-surface-variant hover:text-on-surface text-[12px] font-data-mono uppercase">Close [×]</button>
+        </div>
+        <form id="bulk-import-form" class="flex flex-col sm:flex-row items-center gap-3">
+            <input type="file" name="contacts_csv" id="contacts_csv" accept=".csv" required 
+                class="block w-full text-[12px] text-on-surface-variant file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-[11px] file:font-semibold file:bg-surface-container-high file:text-primary cursor-pointer bg-surface-container-lowest border border-outline-variant/50 p-1.5 rounded-lg">
+            <button type="submit" id="bulk-import-btn" class="px-5 py-2 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-primary-container whitespace-nowrap">
+                Import Records
+            </button>
+        </form>
+        <span id="bulk-import-status" class="font-data-mono text-[10px] block"></span>
+    </div>
+
+    <!-- Main People Radar Directory Table (Front & Center) -->
+    <div class="border border-outline-variant rounded-xl bg-surface-container overflow-hidden flex flex-col gap-0 shadow-sm">
+        
+        <!-- Table Control & Search Bar -->
+        <div class="p-4 border-b border-outline-variant bg-surface-container-low flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-[20px] text-primary">groups</span>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="font-headline-md text-on-surface text-[15px] font-bold">People Radar Directory</h2>
+                        <span class="font-data-mono text-[10px] px-2 py-0.5 rounded bg-surface-container-highest border border-outline-variant text-primary font-bold">
+                            {{ contacts|length if contacts else 0 }} Indexed
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instant Search Filter -->
+            <div class="relative w-full sm:w-80">
+                <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[16px]">search</span>
+                <input type="text" id="contact-filter" placeholder="Filter by name, role, or company..."
+                    class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded-lg pl-8 pr-3 py-1.5 text-body-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition-colors text-[12px]">
+            </div>
+        </div>
+
+        <!-- Table Column Spec Headers -->
+        <div class="px-4 py-2.5 border-b border-outline-variant flex text-on-surface-variant font-data-mono text-[9px] uppercase tracking-widest bg-surface-container-lowest divide-x divide-outline-variant/30 sticky top-0 z-10">
+            <div class="flex-1 min-w-0 pr-2">NAME & ROLE</div>
+            <div class="w-48 hidden sm:block px-3">COMPANY</div>
+            <div class="w-64 hidden md:block px-3">EMAIL TELEMETRY</div>
+            <div class="w-24 hidden lg:block px-3">STATUS</div>
+            <div class="w-36 text-right pl-3">ACTIONS</div>
+        </div>
+
+        <!-- Contact Rows (Scrollable with custom scrollbar) -->
+        <div class="divide-y divide-outline-variant/40 max-h-[520px] overflow-y-auto custom-scrollbar" id="contacts-container">
+            {% if contacts and contacts|length > 0 %}
+                {% for contact in contacts %}
+                <div class="contact-row flex items-center px-4 py-3 hover:bg-surface-container-high transition-colors"
+                     data-search-text="{{ (contact.full_name or '') ~ ' ' ~ (contact.title or '') ~ ' ' ~ (contact.company or '') ~ ' ' ~ (contact.email or '') }}">
+                    
+                    <!-- Candidate Monogram & Name -->
+                    <div class="flex-1 min-w-0 flex items-center gap-3 pr-2">
+                        <div class="w-8 h-8 rounded-lg bg-surface-container-highest border border-outline-variant/60 flex items-center justify-center font-data-mono text-[12px] text-primary font-bold shrink-0">
+                            {{ contact.full_name[0] | upper if contact.full_name else '?' }}
+                        </div>
+                        <div class="min-w-0">
+                            <div class="font-body-sm font-semibold text-on-surface text-[13px] truncate">{{ contact.full_name or 'Unknown Contact' }}</div>
+                            <div class="font-data-mono text-[10px] text-on-surface-variant truncate">{{ contact.title or 'Role Unspecified' }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Company -->
+                    <div class="w-48 hidden sm:flex items-center text-body-sm text-[12px] text-on-surface font-medium truncate px-3">
+                        {{ contact.company or '—' }}
+                    </div>
+
+                    <!-- Email -->
+                    <div class="w-64 hidden md:flex items-center text-body-sm text-[12px] text-on-surface-variant truncate px-3">
+                        {% if contact.email %}
+                        <span class="font-data-mono text-[11px] truncate text-primary/90">{{ contact.email }}</span>
+                        {% else %}
+                        <span class="font-data-mono text-[10px] text-on-surface-variant/40">No email indexed</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Status Chip -->
+                    <div class="w-24 hidden lg:flex items-center px-3">
+                        <span class="font-data-mono text-[9px] px-2 py-0.5 rounded border border-secondary/30 bg-secondary/10 text-secondary uppercase font-semibold">
+                            {{ contact.status or 'Verified' }}
+                        </span>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="w-36 flex items-center justify-end gap-1.5 pl-3 shrink-0">
+                        {% if contact.email %}
+                        <button type="button" onclick="openSendMessageModal('{{ contact.full_name|escape }}', '{{ contact.email|escape }}', '{{ (contact.company or '')|escape }}', '{{ (contact.title or '')|escape }}')"
+                            class="px-2.5 py-1 rounded bg-primary text-on-primary font-data-mono text-[9px] uppercase hover:bg-primary-container transition-colors shadow-sm font-semibold">
+                            Message
+                        </button>
+                        {% endif %}
+                        <button type="button" data-contact-id="{{ contact.id }}" data-contact-name="{{ contact.full_name|escape }}" data-contact-notes="{{ contact.notes|escape if contact.notes else '' }}" onclick="openNoteModal(this)"
+                            class="p-1 text-on-surface-variant hover:text-primary rounded transition-colors" title="Edit Note">
+                            <span class="material-symbols-outlined text-[17px]">edit_note</span>
+                        </button>
+                        <form action="{{ url_for('delete_contact', contact_id=contact.id) }}" method="POST" onsubmit="return confirm('Delete this contact?');" class="inline">
+                            <button type="submit" class="p-1 text-error/70 hover:text-error rounded transition-colors" title="Delete">
+                                <span class="material-symbols-outlined text-[17px]">delete</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-16 text-on-surface-variant">
+                    <span class="material-symbols-outlined text-[40px] text-outline mb-2">person_off</span>
+                    <p class="font-body-sm text-[14px] font-semibold text-on-surface">No contacts indexed in database</p>
+                    <p class="font-data-mono text-[11px] text-on-surface-variant/70 mt-1">Use the "AI Discover" or "+ Add Contact" buttons above to populate your radar.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal: Send Direct Outreach Message -->
+<div id="send-message-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" onclick="closeSendMessageModal()"></div>
+    <div class="relative mx-auto p-5 border border-outline-variant w-full max-w-md rounded-xl bg-surface-container z-10 shadow-2xl space-y-4">
+        <div class="flex justify-between items-center border-b border-outline-variant pb-2">
+            <h3 class="font-headline-md text-on-surface text-[15px] font-bold">Dispatch Direct Outreach</h3>
+            <button onclick="closeSendMessageModal()" class="text-on-surface-variant hover:text-on-surface">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+        </div>
+        <form id="send-message-form" class="space-y-3">
+            <input type="hidden" id="modal-recipient-email" name="contact_email">
+            <div>
+                <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Recipient</label>
+                <input type="text" id="modal-recipient-display" readonly
+                    class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-1.5 text-body-sm text-on-surface font-data-mono text-[12px]">
+            </div>
+            
+            <!-- Template Selector Option -->
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Select Template</label>
+                    <a href="{{ url_for('message_vault') }}" target="_blank" class="font-data-mono text-[10px] text-primary hover:underline flex items-center gap-0.5">
+                        Manage Vault <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+                    </a>
+                </div>
+                <select id="modal-template-select" onchange="applyTemplateToModal(this)"
+                    class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-1.5 text-body-sm text-on-surface focus:border-primary focus:outline-none text-[12px]">
+                    <option value="">-- Choose a Saved Template (Auto-fills Subject & Body) --</option>
+                    {% if templates %}
+                        {% for t in templates %}
+                        <option value="{{ t.id }}" data-subject="{{ t.subject|escape }}" data-body="{{ t.body|escape }}">
+                            {{ t.template_name }}
+                        </option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+
+            <div>
+                <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Subject Line</label>
+                <input type="text" id="modal-subject" name="subject" value="Inquiry regarding engineering opportunities" required
+                    class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-1.5 text-body-sm text-on-surface focus:border-primary focus:outline-none">
+            </div>
+            <div>
+                <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Message Body</label>
+                <textarea id="modal-body" name="body" rows="6" required
+                    class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded p-3 text-body-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none font-mono text-[12px]">Hi, I came across your profile and wanted to introduce myself...</textarea>
+            </div>
+            <div id="send-msg-status" class="font-data-mono text-[10px]"></div>
+            <div class="flex justify-end gap-2 pt-2 border-t border-outline-variant">
+                <button type="button" onclick="closeSendMessageModal()"
+                    class="px-3 py-1.5 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps hover:bg-surface-container-high">Cancel</button>
+                <button type="submit" id="send-msg-submit"
+                    class="px-4 py-1.5 bg-primary text-on-primary rounded font-label-caps text-label-caps hover:bg-primary-container">Send Email</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Edit Note -->
+<div id="note-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" onclick="closeNoteModal()"></div>
+    <div class="relative mx-auto p-5 border border-outline-variant w-full max-w-md rounded-xl bg-surface-container z-10 shadow-2xl space-y-4">
+        <div class="flex justify-between items-center border-b border-outline-variant pb-2">
+            <h3 class="font-headline-md text-on-surface text-[15px] font-bold">Contact Notes</h3>
+            <button onclick="closeNoteModal()" class="text-on-surface-variant hover:text-on-surface">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+        </div>
+        <form id="note-form" class="space-y-3">
+            <input type="hidden" name="contact_id" id="note-contact-id">
+            <div>
+                <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Notes & Interaction History</label>
+                <textarea id="note-textarea" name="notes" rows="4"
+                    class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded p-3 text-body-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none font-mono text-[12px]"></textarea>
+            </div>
+            <div id="note-save-status" class="font-data-mono text-[10px]"></div>
+            <div class="flex justify-end gap-2 pt-2 border-t border-outline-variant">
+                <button type="button" onclick="closeNoteModal()"
+                    class="px-3 py-1.5 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps hover:bg-surface-container-high">Cancel</button>
+                <button type="submit" id="save-note-btn"
+                    class="px-4 py-1.5 bg-primary text-on-primary rounded font-label-caps text-label-caps hover:bg-primary-container">Save Note</button>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Instant Table Filter
+    const filterInput = document.getElementById('contact-filter');
+    const rows = document.querySelectorAll('.contact-row');
+
+    if (filterInput) {
+        filterInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            rows.forEach(row => {
+                const text = row.getAttribute('data-search-text').toLowerCase();
+                row.style.display = text.includes(query) ? 'flex' : 'none';
+            });
+        });
+    }
+
+    // Scrape Contacts Form
     const scrapeForm = document.getElementById('scrape-contacts-form');
     const statusContainer = document.getElementById('scrape-status-container');
     const statusText = document.getElementById('scrape-status-text');
@@ -138,33 +416,29 @@ document.addEventListener('DOMContentLoaded', function() {
             const progressBar = document.getElementById('scrape-progress-bar');
             
             statusContainer.classList.remove('hidden');
-            statusText.textContent = "Initiating search for: " + keywords + "...";
+            statusText.textContent = "Initiating scan for: " + keywords + "...";
             
             fetch('/scrape_contacts', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ keywords: keywords })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    statusText.textContent = "Scraping initiated! Please wait for results.";
+                    statusText.textContent = "Crawling in progress...";
                     pollContactTaskStatus(data.task_id);
                 } else {
-                    statusText.textContent = "Error starting scrape.";
+                    statusText.textContent = "Error initiating crawler.";
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                statusText.textContent = "Error initiating scrape. Please try again.";
+                statusText.textContent = "Crawler connection error.";
             });
         });
 
         function pollContactTaskStatus(taskId) {
             const progressBar = document.getElementById('scrape-progress-bar');
-            
             const pollInterval = setInterval(() => {
                 fetch(`/contact_task_status/${taskId}`)
                 .then(response => response.json())
@@ -178,21 +452,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.state === 'SUCCESS') {
                         clearInterval(pollInterval);
                         if (progressBar) progressBar.style.width = '100%';
-                        setTimeout(() => location.reload(), 1500);
+                        setTimeout(() => location.reload(), 1200);
                     } else if (data.state === 'FAILURE') {
                         clearInterval(pollInterval);
-                        statusText.textContent = "Scraping failed: " + status;
-                        statusText.classList.add('text-red-600');
+                        statusText.textContent = "Crawler failed: " + status;
+                        statusText.classList.add('text-error');
                     }
                 })
-                .catch(error => {
-                    console.error('Error polling task status:', error);
+                .catch(() => {
                     clearInterval(pollInterval);
                 });
             }, 1000);
         }
 
-        // Quick search button handlers
         document.querySelectorAll('.quick-search-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const term = this.getAttribute('data-term');
@@ -204,7 +476,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        // Manual Contact Entry Logic
+        // Manual Contact Verification
         const manualForm = document.getElementById('manual-contact-form');
         const emailInput = document.getElementById('contact-email');
         const statusIcon = document.getElementById('email-status-icon');
@@ -220,15 +492,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 const role = document.getElementById('contact-role').value;
                 const company = document.getElementById('contact-company').value;
 
-                // UI Loading State
                 addBtn.disabled = true;
-                addBtn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Verifying...';
+                addBtn.textContent = 'Verifying...';
                 if (statusIcon) statusIcon.innerHTML = '';
-                manualStatus.textContent = "Checking email existence...";
-                manualStatus.className = "text-xs text-amber-600 dark:text-amber-400";
+                manualStatus.textContent = "SMTP Handshake...";
+                manualStatus.className = "font-data-mono text-[10px] text-tertiary";
 
                 try {
-                    // Step 1: Verify Email
                     const verifyResponse = await fetch('/verify_email', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -237,13 +507,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     const verifyData = await verifyResponse.json();
 
                     if (!verifyData.exists) {
-                        throw new Error(verifyData.message || "Email address does not exist or is undeliverable.");
+                        throw new Error(verifyData.message || "Email address is undeliverable.");
                     }
 
-                    // Step 2: Add Contact
-                    manualStatus.textContent = "Email verified! Saving...";
-                    manualStatus.className = "text-xs text-emerald-600 dark:text-emerald-400";
-                    if (statusIcon) statusIcon.innerHTML = '<svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                    manualStatus.textContent = "Verified! Storing...";
+                    manualStatus.className = "font-data-mono text-[10px] text-secondary";
+                    if (statusIcon) statusIcon.innerHTML = '<span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>';
 
                     const addResponse = await fetch('/add_contact', {
                         method: 'POST',
@@ -251,25 +520,26 @@ document.addEventListener('DOMContentLoaded', function() {
                         body: JSON.stringify({ name, role, company, email })
                     });
                     const addData = await addResponse.json();
-                    
+
                     if (addData.success) {
-                        manualStatus.textContent = "Contact added successfully!";
-                        setTimeout(() => location.reload(), 1500);
+                        manualStatus.textContent = "Saved to Directory!";
+                        manualForm.reset();
+                        setTimeout(() => location.reload(), 1000);
                     } else {
                         throw new Error(addData.message || "Failed to save contact.");
                     }
                 } catch (error) {
-                    console.error(error);
                     manualStatus.textContent = error.message;
-                    manualStatus.className = "text-xs text-red-600 dark:text-red-400";
-                    if (statusIcon) statusIcon.innerHTML = '<svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                    manualStatus.className = "font-data-mono text-[10px] text-error";
+                    if (statusIcon) statusIcon.innerHTML = '<span class="material-symbols-outlined text-[16px] text-error">error</span>';
+                } finally {
                     addBtn.disabled = false;
-                    addBtn.textContent = 'Verify & Add Contact';
+                    addBtn.textContent = 'Verify & Add';
                 }
             });
         }
 
-        // Bulk Import Logic
+        // Bulk CSV
         const bulkForm = document.getElementById('bulk-import-form');
         const bulkStatus = document.getElementById('bulk-import-status');
         const bulkBtn = document.getElementById('bulk-import-btn');
@@ -277,45 +547,192 @@ document.addEventListener('DOMContentLoaded', function() {
         if (bulkForm) {
             bulkForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
-                
-                const formData = new FormData(bulkForm);
                 const fileInput = document.getElementById('contacts_csv');
-                
-                if (!fileInput.files.length) {
-                    bulkStatus.textContent = "Please select a file.";
-                    bulkStatus.className = "mt-2 text-xs text-red-600 dark:text-red-400";
-                    return;
-                }
+                if (!fileInput.files.length) return;
 
                 bulkBtn.disabled = true;
-                bulkBtn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Uploading...';
-                bulkStatus.textContent = "Processing CSV...";
-                bulkStatus.className = "mt-2 text-xs text-amber-600 dark:text-amber-400";
+                bulkBtn.textContent = 'Processing...';
+                bulkStatus.textContent = 'Ingesting records...';
+
+                const formData = new FormData();
+                formData.append('contacts_csv', fileInput.files[0]);
 
                 try {
-                    const response = await fetch('/import_contacts', {
+                    const res = await fetch('/bulk_import_contacts', {
                         method: 'POST',
                         body: formData
                     });
-                    const data = await response.json();
-                    
+                    const data = await res.json();
                     if (data.success) {
-                        bulkStatus.textContent = data.message;
-                        bulkStatus.className = "mt-2 text-xs text-emerald-600 dark:text-emerald-400";
-                        setTimeout(() => location.reload(), 1500);
+                        bulkStatus.textContent = `Imported ${data.imported_count || 'all'} records.`;
+                        bulkStatus.className = 'font-data-mono text-[10px] text-secondary';
+                        setTimeout(() => location.reload(), 1200);
                     } else {
-                        throw new Error(data.message || "Upload failed.");
+                        bulkStatus.textContent = data.message || 'Import failed.';
+                        bulkStatus.className = 'font-data-mono text-[10px] text-error';
                     }
-                } catch (error) {
-                    console.error(error);
-                    bulkStatus.textContent = error.message;
-                    bulkStatus.className = "mt-2 text-xs text-red-600 dark:text-red-400";
+                } catch (err) {
+                    bulkStatus.textContent = 'Upload error.';
+                    bulkStatus.className = 'font-data-mono text-[10px] text-error';
+                } finally {
                     bulkBtn.disabled = false;
-                    bulkBtn.textContent = 'Upload CSV';
+                    bulkBtn.textContent = 'Import Records';
+                }
+            });
+        }
+
+        // Send Direct Message Form Handling
+        const msgForm = document.getElementById('send-message-form');
+        const msgStatus = document.getElementById('send-msg-status');
+        const msgBtn = document.getElementById('send-msg-submit');
+        if (msgForm) {
+            msgForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const email = document.getElementById('modal-recipient-email').value;
+                const subject = document.getElementById('modal-subject').value;
+                const body = document.getElementById('modal-body').value;
+
+                msgBtn.disabled = true;
+                msgBtn.textContent = 'Sending...';
+                msgStatus.textContent = 'Dispatching message...';
+                msgStatus.className = 'font-data-mono text-[10px] text-tertiary';
+
+                try {
+                    const res = await fetch('/api/send_message', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contact_email: email, subject: subject, body: body })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        msgStatus.textContent = 'Dispatched successfully!';
+                        msgStatus.className = 'font-data-mono text-[10px] text-secondary';
+                        setTimeout(() => closeSendMessageModal(), 1200);
+                    } else {
+                        msgStatus.textContent = data.message || 'Send failed.';
+                        msgStatus.className = 'font-data-mono text-[10px] text-error';
+                    }
+                } catch (err) {
+                    msgStatus.textContent = 'Connection error.';
+                    msgStatus.className = 'font-data-mono text-[10px] text-error';
+                } finally {
+                    msgBtn.disabled = false;
+                    msgBtn.textContent = 'Send Email';
+                }
+            });
+        }
+
+        // Note Form Handling
+        const noteForm = document.getElementById('note-form');
+        const noteStatus = document.getElementById('note-save-status');
+        const noteBtn = document.getElementById('save-note-btn');
+        if (noteForm) {
+            noteForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const contactId = document.getElementById('note-contact-id').value;
+                const noteText = document.getElementById('note-textarea').value;
+
+                noteBtn.disabled = true;
+                noteBtn.textContent = 'Saving...';
+                noteStatus.textContent = 'Saving note...';
+
+                try {
+                    const res = await fetch(`/api/contacts/${contactId}/note`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ note: noteText })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        noteStatus.textContent = 'Saved!';
+                        noteStatus.className = 'font-data-mono text-[10px] text-secondary';
+                        setTimeout(() => location.reload(), 800);
+                    } else {
+                        noteStatus.textContent = data.message || 'Save failed.';
+                        noteStatus.className = 'font-data-mono text-[10px] text-error';
+                    }
+                } catch (err) {
+                    noteStatus.textContent = 'Connection error.';
+                    noteStatus.className = 'font-data-mono text-[10px] text-error';
+                } finally {
+                    noteBtn.disabled = false;
+                    noteBtn.textContent = 'Save Note';
                 }
             });
         }
     }
 });
+
+// Modal functions
+let currentModalContact = { name: '', email: '', company: '', title: '' };
+
+function openSendMessageModal(name, email, company, title) {
+    currentModalContact = {
+        name: name || '',
+        email: email || '',
+        company: company || '',
+        title: title || ''
+    };
+    
+    document.getElementById('modal-recipient-email').value = email;
+    document.getElementById('modal-recipient-display').value = `${name} <${email}>`;
+    document.getElementById('send-msg-status').textContent = '';
+    
+    const templateSelect = document.getElementById('modal-template-select');
+    if (templateSelect) {
+        templateSelect.selectedIndex = 0;
+    }
+
+    const firstName = (name || '').split(' ')[0] || name;
+    document.getElementById('modal-subject').value = `Inquiry regarding software engineering opportunities at ${company || 'your team'}`;
+    document.getElementById('modal-body').value = `Hi ${firstName},\n\nI came across your profile at ${company || 'your organization'} and wanted to introduce myself. With strong experience in engineering modern, reliable systems, I would love to connect regarding potential opportunities.\n\nBest regards,`;
+    
+    document.getElementById('send-message-modal').classList.remove('hidden');
+}
+
+function applyTemplateToModal(selectElem) {
+    const selectedOption = selectElem.options[selectElem.selectedIndex];
+    if (!selectedOption || !selectedOption.value) return;
+
+    let subject = selectedOption.getAttribute('data-subject') || '';
+    let body = selectedOption.getAttribute('data-body') || '';
+
+    const firstName = (currentModalContact.name || '').split(' ')[0] || currentModalContact.name;
+    const company = currentModalContact.company || 'your organization';
+    const title = currentModalContact.title || 'the role';
+
+    const replaceVars = (text) => {
+        return text
+            .replace(/\{firstName\}/gi, firstName)
+            .replace(/\{first_name\}/gi, firstName)
+            .replace(/\{name\}/gi, currentModalContact.name)
+            .replace(/\{fullName\}/gi, currentModalContact.name)
+            .replace(/\{company\}/gi, company)
+            .replace(/\{jobTitle\}/gi, title)
+            .replace(/\{title\}/gi, title)
+            .replace(/\{role\}/gi, title);
+    };
+
+    if (subject) {
+        document.getElementById('modal-subject').value = replaceVars(subject);
+    }
+    if (body) {
+        document.getElementById('modal-body').value = replaceVars(body);
+    }
+}
+
+function closeSendMessageModal() {
+    document.getElementById('send-message-modal').classList.add('hidden');
+}
+
+function openNoteModal(button) {
+    document.getElementById('note-contact-id').value = button.getAttribute('data-contact-id');
+    document.getElementById('note-textarea').value = button.getAttribute('data-contact-notes') || '';
+    document.getElementById('note-save-status').textContent = '';
+    document.getElementById('note-modal').classList.remove('hidden');
+}
+function closeNoteModal() {
+    document.getElementById('note-modal').classList.add('hidden');
+}
 </script>
 {% endblock %}

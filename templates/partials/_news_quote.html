@@ -1,57 +1,19 @@
-<!-- Daily Inspiration Quote Box -->
-<div class="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden flex flex-col"
+<!-- Daily Inspiration Quote Box (Stitch Precision Spec) -->
+<div class="border border-outline-variant rounded-lg bg-surface-container overflow-hidden flex flex-col"
     x-data="{
     quotes: [
         { text: 'The best way to predict the future is to create it.', author: 'Peter Drucker' },
         { text: 'Success is not final, failure is not fatal.', author: 'Winston Churchill' },
-        { text: 'The only limit is your imagination.', author: 'Unknown' },
-        { text: 'Dream big and dare to fail.', author: 'Norman Vaughan' },
-        { text: 'Every expert was once a beginner.', author: 'Helen Hayes' },
-        { text: 'Code is poetry written in logic.', author: 'Unknown' },
+        { text: 'Code is poetry written in logic.', author: 'Anonymous' },
         { text: 'Stay hungry, stay foolish.', author: 'Steve Jobs' },
         { text: 'Make it work, make it right, make it fast.', author: 'Kent Beck' },
         { text: 'Talk is cheap. Show me the code.', author: 'Linus Torvalds' },
         { text: 'First solve the problem. Then write the code.', author: 'John Johnson' },
         { text: 'Simplicity is the soul of efficiency.', author: 'Austin Freeman' },
-        { text: 'Knowledge is power.', author: 'Francis Bacon' },
-        { text: 'Opportunities don\'t happen. You create them.', author: 'Chris Grosser' },
-        { text: 'The secret of getting ahead is getting started.', author: 'Mark Twain' },
-        { text: 'Quality is not an act, it is a habit.', author: 'Aristotle' },
-        { text: 'Innovation distinguishes leaders from followers.', author: 'Steve Jobs' },
-        { text: 'Technology is best when it brings people together.', author: 'Matt Mullenweg' },
         { text: 'AI amplifies human creativity and ingenuity.', author: 'Fei-Fei Li' },
         { text: 'Software is eating the world.', author: 'Marc Andreessen' },
-        { text: 'Learning never exhausts the mind.', author: 'Leonardo da Vinci' },
         { text: 'Focus on being productive, not busy.', author: 'Tim Ferriss' },
-        { text: 'Your time is limited. Don\'t waste it.', author: 'Steve Jobs' },
-        { text: 'Believe you can and you\'re halfway there.', author: 'Theodore Roosevelt' },
-        { text: 'You miss 100% of the shots you don\'t take.', author: 'Wayne Gretzky' },
-        { text: 'It always seems impossible until it\'s done.', author: 'Nelson Mandela' },
-        { text: 'Don\'t watch the clock. Keep going.', author: 'Sam Levenson' },
-        { text: 'Optimism is the faith that leads to achievement.', author: 'Helen Keller' },
-        { text: 'Whatever you are, be a good one.', author: 'Abraham Lincoln' },
-        { text: 'The future belongs to those who believe in dreams.', author: 'Eleanor Roosevelt' },
-        { text: 'Life is 10% what happens, 90% how you react.', author: 'Charles Swindoll' },
-        { text: 'Do what you can with what you have.', author: 'John Wooden' },
-        { text: 'Get up and make opportunities happen.', author: 'Madam C.J. Walker' },
-        { text: 'Luck meets preparation at opportunity.', author: 'Seneca' },
-        { text: 'Every pro was once an amateur.', author: 'Unknown' },
-        { text: 'Failure is not fatal. Courage to continue is.', author: 'Winston Churchill' },
-        { text: 'I haven\'t failed. I found 10,000 ways that won\'t work.', author: 'Thomas Edison' },
-        { text: 'Experience is the name we give our mistakes.', author: 'Oscar Wilde' },
-        { text: 'Technology is indistinguishable from magic.', author: 'Arthur C. Clarke' },
-        { text: 'Good software makes the complex appear simple.', author: 'Grady Booch' },
-        { text: 'Programs are written for people to read.', author: 'Harold Abelson' },
-        { text: 'Code is like humor. Explaining it makes it bad.', author: 'Cory House' },
-        { text: 'It\'s not a bug. It\'s an undocumented feature.', author: 'Anonymous' },
-        { text: 'Computers can see, hear and learn. Welcome to the future.', author: 'Dave Waters' },
-        { text: 'Constantly learning is essential in this industry.', author: 'Anonymous' },
-        { text: 'Success comes to those too busy to look for it.', author: 'Henry David Thoreau' },
-        { text: 'If you want to lift yourself, lift someone else.', author: 'Booker T. Washington' },
-        { text: 'We can\'t solve problems with the same thinking.', author: 'Albert Einstein' },
-        { text: 'Technology is neither good nor bad; nor neutral.', author: 'Melvin Kranzberg' },
-        { text: 'Do great work by loving what you do.', author: 'Steve Jobs' },
-        { text: 'The art of challenges is the art of hope.', author: 'Unknown' }
+        { text: 'Do great work by loving what you do.', author: 'Steve Jobs' }
     ],
     currentQuote: {},
     init() {
@@ -76,53 +38,26 @@
     }
 }">
 
-    <div class="bg-gray-50 px-6 py-5 border-b border-gray-200 flex justify-between items-center">
-        <div class="flex items-center space-x-3">
-            <div class="p-2 bg-amber-100 rounded-lg">
-                <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor"
-                    viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                </svg>
-            </div>
-            <div>
-                <h2 class="text-lg font-semibold text-gray-900">Daily Inspiration</h2>
-                <p class="text-sm text-gray-500">Fuel for your journey</p>
-            </div>
+    <div class="px-3 py-2 border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
+        <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[16px] text-tertiary">bolt</span>
+            <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold">Daily Signal</span>
         </div>
         <button @click="refreshQuote()"
-            class="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-full transition-colors focus:outline-none"
+            class="text-on-surface-variant hover:text-primary transition-colors p-1"
             title="New Quote">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                </path>
-            </svg>
+            <span class="material-symbols-outlined text-[16px]">sync</span>
         </button>
     </div>
 
-    <div class="p-6 flex-1 flex flex-col justify-center min-h-[160px]">
-        <div class="relative z-10">
-            <svg class="absolute -top-4 -left-2 w-8 h-8 text-gray-100 transform -scale-x-100"
-                fill="currentColor" viewBox="0 0 24 24">
-                <path
-                    d="M14.017 21L14.017 18C14.017 16.096 14.017 14.192 14.017 12.289C14.017 11.472 14.053 10.655 14.125 9.838C14.197 9.021 14.467 8.163 14.935 7.264C15.474 6.223 16.211 5.378 17.147 4.73C18.083 4.082 19.234 3.758 20.6 3.758V6.997C19.881 6.997 19.342 7.159 18.983 7.483C18.623 7.807 18.443 8.275 18.443 8.887V10.849C18.443 11.838 18.82 12.684 19.575 13.385C20.33 14.087 20.707 15.023 20.707 16.193C20.707 17.596 20.185 18.801 19.144 19.809C18.102 20.817 16.699 21.321 14.935 21.321V21L14.017 21ZM4.017 21L4.017 18C4.017 16.096 4.017 14.192 4.017 12.289C4.017 11.472 4.053 10.655 4.125 9.838C4.197 9.021 4.467 8.163 4.935 7.264C5.474 6.223 6.211 5.378 7.147 4.73C8.083 4.082 9.234 3.758 10.6 3.758V6.997C9.881 6.997 9.342 7.159 8.983 7.483C8.623 7.807 8.443 8.275 8.443 8.887V10.849C8.443 11.838 8.82 12.684 9.575 13.385C10.33 14.087 10.707 15.023 10.707 16.193C10.707 17.596 10.185 18.801 9.144 19.809C8.102 20.817 6.699 21.321 4.935 21.321V21L4.017 21Z">
-                </path>
-            </svg>
-
-            <p class="text-xl font-medium leading-relaxed font-serif italic text-center px-4"
-                :class="darkMode ? 'text-premium-text' : 'text-gray-800'" x-text="currentQuote.text"
-                x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 transform scale-95"
-                x-transition:enter-end="opacity-100 transform scale-100">
-            </p>
-
-            <div class="mt-6 flex justify-end">
-                <span
-                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase border transition-colors"
-                    :class="darkMode ? 'bg-premium-black text-premium-text border-premium-teal/30' : 'bg-gray-900 text-white border-transparent'"
-                    x-text="'- ' + currentQuote.author"></span>
-            </div>
+    <div class="p-4 flex-1 flex flex-col justify-center min-h-[120px]">
+        <p class="text-[13px] leading-relaxed italic text-on-surface font-body-sm" x-text="'&ldquo;' + currentQuote.text + '&rdquo;'"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100">
+        </p>
+        <div class="mt-3 flex justify-end">
+            <span class="font-data-mono text-[10px] text-on-surface-variant tracking-wider uppercase" x-text="'— ' + currentQuote.author"></span>
         </div>
     </div>
 </div>

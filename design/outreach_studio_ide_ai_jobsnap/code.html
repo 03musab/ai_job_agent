@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>JobSnap - Outreach Studio</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "inverse-on-surface": "#2f3038",
+                "on-secondary": "#003824",
+                "on-primary-fixed": "#07006c",
+                "primary-fixed": "#e1e0ff",
+                "tertiary": "#ffb95f",
+                "surface-container-high": "#292931",
+                "secondary-container": "#00a572",
+                "error": "#ffb4ab",
+                "on-primary-fixed-variant": "#2f2ebe",
+                "on-error": "#690005",
+                "surface-container-lowest": "#0d0e15",
+                "on-tertiary-fixed-variant": "#653e00",
+                "primary": "#c0c1ff",
+                "on-secondary-container": "#00311f",
+                "primary-container": "#8083ff",
+                "on-secondary-fixed": "#002113",
+                "tertiary-fixed-dim": "#ffb95f",
+                "outline": "#908fa0",
+                "on-tertiary-container": "#3e2400",
+                "surface-variant": "#33343c",
+                "on-tertiary-fixed": "#2a1700",
+                "tertiary-container": "#ca8100",
+                "surface-container-highest": "#33343c",
+                "error-container": "#93000a",
+                "secondary-fixed-dim": "#4edea3",
+                "on-background": "#e3e1ec",
+                "surface-container-low": "#1a1b22",
+                "secondary-fixed": "#6ffbbe",
+                "on-tertiary": "#472a00",
+                "tertiary-fixed": "#ffddb8",
+                "surface": "#12131a",
+                "on-surface": "#e3e1ec",
+                "secondary": "#4edea3",
+                "on-error-container": "#ffdad6",
+                "surface-dim": "#12131a",
+                "outline-variant": "#464554",
+                "inverse-primary": "#494bd6",
+                "background": "#12131a",
+                "surface-container": "#1e1f26",
+                "surface-tint": "#c0c1ff",
+                "on-primary": "#1000a9",
+                "on-surface-variant": "#c7c4d7",
+                "on-secondary-fixed-variant": "#005236",
+                "inverse-surface": "#e3e1ec",
+                "primary-fixed-dim": "#c0c1ff",
+                "surface-bright": "#383941",
+                "on-primary-container": "#0d0096"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+        },
+        "spacing": {
+                "gutter": "16px",
+                "unit": "4px",
+                "row-height-standard": "44px",
+                "row-height-compact": "32px",
+                "container-padding": "24px"
+        },
+        "fontFamily": {
+                "body-sm": [
+                        "Inter"
+                ],
+                "headline-lg": [
+                        "Plus Jakarta Sans"
+                ],
+                "body-lg": [
+                        "Inter"
+                ],
+                "data-mono": [
+                        "JetBrains Mono"
+                ],
+                "label-caps": [
+                        "Inter"
+                ],
+                "headline-md": [
+                        "Plus Jakarta Sans"
+                ],
+                "display": [
+                        "Plus Jakarta Sans"
+                ]
+        },
+        "fontSize": {
+                "body-sm": [
+                        "13px",
+                        {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "0em",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-lg": [
+                        "24px",
+                        {
+                                "lineHeight": "1.3",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-lg": [
+                        "14px",
+                        {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "0em",
+                                "fontWeight": "400"
+                        }
+                ],
+                "data-mono": [
+                        "12px",
+                        {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "0.02em",
+                                "fontWeight": "500"
+                        }
+                ],
+                "label-caps": [
+                        "11px",
+                        {
+                                "lineHeight": "1",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-md": [
+                        "18px",
+                        {
+                                "lineHeight": "1.4",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "display": [
+                        "32px",
+                        {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        /* Custom scrollbar for inner panels */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #464554;
+            border-radius: 2px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #908fa0;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-sm h-screen flex flex-col overflow-hidden">
+<!-- Top Navigation Bar -->
+<nav class="flex justify-between items-center px-gutter w-full mx-auto fixed top-0 w-full h-[48px] z-50 bg-background/80 backdrop-blur-md border-b border-outline-variant">
+<div class="flex items-center gap-gutter">
+<span class="font-headline-md text-[15px] font-bold text-on-surface tracking-tight">AI JobSnap</span>
+<div class="hidden md:flex gap-unit items-center ml-container-padding">
+<a class="px-3 py-3 text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">
+<span class="font-body-sm text-[13px]">Dashboard</span>
+</a>
+<a class="px-3 py-3 text-primary font-bold border-b-2 border-primary pb-1 hover:text-primary transition-colors duration-200" href="#">
+<span class="font-body-sm text-[13px]">Outreach</span>
+</a>
+<a class="px-3 py-3 text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">
+<span class="font-body-sm text-[13px]">Skill Gap</span>
+</a>
+<a class="px-3 py-3 text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">
+<span class="font-body-sm text-[13px]">Recruiter</span>
+</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-2 text-outline-variant text-sm">search</span>
+<input class="bg-surface-container-low border border-outline-variant/30 rounded pl-8 pr-3 py-1 font-body-sm text-[13px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none h-8 w-64 transition-all" placeholder="Search..." type="text"/>
+</div>
+<span class="font-data-mono text-[11px] text-outline-variant">LOGGED IN AS 1MUSAB</span>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant/50">
+<img class="w-full h-full object-cover" data-alt="User profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXsbitLLLnCvBeLfkjV_Q_izTWqGRoQRQbeXd-B6m8T2ajxF6QVLv0Uf-0pGR9oA3V37ECS02yjj8uyZz729UUjltG12n5aJkpDfgKY9-2yHJKNnry3smfzMdDkYB_80hB6apk2Cd4ohssVG5a_VJVl7hvUpUICjKsq4eRPoP9SS9xguoIlnaRG5Mu6LbhBzRBdHOln8yetU3B5q6kThvamhD9SEVnsSmC-I4qNFCld_yXBSqishct"/>
+</div>
+</div>
+</nav>
+<!-- Main Content Area - IDE Layout -->
+<main class="flex-1 mt-[48px] flex flex-row overflow-hidden w-full h-[calc(100vh-48px)]">
+<!-- Left Panel: Context & Configuration -->
+<section class="w-1/3 min-w-[400px] border-r border-outline-variant bg-surface-container flex flex-col h-full">
+<div class="h-row-height-standard border-b border-outline-variant flex items-center px-gutter justify-between shrink-0 bg-surface-container-highest">
+<h2 class="font-headline-md text-[15px] text-on-surface">Outreach Configuration</h2>
+<div class="flex gap-2">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-surface-variant text-outline-variant hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[16px]">history</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-surface-variant text-outline-variant hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[16px]">more_vert</span>
+</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-gutter flex flex-col gap-container-padding">
+<!-- Target Entity -->
+<div class="flex flex-col gap-2">
+<label class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Target Recruiter</label>
+<div class="border border-outline-variant rounded bg-surface p-3 flex items-start gap-3 hover:border-outline transition-colors cursor-pointer group">
+<div class="w-10 h-10 rounded overflow-hidden shrink-0 border border-outline-variant/30">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform" data-alt="A professional headshot of a technical recruiter" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpqdkEx6m0diDYeAzJgl5Y1M6tDUnXyBKYThVKvkl5RL6ouyJXp0orJhowtS7JrlwV72_0Jntesk5hNAlrha_j_4AspsaNzqGJZNHK7eLBE5HHkOYC9azisbuO7dGP7Y5EmESEDUv9xioQDrLMXq623Buijh8n3_OUXaUo2LIHRmu2KUDVZsDrzhbWtzYOogFtbVUUcyBzVYLiL7onGqDn44peoWWXJCC0qBH9wcqGqL_Xh4lEODB1"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<h3 class="font-body-lg text-body-lg text-on-surface font-medium truncate">Sarah Jenkins</h3>
+<span class="font-data-mono text-secondary text-[12px]">98% MATCH</span>
+</div>
+<p class="font-body-sm text-[13px] text-on-surface-variant truncate">Senior Technical Recruiter at Acme Corp</p>
+<div class="flex gap-2 mt-2">
+<span class="px-1.5 py-0.5 bg-secondary-container/20 border border-secondary-container/30 text-secondary rounded-[2px] font-data-mono text-[10px]">PYTHON</span>
+<span class="px-1.5 py-0.5 bg-surface-variant border border-outline-variant/30 text-on-surface-variant rounded-[2px] font-data-mono text-[10px]">AI/ML</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors text-sm">swap_horiz</span>
+</div>
+</div>
+<!-- Parameters -->
+<div class="flex flex-col gap-3">
+<div class="flex justify-between items-center">
+<label class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Generation Parameters</label>
+<span class="font-data-mono text-[11px] text-primary">v2.4-turbo</span>
+</div>
+<div class="flex flex-col gap-4 border border-outline-variant rounded p-3 bg-surface-container-low">
+<!-- Tone Slider -->
+<div class="flex flex-col gap-1">
+<div class="flex justify-between">
+<span class="font-data-mono text-[10px] text-on-surface-variant">TONE: TECHNICAL</span>
+<span class="font-data-mono text-[10px] text-primary">0.85</span>
+</div>
+<input class="w-full h-1 bg-surface-variant rounded-full appearance-none cursor-pointer accent-primary" max="1" min="0" step="0.05" type="range" value="0.85"/>
+</div>
+<!-- Emphasis Toggles -->
+<div class="grid grid-cols-2 gap-2">
+<label class="flex items-center gap-2 p-1.5 border border-primary bg-primary/10 rounded cursor-pointer">
+<input checked="" class="rounded-[2px] border-outline-variant bg-surface text-primary focus:ring-primary focus:ring-offset-surface h-3 w-3" type="checkbox"/>
+<span class="font-body-sm text-[13px] text-on-surface">Emphasize Open Source</span>
+</label>
+<label class="flex items-center gap-2 p-1.5 border border-outline-variant hover:border-outline transition-colors rounded cursor-pointer">
+<input class="rounded-[2px] border-outline-variant bg-surface text-primary focus:ring-primary focus:ring-offset-surface h-3 w-3" type="checkbox"/>
+<span class="font-body-sm text-[13px] text-on-surface-variant">Include Portfolio Links</span>
+</label>
+<label class="flex items-center gap-2 p-1.5 border border-outline-variant hover:border-outline transition-colors rounded cursor-pointer">
+<input class="rounded-[2px] border-outline-variant bg-surface text-primary focus:ring-primary focus:ring-offset-surface h-3 w-3" type="checkbox"/>
+<span class="font-body-sm text-[13px] text-on-surface-variant">Keep Under 150 Words</span>
+</label>
+</div>
+</div>
+</div>
+<!-- Source Material (Resume) Overview -->
+<div class="flex flex-col gap-2 flex-1 min-h-[200px]">
+<div class="flex justify-between items-center">
+<label class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Source Material</label>
+<button class="text-primary hover:text-primary-fixed transition-colors font-data-mono text-[10px] flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">edit</span> EDIT
+                        </button>
+</div>
+<div class="border border-outline-variant rounded bg-surface p-3 flex-1 overflow-y-auto">
+<div class="flex items-center gap-2 mb-3 pb-2 border-b border-outline-variant">
+<span class="material-symbols-outlined text-outline-variant text-[16px]">description</span>
+<span class="font-data-mono text-[11px] text-on-surface-variant truncate">resume_v4_final_tech.pdf</span>
+</div>
+<!-- Extracted Matrix -->
+<div class="flex flex-col gap-3">
+<div class="grid grid-cols-[80px_1fr] gap-2 items-start border-b border-outline-variant/30 pb-2">
+<span class="font-data-mono text-[10px] text-outline-variant">EXP (YRS)</span>
+<div class="flex flex-wrap gap-1">
+<span class="px-1 py-0.5 bg-surface-variant rounded-[2px] font-data-mono text-[10px] text-on-surface">React (4)</span>
+<span class="px-1 py-0.5 bg-surface-variant rounded-[2px] font-data-mono text-[10px] text-on-surface">Node.js (3)</span>
+</div>
+</div>
+<div class="grid grid-cols-[80px_1fr] gap-2 items-start border-b border-outline-variant/30 pb-2">
+<span class="font-data-mono text-[10px] text-outline-variant">IMPACT</span>
+<p class="font-body-sm text-[13px] text-on-surface-variant leading-tight">Reduced latency by 40% via Redis caching layer. Lead team of 3.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Area -->
+<div class="p-gutter border-t border-outline-variant bg-surface-container-highest">
+<button class="w-full flex items-center justify-center gap-2 bg-primary text-on-primary py-2 px-4 rounded hover:bg-primary-fixed transition-colors border border-transparent font-label-caps text-label-caps tracking-widest h-[36px]">
+<span class="material-symbols-outlined text-[16px]">bolt</span>
+                    GENERATE PROMPT
+                </button>
+</div>
+</section>
+<!-- Right Panel: IDE Prompt Preview -->
+<section class="w-2/3 bg-surface flex flex-col h-full relative">
+<!-- Editor Header -->
+<div class="h-row-height-standard border-b border-outline-variant flex items-center px-gutter justify-between shrink-0 bg-surface z-10">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">terminal</span>
+<h2 class="font-data-mono text-data-mono text-on-surface">outreach_template_a.md</h2>
+</div>
+<div class="h-4 w-px bg-outline-variant/50"></div>
+<span class="font-data-mono text-[10px] text-outline flex items-center gap-1">
+<div class="w-1.5 h-1.5 rounded-full bg-secondary"></div>
+                        READY
+                    </span>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center gap-1 px-3 py-1 border border-outline-variant rounded text-on-surface-variant hover:text-on-surface hover:border-outline transition-colors bg-surface-container h-7">
+<span class="material-symbols-outlined text-[14px]">save</span>
+<span class="font-label-caps text-[10px]">SAVE DRAFT</span>
+</button>
+<button class="flex items-center gap-1 px-3 py-1 border border-primary text-primary hover:bg-primary/10 transition-colors rounded h-7">
+<span class="material-symbols-outlined text-[14px]">content_copy</span>
+<span class="font-label-caps text-[10px]">COPY TO CLIPBOARD</span>
+</button>
+</div>
+</div>
+<!-- Editor Body -->
+<div class="flex-1 overflow-y-auto p-gutter font-data-mono text-[13px] leading-relaxed z-10 relative">
+<!-- Line Numbers (Simulated) -->
+<div class="absolute left-0 top-0 bottom-0 w-[40px] border-r border-outline-variant bg-surface-container-lowest text-right pr-2 pt-gutter text-outline-variant select-none text-[12px]">
+                    1<br/>2<br/>3<br/>4<br/>5<br/>6<br/>7<br/>8<br/>9<br/>10<br/>11<br/>12<br/>13<br/>14<br/>15
+                </div>
+<div class="pl-[40px] text-on-surface-variant whitespace-pre-wrap outline-none" contenteditable="true" spellcheck="false">
+<span class="text-outline">Subject:</span> Quick connection regarding <span class="text-tertiary">{role_title}</span> at <span class="text-tertiary">{company_name}</span>
+
+Hi <span class="text-tertiary">{recruiter_first_name}</span>,
+
+I noticed you're currently recruiting for the <span class="text-tertiary">{role_title}</span> position at <span class="text-tertiary">{company_name}</span>. Given your focus on building out the <span class="text-tertiary">{department_name}</span> team, I thought it might be worth connecting.
+
+I am a <span class="text-primary-container">Software Engineer</span> with <span class="text-secondary-container">4 years</span> of experience, specifically working with the tech stack mentioned in your job description (<span class="text-primary-container">React</span>, <span class="text-primary-container">Node.js</span>). In my recent role, I <span class="text-secondary-fixed">reduced latency by 40% via a custom Redis caching layer</span>, which seems highly relevant to the scaling challenges <span class="text-tertiary">{company_name}</span> is currently tackling.
+
+I've attached my resume for your review. Would you be open to a brief chat next week to discuss if my background aligns with what you're looking for?
+
+Best regards,
+
+[My Name]
+[My LinkedIn Profile]
+[My Portfolio Link]
+</div>
+</div>
+<!-- Editor Footer / Status Bar -->
+<div class="h-6 border-t border-outline-variant flex items-center px-4 justify-between shrink-0 bg-surface-container-lowest text-outline font-data-mono text-[11px] z-10">
+<div class="flex gap-4">
+<span>UTF-8</span>
+<span>Markdown</span>
+<span>Words: 142</span>
+</div>
+<div class="flex gap-4">
+<span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-secondary-container"></span> AI Confidence: 94%</span>
+<span>Ln 15, Col 1</span>
+</div>
+</div>
+</section>
+</main>
+</body></html>

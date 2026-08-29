@@ -1,4 +1,4 @@
-<!-- Top Job Picks for You — 3D Fan Carousel -->
+<!-- Top Job Picks for You — 3D Fan Carousel (Stitch Spec) -->
 {% if current_user.role != 'recruiter' %}
 {% if top_picks %}
 <script type="application/json" id="picks-json-data">{{ top_picks | tojson }}</script>
@@ -22,65 +22,65 @@
         user-select: none;
     }
     .fan-card:hover {
-        filter: brightness(1.03);
+        filter: brightness(1.05);
     }
     .fan-dot {
         transition: all 0.3s ease;
     }
 </style>
-<div class="mb-10" x-data="fanCarousel(window.__topPicks__)">
+<div class="mb-6 border border-outline-variant rounded-lg p-4 bg-surface-container-low" x-data="fanCarousel(window.__topPicks__)">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center gap-3">
-            <span aria-hidden="true"><svg class="w-7 h-7 text-amber-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" /></svg></span>
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px] text-tertiary">star</span>
             <div>
-                <h2 class="text-xl font-bold text-gray-900">Top Job Picks for You</h2>
-                <p class="text-xs text-gray-500">Based on your resume skills</p>
+                <h2 class="font-headline-md text-[14px] text-on-surface font-semibold">Top Job Picks For You</h2>
+                <p class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Resume Skill Matched</p>
             </div>
+        </div>
+        <div class="flex items-center gap-1">
+            <button @click="prev()" :disabled="activeIndex === 0"
+                class="p-1 rounded border border-outline-variant/60 bg-surface-container text-on-surface-variant hover:text-primary hover:border-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+            </button>
+            <button @click="next()" :disabled="activeIndex === picks.length - 1"
+                class="p-1 rounded border border-outline-variant/60 bg-surface-container text-on-surface-variant hover:text-primary hover:border-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+            </button>
         </div>
     </div>
 
     <!-- 3D Fan Stage -->
-    <div class="fan-stage relative w-full overflow-hidden" style="height: 320px;">
+    <div class="fan-stage relative w-full overflow-hidden" style="height: 280px;">
         <template x-for="(pick, i) in picks" :key="i">
             <div class="fan-card absolute" :style="getCardStyle(i)" @click="setActive(i)">
                 <!-- Card face -->
-                <div class="border flex flex-col overflow-hidden transition-all duration-300" :class="[
-                        i === activeIndex ? (darkMode ? 'border-premium-ruby shadow-premium-ruby/30' : 'border-indigo-300 shadow-2xl') : (darkMode ? 'border-premium-teal/40 shadow-md' : 'border-gray-200 shadow-md'),
-                        darkMode ? 'bg-[var(--card-bg)]' : 'bg-white'
-                    ]" style="width: 240px; height: 280px;">
-                    <!-- Gradient header -->
-                    <div class="p-5 flex-1 flex flex-col"
-                        :style="i === activeIndex ? (darkMode ? 'background: linear-gradient(135deg, rgba(130, 38, 89, 0.1) 0%, rgba(0, 77, 97, 0.1) 100%)' : 'background: linear-gradient(135deg, #f0f4ff 0%, #fafaff 100%)') : ''">
-                        <div class="flex items-center justify-between mb-3">
-                            <span
-                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
-                                :style="'background-color:' + pick.status_color + '; color:' + pick.status_text_color"
-                                x-text="pick.status_text"></span>
+                <div class="border rounded-lg flex flex-col overflow-hidden transition-all duration-300 bg-surface-container"
+                     :class="i === activeIndex ? 'border-primary shadow-xl ring-1 ring-primary/40' : 'border-outline-variant shadow-md'"
+                     style="width: 240px; height: 260px;">
+                    <div class="p-4 flex-1 flex flex-col">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-data-mono text-[10px] px-1.5 py-0.5 rounded border border-outline-variant bg-surface-container-high text-on-surface-variant"
+                                  x-text="pick.status_text"></span>
                             <span x-show="pick.relevance_score > 0"
-                                class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full"
-                                x-text="Math.round(pick.relevance_score) + '%'"></span>
+                                  class="font-data-mono text-[11px] font-bold text-secondary px-1.5 py-0.5 rounded bg-secondary/10 border border-secondary/20"
+                                  x-text="Math.min(Math.round(pick.relevance_score), 100) + '%'"></span>
                         </div>
-                        <h3 class="text-base font-bold mb-1 leading-snug"
-                            :class="darkMode ? 'text-premium-text' : 'text-gray-900'"
-                            style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.8em"
+                        <h3 class="font-body-sm font-semibold text-on-surface text-[13px] leading-snug line-clamp-2"
                             x-text="pick.title"></h3>
-                        <p class="text-sm truncate mb-3"
-                            :class="darkMode ? 'text-premium-text/70' : 'text-gray-500'"
+                        <p class="font-data-mono text-[11px] text-on-surface-variant mt-1"
                             x-text="pick.company"></p>
-                        <div class="flex flex-wrap gap-1 mt-auto">
-                            <template x-for="skill in pick.matched_skills.slice(0,4)" :key="skill">
-                                <span
-                                    class="inline-block px-2 py-0.5 text-xs font-medium rounded-full border"
-                                    :class="darkMode ? 'bg-premium-ruby/20 text-premium-text border-premium-ruby/30' : 'bg-indigo-50 text-indigo-700 border-indigo-100'"
-                                    x-text="skill"></span>
+                        <div class="flex flex-wrap gap-1 mt-auto pt-2">
+                            <template x-for="skill in pick.matched_skills.slice(0,3)" :key="skill">
+                                <span class="font-data-mono text-[9px] px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant border border-outline-variant/30"
+                                      x-text="skill"></span>
                             </template>
                         </div>
                     </div>
-                    <!-- View Details — only on active -->
-                    <div class="px-4 pb-4 pt-1" x-show="i === activeIndex" x-transition>
+                    <!-- View Details on active -->
+                    <div class="px-3 pb-3 pt-1" x-show="i === activeIndex" x-transition>
                         <a :href="'/job/' + pick.id"
-                            class="w-full btn-temporal inline-flex items-center justify-center px-4 py-2.5 text-sm font-semibold rounded-xl shadow-sm transition-all duration-200"
+                            class="w-full bg-primary text-on-primary font-label-caps text-label-caps py-1.5 rounded flex items-center justify-center hover:bg-primary-container transition-colors"
                             @click.stop>
                             View Details
                         </a>
@@ -91,30 +91,12 @@
     </div>
 
     <!-- Dot indicators -->
-    <div class="flex justify-center gap-1.5 mt-8 mb-4">
+    <div class="flex justify-center gap-1 mt-3">
         <template x-for="(pick, i) in picks" :key="i">
-            <button @click="setActive(i)" class="fan-dot rounded-full transition-all duration-300"
-                :class="i === activeIndex ? 'w-6 h-2 bg-premium-ruby' : (darkMode ? 'w-2 h-2 bg-premium-teal hover:bg-premium-ruby' : 'w-2 h-2 bg-gray-300 hover:bg-gray-400')">
+            <button @click="setActive(i)" class="fan-dot rounded-full transition-all"
+                :class="i === activeIndex ? 'w-4 h-1.5 bg-primary' : 'w-1.5 h-1.5 bg-outline-variant hover:bg-outline'">
             </button>
         </template>
-    </div>
-
-    <!-- Navigation Controls Below -->
-    <div class="flex justify-center items-center gap-4">
-        <button @click="prev()" :disabled="activeIndex === 0"
-            :class="activeIndex > 0 ? 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300 shadow-sm' : 'bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed'"
-            class="w-10 h-10 flex items-center justify-center rounded-full border transition-all duration-200">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-            </svg>
-        </button>
-        <button @click="next()" :disabled="activeIndex === picks.length - 1"
-            :class="activeIndex < picks.length - 1 ? 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300 shadow-sm' : 'bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed'"
-            class="w-10 h-10 flex items-center justify-center rounded-full border transition-all duration-200">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-            </svg>
-        </button>
     </div>
 </div>
 
@@ -131,25 +113,19 @@
                 const abs = Math.abs(diff);
                 const stageW = 800;
                 const cardW = 240;
-                const centerX = stageW / 2 - cardW / 2;
-
-                const offsetMap = { 0: 0, 1: 200, 2: 320, 3: 400, 4: 460 };
-                const xOff = (offsetMap[abs] || abs * 120) * Math.sign(diff);
-
-                const rotateMap = { 0: 0, 1: 30, 2: 45, 3: 55, 4: 62 };
-                const rotY = -(rotateMap[abs] || 60) * Math.sign(diff);
-
-                const scaleMap = { 0: 1, 1: 0.78, 2: 0.65, 3: 0.55, 4: 0.48 };
-                const scale = scaleMap[abs] || 0.44;
-
+                const offsetMap = { 0: 0, 1: 180, 2: 300, 3: 380, 4: 440 };
+                const xOff = (offsetMap[abs] || abs * 110) * Math.sign(diff);
+                const rotateMap = { 0: 0, 1: 25, 2: 40, 3: 50, 4: 58 };
+                const rotY = -(rotateMap[abs] || 55) * Math.sign(diff);
+                const scaleMap = { 0: 1, 1: 0.82, 2: 0.68, 3: 0.58, 4: 0.5 };
+                const scale = scaleMap[abs] || 0.45;
                 const opacityMap = { 0: 1, 1: 0.85, 2: 0.65, 3: 0.45, 4: 0.3 };
                 const opacity = opacityMap[abs] || 0.25;
-
                 const zIndex = 50 - abs * 10;
 
                 return `
                     left: calc(50% - ${cardW / 2}px + ${xOff}px);
-                    top: ${abs === 0 ? 20 : 40}px;
+                    top: ${abs === 0 ? 10 : 25}px;
                     transform: rotateY(${rotY}deg) scale(${scale});
                     opacity: ${opacity};
                     z-index: ${zIndex};

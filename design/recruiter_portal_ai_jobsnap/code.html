@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>JobSnap - Recruiter Portal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "inverse-on-surface": "#2f3038",
+                "on-secondary": "#003824",
+                "on-primary-fixed": "#07006c",
+                "primary-fixed": "#e1e0ff",
+                "tertiary": "#ffb95f",
+                "surface-container-high": "#292931",
+                "secondary-container": "#00a572",
+                "error": "#ffb4ab",
+                "on-primary-fixed-variant": "#2f2ebe",
+                "on-error": "#690005",
+                "surface-container-lowest": "#0d0e15",
+                "on-tertiary-fixed-variant": "#653e00",
+                "primary": "#c0c1ff",
+                "on-secondary-container": "#00311f",
+                "primary-container": "#8083ff",
+                "on-secondary-fixed": "#002113",
+                "tertiary-fixed-dim": "#ffb95f",
+                "outline": "#908fa0",
+                "on-tertiary-container": "#3e2400",
+                "surface-variant": "#33343c",
+                "on-tertiary-fixed": "#2a1700",
+                "tertiary-container": "#ca8100",
+                "surface-container-highest": "#33343c",
+                "error-container": "#93000a",
+                "secondary-fixed-dim": "#4edea3",
+                "on-background": "#e3e1ec",
+                "surface-container-low": "#1a1b22",
+                "secondary-fixed": "#6ffbbe",
+                "on-tertiary": "#472a00",
+                "tertiary-fixed": "#ffddb8",
+                "surface": "#12131a",
+                "on-surface": "#e3e1ec",
+                "secondary": "#4edea3",
+                "on-error-container": "#ffdad6",
+                "surface-dim": "#12131a",
+                "outline-variant": "#464554",
+                "inverse-primary": "#494bd6",
+                "background": "#12131a",
+                "surface-container": "#1e1f26",
+                "surface-tint": "#c0c1ff",
+                "on-primary": "#1000a9",
+                "on-surface-variant": "#c7c4d7",
+                "on-secondary-fixed-variant": "#005236",
+                "inverse-surface": "#e3e1ec",
+                "primary-fixed-dim": "#c0c1ff",
+                "surface-bright": "#383941",
+                "on-primary-container": "#0d0096"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+        },
+        "spacing": {
+                "gutter": "16px",
+                "unit": "4px",
+                "row-height-standard": "44px",
+                "row-height-compact": "32px",
+                "container-padding": "24px"
+        },
+        "fontFamily": {
+                "body-sm": [
+                        "Inter"
+                ],
+                "headline-lg": [
+                        "Plus Jakarta Sans"
+                ],
+                "body-lg": [
+                        "Inter"
+                ],
+                "data-mono": [
+                        "JetBrains Mono"
+                ],
+                "label-caps": [
+                        "Inter"
+                ],
+                "headline-md": [
+                        "Plus Jakarta Sans"
+                ],
+                "display": [
+                        "Plus Jakarta Sans"
+                ]
+        },
+        "fontSize": {
+                "body-sm": [
+                        "13px",
+                        {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "0em",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-lg": [
+                        "24px",
+                        {
+                                "lineHeight": "1.3",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-lg": [
+                        "14px",
+                        {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "0em",
+                                "fontWeight": "400"
+                        }
+                ],
+                "data-mono": [
+                        "12px",
+                        {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "0.02em",
+                                "fontWeight": "500"
+                        }
+                ],
+                "label-caps": [
+                        "11px",
+                        {
+                                "lineHeight": "1",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-md": [
+                        "18px",
+                        {
+                                "lineHeight": "1.4",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "display": [
+                        "32px",
+                        {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        .kanban-col {
+            scrollbar-width: none; /* Firefox */
+        }
+        .kanban-col::-webkit-scrollbar {
+            display: none; /* Chrome, Safari and Opera */
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-sm h-screen flex flex-col overflow-hidden">
+<!-- TopNavBar -->
+<nav class="bg-background/80 backdrop-blur-md border-b border-outline-variant fixed top-0 w-full h-[48px] z-50 flex justify-between items-center px-gutter max-w-[1600px] mx-auto flat no shadows">
+<div class="flex items-center gap-gutter">
+<div class="flex items-center gap-2">
+<div class="w-[52px] h-[52px] bg-primary/20 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" style="font-size: 24px;">work</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-md text-[15px] text-on-surface tracking-tight font-bold text-primary">JobSnap</span>
+<span class="font-body-sm text-on-surface-variant text-[11px]">Good morning, Musab</span>
+</div>
+</div>
+<div class="hidden md:flex gap-unit ml-8">
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 px-3 py-1 font-body-sm text-[13px]" href="#">Dashboard</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 px-3 py-1 font-body-sm text-[13px]" href="#">Analytics</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 px-3 py-1 font-body-sm text-[13px]" href="#">Reports</a>
+<a class="text-primary font-bold border-b-2 border-primary pb-1 opacity-80 transition-all font-body-sm text-[13px]" href="#">Team</a>
+</div>
+</div>
+<div class="flex items-center gap-unit">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-outline-variant" style="font-size: 18px;">search</span>
+<input class="bg-surface-container-high border-outline-variant/50 border text-on-surface focus:border-primary focus:ring-0 rounded pl-8 pr-3 py-1 font-body-sm w-48 transition-colors" placeholder="Search..." type="text"/>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2">
+<span class="material-symbols-outlined" style="font-size: 20px;">dark_mode</span>
+</button>
+<span class="text-on-surface-variant font-data-mono text-[11px] uppercase ml-4">LOGGED IN AS 1MUSAB</span>
+</div>
+</nav>
+<div class="flex flex-1 pt-[56px] overflow-hidden">
+<!-- SideNavBar -->
+<aside class="bg-surface-container-low border-r border-outline-variant docked left-0 h-full w-[320px] flex flex-col p-unit gap-2 flat no shadows hidden md:flex shrink-0">
+<div class="px-4 py-4 border-b border-outline-variant/30 mb-2">
+<div class="flex items-center gap-3 mb-4">
+<img alt="Organization Logo" class="w-10 h-10 rounded-full border border-outline-variant" data-alt="A small, professional headshot avatar of a recruiter in a dark, high-end UI context. Soft, cinematic lighting highlights the subject against a deep slate background. The image is cropped to a perfect circle, exuding a polished, corporate tech vibe." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD97TKYbPEuZiyRpB8WzMapRfIcYz0NYsPBAzNRcfBIcpUNCKnngZPmZCvX5PQEWWqMjKSC3Oj3X6SsLkuHCEKSsCikZO3TaFLsu0v7ujzY9r4SXAhSoOSkjze5EV8LMKoHHNJN1TzrxESry4D0IboL2orpFbdnXHrOLfn9rWhxQ06oGKQgwQt76ermQ5j757El9IQWzBRElAbw8SEgyLDxmUFixnBrJevWEqAgzRQTksda9VtjkRkJ"/>
+<div>
+<h2 class="font-label-caps text-label-caps text-primary font-bold">Enterprise Console</h2>
+<p class="text-on-surface-variant font-body-sm text-label-caps">LOGGED IN AS 1MUSAB</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 flex flex-col gap-1 px-2">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">search</span>
+<span class="font-body-md text-body-md">New Search</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">bookmark</span>
+<span class="font-body-md text-body-md">Saved Profiles</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 bg-secondary-container text-on-secondary-container rounded-lg font-semibold scale-[0.98] hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</nav>
+<div class="p-4 mt-auto border-t border-outline-variant/30 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">help</span>
+<span class="font-body-md text-body-md">Support</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">description</span>
+<span class="font-body-md text-body-md">Documentation</span>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto bg-background p-container-padding flex flex-col gap-6">
+<!-- Metrics -->
+<div class="grid grid-cols-4 gap-4">
+<div class="bg-surface-container border border-outline-variant p-4 rounded flex flex-col gap-2">
+<span class="text-on-surface-variant font-label-caps uppercase">Total Candidates</span>
+<div class="flex items-end gap-2">
+<span class="font-data-mono text-[24px] font-bold text-on-surface">1,204</span>
+<span class="text-secondary flex items-center text-body-sm"><span class="material-symbols-outlined" style="font-size: 14px;">trending_up</span> +12%</span>
+</div>
+</div>
+<div class="bg-surface-container border border-outline-variant p-4 rounded flex flex-col gap-2">
+<span class="text-on-surface-variant font-label-caps uppercase">Time to Hire</span>
+<div class="flex items-end gap-2">
+<span class="font-data-mono text-[24px] font-bold text-on-surface">18d</span>
+<span class="text-secondary flex items-center text-body-sm"><span class="material-symbols-outlined" style="font-size: 14px;">trending_down</span> -2d</span>
+</div>
+</div>
+<div class="bg-surface-container border border-outline-variant p-4 rounded flex flex-col gap-2">
+<span class="text-on-surface-variant font-label-caps uppercase">Acceptance Rate</span>
+<div class="flex items-end gap-2">
+<span class="font-data-mono text-[24px] font-bold text-on-surface">85%</span>
+<span class="text-secondary flex items-center text-body-sm"><span class="material-symbols-outlined" style="font-size: 14px;">trending_up</span> +5%</span>
+</div>
+</div>
+<div class="bg-surface-container border border-outline-variant p-4 rounded flex flex-col gap-2">
+<span class="text-on-surface-variant font-label-caps uppercase">Open Roles</span>
+<div class="flex items-end gap-2">
+<span class="font-data-mono text-[24px] font-bold text-on-surface">34</span>
+<span class="text-on-surface-variant flex items-center text-body-sm"><span class="material-symbols-outlined" style="font-size: 14px;">horizontal_rule</span> 0</span>
+</div>
+</div>
+</div>
+<!-- Active Jobs -->
+<div class="bg-surface-container border border-outline-variant rounded p-4 flex flex-col gap-4">
+<h3 class="font-headline-md text-on-surface font-bold">Active Jobs</h3>
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between border-b border-outline-variant/30 pb-2">
+<div class="flex-1 font-body-sm font-semibold text-on-surface">Job Title</div>
+<div class="w-32 font-body-sm font-semibold text-on-surface text-center">Applications</div>
+<div class="w-32 font-body-sm font-semibold text-on-surface text-center">Posted Date</div>
+<div class="w-32 font-body-sm font-semibold text-on-surface text-right">Status</div>
+</div>
+<div class="flex items-center justify-between py-2 border-b border-outline-variant/10 hover:bg-surface-container-high transition-colors px-2 -mx-2 rounded cursor-pointer">
+<div class="flex-1 flex flex-col">
+<span class="font-body-lg text-primary font-semibold">Sr. Frontend Engineer</span>
+<span class="font-data-mono text-[10px] text-on-surface-variant">REQ-8902</span>
+</div>
+<div class="w-32 font-data-mono text-center text-on-surface">45</div>
+<div class="w-32 font-data-mono text-center text-on-surface-variant">Oct 12</div>
+<div class="w-32 flex justify-end">
+<span class="bg-secondary/20 text-secondary font-label-caps px-2 py-1 rounded border border-secondary/30">Active</span>
+</div>
+</div>
+<div class="flex items-center justify-between py-2 border-b border-outline-variant/10 hover:bg-surface-container-high transition-colors px-2 -mx-2 rounded cursor-pointer">
+<div class="flex-1 flex flex-col">
+<span class="font-body-lg text-primary font-semibold">Product Designer</span>
+<span class="font-data-mono text-[10px] text-on-surface-variant">REQ-8903</span>
+</div>
+<div class="w-32 font-data-mono text-center text-on-surface">112</div>
+<div class="w-32 font-data-mono text-center text-on-surface-variant">Oct 05</div>
+<div class="w-32 flex justify-end">
+<span class="bg-tertiary/20 text-tertiary font-label-caps px-2 py-1 rounded border border-tertiary/30">Review</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Kanban Board -->
+<div class="flex gap-4 flex-1 overflow-x-auto pb-4">
+<!-- New -->
+<div class="flex-shrink-0 w-80 flex flex-col gap-2 bg-surface-container-low p-2 rounded border border-outline-variant/20">
+<div class="flex items-center justify-between py-2 px-1">
+<span class="font-headline-md font-bold text-on-surface text-[14px]">New</span>
+<span class="bg-surface-container-high text-on-surface-variant font-data-mono px-2 py-0.5 rounded">12</span>
+</div>
+<div class="kanban-col flex-1 overflow-y-auto flex flex-col gap-2">
+<div class="bg-surface-container border border-outline-variant/30 p-2 rounded h-[64px] flex flex-col justify-center hover:border-primary/50 transition-colors cursor-pointer group">
+<div class="flex justify-between items-center">
+<h3 class="font-body-sm font-semibold text-on-surface">Sarah Jenkins</h3>
+<span class="text-secondary font-data-mono text-[10px]">98%</span>
+</div>
+<span class="font-data-mono text-[10px] text-on-surface-variant group-hover:text-primary transition-colors">Sr. Frontend Eng</span>
+</div>
+<div class="bg-surface-container border border-outline-variant/30 p-2 rounded h-[64px] flex flex-col justify-center hover:border-primary/50 transition-colors cursor-pointer group">
+<div class="flex justify-between items-center">
+<h3 class="font-body-sm font-semibold text-on-surface">Mike Chen</h3>
+<span class="text-secondary font-data-mono text-[10px]">92%</span>
+</div>
+<span class="font-data-mono text-[10px] text-on-surface-variant group-hover:text-primary transition-colors">Sr. Frontend Eng</span>
+</div>
+</div>
+</div>
+<!-- Screening -->
+<div class="flex-shrink-0 w-80 flex flex-col gap-2 bg-surface-container-low p-2 rounded border border-outline-variant/20">
+<div class="flex items-center justify-between py-2 px-1">
+<span class="font-headline-md font-bold text-on-surface text-[14px]">Screening</span>
+<span class="bg-surface-container-high text-on-surface-variant font-data-mono px-2 py-0.5 rounded">5</span>
+</div>
+<div class="kanban-col flex-1 overflow-y-auto flex flex-col gap-2">
+<div class="bg-surface-container border border-outline-variant/30 p-2 rounded h-[64px] flex flex-col justify-center hover:border-primary/50 transition-colors cursor-pointer group">
+<div class="flex justify-between items-center">
+<h3 class="font-body-sm font-semibold text-on-surface">Elena Rodriguez</h3>
+<span class="text-secondary font-data-mono text-[10px]">95%</span>
+</div>
+<span class="font-data-mono text-[10px] text-on-surface-variant group-hover:text-primary transition-colors">Product Designer</span>
+</div>
+</div>
+</div>
+<!-- Interview -->
+<div class="flex-shrink-0 w-80 flex flex-col gap-2 bg-surface-container-low p-2 rounded border border-outline-variant/20">
+<div class="flex items-center justify-between py-2 px-1">
+<span class="font-headline-md font-bold text-on-surface text-[14px]">Interview</span>
+<span class="bg-surface-container-high text-on-surface-variant font-data-mono px-2 py-0.5 rounded">3</span>
+</div>
+<div class="kanban-col flex-1 overflow-y-auto flex flex-col gap-2">
+<div class="bg-surface-container border border-outline-variant/30 p-2 rounded h-[64px] flex flex-col justify-center hover:border-primary/50 transition-colors cursor-pointer group">
+<div class="flex justify-between items-center">
+<h3 class="font-body-sm font-semibold text-on-surface">David Kim</h3>
+<span class="text-tertiary font-data-mono text-[10px]">88%</span>
+</div>
+<span class="font-data-mono text-[10px] text-on-surface-variant group-hover:text-primary transition-colors">Sr. Frontend Eng</span>
+</div>
+</div>
+</div>
+<!-- Offer -->
+<div class="flex-shrink-0 w-80 flex flex-col gap-2 bg-surface-container-low p-2 rounded border border-outline-variant/20">
+<div class="flex items-center justify-between py-2 px-1">
+<span class="font-headline-md font-bold text-on-surface text-[14px]">Offer</span>
+<span class="bg-surface-container-high text-on-surface-variant font-data-mono px-2 py-0.5 rounded">1</span>
+</div>
+<div class="kanban-col flex-1 overflow-y-auto flex flex-col gap-2">
+<div class="bg-surface-container border border-outline-variant/30 p-2 rounded h-[64px] flex flex-col justify-center hover:border-primary/50 transition-colors cursor-pointer group">
+<div class="flex justify-between items-center">
+<h3 class="font-body-sm font-semibold text-on-surface">Alex Turner</h3>
+<span class="text-secondary font-data-mono text-[10px]">99%</span>
+</div>
+<span class="font-data-mono text-[10px] text-on-surface-variant group-hover:text-primary transition-colors">Product Designer</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

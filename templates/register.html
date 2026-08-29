@@ -1,10 +1,7 @@
 {% extends "base.html" %}
-{% block body_class %}light-theme{% endblock %}
+{% block title %}Create Account — AI JobSnap{% endblock %}
 {% block content %}
-
 <script>
-  // Redirect to login page with register mode active
-  window.location.href = "{{ url_for('login') }}#register";
+    window.location.href = "{{ url_for('login') }}#register";
 </script>
-
 {% endblock %}

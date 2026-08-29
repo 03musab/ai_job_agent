@@ -1,86 +1,73 @@
 {% extends "base.html" %}
-{% from "macros.html" import page_header, breadcrumb %}
-{% block body_class %}light-theme{% endblock %}
+{% block title %}Signal Board — AI JobSnap{% endblock %}
 {% block content %}
-<style>
-    @keyframes slide-in-up {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    .campaign-card { animation: slide-in-up 0.5s ease-out forwards; }
-</style>
+<div class="max-w-[1400px] mx-auto px-container-padding py-8 flex-1 flex flex-col gap-6 w-full">
+    
+    <!-- Top Header -->
+    <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Outreach Telemetry</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+            </div>
+            <h1 class="font-headline-lg text-on-surface text-[20px] font-bold">Signal Board</h1>
+            <p class="font-body-sm text-[12px] text-on-surface-variant">
+                Monitor live response telemetry, delivery rates, and candidate interaction velocity.
+            </p>
+        </div>
 
-<div class="max-w-7xl mx-auto px-4 py-8 animate-fade-in">
-    {{ breadcrumb([{"label": "Dashboard", "url": url_for('recruiter_dashboard')}, {"label": "Outreach Studio", "url": url_for('outreach_studio')}, {"label": "Signal Board"}]) }}
-
-    {% call page_header("Signal Board", "Monitor and analyze your outreach campaigns.") %}
-    <a href="{{ url_for('outreach_studio') }}" class="inline-flex items-center gap-2 text-sm font-medium transition-colors"
-       :class="darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" /></svg>
-        Back to Outreach Studio
-    </a>
-    {% endcall %}
+        <div class="flex items-center gap-3">
+            <a href="{{ url_for('outreach_studio') }}"
+                class="font-data-mono text-[10px] text-on-surface-variant hover:text-primary border border-outline-variant px-3 py-1.5 rounded uppercase tracking-wider transition-colors">
+                Outreach Studio
+            </a>
+        </div>
+    </div>
 
     <!-- Campaigns Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for campaign in campaigns %}
-        <div class="campaign-card rounded-lg overflow-hidden transition-all duration-300 shadow-md"
-             style="animation-delay: {{ loop.index0 * 100 }}ms; opacity: 0;"
-             :class="darkMode ? 'bg-gray-800/90 border border-gray-700' : 'bg-white border border-gray-200 hover:shadow-lg'">
-            <div class="p-6">
-                <div class="flex justify-between items-start mb-4">
+        <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex flex-col justify-between hover:border-primary/40 transition-colors">
+            <div>
+                <div class="flex justify-between items-start mb-3 border-b border-outline-variant pb-2">
                     <div>
-                        <h3 class="text-xl font-bold" :class="darkMode ? 'text-white' : 'text-gray-900'">{{ campaign.campaign_name }}</h3>
-                        <p class="text-xs" :class="darkMode ? 'text-gray-400' : 'text-gray-500'">{{ campaign.description or 'No description' }}</p>
+                        <h3 class="font-headline-md text-on-surface text-[15px] font-bold">{{ campaign.campaign_name }}</h3>
+                        <p class="font-data-mono text-[10px] text-on-surface-variant mt-0.5">{{ campaign.description or 'No campaign notes' }}</p>
                     </div>
-                    <span class="px-2 py-0.5 text-xs font-semibold rounded-full uppercase border" style="border-radius: 0.25rem;"
-                          :class="darkMode ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-white text-gray-700 border-gray-200'">
+                    <span class="font-data-mono text-[9px] px-2 py-0.5 rounded border uppercase border-outline-variant bg-surface-container-high text-on-surface-variant">
                         {{ campaign.status }}
                     </span>
                 </div>
 
-                <!-- Analytics -->
-                <div class="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                        <p class="stat-number text-2xl" :class="darkMode ? 'text-cyan-400' : 'text-blue-600'">{{ campaign.analytics.total_sent }}</p>
-                        <p class="text-xs" :class="darkMode ? 'text-gray-400' : 'text-gray-500'">Sent</p>
+                <!-- Metrics Triple Pill -->
+                <div class="grid grid-cols-3 gap-2 text-center py-2">
+                    <div class="p-2 rounded bg-surface-container-lowest border border-outline-variant/40">
+                        <span class="font-headline-lg text-primary text-[18px] font-bold">{{ campaign.analytics.total_sent }}</span>
+                        <p class="font-data-mono text-[9px] text-on-surface-variant uppercase mt-0.5">Dispatched</p>
                     </div>
-                    <div>
-                        <p class="stat-number text-2xl" :class="darkMode ? 'text-green-400' : 'text-green-600'">{{ campaign.analytics.replied_count }}</p>
-                        <p class="text-xs" :class="darkMode ? 'text-gray-400' : 'text-gray-500'">Replied</p>
+                    <div class="p-2 rounded bg-surface-container-lowest border border-outline-variant/40">
+                        <span class="font-headline-lg text-secondary text-[18px] font-bold">{{ campaign.analytics.replied_count }}</span>
+                        <p class="font-data-mono text-[9px] text-on-surface-variant uppercase mt-0.5">Replied</p>
                     </div>
-                    <div>
-                        <p class="stat-number text-2xl" :class="darkMode ? 'text-purple-400' : 'text-purple-600'">{{ '%.1f'|format(campaign.analytics.reply_rate) }}%</p>
-                        <p class="text-xs" :class="darkMode ? 'text-gray-400' : 'text-gray-500'">Reply Rate</p>
+                    <div class="p-2 rounded bg-surface-container-lowest border border-outline-variant/40">
+                        <span class="font-headline-lg text-tertiary text-[18px] font-bold">{{ '%.1f'|format(campaign.analytics.reply_rate) }}%</span>
+                        <p class="font-data-mono text-[9px] text-on-surface-variant uppercase mt-0.5">Yield</p>
                     </div>
                 </div>
             </div>
-            <div class="px-6 py-4 rounded-b-lg"
-                 :class="darkMode ? 'border-t border-gray-700 bg-gray-900/30' : 'border-t border-gray-200 bg-gray-50'">
-                <div class="flex justify-end gap-3">
-                    <a href="#" class="text-sm font-medium transition-colors"
-                       :class="darkMode ? 'text-cyan-400 hover:text-cyan-300' : 'text-blue-600 hover:text-blue-800'">View Timeline</a>
-                    <a href="#" class="text-sm font-medium transition-colors"
-                       :class="darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'">Edit Campaign</a>
-                </div>
+
+            <div class="pt-3 border-t border-outline-variant flex justify-end gap-2 text-[11px] font-data-mono">
+                <a href="#" class="text-primary hover:underline uppercase">Timeline →</a>
             </div>
         </div>
         {% else %}
-        <div class="md:col-span-2 lg:col-span-3 text-center py-16 rounded-lg shadow-sm"
-             :class="darkMode ? 'bg-gray-800/50 border border-gray-700' : 'bg-white border border-gray-200'">
-            <svg class="mx-auto h-12 w-12" :class="darkMode ? 'text-gray-500' : 'text-gray-400'" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            <h3 class="mt-2 text-lg font-semibold" :class="darkMode ? 'text-white' : 'text-gray-900'">No Campaigns Found</h3>
-            <p class="mt-1 text-sm" :class="darkMode ? 'text-gray-400' : 'text-gray-500'">Create your first campaign to start tracking outreach.</p>
+        <div class="col-span-full border border-outline-variant rounded-xl p-12 text-center bg-surface-container text-on-surface-variant">
+            <span class="material-symbols-outlined text-[36px] text-outline mb-2">signal_cellular_alt</span>
+            <h3 class="font-headline-md text-on-surface text-[15px] font-semibold">No Signals Recorded</h3>
+            <p class="font-body-sm text-[12px] text-on-surface-variant mt-1">Initiate a message sequence from the Outreach Studio to record live telemetry.</p>
         </div>
         {% endfor %}
     </div>
+
 </div>
 {% endblock %}

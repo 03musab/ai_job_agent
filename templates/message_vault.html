@@ -1,92 +1,122 @@
 {% extends "base.html" %}
-{% from "macros.html" import page_header, empty_state, breadcrumb %}
-{% block body_class %}light-theme{% endblock %}
+{% block title %}Message Vault — AI JobSnap{% endblock %}
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-8 animate-fade-in">
-    {{ breadcrumb([{"label": "Dashboard", "url": url_for('recruiter_dashboard')}, {"label": "Outreach Studio", "url": url_for('outreach_studio')}, {"label": "Message Vault"}]) }}
-
-    {% call page_header("Message Vault", "Craft and manage your outreach templates.") %}
-        <a href="{{ url_for('outreach_studio') }}" class="inline-flex items-center gap-2 text-sm font-medium transition-colors"
-           :class="darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" /></svg>
-            Back to Outreach Studio
+<div class="max-w-[1400px] mx-auto px-container-padding py-8 flex-1 flex flex-col gap-6 w-full">
+    
+    <!-- Header -->
+    <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex justify-between items-center">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Outreach Repository</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+            </div>
+            <h1 class="font-headline-lg text-on-surface text-[20px] font-bold">Message Vault</h1>
+            <p class="font-body-sm text-[12px] text-on-surface-variant">
+                Standardize cold emails, LinkedIn inMails, and automated follow-up sequences.
+            </p>
+        </div>
+        <a href="{{ url_for('outreach_studio') }}"
+            class="font-data-mono text-[10px] text-on-surface-variant hover:text-primary border border-outline-variant px-3 py-1.5 rounded uppercase tracking-wider transition-colors">
+            Back to Studio
         </a>
-    {% endcall %}
+    </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Left Side: Template Editor & Preview -->
-        <div class="p-6 rounded-xl shadow-md space-y-6" style="border-radius: 0.25rem;"
-             :class="darkMode ? 'bg-premium-bg/95 border border-premium-teal/20' : 'bg-white border border-gray-200'">
-            <div>
-                <h2 id="editor-title" class="text-2xl font-bold" :class="darkMode ? 'text-white' : 'text-gray-900'">Create New Template</h2>
+    <!-- 2-Pane Editor Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left: Saved Templates List (4 cols) -->
+        <div class="lg:col-span-4 border border-outline-variant rounded-xl bg-surface-container overflow-hidden flex flex-col">
+            <div class="px-4 py-3 border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
+                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Saved Templates</span>
+                <span class="font-data-mono text-[10px] px-2 py-0.5 rounded bg-surface-container-highest border border-outline-variant text-primary font-bold">
+                    {{ templates|length if templates else 0 }}
+                </span>
             </div>
-
-            <form id="template-form" class="space-y-4">
-                <input type="hidden" id="template-id" name="template_id">
-                <div>
-                    <label for="template_name" class="block text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Template Name</label>
-                    <input type="text" name="template_name" id="template_name" required class="form-input" placeholder="e.g., Initial Outreach - Software Engineer">
+            
+            <div id="template-list" class="divide-y divide-outline-variant/40 overflow-y-auto max-h-[500px]">
+                {% for template in templates %}
+                <div class="template-item p-3 hover:bg-surface-container-high transition-colors cursor-pointer flex items-center justify-between"
+                     data-template='{{ template | tojson | safe }}'>
+                    <div class="min-w-0 flex-1 mr-2">
+                        <div class="font-semibold text-on-surface text-[13px] truncate">{{ template.template_name }}</div>
+                        <div class="font-data-mono text-[10px] text-on-surface-variant truncate">{{ template.subject or 'No subject' }}</div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button type="button" class="edit-btn p-1 text-on-surface-variant hover:text-primary rounded">
+                            <span class="material-symbols-outlined text-[15px]">edit</span>
+                        </button>
+                        <button type="button" class="delete-btn p-1 text-error/70 hover:text-error rounded" data-id="{{ template.id }}">
+                            <span class="material-symbols-outlined text-[15px]">delete</span>
+                        </button>
+                    </div>
                 </div>
-                <div>
-                    <label for="subject" class="block text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Subject Line (for emails)</label>
-                    <input type="text" name="subject" id="subject" class="form-input" placeholder="e.g., Question about {jobTitle} role">
+                {% else %}
+                <div class="text-center py-12 text-on-surface-variant/60 font-data-mono text-[11px]">
+                    No message templates yet.
                 </div>
-                <div>
-                    <label for="body" class="block text-sm font-medium" :class="darkMode ? 'text-gray-300' : 'text-gray-700'">Message Body</label>
-                    <textarea name="body" id="body" rows="8" required class="form-input" placeholder="Hi {firstName}, I saw you are hiring for..."></textarea>
-                </div>
-
-                <div class="flex gap-4 pt-2">
-                    <button type="submit" id="save-btn" class="btn-temporal flex-1 inline-flex items-center justify-center py-2 px-4 text-sm font-medium rounded-md shadow-sm text-white">Save Template</button>
-                    <button type="button" id="clear-btn" class="flex-1 inline-flex items-center justify-center px-4 py-2 border text-sm font-medium rounded-md transition-colors" style="border-radius: 0.25rem;"
-                            :class="darkMode ? 'border-premium-teal/30 text-gray-300 bg-premium-bg hover:bg-premium-teal/10' : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'">Clear Form</button>
-                </div>
-            </form>
+                {% endfor %}
+            </div>
         </div>
 
-        <!-- Right Side: Live Preview & Template List -->
-        <div class="space-y-8">
-            <!-- Live Preview -->
-            <div class="p-6 rounded-xl shadow-md" style="border-radius: 0.25rem;"
-                 :class="darkMode ? 'bg-premium-bg/95 border border-premium-teal/20' : 'bg-white border border-gray-200'">
-                <h2 class="text-2xl font-bold mb-4" :class="darkMode ? 'text-white' : 'text-gray-900'">Live Preview</h2>
-                <div class="p-4 rounded-lg border min-h-[200px]" style="border-radius: 0.25rem;"
-                     :class="darkMode ? 'bg-premium-black border-premium-teal/20' : 'bg-gray-50 border-gray-200'">
-                    <div class="flex items-center gap-2 mb-2">
-                        <p id="preview-subject" class="font-semibold" :class="darkMode ? 'text-premium-text' : 'text-gray-900'"></p>
+        <!-- Right: Editor & Live Preview (8 cols) -->
+        <div class="lg:col-span-8 flex flex-col gap-6">
+            
+            <!-- Editor Card -->
+            <div class="border border-outline-variant rounded-xl p-5 bg-surface-container">
+                <div class="flex justify-between items-center mb-4 border-b border-outline-variant pb-2">
+                    <h2 id="editor-title" class="font-headline-md text-on-surface text-[15px] font-semibold">Create Template</h2>
+                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase">Variable support: {firstName}, {jobTitle}, {company}</span>
+                </div>
+
+                <form id="template-form" class="space-y-3">
+                    <input type="hidden" id="template-id" name="template_id">
+                    <div>
+                        <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Template Label</label>
+                        <input type="text" name="template_name" id="template_name" required placeholder="e.g. Senior Backend Cold Pitch"
+                            class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-1.5 text-body-sm text-on-surface focus:border-primary focus:outline-none">
                     </div>
-                    <p id="preview-body" class="whitespace-pre-wrap font-mono text-sm" :class="darkMode ? 'text-gray-400' : 'text-gray-600'"></p>
+                    <div>
+                        <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Subject Header</label>
+                        <input type="text" name="subject" id="subject" placeholder="e.g. Exploring Senior Software Engineer roles at {company}"
+                            class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-1.5 text-body-sm text-on-surface focus:border-primary focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Body Text</label>
+                        <textarea name="body" id="body" rows="7" required placeholder="Hi {firstName}, I noticed {company} is scaling..."
+                            class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded p-3 text-body-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none font-mono text-[12px]"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2 border-t border-outline-variant">
+                        <button type="button" id="clear-btn"
+                            class="px-4 py-1.5 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps hover:bg-surface-container-high transition-colors">
+                            Clear
+                        </button>
+                        <button type="submit" id="save-btn"
+                            class="px-5 py-1.5 bg-primary text-on-primary rounded font-label-caps text-label-caps hover:bg-primary-container transition-colors shadow-sm">
+                            Save Template
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Live Telemetry Preview Card -->
+            <div class="border border-outline-variant rounded-xl p-5 bg-surface-container-low">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="material-symbols-outlined text-[15px] text-secondary">visibility</span>
+                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Terminal Output Preview</span>
+                </div>
+                <div class="p-3 bg-surface-container-lowest border border-outline-variant/40 rounded-lg min-h-[100px] font-mono text-[12px] space-y-2">
+                    <div id="preview-subject" class="text-primary font-semibold"></div>
+                    <div id="preview-body" class="text-on-surface-variant whitespace-pre-wrap"></div>
                 </div>
             </div>
 
-            <!-- Template List -->
-            <div class="p-6 rounded-xl shadow-md" style="border-radius: 0.25rem;"
-                 :class="darkMode ? 'bg-premium-bg/95 border border-premium-teal/20' : 'bg-white border border-gray-200'">
-                <h2 class="text-2xl font-bold mb-4" :class="darkMode ? 'text-white' : 'text-gray-900'">Your Templates</h2>
-                <div id="template-list" class="space-y-3 max-h-96 overflow-y-auto pr-2">
-                    {% for template in templates %}
-                    <div class="template-item p-3 rounded-lg flex items-center justify-between shadow-sm border transition-all duration-200" data-template='{{ template | tojson | safe }}' style="border-radius: 0.25rem;"
-                         :class="darkMode ? 'bg-premium-black border-premium-teal/15 hover:border-premium-teal/30' : 'bg-white border-gray-200 hover:shadow-md'">
-                        <div>
-                            <h3 class="font-semibold" :class="darkMode ? 'text-premium-text' : 'text-gray-900'">{{ template.template_name }}</h3>
-                            <p class="text-xs" :class="darkMode ? 'text-gray-500' : 'text-gray-500'">{{ template.subject or 'No Subject' }}</p>
-                        </div>
-                        <div class="flex gap-2">
-                            <button class="edit-btn text-sm font-medium hover:underline" :class="darkMode ? 'text-cyan-400 hover:text-cyan-300' : 'text-blue-600 hover:text-blue-800'">Edit</button>
-                            <button class="delete-btn text-sm font-medium hover:underline" :class="darkMode ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-800'" data-id="{{ template.id }}">Delete</button>
-                        </div>
-                    </div>
-                    {% else %}
-                    {{ empty_state("No templates yet", "Create your first message template to get started with outreach.", "mail") }}
-                    {% endfor %}
-                </div>
-            </div>
         </div>
+
     </div>
 </div>
+{% endblock %}
 
-
-
+{% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('template-form');
@@ -99,121 +129,102 @@ document.addEventListener('DOMContentLoaded', function() {
     const clearBtn = document.getElementById('clear-btn');
     const templateList = document.getElementById('template-list');
 
-    // Live Preview Elements
     const previewSubject = document.getElementById('preview-subject');
     const previewBody = document.getElementById('preview-body');
-    let typingInterval;
 
-    // --- Form & Editor Logic ---
     function clearForm() {
         form.reset();
         templateIdInput.value = '';
-        editorTitle.textContent = 'Create New Template';
+        editorTitle.textContent = 'Create Template';
         saveBtn.textContent = 'Save Template';
         updatePreview();
     }
 
-    clearBtn.addEventListener('click', clearForm);
+    if (clearBtn) clearBtn.addEventListener('click', clearForm);
 
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const templateId = templateIdInput.value;
-        const isUpdating = !!templateId;
-        const url = isUpdating ? `/api/templates/${templateId}` : '/api/templates';
-        const method = isUpdating ? 'PUT' : 'POST';
+    if (form) {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const templateId = templateIdInput.value;
+            const isUpdating = !!templateId;
+            const url = isUpdating ? `/api/templates/${templateId}` : '/api/templates';
+            const method = isUpdating ? 'PUT' : 'POST';
 
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData.entries());
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
 
-        saveBtn.disabled = true;
-        saveBtn.classList.add('button-loading');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
 
-        try {
-            const response = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            const result = await response.json();
-            if (response.ok) {
-                // For simplicity, we just reload the page on success
-                window.location.reload();
-            } else {
-                alert(`Error: ${result.message}`);
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    const result = await response.json();
+                    alert(`Error: ${result.message}`);
+                }
+            } catch (error) {
+                alert('Connection error occurred.');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save Template';
             }
-        } catch (error) {
-            alert('An error occurred. Please try again.');
-        } finally {
-            saveBtn.disabled = false;
-            saveBtn.classList.remove('button-loading');
-        }
-    });
+        });
+    }
 
-    // --- Template List Logic ---
-    templateList.addEventListener('click', function(e) {
-        if (e.target.classList.contains('edit-btn')) {
+    if (templateList) {
+        templateList.addEventListener('click', function(e) {
             const item = e.target.closest('.template-item');
+            if (!item) return;
+
+            if (e.target.closest('.delete-btn')) {
+                const id = e.target.closest('.delete-btn').dataset.id;
+                if (confirm('Delete this template?')) {
+                    deleteTemplate(id, item);
+                }
+                return;
+            }
+
             const template = JSON.parse(item.dataset.template);
-            
             editorTitle.textContent = 'Edit Template';
             saveBtn.textContent = 'Update Template';
             templateIdInput.value = template.id;
             templateNameInput.value = template.template_name;
-            subjectInput.value = template.subject;
-            bodyInput.value = template.body;
-            
+            subjectInput.value = template.subject || '';
+            bodyInput.value = template.body || '';
             updatePreview();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        if (e.target.classList.contains('delete-btn')) {
-            const templateId = e.target.dataset.id;
-            if (confirm('Are you sure you want to delete this template?')) {
-                deleteTemplate(templateId, e.target.closest('.template-item'));
-            }
-        }
-    });
+        });
+    }
 
     async function deleteTemplate(templateId, element) {
         try {
             const response = await fetch(`/api/templates/${templateId}`, { method: 'DELETE' });
             if (response.ok) {
                 element.remove();
-                // Empty state is now handled by the empty_state macro
-                // If grid is empty, the template will show the else block on reload
             } else {
-                const result = await response.json();
-                alert(`Error: ${result.message}`);
+                alert('Failed to delete template.');
             }
         } catch (error) {
-            alert('An error occurred while deleting the template.');
+            alert('Error deleting template.');
         }
     }
 
     function updatePreview() {
-        clearInterval(typingInterval);
         const subject = subjectInput.value;
         const body = bodyInput.value;
-        
-        previewSubject.textContent = subject ? `Subject: ${subject}` : '';
-        previewBody.textContent = '';
-
-        let i = 0;
-        typingInterval = setInterval(() => {
-            if (i < body.length) {
-                previewBody.textContent += body.charAt(i);
-                i++;
-            } else {
-                clearInterval(typingInterval);
-            }
-        }, 15); // Typing speed
+        previewSubject.textContent = subject ? `Subject: ${subject}` : 'Subject: (empty)';
+        previewBody.textContent = body || '(template body will display here...)';
     }
 
     [subjectInput, bodyInput].forEach(input => {
-        input.addEventListener('input', updatePreview);
+        if (input) input.addEventListener('input', updatePreview);
     });
 
-    // Initial state setup
     updatePreview();
 });
 </script>

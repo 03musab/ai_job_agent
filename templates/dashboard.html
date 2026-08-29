@@ -1,1241 +1,559 @@
 {% extends "base.html" %}
 {% block content %}
-<style>
-    html {
-        scroll-behavior: smooth;
-    }
 
-    /* Light theme overrides for dashboard - only apply when NOT in dark theme */
-    :root:not(.dark-theme) .bg-gray-800\/60 {
-        background-color: rgba(248, 249, 250, 0.95) !important;
-        border-color: rgba(229, 231, 235, 0.6) !important;
-    }
-
-    :root:not(.dark-theme) .bg-gray-800\/50 {
-        background-color: rgba(248, 249, 250, 0.95) !important;
-        border-color: rgba(229, 231, 235, 0.6) !important;
-    }
-
-    :root:not(.dark-theme) .bg-gray-800\/40 {
-        background-color: rgba(248, 249, 250, 0.95) !important;
-        border-color: rgba(229, 231, 235, 0.6) !important;
-    }
-
-    :root:not(.dark-theme) .bg-gray-900\/90 {
-        background-color: rgba(255, 255, 255, 0.95) !important;
-        border-color: rgba(229, 231, 235, 0.6) !important;
-    }
-
-    :root:not(.dark-theme) .bg-gray-900\/60 {
-        background-color: rgba(255, 255, 255, 0.95) !important;
-        border-color: rgba(229, 231, 235, 0.6) !important;
-    }
-
-    :root:not(.dark-theme) .bg-gray-900\/30 {
-        background-color: rgba(248, 249, 250, 0.9) !important;
-        border-color: rgba(229, 231, 235, 0.4) !important;
-    }
-
-    :root:not(.dark-theme) .bg-gray-900\/50 {
-        background-color: rgba(248, 249, 250, 0.95) !important;
-        border-color: rgba(229, 231, 235, 0.6) !important;
-    }
-
-    :root:not(.dark-theme) .text-gray-300 {
-        color: #374151 !important;
-    }
-
-    :root:not(.dark-theme) .text-gray-400 {
-        color: #6b7280 !important;
-    }
-
-    :root:not(.dark-theme) .text-gray-600 {
-        color: #4b5563 !important;
-    }
-
-    :root:not(.dark-theme) .border-gray-700\/50 {
-        border-color: rgba(229, 231, 235, 0.6) !important;
-    }
-
-    :root:not(.dark-theme) .border-gray-600 {
-        border-color: #cbd5e1 !important;
-    }
-
-    :root:not(.dark-theme) .border-gray-700 {
-        border-color: #e5e7eb !important;
-    }
-
-    :root:not(.dark-theme) .bg-gray-100 {
-        background-color: #f9fafb !important;
-    }
-
-    /* Dark theme specific adjustments for Dashboard */
-    .dark-theme #page-loader {
-        background-color: #1A1A1A !important;
-    }
-
-    .dark-theme #page-loader p {
-        color: #F0F0F0 !important;
-    }
-
-    /* Professional Placeholder Styling */
-    ::placeholder {
-        color: #94a3b8 !important; /* Slate 400 */
-        font-style: italic;
-        opacity: 0.8;
-        font-weight: 400;
-        transition: opacity 0.2s ease;
-    }
-
-    input:focus::placeholder {
-        opacity: 0.4;
-    }
-</style>
-<!-- Full Page Loader -->
+<!-- Page Loader -->
 <div id="page-loader"
-    class="fixed inset-0 bg-white flex flex-col items-center justify-center z-[9999] transition-opacity duration-300 ease-in-out">
-    <div class="loader-spinner"></div>
-    <p class="mt-4 text-lg text-gray-700">Loading Dashboard...</p>
+    class="fixed inset-0 bg-background flex flex-col items-center justify-center z-[9999] transition-opacity duration-300 ease-in-out">
+    <div class="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+    <p class="mt-3 font-data-mono text-[11px] text-on-surface-variant uppercase tracking-widest">Loading Console...</p>
 </div>
 
-<div id="dashboard-content" class="opacity-0">
-    <div class="flex flex-col lg:flex-row gap-8">
-{% include "partials/_sidebar.html" %}
+<div id="dashboard-content" class="opacity-0 flex-1 flex flex-col h-full w-full">
+    <!-- Main Workspace Grid -->
+    <div class="flex-1 flex flex-col lg:flex-row h-full overflow-hidden max-w-[1600px] mx-auto w-full">
+        
+        <!-- Left Sidebar: Enterprise Console -->
+        {% include "partials/_sidebar.html" %}
 
-        <!-- Right Content: Job Listings & Filters -->
-        <main class="w-full lg:w-2/3 p-6 bg-white rounded-xl shadow-lg border border-gray-200"
-            aria-labelledby="job-listings-heading">
-            <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                <div class="flex items-center gap-4">
-                    <h1 id="job-listings-heading" class="text-3xl font-bold text-gray-900">Your Jobs ({{ total_jobs }})
+        <!-- Right Main Content Area -->
+        <main class="flex-1 flex flex-col min-w-0 bg-background relative overflow-hidden" aria-labelledby="job-listings-heading">
+            
+            <!-- Dashboard Widgets Header (Stat Pills & Market Intel) -->
+            <div class="px-container-padding py-4 border-b border-outline-variant flex-shrink-0 flex flex-col gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <!-- Stat Pill: New Jobs -->
+                    <div class="bg-surface-container border rounded-xl p-3 flex flex-col cursor-pointer transition-all {% if status_filter == 'new' %}border-primary ring-1 ring-primary shadow-sm{% else %}border-outline-variant hover:border-primary/50{% endif %}" onclick="filterByStatus('new')">
+                        <div class="flex items-center justify-between">
+                            <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">New Jobs</span>
+                            <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                        </div>
+                        <span class="font-headline-lg text-primary text-[22px] font-bold mt-1">
+                            {{ new_jobs_count | default(0) }}
+                        </span>
+                    </div>
+                    <!-- Stat Pill: Pipeline -->
+                    <div class="bg-surface-container border rounded-xl p-3 flex flex-col cursor-pointer transition-all {% if status_filter in ['pipeline', 'interview', 'applied'] %}border-secondary ring-1 ring-secondary shadow-sm{% else %}border-outline-variant hover:border-secondary/50{% endif %}" onclick="filterByStatus('pipeline')">
+                        <div class="flex items-center justify-between">
+                            <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Pipeline</span>
+                            <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                        </div>
+                        <span class="font-headline-lg text-on-surface text-[22px] font-bold mt-1">
+                            {{ pipeline_count | default(0) }}
+                        </span>
+                    </div>
+                    <!-- Stat Pill: Offers -->
+                    <div class="bg-surface-container border rounded-xl p-3 flex flex-col cursor-pointer transition-all {% if status_filter == 'offered' %}border-tertiary ring-1 ring-tertiary shadow-sm{% else %}border-outline-variant hover:border-tertiary/50{% endif %}" onclick="filterByStatus('offered')">
+                        <div class="flex items-center justify-between">
+                            <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Offers</span>
+                            <span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                        </div>
+                        <span class="font-headline-lg text-secondary text-[22px] font-bold mt-1">
+                            {{ offers_count | default(0) }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Market Intel & Daily Inspiration Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3"
+                    x-data="{ 
+                        news: [], 
+                        loading: true, 
+                        error: null,
+                        async fetchNews() {
+                            this.loading = true;
+                            try {
+                                const res = await fetch('/api/job-news');
+                                const data = await res.json();
+                                if (data.status === 'success') {
+                                    this.news = data.data;
+                                } else {
+                                    this.error = data.message || 'Failed to load news';
+                                }
+                            } catch (e) {
+                                this.error = 'Unable to load intel';
+                            } finally {
+                                this.loading = false;
+                            }
+                        }
+                    }" x-init="fetchNews()">
+
+                    <!-- Market Intel Box -->
+                    <div class="border border-outline-variant rounded-lg bg-surface-container overflow-hidden flex flex-col justify-between">
+                        <div class="px-3 py-2 border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[16px] text-primary">dynamic_feed</span>
+                                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold">Market Intel</span>
+                            </div>
+                            <button @click="fetchNews()" class="text-on-surface-variant hover:text-primary transition-colors p-1" title="Refresh Intel">
+                                <span class="material-symbols-outlined text-[16px]" :class="{'animate-spin': loading}">sync</span>
+                            </button>
+                        </div>
+                        <div class="p-3 space-y-2 max-h-[160px] overflow-y-auto custom-scrollbar">
+                            <template x-if="loading">
+                                <div class="font-data-mono text-[11px] text-on-surface-variant animate-pulse py-6 text-center">Syncing industry market feeds...</div>
+                            </template>
+                            <template x-if="error && !loading">
+                                <div class="font-data-mono text-[11px] text-error py-2 text-center" x-text="error"></div>
+                            </template>
+                            <template x-for="item in news" :key="item.url || item.title">
+                                <div class="flex items-center gap-3 py-1.5 border-b border-outline-variant/30 last:border-0 hover:bg-surface-container-high px-1 rounded transition-colors group">
+                                    <!-- Image Thumbnail -->
+                                    <div class="w-9 h-9 rounded-md overflow-hidden bg-surface-container-highest border border-outline-variant/60 shrink-0 flex items-center justify-center">
+                                        <template x-if="item.urlToImage">
+                                            <img :src="item.urlToImage" :alt="item.source" class="w-full h-full object-cover" loading="lazy">
+                                        </template>
+                                        <template x-if="!item.urlToImage">
+                                            <span class="material-symbols-outlined text-[16px] text-primary">feed</span>
+                                        </template>
+                                    </div>
+
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-2 mb-0.5">
+                                            <span class="px-1.5 py-0.2 rounded bg-primary/10 text-primary border border-primary/20 font-data-mono text-[8px] uppercase shrink-0 font-semibold" x-text="item.source || 'Tech'"></span>
+                                            <span class="font-data-mono text-[9px] text-on-surface-variant" x-text="item.publishedAt || 'Recent'"></span>
+                                        </div>
+                                        <a :href="item.url" target="_blank" class="text-on-surface group-hover:text-primary transition-colors text-[12px] font-medium block truncate" x-text="item.title"></a>
+                                    </div>
+
+                                    <span class="material-symbols-outlined text-[14px] text-on-surface-variant/40 group-hover:text-primary shrink-0">open_in_new</span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Daily Quote Signal Box -->
+                    {% include "partials/_news_quote.html" %}
+                </div>
+            </div>
+
+            <!-- Sticky Top Filter Bar -->
+            <div class="px-container-padding pt-3">
+                {% include "partials/_filters.html" %}
+            </div>
+
+            <!-- Fan Carousel (if available) -->
+            <div class="px-container-padding">
+                {% include "partials/_fan_carousel.html" %}
+            </div>
+
+            <!-- List Header Controls -->
+            <header class="px-container-padding py-2.5 border-y border-outline-variant flex-shrink-0 flex justify-between items-center bg-surface-container-lowest">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 id="job-listings-heading" class="font-headline-md text-on-surface text-[15px] font-bold flex items-center gap-2 flex-wrap">
+                        <span>Requisitions</span>
+                        <span class="font-data-mono text-[12px] text-on-surface-variant font-normal">({{ total_jobs }})</span>
+                        {% if status_filter and status_filter != 'all' %}
+                        <span class="font-data-mono text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 uppercase font-semibold">
+                            Filter: {{ status_filter }}
+                        </span>
+                        {% endif %}
+                        {% if search_query %}
+                        <span class="font-data-mono text-[10px] px-2 py-0.5 rounded bg-secondary/10 text-secondary border border-secondary/20 font-semibold truncate max-w-[150px]">
+                            "{{ search_query }}"
+                        </span>
+                        {% endif %}
+                        {% if location_filter %}
+                        <span class="font-data-mono text-[10px] px-2 py-0.5 rounded bg-surface-container-high text-on-surface border border-outline-variant font-semibold truncate max-w-[150px]">
+                            {{ location_filter }}
+                        </span>
+                        {% endif %}
+                        {% if (status_filter and status_filter != 'all') or search_query or location_filter %}
+                        <a href="{{ url_for('dashboard') }}" class="font-data-mono text-[10px] text-on-surface-variant hover:text-primary underline ml-1 font-normal">
+                            Clear All Filters (Show All {{ global_total_jobs | default(total_jobs) }})
+                        </a>
+                        {% endif %}
                     </h1>
                 </div>
-                <form action="{{ url_for('delete_all_jobs') }}" method="POST"
-                    onsubmit="return confirm('Are you sure you want to delete ALL jobs? This cannot be undone.');">
-                    <button type="submit"
-                        class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md shadow-sm transition-all duration-200">Delete
-                        All</button>
-                </form>
-            </div>
-
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <!-- Left Column: Status & Quotes -->
-                <div class="flex flex-col gap-6">
-                    <!-- Application Status Overview -->
-                    {% if current_user.role != 'recruiter' %}
-                    <div class="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden flex flex-col"
-                        aria-labelledby="chart-heading">
-                        <!-- Overview Header -->
-                        <div class="bg-gray-50 px-6 py-5 border-b border-gray-200">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-3">
-                                    <div class="p-2 bg-blue-100 rounded-lg" aria-hidden="true">
-                                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
-                                            </path>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h2 id="chart-heading" class="text-lg font-semibold text-gray-900">Application
-                                            Status Overview</h2>
-                                        <p class="text-sm text-gray-500">Track your application progress</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Quick Actions -->
-                        <div
-                            class="px-6 py-4 bg-gray-50 border-t border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 items-center">
-                            <button type="button"
-                                class="flex items-center justify-center px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium text-sm"
-                                onclick="filterByStatus('new')">
-                                <span class="mr-2 text-base"></span><span>New Jobs</span>
-                            </button>
-                            <button type="button"
-                                class="flex items-center justify-center px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium text-sm"
-                                onclick="filterByStatus('interview')">
-                                <span class="mr-2 text-base"></span><span>Interview Pipeline</span>
-                            </button>
-                            <button type="button"
-                                class="flex items-center justify-center px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors font-medium text-sm"
-                                onclick="filterByStatus('offered')">
-                                <span class="mr-2 text-base"></span><span>Job Offers</span>
-                            </button>
-                        </div>
-                    </div>
-                    {% endif %}
-
-{% include "partials/_news_quote.html" %}
-                </div>
-
-                <!-- Job Trends & News -->
-                <div class="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden flex flex-col h-full"
-                    x-data="{ 
-                news: [], 
-                loading: true, 
-                error: null,
-                formatDate(dateStr) {
-                    if (!dateStr) return '';
-                    const date = new Date(dateStr);
-                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                },
-                async fetchNews() {
-                    this.loading = true;
-                    // Artificial delay to show loading state (1.5s)
-                    const delay = new Promise(resolve => setTimeout(resolve, 1500));
-                    
-                    try {
-                        const [_, res] = await Promise.all([
-                            delay,
-                            fetch('/api/job-news')
-                        ]);
-                        
-                        const data = await res.json();
-                        if (data.status === 'success') {
-                            this.news = data.data;
-                        } else {
-                            this.error = data.message || 'Failed to load news';
-                        }
-                    } catch (e) {
-                        console.error(e);
-                        this.error = 'Unable to load news';
-                    } finally {
-                        this.loading = false;
-                    }
-                }
-            }" x-init="fetchNews()">
-                    <!-- Header -->
-                    <div class="bg-gray-50 px-6 py-5 border-b border-gray-200 flex justify-between items-center">
-                        <div class="flex items-center space-x-3">
-                            <div class="p-2 bg-indigo-100 rounded-lg">
-                                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z">
-                                    </path>
-                                </svg>
-                            </div>
-                            <div>
-                                <h2 class="text-lg font-semibold text-gray-900">Job Trends & News</h2>
-                                <p class="text-sm text-gray-500">Latest tech industry updates</p>
-                            </div>
-                        </div>
-                        <button @click="loading = true; fetchNews()"
-                            class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all duration-200 focus:outline-none"
-                            title="Refresh News">
-                            <svg class="w-5 h-5" :class="{'animate-spin': loading}" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                                </path>
-                            </svg>
+                <div class="flex items-center gap-3">
+                    <form action="{{ url_for('delete_all_jobs') }}" method="POST"
+                        onsubmit="return confirm('Are you sure you want to delete ALL jobs? This cannot be undone.');">
+                        <button type="submit"
+                            class="font-data-mono text-[10px] text-error hover:text-error/80 border border-error/30 hover:bg-error/10 px-2.5 py-1 rounded transition-colors uppercase tracking-wider">
+                            Delete All
                         </button>
-                    </div>
+                    </form>
+                </div>
+            </header>
 
-                    <!-- Content -->
-                    <div class="p-0 flex-1 flex flex-col min-h-[220px]">
-                        <!-- Loading Skeleton -->
-                        <div x-show="loading" class="p-6 space-y-6">
-                            <div class="animate-pulse flex space-x-4">
-                                <div class="h-16 w-16 bg-gray-200 rounded-md"></div>
-                                <div class="flex-1 space-y-2 py-1">
-                                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
-                                    <div class="h-3 bg-gray-100 rounded w-1/2"></div>
-                                </div>
+            <!-- Table Header (Sticky Precision Columns) -->
+            <div class="px-container-padding py-2 border-b border-outline-variant flex text-on-surface-variant font-data-mono text-[10px] uppercase tracking-widest bg-surface/80 sticky top-0 z-10 flex-shrink-0">
+                <div class="w-14">MATCH</div>
+                <div class="flex-1 min-w-0 pl-3">ROLE & COMPANY</div>
+                <div class="w-32 hidden lg:block">LOCATION</div>
+                <div class="w-28 hidden xl:block">STATUS</div>
+                <div class="w-44 hidden md:block">SKILLS</div>
+                <div class="w-24 text-right">ACTIONS</div>
+            </div>
+
+            <!-- Scrollable Job Listings (Stitch Precision Rows) -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar px-container-padding pb-container-padding max-h-[600px]" id="job-listings">
+                {% if jobs %}
+                <div class="flex flex-col gap-0">
+                    {% for job in jobs %}
+                    <article class="group relative flex items-center h-row-height-standard border-b border-outline-variant/60 hover:bg-surface-container-low transition-colors duration-150 px-2 -mx-2 job-item"
+                             data-job-id="{{ job.id }}">
+                        <!-- Match score -->
+                        <div class="w-14 flex-shrink-0 flex items-center">
+                            <span class="font-data-mono text-[12px] font-bold
+                                {% if job.relevance_score and job.relevance_score >= 70 %}text-secondary
+                                {% elif job.relevance_score and job.relevance_score >= 40 %}text-tertiary
+                                {% else %}text-on-surface-variant{% endif %}">
+                                {{ [job.relevance_score | default(0) | round | int, 100] | min }}%
+                            </span>
+                        </div>
+
+                        <!-- Role & Company -->
+                        <div class="flex-1 min-w-0 pl-3 flex flex-col justify-center">
+                            <div class="flex items-center gap-2">
+                                <span class="font-body-sm font-semibold text-on-surface truncate text-[13px]" title="{{ job.title }}">{{ job.title }}</span>
+                                {% if job.status == 'new' %}
+                                <span class="px-1.5 py-0.2 rounded bg-surface-container-high text-on-surface font-data-mono text-[9px] border border-outline-variant/40">NEW</span>
+                                {% endif %}
                             </div>
-                            <div class="animate-pulse flex space-x-4">
-                                <div class="h-16 w-16 bg-gray-200 rounded-md"></div>
-                                <div class="flex-1 space-y-2 py-1">
-                                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
-                                    <div class="h-3 bg-gray-100 rounded w-1/2"></div>
-                                </div>
+                            <div class="flex items-center gap-2 text-on-surface-variant text-[11px] font-data-mono">
+                                <span class="truncate">{{ job.company }}</span>
+                                <span class="text-outline-variant">•</span>
+                                <span>{{ job.date_added if job.date_added else 'Recent' }}</span>
                             </div>
                         </div>
 
-                        <!-- Error State -->
-                        <div x-show="error" class="p-8 text-center" style="display: none;">
-                            <svg class="mx-auto h-10 w-10 text-gray-300" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                            <p class="mt-2 text-sm text-gray-500" x-text="error"></p>
-                            <button @click="loading = true; error = null; fetchNews()"
-                                class="mt-4 text-xs font-medium text-blue-600 hover:text-blue-500">
-                                Try Again
+                        <!-- Location -->
+                        <div class="w-32 hidden lg:flex flex-col justify-center text-on-surface-variant text-[12px]">
+                            <span class="truncate">{{ job.location if job.location else 'Remote / Unspecified' }}</span>
+                        </div>
+
+                        <!-- Status Badge -->
+                        <div class="w-28 hidden xl:flex items-center">
+                            <button onclick="openStatusModal({{ job.id }}, '{{ job.status }}', '{{ job.notes | default('') | escape }}')"
+                                class="font-data-mono text-[10px] px-2 py-0.5 rounded border uppercase transition-colors
+                                {% if job.status == 'applied' %}bg-primary/10 text-primary border-primary/30
+                                {% elif job.status == 'interview' %}bg-secondary/10 text-secondary border-secondary/30
+                                {% elif job.status == 'offered' %}bg-tertiary/10 text-tertiary border-tertiary/30
+                                {% elif job.status == 'rejected' %}bg-error/10 text-error border-error/30
+                                {% else %}bg-surface-container text-on-surface-variant border-outline-variant/50{% endif %}">
+                                {{ job.status }}
                             </button>
                         </div>
 
-                        <!-- News List -->
-                        <ul x-show="!loading && !error"
-                            class="divide-y divide-gray-100 overflow-y-auto max-h-[350px] custom-scrollbar"
-                            style="display: none;">
-                            <template x-for="item in news" :key="item.url">
-                                <li class="group transition-colors duration-200"
-                                    :class="darkMode ? 'hover:bg-premium-teal/5' : 'hover:bg-gray-50'">
-                                    <a :href="item.url" target="_blank" class="block p-4">
-                                        <div class="flex justify-between items-start gap-4">
-                                            <div class="flex-1 min-w-0">
-                                                <h4 class="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug"
-                                                    x-text="item.title"></h4>
-                                                <div class="flex items-center gap-2 mt-2">
-                                                    <span
-                                                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold transition-colors border"
-                                                        :class="darkMode ? 'bg-premium-teal/20 text-premium-teal border-premium-teal/30' : 'bg-gray-100 text-gray-800 border-transparent'"
-                                                        x-text="item.source"></span>
-                                                    <span class="text-xs transition-colors"
-                                                        :class="darkMode ? 'text-premium-text/60' : 'text-gray-400'"
-                                                        x-text="formatDate(item.publishedAt)"></span>
-                                                </div>
-                                            </div>
-                                            <template x-if="item.urlToImage">
-                                                <div class="shrink-0">
-                                                    <img :src="item.urlToImage" alt=""
-                                                        class="h-16 w-20 object-cover rounded-lg border border-gray-100 shadow-sm transition-transform duration-300 group-hover:scale-105"
-                                                        @error="$el.style.display='none'">
-                                                </div>
-                                            </template>
-                                            <template x-if="!item.urlToImage">
-                                                <div
-                                                    class="shrink-0 h-16 w-20 bg-gray-100 rounded-lg flex items-center justify-center text-gray-300">
-                                                    <svg class="w-8 h-8" fill="none" stroke="currentColor"
-                                                        viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z">
-                                                        </path>
-                                                    </svg>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </a>
-                                </li>
-                            </template>
-                            <template x-if="news.length === 0">
-                                <li class="p-8 text-center text-gray-500">
-                                    <p class="text-sm">No recent job news found.</p>
-                                </li>
-                            </template>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-{% include "partials/_filters.html" %}
-
-{% include "partials/_fan_carousel.html" %}
-
-            <div id="job-listings" class="space-y-6">
-                {% if jobs %}
-                {% for job in jobs %}
-                <article
-                    class="job-item relative bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300"
-                    data-job-id="{{ job.id }}">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div class="flex-1 min-w-0">
-                            <h3 class="text-xl font-bold text-gray-900 truncate" title="{{ job.title }}">
-                                {{ job.title }}
-                            </h3>
-                            <p class="text-sm text-gray-600 mt-1">{{ job.company }}</p>
-                        </div>
-                        <div class="shrink-0">
-                            <a href="{{ url_for('job_details', job_id=job.id) }}"
-                                class="btn-temporal inline-flex items-center px-5 py-2.5 text-sm font-semibold rounded-lg shadow-sm transition-all duration-200 hover:shadow-md">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                    aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
-                                    </path>
-                                </svg>
-                                View Details
-                            </a>
-                        </div>
-                    </div>
-                </article>
-                {% endfor %}
-                {% else %}
-                <div class="flex flex-col items-center justify-center py-16 px-6 rounded-2xl border border-dashed transition-colors"
-                    :class="darkMode ? 'border-premium-teal/30 bg-[var(--elevated-bg)]' : 'border-gray-200 bg-gray-50'">
-                    <!-- Illustration -->
-                    <div class="w-20 h-20 rounded-full flex items-center justify-center mb-5 shadow-inner"
-                        :class="darkMode ? 'bg-premium-teal/10' : 'bg-blue-50'">
-                        <svg class="w-10 h-10" :class="darkMode ? 'text-premium-teal/60' : 'text-blue-300'" fill="none"
-                            stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
-                            </path>
-                        </svg>
-                    </div>
-                    <h3 class="text-lg font-bold mb-1" :class="darkMode ? 'text-premium-text' : 'text-gray-800'">No jobs
-                        found yet</h3>
-                    <p class="text-sm text-center max-w-sm mb-6"
-                        :class="darkMode ? 'text-premium-text/60' : 'text-gray-500'">
-                        Start a new job search from the left panel to populate your personal job board.
-                    </p>
-                    <a href="#search-form" onclick="document.getElementById('search_terms').focus(); return false;"
-                        class="inline-flex items-center px-5 py-2.5 text-sm font-semibold rounded-xl shadow-sm transition-all duration-200 active:scale-95"
-                        :class="darkMode ? 'bg-premium-teal/20 text-premium-teal border border-premium-teal/30 hover:bg-premium-teal/30' : 'bg-blue-600 text-white hover:bg-blue-700'">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                        Start a Job Search
-                    </a>
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Enhanced Pagination -->
-            {% if total_pages > 1 %}
-            <div class="mt-12 mb-8">
-                <!-- Pagination Info -->
-                <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
-                    <div class="text-sm text-gray-600 mb-4 sm:mb-0">
-                        <span class="font-medium">Showing page {{ current_page }} of {{ total_pages }}</span>
-                        <span class="mx-2" aria-hidden="true">&bull;</span>
-                        <span>{{ total_jobs }} total jobs found</span>
-                    </div>
-                    <div class="text-sm text-gray-700">
-                        {% set start_job = (current_page - 1) * limit + 1 %}
-                        {% set end_job = current_page * limit if current_page * limit < total_jobs else total_jobs %}
-                            Jobs {{ start_job }}-{{ end_job }} of {{ total_jobs }} </div>
-                    </div>
-
-                    <!-- Pagination Controls -->
-                    <div class="flex justify-center">
-                        <nav class="flex items-center space-x-2" aria-label="Pagination">
-                            <!-- Previous Button -->
-                            {% if current_page > 1 %}
-                            <a href="{{ url_for('dashboard', page=current_page-1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
-                                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
-                                style="will-change: background-color, border-color;" aria-label="Go to previous page">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                    aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M15 19l-7-7 7-7"></path>
-                                </svg>
-                                Previous
-                            </a>
+                        <!-- Skills -->
+                        <div class="w-44 hidden md:flex items-center gap-1 flex-wrap">
+                            {% if job.skills %}
+                                {% for skill in job.skills.split(',')[:2] %}
+                                <span class="font-data-mono text-[9px] text-on-surface-variant bg-surface-container px-1.5 py-0.5 border border-outline-variant/30 rounded">{{ skill.strip() }}</span>
+                                {% endfor %}
                             {% else %}
-                            <span
-                                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed"
-                                aria-disabled="true">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                    aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M15 19l-7-7 7-7"></path>
-                                </svg>
-                                Previous
-                            </span>
+                                <span class="font-data-mono text-[9px] text-on-surface-variant/40">—</span>
                             {% endif %}
-
-                            <!-- Page Numbers -->
-                            <div class="flex items-center space-x-1">
-                                {% if pagination_pages %}
-                                {% for p in pagination_pages %}
-                                {% if p == current_page %}
-                                <span aria-current="page"
-                                    class="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg shadow-md">
-                                    {{ p }}
-                                </span>
-                                {% else %}
-                                <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
-                                    aria-label="Go to page {{ p }}"
-                                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-blue-300 transition-colors duration-200"
-                                    style="will-change: background-color, border-color;">
-                                    {{ p }}
-                                </a>
-                                {% endif %}
-                                {% endfor %}
-                                {% else %}
-                                {% for p in range(1, total_pages + 1) %}
-                                {% if p == current_page %}
-                                <span aria-current="page"
-                                    class="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg shadow-md">
-                                    {{ p }}
-                                </span>
-                                {% else %}
-                                <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
-                                    aria-label="Go to page {{ p }}"
-                                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-blue-300 transition-colors duration-200"
-                                    style="will-change: background-color, border-color;">
-                                    {{ p }}
-                                </a>
-                                {% endif %}
-                                {% endfor %}
-                                {% endif %}
-                            </div>
-
-                            <!-- Next Button -->
-                            {% if current_page < total_pages %} <a
-                                href="{{ url_for('dashboard', page=current_page+1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
-                                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
-                                style="will-change: background-color, border-color;" aria-label="Go to next page">
-                                Next
-                                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                    aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 5l7 7-7 7"></path>
-                                </svg>
-                                </a>
-                                {% else %}
-                                <span
-                                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed"
-                                    aria-disabled="true">
-                                    Next
-                                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                        aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 5l7 7-7 7"></path>
-                                    </svg>
-                                </span>
-                                {% endif %}
-                        </nav>
-                    </div>
-
-                    <!-- Quick Jump (for many pages) -->
-                    {% if total_pages > 10 %}
-                    <div class="flex justify-center mt-4">
-                        <div class="flex items-center space-x-2 text-sm text-gray-400">
-                            <span>Jump to page:</span>
-                            <select aria-label="Jump to page"
-                                onchange="window.location.href='{{ url_for('dashboard', sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}&page=' + this.value"
-                                class="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900">
-                                {% for p in range(1, total_pages + 1) %}
-                                <option value="{{ p }}" {% if p==current_page %}selected{% endif %}>{{ p }}</option>
-                                {% endfor %}
-                            </select>
                         </div>
-                    </div>
-                    {% endif %}
+
+                        <!-- Actions (Hover Precision Buttons) -->
+                        <div class="w-24 flex items-center justify-end gap-1.5 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+                            <a href="{{ url_for('job_details', job_id=job.id) }}"
+                               class="px-2 py-0.5 rounded border border-primary text-primary hover:bg-primary/10 font-data-mono text-[10px] transition-colors uppercase">
+                                View
+                            </a>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="flex flex-col items-center justify-center py-20 text-on-surface-variant">
+                    <span class="material-symbols-outlined text-[40px] text-outline mb-2">work_outline</span>
+                    <h3 class="font-headline-md text-[16px] text-on-surface font-semibold mb-1">No Requisitions Found</h3>
+                    <p class="font-body-sm text-[12px] text-on-surface-variant max-w-sm text-center mb-4">
+                        Initialize a search from the Enterprise Console on the left to populate your active board.
+                    </p>
                 </div>
                 {% endif %}
+            </div>
+
+            <!-- Precision Pagination Footer -->
+            {% if total_pages > 1 %}
+            <div class="px-container-padding py-2.5 border-t border-outline-variant flex items-center justify-between flex-shrink-0 bg-surface-container-lowest">
+                <div class="font-data-mono text-[11px] text-on-surface-variant">
+                    Page {{ current_page }} of {{ total_pages }} · {{ total_jobs }} Requisitions
+                </div>
+                <nav class="flex items-center gap-1">
+                    {% if current_page > 1 %}
+                    <a href="{{ url_for('dashboard', page=current_page-1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
+                        class="w-7 h-7 flex items-center justify-center border border-outline-variant rounded text-on-surface-variant hover:border-primary hover:text-primary font-data-mono text-[11px] transition-colors">
+                        ‹
+                    </a>
+                    {% endif %}
+
+                    {% for p in pagination_pages %}
+                        {% if p == current_page %}
+                        <span class="w-7 h-7 flex items-center justify-center bg-primary text-on-primary rounded font-data-mono text-[11px] font-bold">
+                            {{ p }}
+                        </span>
+                        {% else %}
+                        <a href="{{ url_for('dashboard', page=p, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
+                            class="w-7 h-7 flex items-center justify-center border border-outline-variant rounded text-on-surface-variant hover:border-primary hover:text-primary font-data-mono text-[11px] transition-colors">
+                            {{ p }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if current_page < total_pages %}
+                    <a href="{{ url_for('dashboard', page=current_page+1, sort_by=sort_by, sort_order=sort_order, search_query=search_query, status_filter=status_filter, location_filter=location_filter) }}"
+                        class="w-7 h-7 flex items-center justify-center border border-outline-variant rounded text-on-surface-variant hover:border-primary hover:text-primary font-data-mono text-[11px] transition-colors">
+                        ›
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+            {% endif %}
 
         </main>
     </div>
+</div>
 
-    <!-- Modal for Job Details -->
-    <div id="details-modal"
-        class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden z-50 w-full max-w-2xl p-4"
-        role="dialog" aria-modal="true" aria-labelledby="modal-title">
-        <div class="bg-black bg-opacity-50 fixed inset-0 -z-10 backdrop-blur-sm" onclick="closeDetailsModal()"></div>
-        <div id="details-modal-content"
-            class="relative w-full shadow-2xl rounded-2xl bg-white border border-gray-200 transform transition-transform,opacity duration-300 scale-95 opacity-0"
-            style="will-change: transform, opacity;">
-            <!-- Modal Header -->
-            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <div>
-                    <h3 id="modal-title" class="text-xl font-bold text-gray-900">Job Title</h3>
-                    <p id="modal-company" class="text-md text-gray-500">Company Name</p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span id="modal-relevance" class="px-3 py-1 text-sm font-semibold rounded-full"></span>
-                    <button onclick="closeDetailsModal()" class="text-gray-400 hover:text-gray-600 transition-colors"
-                        aria-label="Close details modal">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Modal Body -->
-            <div class="p-6 max-h-[75vh] overflow-y-auto space-y-5">
-                <!-- Key Info Section -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
-                    <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
-                        <div class="text-xs text-gray-500">Location</div>
-                        <div id="modal-location" class="font-semibold text-gray-900 text-sm truncate"></div>
-                    </div>
-                    <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
-                        <div class="text-xs text-gray-500">Salary</div>
-                        <div id="modal-salary" class="font-semibold text-gray-900 text-sm truncate"></div>
-                    </div>
-                    <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
-                        <div class="text-xs text-gray-500">Experience</div>
-                        <div id="modal-experience" class="font-semibold text-gray-900 text-sm truncate"></div>
-                    </div>
-                    <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
-                        <div class="text-xs text-gray-500">Job Type</div>
-                        <div id="modal-job-type" class="font-semibold text-gray-900 text-sm truncate"></div>
-                    </div>
-                </div>
-
-                <!-- Description Section -->
-                <div>
-                    <h4 class="text-lg font-semibold text-gray-900 mb-2">Job Description</h4>
-                    <div id="modal-description"
-                        class="text-sm text-gray-700 bg-white p-4 rounded-lg border border-gray-200 max-h-60 overflow-y-auto whitespace-pre-wrap">
-                    </div>
-                </div>
-
-                <!-- Skills & Keywords Section -->
-                <div class="space-y-3">
-                    <div id="modal-skills-container" class="hidden">
-                        <h4 class="text-md font-semibold text-gray-900 mb-2">Skills</h4>
-                        <div id="modal-skills" class="flex flex-wrap gap-2"></div>
-                    </div>
-                    <div id="modal-tools-container" class="hidden">
-                        <h4 class="text-md font-semibold text-gray-900 mb-2">Tools & Platforms</h4>
-                        <div id="modal-tools" class="flex flex-wrap gap-2"></div>
-                    </div>
-                    <div id="modal-soft-skills-container" class="hidden">
-                        <h4 class="text-md font-semibold text-gray-900 mb-2">Soft Skills</h4>
-                        <div id="modal-soft-skills" class="flex flex-wrap gap-2"></div>
-                    </div>
-                </div>
-
-                <!-- Other Details Section -->
-                <div>
-                    <h4 class="text-md font-semibold text-gray-900 mb-2">Additional Information</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                        <div class="bg-white p-2.5 rounded-lg border border-gray-200"><span
-                                class="text-gray-500">Posted:</span> <span id="modal-posted-date"
-                                class="font-medium text-gray-900"></span></div>
-                        <div class="bg-white p-2.5 rounded-lg border border-gray-200"><span
-                                class="text-gray-500">Source:</span> <span id="modal-source"
-                                class="font-medium text-gray-900"></span></div>
-                        <div class="bg-white p-2.5 rounded-lg border border-gray-200"><span
-                                class="text-gray-500">Deadline:</span> <span id="modal-deadline"
-                                class="font-medium text-gray-900"></span></div>
-                        <div class="bg-white p-2.5 rounded-lg border border-gray-200"><span
-                                class="text-gray-500">Experience Range:</span> <span id="modal-exp-range"
-                                class="font-medium text-gray-900"></span></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Modal Footer -->
-            <div
-                class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end items-center gap-4 rounded-b-2xl">
-                <button onclick="closeDetailsModal()"
-                    class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">Close</button>
-                <a id="modal-apply-link" href="#" target="_blank"
-                    class="btn-temporal inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md shadow-sm">
-                    Apply Now
-                </a>
-            </div>
+<!-- Modal for Job Status Update -->
+<div id="status-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" onclick="closeStatusModal()"></div>
+    <div class="relative mx-auto p-5 border border-outline-variant w-full max-w-md rounded-xl bg-surface-container z-10 shadow-2xl">
+        <div class="flex justify-between items-center mb-4 pb-2 border-b border-outline-variant">
+            <h3 class="font-headline-md text-on-surface text-[15px] font-bold">Update Requisition Status</h3>
+            <button onclick="closeStatusModal()" class="text-on-surface-variant hover:text-on-surface">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
         </div>
-    </div>
-
-    <!-- Modal for Job Status Update -->
-    <div id="status-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-4" role="dialog"
-        aria-modal="true" aria-labelledby="status-modal-title">
-        <div class="fixed inset-0 backdrop-blur-sm" onclick="closeStatusModal()"></div>
-        <div class="relative mx-auto p-6 border border-gray-200 w-full max-w-md shadow-lg rounded-xl bg-white z-10">
-            <h3 class="text-lg font-bold text-gray-900 mb-4">Update Job Status</h3>
-            <form id="status-form" action="{{ url_for('update_job_status') }}" method="POST">
-                <input type="hidden" name="job_id" id="status-job-id">
-                <div class="mb-4">
-                    <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
-                    <select id="status" name="status"
-                        class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900">
-                        <option value="new">New</option>
-                        <option value="applied">Applied</option>
-                        <option value="interview">Interview</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="offered">Offered</option>
-                        <option value="archived">Archived</option>
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
-                    <textarea id="notes" name="notes" rows="4"
-                        class="mt-1 block w-full rounded-md bg-white border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"></textarea>
-                </div>
-                <div class="mb-4">
-                    <div class="flex items-center">
-                        <input type="checkbox" id="sync_to_calendar" name="sync_to_calendar" value="1" checked
-                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded bg-white">
-                        <label for="sync_to_calendar" class="ml-2 block text-sm text-gray-700">
-                            Sync to Google Calendar
-                        </label>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-1">Creates/updates calendar events based on job status.</p>
-                </div>
-                <div class="flex justify-end space-x-4">
-                    <button type="button" onclick="closeStatusModal()"
-                        class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Cancel</button>
-                    <button type="submit"
-                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal for Assisted Apply -->
-    <div id="apply-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-4" role="dialog"
-        aria-modal="true" aria-labelledby="apply-modal-title">
-        <div class="fixed inset-0 backdrop-blur-sm" onclick="closeApplyModal()"></div>
-        <div
-            class="relative mx-auto p-6 border border-gray-200 w-full max-w-sm shadow-lg rounded-xl bg-white text-center z-10">
-
-            <h3 class="text-lg font-bold text-gray-900 mb-4">Assisted Apply</h3>
-            <p class="text-gray-600 mb-4">This will start an automated browser session to fill out the form for you.</p>
-            <p class="text-sm text-red-400 mb-4 font-semibold">
-                Warning: This feature requires a local Celery worker with Selenium configured correctly. A new browser
-                window will open.
-            </p>
-            <div class="flex justify-center space-x-4">
-                <button type="button" onclick="closeApplyModal()"
-                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Cancel</button>
-                <button type="button" id="start-apply-btn"
-                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Start Automation</button>
+        <form id="status-form" action="{{ url_for('update_job_status') }}" method="POST" class="space-y-3">
+            <input type="hidden" name="job_id" id="status-job-id">
+            <div>
+                <label for="status" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Status</label>
+                <select id="status" name="status"
+                    class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-1.5 text-body-sm text-on-surface focus:border-primary focus:outline-none">
+                    <option value="new">New</option>
+                    <option value="applied">Applied</option>
+                    <option value="interview">Interview</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="offered">Offered</option>
+                    <option value="archived">Archived</option>
+                </select>
             </div>
-        </div>
-    </div>
-
-    <!-- Modal for Traffic Analysis -->
-    <div id="traffic-analysis-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-4"
-        role="dialog" aria-modal="true" aria-labelledby="traffic-modal-title">
-        <div class="fixed inset-0 backdrop-blur-sm" onclick="closeTrafficAnalysisModal()">
-        </div>
-        <div id="traffic-analysis-modal-content"
-            class="relative w-full max-w-lg shadow-2xl rounded-2xl bg-white border border-gray-200 transform transition-transform,opacity duration-300 scale-95 opacity-0 z-10"
-            style="will-change: transform, opacity;">
-            <!-- Modal Header -->
-            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <div>
-                    <h3 id="traffic-modal-title" class="text-xl font-bold text-gray-900">Company Traffic Analysis</h3>
-                    <p id="traffic-modal-company" class="text-md text-gray-500">Company Name</p>
-                </div>
-                <button onclick="closeTrafficAnalysisModal()"
-                    class="text-gray-400 hover:text-gray-600 transition-colors"
-                    aria-label="Close traffic analysis modal">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
-                        </path>
-                    </svg>
+            <div>
+                <label for="notes" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Notes</label>
+                <textarea id="notes" name="notes" rows="3"
+                    class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-1.5 text-body-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none"></textarea>
+            </div>
+            <div class="flex items-center gap-2 pt-1">
+                <input type="checkbox" id="sync_to_calendar" name="sync_to_calendar" value="1" checked
+                    class="h-3.5 w-3.5 rounded border-outline-variant bg-surface-container-lowest text-primary">
+                <label for="sync_to_calendar" class="text-[11px] text-on-surface-variant">Sync update to Google Calendar</label>
+            </div>
+            <div class="flex justify-end gap-2 pt-2 border-t border-outline-variant">
+                <button type="button" onclick="closeStatusModal()"
+                    class="px-3 py-1.5 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps hover:bg-surface-container-high">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="px-4 py-1.5 bg-primary text-on-primary rounded font-label-caps text-label-caps hover:bg-primary-container">
+                    Save Status
                 </button>
             </div>
+        </form>
+    </div>
+</div>
 
-            <!-- Modal Body -->
-            <div id="traffic-modal-body" class="p-6 max-h-[75vh] overflow-y-auto space-y-5" role="status">
-                <!-- Loading/Error State -->
-                <div id="traffic-modal-placeholder" class="text-center py-8">
-                    <svg class="animate-spin mx-auto h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg"
-                        fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                        </circle>
-                        <path class="opacity-75" fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                        </path>
-                    </svg>
-                    <p class="mt-4 text-gray-600">Analyzing company traffic data...</p>
-                </div>
-                <!-- Results Content (hidden by default) -->
-                <div id="traffic-modal-results" class="hidden space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
-                        <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
-                            <div class="text-xs text-gray-500">Monthly Visits</div>
-                            <div id="traffic-visits" class="stat-number text-xl text-blue-600">--</div>
-                        </div>
-                        <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
-                            <div class="text-xs text-gray-500">Bounce Rate</div>
-                            <div id="traffic-bounce-rate" class="stat-number text-xl text-blue-600">--</div>
-                        </div>
-                        <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
-                            <div class="text-xs text-gray-500">Pages per Visit</div>
-                            <div id="traffic-pages-per-visit" class="stat-number text-xl text-blue-600">--</div>
-                        </div>
-                    </div>
-                    <div id="traffic-message" class="text-gray-600"></div>
-                </div>
-            </div>
-
-            <!-- Modal Footer -->
-            <div
-                class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end items-center gap-4 rounded-b-2xl">
-                <button onclick="closeTrafficAnalysisModal()"
-                    class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200">Close</button>
-            </div>
+<!-- Modal for Assisted Apply -->
+<div id="apply-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" onclick="closeApplyModal()"></div>
+    <div class="relative mx-auto p-5 border border-outline-variant w-full max-w-sm rounded-xl bg-surface-container text-center z-10 shadow-2xl">
+        <h3 class="font-headline-md text-on-surface text-[15px] font-bold mb-2">Assisted Automation</h3>
+        <p class="font-body-sm text-[12px] text-on-surface-variant mb-4">
+            Initialize an automated background browser session to prepare application fields.
+        </p>
+        <div class="flex justify-center gap-2">
+            <button type="button" onclick="closeApplyModal()"
+                class="px-3 py-1.5 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps hover:bg-surface-container-high">Cancel</button>
+            <button type="button" id="start-apply-btn"
+                class="px-4 py-1.5 bg-primary text-on-primary rounded font-label-caps text-label-caps hover:bg-primary-container">Launch Agent</button>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- DOM Elements Cache ---
-            const els = {
-                searchForm: document.getElementById('search-form'),
-                scrapeBtn: document.getElementById('scrape-btn'),
-                saveProfileBtn: document.getElementById('save-profile-btn'),
-                statusModal: document.getElementById('status-modal'),
-                applyModal: document.getElementById('apply-modal'),
-                detailsModal: document.getElementById('details-modal'),
-                detailsModalContent: document.getElementById('details-modal-content'),
-                trafficModal: document.getElementById('traffic-analysis-modal'),
-                trafficModalContent: document.getElementById('traffic-analysis-modal-content'),
-                statusForm: document.getElementById('status-form'),
-                progress: {
-                    container: document.getElementById('progress-container'),
-                    bar: document.getElementById('progress-bar'),
-                    pct: document.getElementById('progress-percentage'),
-                    status: document.getElementById('progress-status'),
-                    error: document.getElementById('progress-error'),
-                    milestones: {
-                        init: document.getElementById('milestone-init'),
-                        scrape: document.getElementById('milestone-scrape'),
-                        save: document.getElementById('milestone-save'),
-                        report: document.getElementById('milestone-report')
-                    }
-                }
-            };
+{% endblock %}
 
-            const scrapeBtnText = els.scrapeBtn ? els.scrapeBtn.querySelector('.button-text') : null;
-            const originalBtnText = scrapeBtnText ? scrapeBtnText.textContent : '';
-
-            // --- Search & Progress Logic ---
-            let eventSource = null;
-
-            function resetProgressBar() {
-                els.progress.container.classList.add('hidden');
-                els.progress.bar.style.width = '0%';
-                els.progress.pct.textContent = '0%';
-                els.progress.status.textContent = 'Ready to start...';
-                els.progress.error.classList.add('hidden');
-                els.progress.error.textContent = '';
-                Object.values(els.progress.milestones).forEach(el => el.className = 'w-2 h-2 rounded-full bg-gray-600');
-
-                if (els.scrapeBtn) {
-                    els.scrapeBtn.classList.remove('button-loading');
-                    els.scrapeBtn.disabled = false;
-                    if (scrapeBtnText) scrapeBtnText.textContent = originalBtnText;
-                }
-
-                els.progress.bar.classList.remove('from-green-400', 'to-emerald-500', 'from-red-500', 'to-orange-500');
-                els.progress.bar.classList.add('from-teal-400', 'to-sky-500');
-            }
-
-            function updateMilestones(percent) {
-                const m = els.progress.milestones;
-                if (percent >= 5) m.init.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse';
-                if (percent >= 15) { m.init.className = 'w-2 h-2 rounded-full bg-green-400'; m.scrape.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse'; }
-                if (percent >= 90) { m.scrape.className = 'w-2 h-2 rounded-full bg-green-400'; m.save.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse'; }
-                if (percent >= 95) { m.save.className = 'w-2 h-2 rounded-full bg-green-400'; m.report.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse'; }
-                if (percent >= 100) m.report.className = 'w-2 h-2 rounded-full bg-green-400';
-            }
-
-            if (els.searchForm) {
-                els.searchForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    resetProgressBar();
-                    els.progress.container.classList.remove('hidden');
-
-                    const formData = new FormData(els.searchForm);
-                    const params = new URLSearchParams(formData).toString();
-
-                    if (els.scrapeBtn) {
-                        els.scrapeBtn.classList.add('button-loading');
-                        if (scrapeBtnText) scrapeBtnText.textContent = 'Searching...';
-                    }
-
-                    try {
-                        const response = await fetch("{{ url_for('start_scrape') }}", {
-                            method: 'POST',
-                            body: params,
-                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-                        });
-                        const data = await response.json();
-
-                        if (response.ok && data.task_id) {
-                            eventSource = new EventSource(`/task_progress_stream/${data.task_id}`);
-                            eventSource.onmessage = (event) => {
-                                const d = JSON.parse(event.data);
-                                els.progress.bar.style.width = `${d.percent}%`;
-                                els.progress.pct.textContent = `${d.percent}%`;
-                                els.progress.status.textContent = d.message || d.state;
-                                updateMilestones(d.percent);
-
-                                if (d.state === 'SUCCESS') {
-                                    els.progress.status.textContent = 'Complete! Reloading...';
-                                    els.progress.bar.classList.replace('from-teal-400', 'from-green-400');
-                                    els.progress.bar.classList.replace('to-sky-500', 'to-emerald-500');
-                                    eventSource.close();
-                                    setTimeout(() => window.location.reload(), 1500);
-                                } else if (d.state === 'FAILURE') {
-                                    handleSearchError(d.message || 'Unknown error');
-                                }
-                            };
-                            eventSource.onerror = () => {
-                                console.error("EventSource failed.");
-                                eventSource.close();
-                                handleSearchError('Connection lost.');
-                            };
-                        } else {
-                            handleSearchError(data.message || data.error || 'Unknown error.');
-                        }
-                    } catch (error) {
-                        handleSearchError('Failed to connect to backend.');
-                    }
-                });
-            }
-
-            function handleSearchError(msg) {
-                els.progress.status.textContent = 'Task Failed!';
-                els.progress.error.textContent = `Error: ${msg}`;
-                els.progress.error.classList.remove('hidden');
-                els.progress.bar.classList.replace('from-teal-400', 'from-red-500');
-                els.progress.bar.classList.replace('to-sky-500', 'to-orange-500');
-                if (eventSource) eventSource.close();
-                if (els.scrapeBtn) {
-                    els.scrapeBtn.disabled = false;
-                    els.scrapeBtn.classList.remove('button-loading');
-                    if (scrapeBtnText) scrapeBtnText.textContent = 'Try Again';
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const els = {
+            searchForm: document.getElementById('search-form'),
+            scrapeBtn: document.getElementById('scrape-btn'),
+            saveProfileBtn: document.getElementById('save-profile-btn'),
+            statusModal: document.getElementById('status-modal'),
+            applyModal: document.getElementById('apply-modal'),
+            statusForm: document.getElementById('status-form'),
+            progress: {
+                container: document.getElementById('progress-container'),
+                bar: document.getElementById('progress-bar'),
+                pct: document.getElementById('progress-percentage'),
+                status: document.getElementById('progress-status'),
+                error: document.getElementById('progress-error'),
+                milestones: {
+                    init: document.getElementById('milestone-init'),
+                    scrape: document.getElementById('milestone-scrape'),
+                    save: document.getElementById('milestone-save'),
+                    report: document.getElementById('milestone-report')
                 }
             }
+        };
 
-            // --- Save Profile ---
-            if (els.saveProfileBtn) {
-                els.saveProfileBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const fields = ['search_terms', 'location', 'experience', 'job_type'];
-                    const values = fields.map(id => document.getElementById(id).value.trim());
+        const scrapeBtnText = els.scrapeBtn ? els.scrapeBtn.querySelector('.button-text') : null;
+        const originalBtnText = scrapeBtnText ? scrapeBtnText.textContent : 'Start Search';
 
-                    if (!values[0]) return alert('Please enter search terms.');
+        let eventSource = null;
 
-                    const profileName = prompt('Enter a name for this search profile:');
-                    if (!profileName || !profileName.trim()) return;
+        function resetProgressBar() {
+            if (!els.progress.container) return;
+            els.progress.container.classList.remove('hidden');
+            els.progress.bar.style.width = '0%';
+            els.progress.pct.textContent = '0%';
+            els.progress.status.textContent = 'Ready to start...';
+            els.progress.error.classList.add('hidden');
+            els.progress.error.textContent = '';
+            Object.values(els.progress.milestones).forEach(el => { if(el) el.className = 'w-1.5 h-1.5 rounded-full bg-outline'; });
 
-                    const formData = new FormData();
-                    formData.append('profile_name', profileName.trim());
-                    fields.forEach((f, i) => formData.append(f, values[i]));
-
-                    fetch('/save_profile', { method: 'POST', body: formData })
-                        .then(r => r.ok ? (alert('Saved!'), window.location.reload()) : alert('Failed to save. May exist.'))
-                        .catch(() => alert('Error saving profile.'));
-                });
+            if (els.scrapeBtn) {
+                els.scrapeBtn.disabled = true;
+                if (scrapeBtnText) scrapeBtnText.textContent = 'Searching...';
             }
+        }
 
-            // --- Apply Profile ---
-            document.querySelectorAll('.apply-profile-form').forEach(form => {
-                form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    try {
-                        const res = await fetch(form.action, { method: 'POST' });
-                        const data = await res.json();
-                        if (data.success && data.profile) {
-                            ['search_terms', 'location', 'experience', 'job_type'].forEach(k => {
-                                const el = document.getElementById(k);
-                                if (el) el.value = data.profile[k];
-                            });
-                            const box = els.searchForm.parentElement.parentElement;
-                            box.style.transition = 'box-shadow 0.3s ease';
-                            box.style.boxShadow = '0 0 20px rgba(79, 70, 229, 0.7)';
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                            setTimeout(() => box.style.boxShadow = '', 2000);
-                        } else {
-                            alert('Error: ' + (data.error || 'Unknown'));
-                        }
-                    } catch (e) { alert('Connection failed.'); }
-                });
-            });
+        function updateMilestones(percent) {
+            const m = els.progress.milestones;
+            if (!m.init) return;
+            if (percent >= 5) m.init.className = 'w-1.5 h-1.5 rounded-full bg-primary animate-pulse';
+            if (percent >= 15) { m.init.className = 'w-1.5 h-1.5 rounded-full bg-secondary'; m.scrape.className = 'w-1.5 h-1.5 rounded-full bg-primary animate-pulse'; }
+            if (percent >= 90) { m.scrape.className = 'w-1.5 h-1.5 rounded-full bg-secondary'; m.save.className = 'w-1.5 h-1.5 rounded-full bg-primary animate-pulse'; }
+            if (percent >= 95) { m.save.className = 'w-1.5 h-1.5 rounded-full bg-secondary'; m.report.className = 'w-1.5 h-1.5 rounded-full bg-primary animate-pulse'; }
+            if (percent >= 100) m.report.className = 'w-1.5 h-1.5 rounded-full bg-secondary';
+        }
 
-            // --- Modals ---
-            let activeTrigger = null;
-            const openModal = (modal, trigger) => {
-                activeTrigger = trigger;
-                modal.classList.remove('hidden');
-                const focusable = modal.querySelector('button, [href], input, select, textarea');
-                if (focusable) focusable.focus();
-            };
-            const closeModal = (modal) => {
-                modal.classList.add('hidden');
-                if (activeTrigger) { activeTrigger.focus(); activeTrigger = null; }
-            };
+        if (els.searchForm) {
+            els.searchForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                resetProgressBar();
 
-            // Global functions for HTML onclick attributes
-            window.openStatusModal = (jobId, status, notes) => {
-                document.getElementById('status-job-id').value = jobId;
-                document.getElementById('status').value = status;
-                document.getElementById('notes').value = notes;
-                openModal(els.statusModal, document.activeElement);
-            };
-            window.closeStatusModal = () => closeModal(els.statusModal);
-
-            window.openApplyModal = (jobId, link) => {
-                openModal(els.applyModal, document.activeElement);
-                document.getElementById('start-apply-btn').onclick = () => {
-                    startApplyProcess(jobId);
-                    closeModal(els.applyModal);
-                };
-            };
-            window.closeApplyModal = () => closeModal(els.applyModal);
-
-            window.openDetailsModal = (job) => {
-                openModal(els.detailsModal, document.activeElement);
-                const setTxt = (id, txt) => document.getElementById(id).textContent = txt || '';
-                const setHtml = (id, html) => document.getElementById(id).innerHTML = html || '<span class="text-gray-500">Not specified</span>';
-
-                setTxt('modal-title', job.title);
-                setTxt('modal-company', job.company);
-                setHtml('modal-location', job.location);
-                setHtml('modal-salary', job.salary);
-                setHtml('modal-experience', job.experience);
-                setHtml('modal-job-type', job.job_type);
-                setTxt('modal-description', job.description || 'No description.');
-                setHtml('modal-posted-date', job.posted_date);
-                setHtml('modal-source', job.source);
-                setHtml('modal-deadline', job.deadline);
-
-                // Exp Range
-                let range = 'Not specified';
-                if (job.min_experience_years != null) range = job.max_experience_years != null ? (job.min_experience_years === job.max_experience_years ? `${job.min_experience_years} years` : `${job.min_experience_years} - ${job.max_experience_years} years`) : `${job.min_experience_years}+ years`;
-                else if (job.max_experience_years != null) range = `Up to ${job.max_experience_years} years`;
-                document.getElementById('modal-exp-range').innerHTML = range === 'Not specified' ? '<span class="text-gray-500">Not specified</span>' : range;
-
-                // Tags
-                const setTags = (items, id) => {
-                    const c = document.getElementById(id);
-                    const p = document.getElementById(id + '-container');
-                    if (items && items.trim()) {
-                        c.innerHTML = items.split(',').map(i => `<span class="px-2 py-1 text-xs font-medium rounded-full bg-white text-gray-700 border border-gray-300">${i.trim()}</span>`).join('');
-                        p.classList.remove('hidden');
-                    } else p.classList.add('hidden');
-                };
-                setTags(job.skills, 'modal-skills');
-                setTags(job.extracted_tools, 'modal-tools');
-                setTags(job.extracted_soft_skills, 'modal-soft-skills');
-
-                // Relevance
-                const badge = document.getElementById('modal-relevance');
-                const score = Math.round(job.relevance_score || 0);
-                badge.textContent = `${score}% Match`;
-                badge.className = `px-3 py-1 text-sm font-semibold rounded-full ${score >= 60 ? 'bg-green-100 text-green-700' : score >= 30 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`;
-
-                document.getElementById('modal-apply-link').href = job.link || '#';
-                setTimeout(() => els.detailsModalContent.classList.remove('scale-95', 'opacity-0'), 10);
-            };
-            window.closeDetailsModal = () => {
-                els.detailsModalContent.classList.add('scale-95', 'opacity-0');
-                setTimeout(() => els.detailsModal.classList.add('hidden'), 300);
-            };
-
-            // Traffic Analysis
-            window.analyzeTraffic = async (jobId) => {
-                els.trafficModal.classList.remove('hidden');
-                setTimeout(() => els.trafficModalContent.classList.remove('scale-95', 'opacity-0'), 10);
-
-                const ph = document.getElementById('traffic-modal-placeholder');
-                const resDiv = document.getElementById('traffic-modal-results');
-                ph.classList.remove('hidden');
-                resDiv.classList.add('hidden');
-                document.getElementById('traffic-modal-company').textContent = 'Loading...';
+                const formData = new FormData(els.searchForm);
+                const params = new URLSearchParams(formData).toString();
 
                 try {
-                    const res = await fetch(`/analyze_traffic/${jobId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-                    const data = await res.json();
-                    ph.classList.add('hidden');
-                    resDiv.classList.remove('hidden');
+                    const response = await fetch("{{ url_for('start_scrape') }}", {
+                        method: 'POST',
+                        body: params,
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                    });
+                    const data = await response.json();
 
-                    if (res.ok && data.status === 'success') {
-                        document.getElementById('traffic-modal-company').textContent = data.company_name || 'N/A';
-                        document.getElementById('traffic-visits').textContent = data.analysis.monthly_visits || '--';
-                        document.getElementById('traffic-bounce-rate').textContent = data.analysis.bounce_rate || '--';
-                        document.getElementById('traffic-pages-per-visit').textContent = data.analysis.pages_per_visit || '--';
-                        document.getElementById('traffic-message').textContent = data.message || '';
-                    } else {
-                        throw new Error(data.message);
-                    }
-                } catch (e) {
-                    ph.classList.add('hidden');
-                    resDiv.classList.remove('hidden');
-                    document.getElementById('traffic-modal-company').textContent = 'Error';
-                    document.getElementById('traffic-message').innerHTML = `<p class="text-red-400">${e.message || 'Network error.'}</p>`;
-                }
-            };
-            window.closeTrafficAnalysisModal = () => {
-                els.trafficModalContent.classList.add('scale-95', 'opacity-0');
-                setTimeout(() => els.trafficModal.classList.add('hidden'), 300);
-            };
+                    if (response.ok && data.task_id) {
+                        eventSource = new EventSource(`/task_progress_stream/${data.task_id}`);
+                        eventSource.onmessage = (event) => {
+                            const d = JSON.parse(event.data);
+                            els.progress.bar.style.width = `${d.percent}%`;
+                            els.progress.pct.textContent = `${d.percent}%`;
+                            els.progress.status.textContent = d.message || d.state;
+                            updateMilestones(d.percent);
 
-            // Close modals on backdrop click
-            [els.detailsModal, els.trafficModal].forEach(m => m.addEventListener('click', e => { if (e.target === m) closeModal(m); }));
-
-            // --- Status Update ---
-            if (els.statusForm) {
-                els.statusForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const formData = new FormData(els.statusForm);
-                    const jobId = formData.get('job_id');
-                    const jobCard = document.querySelector(`article[data-job-id="${jobId}"]`);
-                    const btn = jobCard ? jobCard.querySelector('button[onclick*="openStatusModal"]') : null;
-
-                    try {
-                        const res = await fetch(els.statusForm.action, { method: 'POST', body: formData, headers: { 'Accept': 'application/json' } });
-                        const data = await res.json();
-                        if (res.ok && data.success) {
-                            showToast(data.message, 'success', btn);
-                            if (jobCard && data.job) {
-                                const badge = jobCard.querySelector('.status-badge');
-                                if (badge) {
-                                    badge.className = `px-2 py-0.5 text-xs font-semibold rounded-full uppercase status-badge status-${data.job.status} border`;
-                                    badge.textContent = data.job.status;
-                                }
+                            if (d.state === 'SUCCESS') {
+                                els.progress.status.textContent = 'Complete! Refreshing...';
+                                eventSource.close();
+                                setTimeout(() => window.location.reload(), 1200);
+                            } else if (d.state === 'FAILURE') {
+                                handleSearchError(d.message || 'Error occurred');
                             }
-                        } else showToast(data.error || 'Failed.', 'error', btn);
-                    } catch (e) { showToast('Network error.', 'error', btn); }
-                    closeModal(els.statusModal);
-                });
-            }
+                        };
+                        eventSource.onerror = () => {
+                            eventSource.close();
+                            handleSearchError('Connection lost.');
+                        };
+                    } else {
+                        handleSearchError(data.message || data.error || 'Unknown error.');
+                    }
+                } catch (error) {
+                    handleSearchError('Failed to connect to agent backend.');
+                }
+            });
+        }
 
-            async function startApplyProcess(jobId) {
+        function handleSearchError(msg) {
+            if (!els.progress.status) return;
+            els.progress.status.textContent = 'Task Failed';
+            els.progress.error.textContent = msg;
+            els.progress.error.classList.remove('hidden');
+            if (eventSource) eventSource.close();
+            if (els.scrapeBtn) {
+                els.scrapeBtn.disabled = false;
+                if (scrapeBtnText) scrapeBtnText.textContent = 'Retry Search';
+            }
+        }
+
+        if (els.saveProfileBtn) {
+            els.saveProfileBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const fields = ['search_terms', 'location', 'experience', 'job_type'];
+                const values = fields.map(id => document.getElementById(id) ? document.getElementById(id).value.trim() : '');
+
+                if (!values[0]) return alert('Please specify keywords first.');
+
+                const profileName = prompt('Enter a profile name:');
+                if (!profileName || !profileName.trim()) return;
+
+                const formData = new FormData();
+                formData.append('profile_name', profileName.trim());
+                fields.forEach((f, i) => formData.append(f, values[i]));
+
+                fetch('/save_profile', { method: 'POST', body: formData })
+                    .then(r => r.ok ? (alert('Profile saved.'), window.location.reload()) : alert('Failed to save profile.'))
+                    .catch(() => alert('Error saving profile.'));
+            });
+        }
+
+        window.openStatusModal = (jobId, status, notes) => {
+            document.getElementById('status-job-id').value = jobId;
+            document.getElementById('status').value = status;
+            document.getElementById('notes').value = notes || '';
+            els.statusModal.classList.remove('hidden');
+        };
+        window.closeStatusModal = () => {
+            els.statusModal.classList.add('hidden');
+        };
+
+        window.openApplyModal = (jobId, link) => {
+            els.applyModal.classList.remove('hidden');
+            document.getElementById('start-apply-btn').onclick = async () => {
                 try {
                     const res = await fetch(`/assisted_apply/${jobId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
                     const data = await res.json();
                     alert(data.status === 'success' ? data.message : 'Error: ' + data.message);
                 } catch (e) { alert('Error occurred.'); }
-            }
-
-            // --- Chart.js ---
-            async function renderJobStatusChart() {
-                try {
-                    const res = await fetch('/api/job_status_data');
-                    if (!res.ok) throw new Error('Failed to fetch data');
-                    const data = await res.json();
-                    const total = Object.values(data).reduce((a, b) => a + b, 0);
-
-                    // Fallback
-                    let tbl = '<table><caption>Status</caption><thead><tr><th>Status</th><th>Count</th></tr></thead><tbody>';
-                    Object.entries(data).forEach(([k, v]) => tbl += `<tr><td>${k}</td><td>${v}</td></tr>`);
-                    document.getElementById('chart-fallback').innerHTML = tbl + '</tbody></table>';
-
-                    if (total === 0) {
-                        document.getElementById('jobStatusChart').parentElement.innerHTML = '<div class="text-center py-8"><div class="flex justify-center mb-3"><svg class="w-12 h-12 text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg></div><p class="text-gray-400">No data yet!</p></div>';
-                        return;
-                    }
-
-                    // Stats
-                    const config = { 'new': { c: 'blue', l: 'New' }, 'applied': { c: 'emerald', l: 'Applied' }, 'interview': { c: 'amber', l: 'Interview' }, 'offered': { c: 'purple', l: 'Offered' }, 'rejected': { c: 'red', l: 'Rejected' }, 'archived': { c: 'gray', l: 'Archived' } };
-                    document.getElementById('chartStats').innerHTML = Object.entries(data).map(([k, v]) => {
-                        const c = config[k] || { c: 'gray', l: k };
-                        return `<div class="bg-gray-50 border border-gray-200 rounded-lg p-4"><div class="flex justify-between"><div class="flex items-center gap-2"><div class="chart-legend-dot chart-legend-${c.c}"></div><span class="text-sm font-medium text-gray-700">${c.l}</span></div><div class="text-right"><div class="text-xl font-bold text-gray-900">${v}</div><div class="text-xs text-gray-500">${(v / total * 100).toFixed(1)}%</div></div></div></div>`;
-                    }).join('');
-
-                    const isDark = document.body.classList.contains('dark-theme');
-                    const chartColor = isDark ? '#F0F0F0' : '#0f172a';
-
-                    // Chart
-                    new Chart(document.getElementById('jobStatusChart').getContext('2d'), {
-                        type: 'doughnut',
-                        data: {
-                            labels: Object.keys(data).map(k => config[k]?.l || k),
-                            datasets: [{
-                                data: Object.values(data),
-                                backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#6B7280'],
-                                borderColor: isDark ? '#1A1A1A' : '#ffffff',
-                                borderWidth: 3
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            cutout: '60%',
-                            plugins: {
-                                legend: { display: false }
-                            },
-                            animation: { animateScale: true }
-                        }
-                    });
-                } catch (e) { console.error('Chart error:', e); }
-            }
-
-            // --- Filters ---
-            window.filterByStatus = (status) => {
-                const el = document.getElementById('status_filter');
-                if (el) { el.value = status; document.getElementById('filter-form').submit(); }
+                closeApplyModal();
             };
+        };
+        window.closeApplyModal = () => {
+            els.applyModal.classList.add('hidden');
+        };
 
-            const toggleFilters = document.getElementById('toggle-filters');
-            if (toggleFilters) {
-                toggleFilters.addEventListener('click', () => {
-                    const content = document.getElementById('filter-content');
-                    const isHidden = content.classList.toggle('hidden');
-                    toggleFilters.setAttribute('aria-expanded', !isHidden);
-                    toggleFilters.querySelector('svg').style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
-                });
+        window.filterByStatus = (status) => {
+            const el = document.getElementById('status_filter');
+            if (el) {
+                if (el.value === status) {
+                    el.value = '';
+                } else {
+                    el.value = status;
+                }
+                document.getElementById('filter-form').submit();
             }
+        };
 
-            const filterForm = document.getElementById('filter-form');
-            if (filterForm) {
-                filterForm.addEventListener('submit', () => {
-                    const list = document.getElementById('job-listings');
-                    if (list) list.innerHTML = Array(3).fill('<div class="job-item bg-white p-6 rounded-2xl shadow-sm border border-gray-200 animate-pulse"><div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div><div class="h-4 bg-gray-200 rounded w-1/2"></div></div>').join('');
-                    const btn = filterForm.querySelector('button[type="submit"]');
-                    if (btn) { btn.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2 inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Filtering...'; btn.disabled = true; }
-                });
-            }
-
-            // --- Calendar ---
-            const loadEventsBtn = document.getElementById('load-events-btn');
-            const refreshEventsBtn = document.getElementById('refresh-events-btn');
-
-            async function loadCalendarEvents(showLoading = true) {
-                const container = document.getElementById('calendar-events-container');
-                const list = document.getElementById('events-list');
-                const loading = document.getElementById('events-loading');
-                const noEvents = document.getElementById('no-events');
-
-                if (showLoading) { container.classList.remove('hidden'); loading.classList.remove('hidden'); noEvents.classList.add('hidden'); list.innerHTML = ''; }
-
-                try {
-                    const res = await fetch('/calendar_events');
-                    const data = await res.json();
-                    if (showLoading) loading.classList.add('hidden');
-
-                    if (data.error) { list.innerHTML = `<div class="text-red-400 text-center py-4">Error: ${data.error}</div>`; return; }
-
-                    if (data.events?.length) {
-                        list.innerHTML = data.events.map(e => `
-                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 shadow-sm" data-event-id="${e.id}">
-                            <div class="flex justify-between items-start"><div class="flex-1"><h4 class="font-medium text-gray-900 text-sm">${e.summary}</h4><p class="text-xs text-gray-500 mt-1 flex items-center gap-1"><svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg> ${e.start}</p></div>
-                            <div class="flex gap-1 ml-2"><a href="${e.htmlLink}" target="_blank" class="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 bg-blue-100 rounded">View</a><button onclick="deleteCalendarEvent('${e.id}')" class="text-red-600 hover:text-red-800 text-xs px-2 py-1 bg-red-100 rounded">Delete</button></div></div>
-                        </div>`).join('');
-                    } else noEvents.classList.remove('hidden');
-                } catch (e) { if (showLoading) loading.classList.add('hidden'); list.innerHTML = `<div class="text-red-400 text-center py-4">Failed: ${e.message}</div>`; }
-            }
-
-            if (loadEventsBtn) loadEventsBtn.addEventListener('click', () => loadCalendarEvents(true));
-            if (refreshEventsBtn) refreshEventsBtn.addEventListener('click', () => {
-                refreshEventsBtn.innerHTML = 'Syncing...'; refreshEventsBtn.disabled = true;
-                loadCalendarEvents(false).then(() => { refreshEventsBtn.innerHTML = 'Refresh'; refreshEventsBtn.disabled = false; });
-            });
-
-            window.deleteCalendarEvent = async (id) => {
-                if (!confirm('Delete event?')) return;
-                const el = document.querySelector(`[data-event-id="${id}"]`);
-                try {
-                    const res = await fetch(`/delete_calendar_event/${id}`, { method: 'DELETE' });
-                    const data = await res.json();
-                    if (data.success && el) {
-                        el.style.transition = 'opacity 0.3s, transform 0.3s';
-                        el.style.opacity = '0'; el.style.transform = 'translateX(-20px)';
-                        setTimeout(() => el.remove(), 310);
-                    } else alert('Failed: ' + (data.error || 'Unknown'));
-                } catch (e) { alert('Failed: ' + e.message); }
-            };
-
-            // --- Init ---
-            const loader = document.getElementById('page-loader');
-            const content = document.getElementById('dashboard-content');
-
-            renderJobStatusChart(); // Async
-
-            // Store current URL with query params to persist filters when coming back from job details
-            sessionStorage.setItem('last_dashboard_url', window.location.href);
-
-            requestAnimationFrame(() => {
-                if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }
-                if (content) { content.classList.remove('opacity-0'); content.classList.add('content-fade-in'); }
-            });
+        // Initialize loader fade
+        const loader = document.getElementById('page-loader');
+        const content = document.getElementById('dashboard-content');
+        requestAnimationFrame(() => {
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }
+            if (content) { content.classList.remove('opacity-0'); content.classList.add('animate-fade-in'); }
         });
-    </script>
-</div>
-</div>
+    });
+</script>
 {% endblock %}

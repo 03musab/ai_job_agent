@@ -3,17 +3,22 @@ from flask import flash, redirect, url_for, jsonify, request
 from flask_login import current_user, login_required
 
 
-def require_role(role: str):
+def require_role(*roles: str):
     """
     Decorator to restrict route access by user role.
-    If the current user is not authenticated or does not have the required role,
-    it returns a 403 Forbidden for API routes or redirects to the dashboard
-    with a flash message for regular routes.
+    Supports single role or multiple roles (e.g. 'seeker', 'job_seeker').
     """
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if not current_user.is_authenticated or current_user.role != role:
+            user_role = current_user.role if current_user.is_authenticated else None
+            normalized_roles = set()
+            for r in roles:
+                normalized_roles.add(r)
+                if r in ('seeker', 'job_seeker'):
+                    normalized_roles.update(['seeker', 'job_seeker'])
+
+            if not current_user.is_authenticated or user_role not in normalized_roles:
                 if request.path.startswith('/api/'):
                     return jsonify({'error': 'Access denied. Insufficient permissions.'}), 403
                 flash('Access denied. You do not have permission to view this page.', 'danger')
@@ -40,10 +45,5 @@ def require_company_owner(f):
     return decorated_function
 
 
-def require_recruiter_company_owner(f):
-    """
-    Combined decorator for all company API routes.
-    Chains @login_required, @require_role('recruiter'), and @require_company_owner.
-    The route must accept a recruiter_id parameter.
-    """
-    return login_required(require_role('recruiter')(require_company_owner(f)))
+# Alias for backward compatibility
+require_recruiter_company_owner = require_company_owner
