@@ -20,3 +20,4 @@ reportlab
 dnspython
 xhtml2pdf
 undetected-chromedriver
+gunicorn

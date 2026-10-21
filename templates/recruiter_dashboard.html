@@ -192,8 +192,8 @@
 
 {% block scripts %}
 <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('recruiterDashboard', () => ({
+    window.recruiterDashboard = function() {
+        return {
             stats: { active_jobs: 0, total_applications: 0, interviews_scheduled: 0, hires_this_month: 0, profile_views: 0 },
             activeJobs: [],
             applications: [],
@@ -317,7 +317,15 @@
                     if (resp.ok) { await this.fetchDashboard(); this.generateTrend(); }
                 } catch (err) { }
             }
-        }));
-    });
+        };
+    };
+
+    if (window.Alpine) {
+        Alpine.data('recruiterDashboard', window.recruiterDashboard);
+    } else {
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('recruiterDashboard', window.recruiterDashboard);
+        });
+    }
 </script>
 {% endblock %}

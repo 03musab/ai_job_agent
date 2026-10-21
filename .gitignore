@@ -27,3 +27,8 @@ package-lock.json
 
 # Generated CSS
 static/css/output.css
+
+# Cloudflare & Ngrok binaries
+cloudflared.exe
+ngrok.exe
+ngrok.zip

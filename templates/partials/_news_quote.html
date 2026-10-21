@@ -1,10 +1,11 @@
-<!-- Daily Inspiration Quote Box (Stitch Precision Spec) -->
-<div class="border border-outline-variant rounded-lg bg-surface-container overflow-hidden flex flex-col"
+<!-- Daily Inspiration Quote Box (Modern Mesh Glow Spec) -->
+<div class="relative border border-outline-variant/80 dark:border-white/10 rounded-xl overflow-hidden flex flex-col shadow-lg backdrop-blur-xl group transition-all duration-300 hover:border-primary/40 bg-surface-container"
     x-data="{
+    spinning: false,
     quotes: [
         { text: 'The best way to predict the future is to create it.', author: 'Peter Drucker' },
-        { text: 'Success is not final, failure is not fatal.', author: 'Winston Churchill' },
-        { text: 'Code is poetry written in logic.', author: 'Anonymous' },
+        { text: 'Success is not final, failure is not fatal: it is the courage to continue that counts.', author: 'Winston Churchill' },
+        { text: 'Code is poetry written in logic and shipped with purpose.', author: 'Anonymous' },
         { text: 'Stay hungry, stay foolish.', author: 'Steve Jobs' },
         { text: 'Make it work, make it right, make it fast.', author: 'Kent Beck' },
         { text: 'Talk is cheap. Show me the code.', author: 'Linus Torvalds' },
@@ -13,7 +14,9 @@
         { text: 'AI amplifies human creativity and ingenuity.', author: 'Fei-Fei Li' },
         { text: 'Software is eating the world.', author: 'Marc Andreessen' },
         { text: 'Focus on being productive, not busy.', author: 'Tim Ferriss' },
-        { text: 'Do great work by loving what you do.', author: 'Steve Jobs' }
+        { text: 'Do great work by loving what you do.', author: 'Steve Jobs' },
+        { text: 'Opportunities don\'t happen, you create them.', author: 'Chris Grosser' },
+        { text: 'Precision beats power, and timing beats speed.', author: 'Conor McGregor' }
     ],
     currentQuote: {},
     init() {
@@ -30,34 +33,54 @@
         this.currentQuote = this.quotes[index];
     },
     refreshQuote() {
+        this.spinning = true;
         let newIndex;
         do {
             newIndex = Math.floor(Math.random() * this.quotes.length);
         } while (this.quotes[newIndex].text === this.currentQuote.text && this.quotes.length > 1);
-        this.currentQuote = this.quotes[newIndex];
+        
+        setTimeout(() => {
+            this.currentQuote = this.quotes[newIndex];
+            this.spinning = false;
+        }, 150);
     }
 }">
 
-    <div class="px-3 py-2 border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
+    <!-- Modern Mesh Glow Background Layer -->
+    <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-surface-container to-tertiary/10 pointer-events-none"></div>
+    <div class="absolute -top-12 -right-12 w-44 h-44 rounded-full bg-gradient-to-br from-primary/25 to-primary/5 blur-3xl pointer-events-none transform group-hover:scale-110 transition-transform duration-700"></div>
+    <div class="absolute -bottom-12 -left-12 w-40 h-40 rounded-full bg-gradient-to-tr from-tertiary/20 to-secondary/10 blur-2xl pointer-events-none transform group-hover:scale-105 transition-transform duration-700"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.05)_0%,_transparent_60%)] pointer-events-none"></div>
+    
+    <!-- Subtle Ambient Dot Matrix for Visual Depth -->
+    <div class="absolute inset-0 opacity-[0.03] dark:opacity-[0.04] bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:12px_12px] pointer-events-none"></div>
+
+    <!-- Header Bar -->
+    <div class="px-3.5 py-2.5 border-b border-outline-variant/60 dark:border-white/5 flex justify-between items-center bg-surface-container-low/60 backdrop-blur-md relative z-10">
         <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-[16px] text-tertiary">bolt</span>
-            <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold">Daily Signal</span>
+            <span class="w-5 h-5 rounded-md bg-gradient-to-br from-tertiary/25 to-tertiary/10 border border-tertiary/40 flex items-center justify-center text-tertiary shadow-sm shadow-tertiary/10">
+                <span class="material-symbols-outlined text-[13px] animate-pulse">bolt</span>
+            </span>
+            <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">Daily Signal</span>
         </div>
         <button @click="refreshQuote()"
-            class="text-on-surface-variant hover:text-primary transition-colors p-1"
-            title="New Quote">
-            <span class="material-symbols-outlined text-[16px]">sync</span>
+            class="w-6 h-6 rounded-md flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-all focus:outline-none cursor-pointer"
+            title="Refresh Signal">
+            <span class="material-symbols-outlined text-[15px] inline-block transition-transform duration-300"
+                  :class="{ 'rotate-180 opacity-70': spinning }">sync</span>
         </button>
     </div>
 
-    <div class="p-4 flex-1 flex flex-col justify-center min-h-[120px]">
-        <p class="text-[13px] leading-relaxed italic text-on-surface font-body-sm" x-text="'&ldquo;' + currentQuote.text + '&rdquo;'"
-            x-transition:enter="transition ease-out duration-200"
-            x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100">
+    <!-- Quote Body -->
+    <div class="p-4 flex-1 flex flex-col justify-between min-h-[115px] relative z-10">
+        <p class="text-[13.5px] leading-relaxed italic text-on-surface font-body-sm transition-opacity duration-200"
+           :class="{ 'opacity-30': spinning }"
+           x-text="'&ldquo;' + currentQuote.text + '&rdquo;'">
         </p>
-        <div class="mt-3 flex justify-end">
-            <span class="font-data-mono text-[10px] text-on-surface-variant tracking-wider uppercase" x-text="'— ' + currentQuote.author"></span>
+        <div class="mt-3.5 flex justify-end items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-tertiary/60"></span>
+            <span class="font-data-mono text-[10px] px-2.5 py-0.5 rounded-full bg-surface-container-highest/60 dark:bg-white/5 border border-outline-variant/60 dark:border-white/10 text-on-surface-variant tracking-wider uppercase font-semibold shadow-2xs backdrop-blur-sm"
+                  x-text="'— ' + currentQuote.author"></span>
         </div>
     </div>
 </div>

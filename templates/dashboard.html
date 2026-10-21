@@ -1,60 +1,55 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- Page Loader -->
-<div id="page-loader"
-    class="fixed inset-0 bg-background flex flex-col items-center justify-center z-[9999] transition-opacity duration-300 ease-in-out">
-    <div class="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-    <p class="mt-3 font-data-mono text-[11px] text-on-surface-variant uppercase tracking-widest">Loading Console...</p>
-</div>
-
-<div id="dashboard-content" class="opacity-0 flex-1 flex flex-col h-full w-full">
-    <!-- Main Workspace Grid -->
-    <div class="flex-1 flex flex-col lg:flex-row h-full overflow-hidden max-w-[1600px] mx-auto w-full">
+<div id="dashboard-content" class="flex-1 flex flex-col h-full w-full" x-data="{ sidebarExpanded: true }">
+    <!-- Main Workspace Grid (Responsive Collapsible Rail Sidebar & Feed) -->
+    <div class="flex-1 flex flex-col lg:flex-row h-full w-full">
         
-        <!-- Left Sidebar: Enterprise Console -->
+        <!-- Left Sidebar: Enterprise Console (Always Open) -->
         {% include "partials/_sidebar.html" %}
 
         <!-- Right Main Content Area -->
-        <main class="flex-1 flex flex-col min-w-0 bg-background relative overflow-hidden" aria-labelledby="job-listings-heading">
+        <main class="flex-1 flex flex-col min-w-0 bg-background w-full" aria-labelledby="job-listings-heading">
             
             <!-- Dashboard Widgets Header (Stat Pills & Market Intel) -->
             <div class="px-container-padding py-4 border-b border-outline-variant flex-shrink-0 flex flex-col gap-3">
+                
+                <!-- Stat Pills Grid -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <!-- Stat Pill: New Jobs -->
-                    <div class="bg-surface-container border rounded-xl p-3 flex flex-col cursor-pointer transition-all {% if status_filter == 'new' %}border-primary ring-1 ring-primary shadow-sm{% else %}border-outline-variant hover:border-primary/50{% endif %}" onclick="filterByStatus('new')">
-                        <div class="flex items-center justify-between">
-                            <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">New Jobs</span>
-                            <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                        <!-- Stat Pill: New Jobs -->
+                        <div class="bg-surface-container border rounded-xl p-3 flex flex-col cursor-pointer transition-all {% if status_filter == 'new' %}border-primary ring-1 ring-primary shadow-sm{% else %}border-outline-variant hover:border-primary/50{% endif %}" onclick="filterByStatus('new')">
+                            <div class="flex items-center justify-between">
+                                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">New Jobs</span>
+                                <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                            </div>
+                            <span class="font-headline-lg text-primary text-[22px] font-bold mt-1">
+                                {{ new_jobs_count | default(0) }}
+                            </span>
                         </div>
-                        <span class="font-headline-lg text-primary text-[22px] font-bold mt-1">
-                            {{ new_jobs_count | default(0) }}
-                        </span>
-                    </div>
-                    <!-- Stat Pill: Pipeline -->
-                    <div class="bg-surface-container border rounded-xl p-3 flex flex-col cursor-pointer transition-all {% if status_filter in ['pipeline', 'interview', 'applied'] %}border-secondary ring-1 ring-secondary shadow-sm{% else %}border-outline-variant hover:border-secondary/50{% endif %}" onclick="filterByStatus('pipeline')">
-                        <div class="flex items-center justify-between">
-                            <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Pipeline</span>
-                            <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                        <!-- Stat Pill: Pipeline -->
+                        <div class="bg-surface-container border rounded-xl p-3 flex flex-col cursor-pointer transition-all {% if status_filter in ['pipeline', 'interview', 'applied'] %}border-secondary ring-1 ring-secondary shadow-sm{% else %}border-outline-variant hover:border-secondary/50{% endif %}" onclick="filterByStatus('pipeline')">
+                            <div class="flex items-center justify-between">
+                                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Pipeline</span>
+                                <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                            </div>
+                            <span class="font-headline-lg text-on-surface text-[22px] font-bold mt-1">
+                                {{ pipeline_count | default(0) }}
+                            </span>
                         </div>
-                        <span class="font-headline-lg text-on-surface text-[22px] font-bold mt-1">
-                            {{ pipeline_count | default(0) }}
-                        </span>
-                    </div>
-                    <!-- Stat Pill: Offers -->
-                    <div class="bg-surface-container border rounded-xl p-3 flex flex-col cursor-pointer transition-all {% if status_filter == 'offered' %}border-tertiary ring-1 ring-tertiary shadow-sm{% else %}border-outline-variant hover:border-tertiary/50{% endif %}" onclick="filterByStatus('offered')">
-                        <div class="flex items-center justify-between">
-                            <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Offers</span>
-                            <span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                        <!-- Stat Pill: Offers -->
+                        <div class="bg-surface-container border rounded-xl p-3 flex flex-col cursor-pointer transition-all {% if status_filter == 'offered' %}border-tertiary ring-1 ring-tertiary shadow-sm{% else %}border-outline-variant hover:border-tertiary/50{% endif %}" onclick="filterByStatus('offered')">
+                            <div class="flex items-center justify-between">
+                                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Offers</span>
+                                <span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                            </div>
+                            <span class="font-headline-lg text-secondary text-[22px] font-bold mt-1">
+                                {{ offers_count | default(0) }}
+                            </span>
                         </div>
-                        <span class="font-headline-lg text-secondary text-[22px] font-bold mt-1">
-                            {{ offers_count | default(0) }}
-                        </span>
                     </div>
-                </div>
 
-                <!-- Market Intel & Daily Inspiration Row -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3"
+                    <!-- Market Intel & Daily Inspiration Row -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3"
                     x-data="{ 
                         news: [], 
                         loading: true, 
@@ -89,8 +84,22 @@
                             </button>
                         </div>
                         <div class="p-3 space-y-2 max-h-[160px] overflow-y-auto custom-scrollbar">
+                            <!-- Shimmer Skeleton Loading State for Market Intel -->
                             <template x-if="loading">
-                                <div class="font-data-mono text-[11px] text-on-surface-variant animate-pulse py-6 text-center">Syncing industry market feeds...</div>
+                                <div class="space-y-2 py-0.5">
+                                    <template x-for="i in 3" :key="i">
+                                        <div class="flex items-center gap-3 py-1.5 border-b border-outline-variant/30 last:border-0 px-1">
+                                            <div class="w-9 h-9 rounded-md skeleton-shimmer shrink-0"></div>
+                                            <div class="min-w-0 flex-1 space-y-1.5">
+                                                <div class="flex gap-2">
+                                                    <div class="w-12 h-2.5 rounded skeleton-shimmer"></div>
+                                                    <div class="w-16 h-2.5 rounded skeleton-shimmer"></div>
+                                                </div>
+                                                <div class="w-3/4 h-3.5 rounded skeleton-shimmer"></div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
                             </template>
                             <template x-if="error && !loading">
                                 <div class="font-data-mono text-[11px] text-error py-2 text-center" x-text="error"></div>
@@ -126,14 +135,14 @@
                 </div>
             </div>
 
-            <!-- Sticky Top Filter Bar -->
+            <!-- Fan Carousel (Top Job Picks for You) -->
             <div class="px-container-padding pt-3">
-                {% include "partials/_filters.html" %}
+                {% include "partials/_fan_carousel.html" %}
             </div>
 
-            <!-- Fan Carousel (if available) -->
+            <!-- Sticky Top Filter Bar (Below Top Job Picks) -->
             <div class="px-container-padding">
-                {% include "partials/_fan_carousel.html" %}
+                {% include "partials/_filters.html" %}
             </div>
 
             <!-- List Header Controls -->
@@ -186,7 +195,7 @@
             </div>
 
             <!-- Scrollable Job Listings (Stitch Precision Rows) -->
-            <div class="flex-1 overflow-y-auto custom-scrollbar px-container-padding pb-container-padding max-h-[600px]" id="job-listings">
+            <div class="flex-1 overflow-y-auto custom-scrollbar px-container-padding pb-container-padding" id="job-listings">
                 {% if jobs %}
                 <div class="flex flex-col gap-0">
                     {% for job in jobs %}
@@ -377,7 +386,7 @@
 
 {% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    function initDashboard() {
         const els = {
             searchForm: document.getElementById('search-form'),
             scrapeBtn: document.getElementById('scrape-btn'),
@@ -535,25 +544,116 @@
             els.applyModal.classList.add('hidden');
         };
 
+        // Seamless AJAX Filter and Pagination with Shimmer Skeleton (No Page Reloads)
+        function renderTableSkeleton() {
+            const listingsContainer = document.getElementById('job-listings');
+            if (!listingsContainer) return;
+            let rows = '<div class="flex flex-col gap-0 animate-fade-in">';
+            for (let i = 0; i < 8; i++) {
+                rows += `
+                <div class="flex items-center h-row-height-standard border-b border-outline-variant/40 px-2 -mx-2">
+                    <div class="w-14 shrink-0"><div class="h-4 w-8 rounded skeleton-shimmer"></div></div>
+                    <div class="flex-1 min-w-0 pl-3 space-y-1.5">
+                        <div class="h-3.5 w-48 sm:w-64 rounded skeleton-shimmer"></div>
+                        <div class="h-2.5 w-28 rounded skeleton-shimmer opacity-70"></div>
+                    </div>
+                    <div class="w-32 hidden lg:block"><div class="h-3 w-20 rounded skeleton-shimmer"></div></div>
+                    <div class="w-28 hidden xl:block"><div class="h-4 w-16 rounded-full skeleton-shimmer"></div></div>
+                    <div class="w-44 hidden md:flex gap-1.5">
+                        <div class="h-3.5 w-12 rounded skeleton-shimmer"></div>
+                        <div class="h-3.5 w-14 rounded skeleton-shimmer"></div>
+                    </div>
+                    <div class="w-24 text-right flex justify-end"><div class="h-5 w-12 rounded skeleton-shimmer"></div></div>
+                </div>`;
+            }
+            rows += '</div>';
+            listingsContainer.innerHTML = rows;
+        }
+
+        async function fetchDashboardData(url, pushState = true) {
+            const listingsContainer = document.getElementById('job-listings');
+            const headerCount = document.getElementById('job-listings-heading');
+            
+            // Show shimmering skeleton immediately
+            renderTableSkeleton();
+
+            try {
+                const response = await fetch(url);
+                const text = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'text/html');
+
+                const newListings = doc.getElementById('job-listings');
+                if (newListings && listingsContainer) {
+                    listingsContainer.innerHTML = newListings.innerHTML;
+                }
+
+                const newHeading = doc.getElementById('job-listings-heading');
+                if (newHeading && headerCount) {
+                    headerCount.innerHTML = newHeading.innerHTML;
+                }
+
+                // Update filter form inputs if updated from URL
+                const newFilterForm = doc.getElementById('filter-form');
+                const currentFilterForm = document.getElementById('filter-form');
+                if (newFilterForm && currentFilterForm) {
+                    currentFilterForm.innerHTML = newFilterForm.innerHTML;
+                }
+
+                if (pushState) {
+                    window.history.pushState({}, '', url);
+                }
+            } catch (err) {
+                console.warn('Fallback to standard navigation:', err);
+                window.location.href = url;
+            } finally {
+                if (listingsContainer) {
+                    listingsContainer.classList.remove('opacity-40');
+                }
+            }
+        }
+
+        const filterForm = document.getElementById('filter-form');
+        if (filterForm) {
+            filterForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const formData = new FormData(filterForm);
+                const params = new URLSearchParams(formData);
+                fetchDashboardData(`/dashboard?${params.toString()}`);
+            });
+        }
+
+        document.addEventListener('click', (e) => {
+            const paginationLink = e.target.closest('main nav a');
+            if (paginationLink && paginationLink.href) {
+                e.preventDefault();
+                fetchDashboardData(paginationLink.href);
+            }
+        });
+
+        window.addEventListener('popstate', () => {
+            if (window.location.pathname === '/dashboard') {
+                fetchDashboardData(window.location.href, false);
+            }
+        });
+
         window.filterByStatus = (status) => {
             const el = document.getElementById('status_filter');
-            if (el) {
-                if (el.value === status) {
-                    el.value = '';
-                } else {
-                    el.value = status;
-                }
-                document.getElementById('filter-form').submit();
+            const form = document.getElementById('filter-form');
+            if (el && form) {
+                el.value = (el.value === status) ? '' : status;
+                const formData = new FormData(form);
+                const params = new URLSearchParams(formData);
+                fetchDashboardData(`/dashboard?${params.toString()}`);
             }
         };
+    }
 
-        // Initialize loader fade
-        const loader = document.getElementById('page-loader');
-        const content = document.getElementById('dashboard-content');
-        requestAnimationFrame(() => {
-            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }
-            if (content) { content.classList.remove('opacity-0'); content.classList.add('animate-fade-in'); }
-        });
-    });
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDashboard);
+    } else {
+        initDashboard();
+    }
+    window.addEventListener('page:loaded', initDashboard);
 </script>
 {% endblock %}

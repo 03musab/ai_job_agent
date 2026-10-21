@@ -1,0 +1,15 @@
+[Unit]
+Description=AI Job Agent - Celery Worker Service
+After=network.target redis-server.service
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/ai_job_agent
+EnvironmentFile=/home/ubuntu/ai_job_agent/.env
+ExecStart=/home/ubuntu/ai_job_agent/venv/bin/celery -A app.celery worker --loglevel=info --concurrency=2
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

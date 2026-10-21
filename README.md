@@ -1,190 +1,199 @@
-# 🤖 AI JobSnap
+# 🤖 JobSnap — AI Job Agent & Career Automation Platform
 
-AI JobSnap is a powerful, Flask-based web application designed to automate and streamline your job search. It aggregates job listings from multiple sources, scores them for relevance, and provides a comprehensive dashboard to manage your applications from discovery to offer.
+**JobSnap** is an end-to-end AI-powered job search, career intelligence, and candidate outreach platform built on Flask, Celery, and Tailwind CSS. It aggregates live job postings across top platforms, analyzes resume compatibility using AI scoring, auto-generates personalized learning roadmaps, assists ATS form-filling, and streamlines candidate/recruiter outreach.
 
-## ✨ Features
+---
 
-- **Multi-Source Job Scraping:** Aggregates job listings from popular platforms like **LinkedIn** and **Internshala**.
-- **User Authentication:** Secure registration and login for a personalized experience.
-- **Saved Search Profiles:** Create and save multiple search profiles (keywords, location, experience) to run complex searches with a single click.
-- **Background Processing:** Leverages **Celery** and **Redis** for non-blocking, scheduled job scraping, ensuring the UI remains fast and responsive.
-- **AI-Powered Relevance Scoring:** Intelligently scores jobs based on a configurable heuristic (keywords in title/description, skills, experience match) to surface the most relevant opportunities.
-- **Job Management Dashboard:** A central hub to view, filter, sort, and manage all found jobs. Update application status (`New`, `Applied`, `Interview`, `Rejected`, `Offered`) and add personal notes.
-- **Automated Email Reports:** Receive daily or scheduled email summaries of new jobs, with an optional, beautifully formatted **Excel report** attachment via the **Gmail API**.
-- **Assisted Application Filling:** (Experimental) Launches a browser and helps pre-fill application forms on common Applicant Tracking Systems (ATS) to speed up the application process.
-- **Google Calendar Integration:** Seamlessly sync job application deadlines, interviews, and follow-ups directly to your Google Calendar.
-- **Company Traffic Analytics:** (Experimental) View estimated web traffic data for hiring companies to gauge their scale and reach.
-- **Resume-Aware Intelligence:** Upload your resume to enable smarter job-to-resume matching and provide data for the application filler.
+## ✨ Key Features
+
+- **Multi-Source Job Aggregator**: Scrapes and indexes live listings from **LinkedIn**, **Internshala**, **Naukri**, and direct career portals in the background.
+- **AI Resume Match & Compatibility Scoring**: Analyzes uploaded resumes against job requirements to calculate compatibility percentages, skill matches, and missing qualifications.
+- **Career Roadmaps & Skill Gap Analysis**: Dynamically identifies missing skills for target roles and builds actionable learning pathways with curated courses and resources.
+- **Assisted 1-Click Form Filling**: Browser-driven assistant helps pre-fill repetitive candidate data across major Applicant Tracking Systems (ATS).
+- **Recruiter & Outreach Command Center**:
+  - Dedicated Recruiter Dashboard to review inbound applicants, candidate tiers, and pipeline velocity.
+  - Automated outreach engine (`outreach_scraper.py`) for prospect sourcing and personalized candidate communication.
+- **Waitlist & VIP Access Dispatcher (`send_launch_emails.py`)**:
+  - Deliverability-optimized email dispatch system powered by the **Gmail API** with zero-link primary-inbox strategies.
+  - Supports dry-run previews, test sending, single/multiple name and email filtering, and full batch broadcasts.
+- **Google Calendar & Automated Alerts**:
+  - Direct synchronization of application deadlines, interviews, and follow-ups to Google Calendar.
+  - Daily email summaries with attached, styled Excel reports (`openpyxl`, `pandas`).
+- **Modern Responsive Dashboard**:
+  - Re-engineered with modern **Tailwind CSS**, interactive **Chart.js** application funnels, real-time market quotes, and status boards (`New`, `Applied`, `Interview`, `Rejected`, `Offered`).
+
+---
 
 ## 🛠️ Tech Stack
 
-- **Backend:** Python, Flask, Celery
-- **Frontend:** HTML, CSS, JavaScript, Bootstrap 5, Chart.js
-- **Database:** SQLite
-- **Task Queue:** Redis (as Celery broker and result backend)
-- **Web Scraping:** `requests`, `BeautifulSoup4`, `selenium`
-- **Email & Reporting:** Google API Client (Gmail), `pandas`, `openpyxl`
-- **Authentication:** Flask-Login
-- **Concurrency:** `gevent`
+| Layer | Technologies |
+|---|---|
+| **Backend** | Python 3.10+, Flask, Flask-Login, Celery, SQLite, SQLAlchemy, `gevent` |
+| **Frontend** | Tailwind CSS, Bootstrap 5, Jinja2, Chart.js, HTML5 / Vanilla JS |
+| **Task Queue & Caching** | Redis (Celery broker & result backend) |
+| **Scraping & Automation** | Selenium WebDriver (Edge / Chrome), `BeautifulSoup4`, `requests` |
+| **Cloud & APIs** | Google API Client (Gmail & Google Calendar v3), Cloudflare Tunnels |
+| **Data & Reports** | `pandas`, `openpyxl`, `PyPDF2` / `pdfminer` (Resume parsing) |
+| **DevOps & Process** | Honcho, Procfile, npm / Node.js (Tailwind CLI) |
+
+---
 
 ## 📂 Project Structure
 
 ```
-.
-├── app.py                  # Main Flask app, Celery config, data models, services, routes
-├── templates/              # Jinja2 HTML templates
-│   ├── base.html
-│   ├── dashboard.html
-│   ├── login.html
-│   └── ...
-├── requirements.txt        # Python dependencies
-├── Procfile                # Process definitions for deployment (e.g., Heroku)
-├── jobs.db                 # SQLite database file (created at runtime)
-├── credentials.json        # Google API credentials (required for email)
-├── token.pickle            # Google API token (created at runtime)
-├── BEST_PRACTICES.md       # In-depth developer documentation
-└── README.md               # This file
+ai_job_agent/
+├── app.py                      # Core Flask app, database models, routes & Celery tasks
+├── auth_middleware.py          # Session and authentication guards
+├── resume_service.py           # Resume extraction, parsing, and skill evaluation
+├── skill_gap_service.py        # Gap analysis comparing candidate vs role requirements
+├── roadmap_service.py          # Dynamic learning roadmap generator
+├── learning_models.py          # Career progression and skill models
+├── role_skill_map.json         # Taxonomy of industry roles and required skills
+├── outreach_scraper.py         # Recruiter and candidate outreach scraper
+├── send_launch_emails.py       # VIP early-access & launch email broadcast dispatcher
+├── jobsnap_waitlist_contacts.csv # Waitlist contacts database
+├── credentials.json            # Google OAuth 2.0 client credentials (Gmail/Calendar)
+├── token.pickle                # Auto-refreshing OAuth access & refresh tokens
+├── start_tunnel.bat            # One-click Cloudflare tunnel runner
+├── Procfile                    # Multi-process definition (web, worker, beat)
+├── requirements.txt            # Python dependencies
+├── package.json                # Tailwind CSS build scripts & frontend tooling
+├── tailwind.config.js          # Tailwind styling configuration
+├── static/                     # Compiled CSS, images, and frontend scripts
+└── templates/                  # Jinja2 templates (dashboard, learning_path, recruiter, etc.)
 ```
+
+---
 
 ## 🚀 Getting Started
 
-Follow these instructions to get the project up and running on your local machine.
-
 ### 1. Prerequisites
 
-- Python 3.8+
-- Redis (Install and run it locally or use a cloud instance)
-- A modern web browser (like Microsoft Edge) and its corresponding WebDriver.
+- **Python 3.10+**
+- **Node.js 18+** (for compiling Tailwind CSS)
+- **Redis Server** (running locally or via Docker / cloud)
+- **Microsoft Edge or Google Chrome** with the matching WebDriver installed
 
-### 2. Clone the Repository
-
-```bash
-git clone https://github.com/your-username/ai-job-agent.git
-cd ai-job-agent
-```
-
-### 3. Set up Python Environment
+### 2. Installation
 
 ```bash
-# Create a virtual environment
+# Clone the repository
+git clone https://github.com/your-username/ai_job_agent.git
+cd ai_job_agent
+
+# Create and activate virtual environment
 python -m venv .venv
 
-# Activate it
 # On Windows:
 .venv\Scripts\activate
 # On macOS/Linux:
 source .venv/bin/activate
 
-# Install dependencies
+# Install Python dependencies
 pip install -r requirements.txt
+
+# Install Node dependencies (for Tailwind)
+npm install
 ```
 
-### 4. Configure Environment Variables
+### 3. Environment Configuration
 
-Create a `.env` file in the project root and add the following variables.
+Create a `.env` file in the root directory:
 
 ```env
-# Flask secret key for session management
-SECRET_KEY=a-very-secret-key-change-me
-
-# Redis connection URLs for Celery
+SECRET_KEY=your-super-secret-session-key
 broker_url=redis://localhost:6379/0
 result_backend=redis://localhost:6379/0
+ADMIN_ALERT_EMAIL=admin@example.com
 
-# Email address for critical system alerts
-ADMIN_ALERT_EMAIL=your-email@example.com
-
-# (Optional) Explicit path to your Selenium Edge WebDriver
-# Download from: https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/
+# Optional: Path to custom WebDriver executable
 EDGE_DRIVER_PATH="C:\WebDrivers\msedgedriver.exe"
 ```
 
-### 5. Set up Google API for Emailing
+### 4. Google API Setup (Gmail & Calendar)
 
-1. Go to the Google Cloud Console.
-2. Create a new project.
-3. Enable the **Gmail API**.
-4. Create an **OAuth 2.0 Client ID** for a **Desktop app**.
-5. Download the credentials JSON file and save it as `credentials.json` in the project root.
+1. Navigate to the [Google Cloud Console](https://console.cloud.google.com/).
+2. Create a new project and enable the **Gmail API** and **Google Calendar API**.
+3. Create an **OAuth 2.0 Client ID** (Application type: *Desktop App*).
+4. Download the JSON credential file and save it as `credentials.json` in the project root.
+5. On the first email or calendar action, a browser consent screen will open. Upon authorization, `token.pickle` is automatically generated and kept fresh.
 
-The first time you run a feature that sends an email, a browser window will open asking you to authorize the application. After you grant permission, a `token.pickle` file will be created to store your credentials for future runs.
+---
 
 ## ▶️ Running the Application
 
-You need to run three separate processes in three different terminals.
+### Option A: All-in-One Runner (Honcho)
+If you have `honcho` installed, launch all services (Web Server, Celery Worker, Celery Beat) with a single command:
 
-### Terminal 1: Start the Flask Web Server
+```bash
+honcho start
+```
 
+### Option B: Separate Terminals
+
+#### Terminal 1 — Compile Tailwind CSS
+```bash
+npm run watch:css
+```
+
+#### Terminal 2 — Flask Web Server
 ```bash
 python app.py
 ```
+*Access the web UI at `http://127.0.0.1:5000`*
 
-The web application will be available at `http://127.0.0.1:5000`.
-
-### Terminal 2: Start the Celery Worker
-
-This process executes the background tasks like scraping and emailing.
-
+#### Terminal 3 — Celery Task Worker
 ```bash
-celery -A app.celery worker --loglevel=info
+celery -A app.celery worker --loglevel=info -P gevent
 ```
 
-### Terminal 3: Start the Celery Beat Scheduler
-
-This process triggers the scheduled tasks (e.g., daily job hunts).
-
+#### Terminal 4 — Celery Beat Scheduler
 ```bash
 celery -A app.celery beat --loglevel=info
 ```
 
-## Special commands :
+### Option C: Public Tunneling
+To securely expose your local instance to the web for mobile testing or demos:
+```bash
+start_tunnel.bat
+```
 
-& C:/Users/musab/Desktop/ai_job_agent/.venv/Scripts/Activate.ps1
+---
 
-taskkill /F /IM python.exe
+## 📧 Launch & Waitlist Email Dispatcher
 
-honcho start
+JobSnap includes a command-line email dispatcher (`send_launch_emails.py`) with support for targeted previews, dry runs, and batch sending:
 
-## 💡 Usage
+```bash
+# 1. Dry run preview (Shows recipient list and parsed template without sending)
+python send_launch_emails.py --type 2
 
-1. **Register & Login:** Open `http://127.0.0.1:5000` and create an account.
-2. **Update Your Profile:** Go to the "Profile" page and fill in your details, including your name, contact info, and resume. This data is used by the "Assisted Apply" feature.
-3. **Create a Search Profile:** On the dashboard, define a search profile with job keywords (e.g., "Python Developer, Data Engineer"), location, and experience level.
-4. **Run a Search:** Click the "Run" button on a saved profile to start a background job hunt. A progress bar will show the status.
-5. **Manage Jobs:** New jobs will appear on your dashboard. You can sort, filter, and update their status (e.g., change from `New` to `Applied`).
-6. **Configure Email Reports:** In the "Email Settings" section, add your email address and choose your preferences to receive automated reports.
+# 2. Send a test email to your own address
+python send_launch_emails.py --type 2 --test-to founder@example.com
+
+# 3. Send VIP Access to specific contacts by name or email
+python send_launch_emails.py --type 2 --filter-names zoya nabiha yusuf --send-all --yes
+
+# 4. Broadcast to the entire waitlist
+python send_launch_emails.py --type 2 --send-all
+```
+
+**Template Types:**
+- `--type 1`: High-engagement Early Access Teaser ("The job market is not for beginners 💀")
+- `--type 2`: VIP Founding Member Pass (`FOUNDER-VIP` invite code and onboarding steps)
+
+---
 
 ## 🧪 Testing
 
-The project uses `pytest` for testing. To run the test suite:
+Execute the test suite using `pytest`:
 
 ```bash
 pytest
 ```
 
-For more details on the test strategy, see BEST_PRACTICES.md.
-
-## 🔧 Future Scope
-
-1. AI-tailored cover letters + one-click variants — generate multiple personalized cover letters per job (use an LLM + prompt templates).
-2. Resume optimizer with score and fixes — show which keywords/phrases to add to match a job (use embeddings + token-level highlights).
-3. Semantic job matching / embeddings search — rank jobs by semantic similarity to resume/profile (use sentence-transformers).
-4. Auto-tailor resume (selective edit) — produce a short tailored resume PDF for each job (diff + PDF generator).
-5. Smart apply automation with human-in-the-loop — prepare filled form + highlighted fields for quick final review (no CAPTCHA bypass).
-6. Interview prep pack per job — auto-generate key questions, company talk-track and 30–60–90 plan (LLM + company scraping).
-7. Slack/Telegram/WhatsApp push alerts + deep links — immediate notifications with Apply button (webhooks / bot).
-8. Company enrichment & salary intel — attach Glassdoor/Levels.fyi/similar public stats to job cards (scrape/third party API).
-9. Feedback-driven scoring loop — use user likes/dislikes to retrain ranking weights (store feedback, update multipliers).
-10. Browser-profile sync & safe session sharing — export/import user-data-dir snippets securely (encrypted blobs).
-11. Privacy & secrets vault — encrypt stored credentials and OAuth tokens (use Fernet or OS keyring).
-12. Interactive visual dashboard — heatmaps, source breakdown, skill clouds, timeline (D3/Plotly).
-13. Browser extension + quick-save — clip jobs from any site into the app with one click (Chrome/Edge extension).
-14. Multi-tenant rate-limited scrapers with proxy rotation — scale scraping without getting blocked (proxies + backoff, per-user quotas).
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read BEST_PRACTICES.md for coding standards, architectural patterns, and guidelines before submitting a pull request.
+---
 
 ## 📄 License
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

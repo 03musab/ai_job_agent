@@ -1,0 +1,16 @@
+{
+  "bg-1": {
+    "id": "bg-1",
+    "cmd": "python -c \"\nimport sys\nsys.path.insert(0, '.')\nfrom app import app, JobDatabase\nwith app.app_context():\n    db = JobDatabase()\n    # Test getting user details\n    details = db.get_user_details(1)\n    print('User 1 details:', details)\n    # Test saving with profile_picture\n    test_details = {\n        'full_name': 'Test User',\n        'email': 'test@test.com',\n        'profile_picture': 'uploads/1/profile_test.jpg'\n    }\n    result = db.save_user_details(1, test_details)\n    print('Save result:', result)\n    details = db.get_user_details(1)\n    print('Updated details:', details)\n\"",
+    "cwd": "C:\\Users\\musab\\Desktop\\ai_job_agent",
+    "pid": 6980,
+    "start_time": 1788034310.9815245,
+    "start_time_iso": "2026-08-29T20:11:50Z",
+    "status": "failed",
+    "log_file": ".utim_tmp/tasks/bg-1.log",
+    "exit_code": 1,
+    "duration_seconds": 8.53,
+    "end_time": 1788034316.4991415,
+    "end_time_iso": "2026-08-29T20:11:56Z"
+  }
+}

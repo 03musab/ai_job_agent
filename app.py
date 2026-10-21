@@ -786,6 +786,13 @@ class JobDatabase:
                 logger.info("Added assisted_apply_mode column to user_details table.")
             except sqlite3.OperationalError as e:
                 logger.warning(f"assisted_apply_mode column already exists or error altering user_details table: {e}")
+        if 'profile_picture' not in user_details_columns:
+            try:
+                cursor.execute("ALTER TABLE user_details ADD COLUMN profile_picture TEXT DEFAULT ''")
+                conn.commit()
+                logger.info("Added profile_picture column to user_details table.")
+            except sqlite3.OperationalError as e:
+                logger.warning(f"profile_picture column already exists or error altering user_details table: {e}")
 
         cursor.execute("PRAGMA table_info(jobs)")
         jobs_existing_columns = [col[1] for col in cursor.fetchall()]
@@ -1744,8 +1751,8 @@ class JobDatabase:
                     user_id, full_name, email, phone, address,
                     linkedin_url, github_url, portfolio_url,
                     resume_path, cover_letter_template, browser_profile_path, browser_profile_name,
-                    resume_parsed_data, willing_to_relocate, authorized_to_work, assisted_apply_mode
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    resume_parsed_data, willing_to_relocate, authorized_to_work, assisted_apply_mode, profile_picture
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 user_id,
                 details.get('full_name'), details.get('email'), details.get('phone'),
@@ -1756,7 +1763,8 @@ class JobDatabase:
                 details.get('resume_parsed_data'),
                 details.get('willing_to_relocate'),
                 details.get('authorized_to_work'),
-                details.get('assisted_apply_mode', 'personal')
+                details.get('assisted_apply_mode', 'personal'),
+                details.get('profile_picture', '')
             ))
             conn.commit()
             return True
@@ -5433,6 +5441,7 @@ def profile():
         # Start with the existing resume path and parsed data
         resume_path = existing_details.get('resume_path')
         resume_parsed_data = existing_details.get('resume_parsed_data')
+        profile_picture = existing_details.get('profile_picture', '')
 
         details = {
             'full_name': request.form.get('full_name'),
@@ -5467,8 +5476,26 @@ def profile():
                 parsed_data = parser.parse(file_path)
                 resume_parsed_data = json.dumps(parsed_data) if parsed_data else None
         
+        # Handle profile picture upload
+        if 'profile_picture' in request.files:
+            file = request.files['profile_picture']
+            if file and file.filename != '':
+                # Save to a user-specific subfolder
+                user_upload_dir = os.path.join(app.config['UPLOAD_FOLDER'], str(current_user.id))
+                os.makedirs(user_upload_dir, exist_ok=True)
+                # Use a consistent filename for profile picture
+                filename = secure_filename('profile_' + file.filename)
+                file_path = os.path.join(user_upload_dir, filename)
+                file.save(file_path)
+                profile_picture = file_path
+        
+        # Handle profile picture removal
+        if request.form.get('profile_picture_removed') == 'true':
+            profile_picture = ''
+        
         details['resume_path'] = resume_path
         details['resume_parsed_data'] = resume_parsed_data
+        details['profile_picture'] = profile_picture
 
         if db.save_user_details(current_user.id, details):
             flash('Profile updated successfully!', 'success')
@@ -7545,6 +7572,11 @@ def delete_company_logo(recruiter_id):
 @app.route('/company/logo/<int:recruiter_id>/<path:filename>')
 def serve_company_logo(recruiter_id, filename):
     directory = os.path.join(COMPANY_LOGO_FOLDER, str(recruiter_id))
+    return send_from_directory(directory, filename)
+
+@app.route('/uploads/<int:user_id>/<path:filename>')
+def serve_user_uploads(user_id, filename):
+    directory = os.path.join(UPLOAD_FOLDER, str(user_id))
     return send_from_directory(directory, filename)
 
 @app.route('/api/analyze_skill_gap', methods=['POST'])

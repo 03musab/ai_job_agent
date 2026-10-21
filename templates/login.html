@@ -2,8 +2,8 @@
 {% block title %}Sign In & Register — AI JobSnap{% endblock %}
 
 {% block content %}
-<div class="min-h-[calc(100vh-48px)] bg-background flex items-center justify-center p-4 py-8">
-    <div class="w-full max-w-[840px] flex flex-col items-center gap-6">
+<div class="flex-1 flex flex-col items-center justify-center p-4 py-8 sm:py-12 my-auto w-full">
+    <div class="w-full max-w-[840px] flex flex-col items-center gap-6 z-[10]">
 
         <!-- Header Telemetry -->
         <div class="text-center">
@@ -14,11 +14,23 @@
             <h1 class="font-headline-lg text-on-surface text-[24px] font-bold">AI JobSnap Console</h1>
         </div>
 
+        <!-- Mobile Segmented Tabs for Instant Switch (Mobile Only) -->
+        <div class="flex md:hidden w-full max-w-xs bg-surface-container border border-outline-variant p-1 rounded-xl shadow-sm">
+            <button type="button" id="mobileTabSignIn" onclick="setAuthMode('login')"
+                class="flex-1 py-2 text-center text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer bg-primary text-on-primary shadow-sm">
+                Sign In
+            </button>
+            <button type="button" id="mobileTabSignUp" onclick="setAuthMode('register')"
+                class="flex-1 py-2 text-center text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer text-on-surface-variant hover:text-on-surface">
+                Create Account
+            </button>
+        </div>
+
         <!-- 3D Card Swap Auth Container -->
-        <div class="auth-container relative w-full rounded-2xl border border-outline-variant shadow-2xl overflow-hidden bg-surface-container" id="auth-container">
+        <div class="auth-container relative w-full rounded-2xl border border-outline-variant shadow-xl overflow-hidden bg-surface-container z-0" id="auth-container">
             
             <!-- Sign Up Form Panel (Left) -->
-            <div class="form-container sign-up-container absolute top-0 left-0 h-full w-full md:w-1/2 p-8 flex flex-col justify-center transition-all duration-600 ease-in-out">
+            <div class="form-container sign-up-container absolute top-0 left-0 h-full w-full md:w-1/2 p-6 sm:p-8 flex flex-col justify-center transition-all duration-500 ease-in-out">
                 <form action="{{ url_for('register') }}" method="POST" class="space-y-3.5 max-w-xs mx-auto w-full">
                     <div>
                         <h2 class="font-headline-md text-on-surface text-[20px] font-bold">Create Account</h2>
@@ -46,15 +58,15 @@
                         </select>
                     </div>
 
-                    <button type="submit"
-                        class="w-full bg-primary text-on-primary font-label-caps text-label-caps py-2.5 rounded-lg hover:bg-primary-container transition-colors shadow-md mt-2 flex items-center justify-center gap-1.5">
+                    <button type="submit" id="submitSignUpBtn"
+                        class="w-full bg-primary text-on-primary font-label-caps text-label-caps py-2.5 rounded-lg hover:bg-primary-container transition-colors shadow-md mt-2 flex items-center justify-center gap-1.5 cursor-pointer">
                         <span class="material-symbols-outlined text-[16px]">how_to_reg</span>
                         Create Account
                     </button>
 
                     <!-- Mobile Fallback Switcher -->
                     <div class="block md:hidden pt-2 text-center">
-                        <button type="button" onclick="document.getElementById('auth-container').classList.remove('right-panel-active')" class="font-data-mono text-[11px] text-primary underline">
+                        <button type="button" onclick="setAuthMode('login')" class="font-data-mono text-[12px] text-primary underline cursor-pointer p-1">
                             Already have an account? Sign In
                         </button>
                     </div>
@@ -62,7 +74,7 @@
             </div>
 
             <!-- Sign In Form Panel (Left default) -->
-            <div class="form-container sign-in-container absolute top-0 left-0 h-full w-full md:w-1/2 p-8 flex flex-col justify-center transition-all duration-600 ease-in-out">
+            <div class="form-container sign-in-container absolute top-0 left-0 h-full w-full md:w-1/2 p-6 sm:p-8 flex flex-col justify-center transition-all duration-500 ease-in-out">
                 <form action="{{ url_for('login') }}" method="POST" class="space-y-4 max-w-xs mx-auto w-full">
                     <div>
                         <h2 class="font-headline-md text-on-surface text-[20px] font-bold">Welcome Back</h2>
@@ -81,15 +93,15 @@
                             class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-body-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition-colors">
                     </div>
 
-                    <button type="submit"
-                        class="w-full bg-primary text-on-primary font-label-caps text-label-caps py-2.5 rounded-lg hover:bg-primary-container transition-colors shadow-md mt-2 flex items-center justify-center gap-1.5">
+                    <button type="submit" id="submitSignInBtn"
+                        class="w-full bg-primary text-on-primary font-label-caps text-label-caps py-2.5 rounded-lg hover:bg-primary-container transition-colors shadow-md mt-2 flex items-center justify-center gap-1.5 cursor-pointer">
                         <span class="material-symbols-outlined text-[16px]">login</span>
                         Authenticate
                     </button>
 
                     <!-- Mobile Fallback Switcher -->
                     <div class="block md:hidden pt-2 text-center">
-                        <button type="button" onclick="document.getElementById('auth-container').classList.add('right-panel-active')" class="font-data-mono text-[11px] text-primary underline">
+                        <button type="button" onclick="setAuthMode('register')" class="font-data-mono text-[12px] text-primary underline cursor-pointer p-1">
                             Need an account? Register
                         </button>
                     </div>
@@ -97,35 +109,35 @@
             </div>
 
             <!-- Sliding Overlay Container (Desktop) -->
-            <div class="overlay-container hidden md:block absolute top-0 left-1/2 w-1/2 h-full overflow-hidden transition-transform duration-600 ease-in-out z-50">
-                <div class="overlay relative -left-full h-full w-[200%] text-white transition-transform duration-600 ease-in-out bg-gradient-to-br from-[#5243d6] via-[#4335b8] to-[#1e176b]">
+            <div class="overlay-container hidden md:block absolute top-0 left-1/2 w-1/2 h-full overflow-hidden transition-transform duration-500 ease-in-out z-50">
+                <div class="overlay relative -left-full h-full w-[200%] text-white transition-transform duration-500 ease-in-out bg-gradient-to-br from-[#5243d6] via-[#4335b8] to-[#1e176b]">
                     
                     <!-- Floating Atmospheric Orbs -->
                     <div class="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
                     <div class="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-secondary/20 blur-2xl pointer-events-none"></div>
 
                     <!-- Overlay Left (Visible during Sign Up mode to swap back to Sign In) -->
-                    <div class="overlay-panel overlay-left absolute top-0 left-0 w-1/2 h-full flex flex-col items-center justify-center px-10 text-center transition-transform duration-600 ease-in-out">
+                    <div class="overlay-panel overlay-left absolute top-0 left-0 w-1/2 h-full flex flex-col items-center justify-center px-10 text-center transition-transform duration-500 ease-in-out">
                         <span class="material-symbols-outlined text-[36px] text-white/90 mb-2">lock_open</span>
                         <h2 class="font-headline-lg text-[22px] font-bold text-white mb-2">Existing Operator?</h2>
                         <p class="font-body-sm text-[13px] text-white/80 mb-6 leading-relaxed">
                             Log into your verified workspace to track ongoing requisitions and automated pipelines.
                         </p>
                         <button type="button" id="signInBtn"
-                            class="px-6 py-2.5 rounded-full border-2 border-white/80 text-white font-label-caps text-label-caps uppercase tracking-wider hover:bg-white hover:text-primary transition-all duration-200 shadow-lg">
+                            class="px-6 py-2.5 rounded-full border-2 border-white/80 text-white font-label-caps text-label-caps uppercase tracking-wider hover:bg-white hover:text-primary transition-all duration-200 shadow-lg cursor-pointer">
                             Sign In
                         </button>
                     </div>
 
                     <!-- Overlay Right (Visible during Sign In mode to swap to Sign Up) -->
-                    <div class="overlay-panel overlay-right absolute top-0 right-0 w-1/2 h-full flex flex-col items-center justify-center px-10 text-center transition-transform duration-600 ease-in-out">
+                    <div class="overlay-panel overlay-right absolute top-0 right-0 w-1/2 h-full flex flex-col items-center justify-center px-10 text-center transition-transform duration-500 ease-in-out">
                         <span class="material-symbols-outlined text-[36px] text-white/90 mb-2">rocket_launch</span>
                         <h2 class="font-headline-lg text-[22px] font-bold text-white mb-2">New Candidate?</h2>
                         <p class="font-body-sm text-[13px] text-white/80 mb-6 leading-relaxed">
                             Configure your automated job radar, resume parsing intelligence, and assisted applications.
                         </p>
                         <button type="button" id="signUpBtn"
-                            class="px-6 py-2.5 rounded-full border-2 border-white/80 text-white font-label-caps text-label-caps uppercase tracking-wider hover:bg-white hover:text-primary transition-all duration-200 shadow-lg">
+                            class="px-6 py-2.5 rounded-full border-2 border-white/80 text-white font-label-caps text-label-caps uppercase tracking-wider hover:bg-white hover:text-primary transition-all duration-200 shadow-lg cursor-pointer">
                             Get Started
                         </button>
                     </div>
@@ -147,107 +159,172 @@
 <style>
 /* 3D Swap Cards CSS Engine */
 .auth-container {
-    height: 520px;
     min-height: 520px;
-    max-height: 520px;
 }
 
-.sign-in-container {
-    z-index: 2;
-    overflow: hidden;
-}
+@media (min-width: 768px) {
+    .auth-container {
+        height: 520px;
+    }
 
-.auth-container.right-panel-active .sign-in-container {
-    transform: translateX(100%);
-    opacity: 0;
-    pointer-events: none;
-}
+    .sign-in-container {
+        z-index: 2;
+        overflow: hidden;
+    }
 
-.sign-up-container {
-    opacity: 0;
-    z-index: 1;
-    pointer-events: none;
-    overflow: hidden;
-}
+    .auth-container.right-panel-active .sign-in-container {
+        transform: translateX(100%);
+        opacity: 0;
+        pointer-events: none;
+    }
 
-.auth-container.right-panel-active .sign-up-container {
-    transform: translateX(100%);
-    opacity: 1;
-    z-index: 5;
-    animation: swapCardShow 0.6s;
-    pointer-events: all;
-}
-
-@keyframes swapCardShow {
-    0%, 49.99% {
+    .sign-up-container {
         opacity: 0;
         z-index: 1;
+        pointer-events: none;
+        overflow: hidden;
     }
-    50%, 100% {
+
+    .auth-container.right-panel-active .sign-up-container {
+        transform: translateX(100%);
         opacity: 1;
         z-index: 5;
+        animation: swapCardShow 0.5s;
+        pointer-events: all;
+    }
+
+    @keyframes swapCardShow {
+        0%, 49.99% {
+            opacity: 0;
+            z-index: 1;
+        }
+        50%, 100% {
+            opacity: 1;
+            z-index: 5;
+        }
+    }
+
+    .auth-container.right-panel-active .overlay-container {
+        transform: translateX(-100%);
+    }
+
+    .auth-container.right-panel-active .overlay {
+        transform: translateX(50%);
+    }
+
+    .overlay-left {
+        transform: translateX(-20%);
+    }
+
+    .auth-container.right-panel-active .overlay-left {
+        transform: translateX(0);
+    }
+
+    .overlay-right {
+        transform: translateX(0);
+    }
+
+    .auth-container.right-panel-active .overlay-right {
+        transform: translateX(20%);
     }
 }
 
-.auth-container.right-panel-active .overlay-container {
-    transform: translateX(-100%);
-}
+@media (max-width: 767px) {
+    .auth-container {
+        height: auto;
+        min-height: auto;
+    }
 
-.auth-container.right-panel-active .overlay {
-    transform: translateX(50%);
-}
+    .form-container {
+        position: relative !important;
+        width: 100% !important;
+        transform: none !important;
+        opacity: 1 !important;
+        pointer-events: all !important;
+    }
 
-.overlay-left {
-    transform: translateX(-20%);
-}
+    .sign-up-container {
+        display: none !important;
+    }
 
-.auth-container.right-panel-active .overlay-left {
-    transform: translateX(0);
-}
+    .auth-container.right-panel-active .sign-in-container {
+        display: none !important;
+    }
 
-.overlay-right {
-    transform: translateX(0);
-}
-
-.auth-container.right-panel-active .overlay-right {
-    transform: translateX(20%);
+    .auth-container.right-panel-active .sign-up-container {
+        display: flex !important;
+    }
 }
 </style>
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+function setAuthMode(mode) {
     const authContainer = document.getElementById('auth-container');
+    const tabSignIn = document.getElementById('mobileTabSignIn');
+    const tabSignUp = document.getElementById('mobileTabSignUp');
+    if (!authContainer) return;
+
+    if (mode === 'register') {
+        authContainer.classList.add('right-panel-active');
+        if (tabSignUp && tabSignIn) {
+            tabSignUp.className = "flex-1 py-2 text-center text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer bg-primary text-on-primary shadow-sm";
+            tabSignIn.className = "flex-1 py-2 text-center text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer text-on-surface-variant hover:text-on-surface";
+        }
+        if (history.replaceState) {
+            history.replaceState(null, '', '#register');
+        }
+    } else {
+        authContainer.classList.remove('right-panel-active');
+        if (tabSignUp && tabSignIn) {
+            tabSignIn.className = "flex-1 py-2 text-center text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer bg-primary text-on-primary shadow-sm";
+            tabSignUp.className = "flex-1 py-2 text-center text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer text-on-surface-variant hover:text-on-surface";
+        }
+        if (history.replaceState) {
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+    }
+}
+window.setAuthMode = setAuthMode;
+
+function initAuth() {
     const signUpBtn = document.getElementById('signUpBtn');
     const signInBtn = document.getElementById('signInBtn');
 
-    if (signUpBtn && authContainer) {
+    if (signUpBtn) {
         signUpBtn.addEventListener('click', function (e) {
             e.preventDefault();
-            e.stopPropagation();
-            authContainer.classList.add('right-panel-active');
-            if (history.replaceState) {
-                history.replaceState(null, '', '#register');
-            }
+            setAuthMode('register');
         });
     }
 
-    if (signInBtn && authContainer) {
+    if (signInBtn) {
         signInBtn.addEventListener('click', function (e) {
             e.preventDefault();
-            e.stopPropagation();
-            authContainer.classList.remove('right-panel-active');
-            if (history.replaceState) {
-                history.replaceState(null, '', window.location.pathname + window.location.search);
-            }
+            setAuthMode('login');
         });
     }
 
     // Auto-activate registration card if URL contains #register
-    if (window.location.hash === '#register' && authContainer) {
-        authContainer.classList.add('right-panel-active');
+    if (window.location.hash === '#register') {
+        setAuthMode('register');
+    } else {
+        setAuthMode('login');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initAuth);
+window.addEventListener('hashchange', function () {
+    if (window.location.hash === '#register') {
+        setAuthMode('register');
+    } else {
+        setAuthMode('login');
     }
 });
+// Also run immediately in case DOM is already parsed
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initAuth();
+}
 </script>
 {% endblock %}

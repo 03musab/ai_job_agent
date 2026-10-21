@@ -41,7 +41,8 @@
     </a>
 
     <!-- Top Navigation Bar (Frosted Glass Stitch Precision Spec) -->
-    <nav class="bg-surface/80 backdrop-blur-xl fixed top-0 w-full h-[48px] z-50 border-b border-outline-variant/60 shadow-lg shadow-black/10 flex justify-between items-center px-gutter max-w-[1600px] mx-auto left-0 right-0 transition-colors" aria-label="Main menu" x-data="{ mobileMenuOpen: false }">
+    <nav class="bg-surface/80 backdrop-blur-xl fixed top-0 left-0 right-0 w-full h-[48px] z-[100] border-b border-outline-variant/60 shadow-lg shadow-black/10 transition-colors" aria-label="Main menu" x-data="{ mobileMenuOpen: false }">
+        <div class="flex justify-between items-center px-gutter h-full w-full">
         
         <!-- Left: Logo & Nav Links -->
         <div class="flex items-center gap-gutter h-full">
@@ -50,44 +51,92 @@
                 <span class="font-headline-md text-[15px] text-on-surface tracking-tight font-bold group-hover:text-primary transition-colors">AI JobSnap</span>
             </a>
 
-            <div class="hidden md:flex h-full items-center gap-1.5 ml-6">
+            <!-- Nav Links Container with Elastic Glassmorphic Stretchy Pill -->
+            <div class="hidden md:flex h-full items-center gap-1.5 ml-6 relative"
+                 x-data="{
+                     activePill: { left: '0px', width: '0px', opacity: 0 },
+                     hoverPill: { left: '0px', width: '0px', opacity: 0 },
+                     isHovered: false,
+                     init() {
+                         const sync = () => this.syncActive();
+                         this.$nextTick(sync);
+                         setTimeout(sync, 50);
+                         setTimeout(sync, 250);
+                         if (document.fonts) {
+                             document.fonts.ready.then(sync);
+                         }
+                         window.addEventListener('resize', sync);
+                     },
+                     syncActive() {
+                         const activeEl = this.$el.querySelector('.nav-item-active');
+                         if (activeEl && activeEl.offsetWidth > 0) {
+                             this.activePill = {
+                                 left: activeEl.offsetLeft + 'px',
+                                 width: activeEl.offsetWidth + 'px',
+                                 opacity: 1
+                             };
+                         }
+                     },
+                     onHover(e) {
+                         const target = e.target.closest('.nav-item');
+                         if (target && target.offsetWidth > 0) {
+                             this.hoverPill = {
+                                 left: target.offsetLeft + 'px',
+                                 width: target.offsetWidth + 'px',
+                                 opacity: 1
+                             };
+                             this.isHovered = true;
+                         }
+                     },
+                     onLeave() {
+                         this.isHovered = false;
+                     }
+                 }"
+                 @mouseleave="onLeave()">
+
+                <!-- Liquid Glassmorphism Stretchy Sliding Pill -->
+                <div class="absolute top-1/2 -translate-y-1/2 h-[30px] rounded-lg bg-primary/15 backdrop-blur-xl border border-primary/35 shadow-sm pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                     :style="isHovered ? `left: ${hoverPill.left}; width: ${hoverPill.width}; opacity: ${hoverPill.opacity};` : `left: ${activePill.left}; width: ${activePill.width}; opacity: ${activePill.opacity};`"
+                     x-cloak>
+                </div>
+
                 {% if current_user.is_authenticated %}
                     {% if current_user.role == 'recruiter' %}
-                        <a href="{{ url_for('recruiter_dashboard') }}" 
-                           class="px-3 py-1 rounded-md font-body-sm text-[13px] transition-all {{ 'bg-primary/10 text-primary font-bold border border-primary/20 shadow-sm' if request.endpoint == 'recruiter_dashboard' else 'text-on-surface-variant font-medium hover:text-on-surface hover:bg-surface-container-high/50' }}">
+                        <a href="{{ url_for('recruiter_dashboard') }}" @mouseenter="onHover($event)"
+                           class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint == 'recruiter_dashboard' else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Dashboard
                         </a>
-                        <a href="{{ url_for('recruiter_post_job') }}" 
-                           class="px-3 py-1 rounded-md font-body-sm text-[13px] transition-all {{ 'bg-primary/10 text-primary font-bold border border-primary/20 shadow-sm' if request.endpoint == 'recruiter_post_job' else 'text-on-surface-variant font-medium hover:text-on-surface hover:bg-surface-container-high/50' }}">
+                        <a href="{{ url_for('recruiter_post_job') }}" @mouseenter="onHover($event)"
+                           class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint == 'recruiter_post_job' else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Post Job
                         </a>
-                        <a href="{{ url_for('recruiter_company') }}" 
-                           class="px-3 py-1 rounded-md font-body-sm text-[13px] transition-all {{ 'bg-primary/10 text-primary font-bold border border-primary/20 shadow-sm' if request.endpoint == 'recruiter_company' else 'text-on-surface-variant font-medium hover:text-on-surface hover:bg-surface-container-high/50' }}">
+                        <a href="{{ url_for('recruiter_company') }}" @mouseenter="onHover($event)"
+                           class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint == 'recruiter_company' else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Company Profile
                         </a>
-                        <a href="{{ url_for('outreach_studio') }}" 
-                           class="px-3 py-1 rounded-md font-body-sm text-[13px] transition-all {{ 'bg-primary/10 text-primary font-bold border border-primary/20 shadow-sm' if request.endpoint == 'outreach_studio' else 'text-on-surface-variant font-medium hover:text-on-surface hover:bg-surface-container-high/50' }}">
+                        <a href="{{ url_for('outreach_studio') }}" @mouseenter="onHover($event)"
+                           class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint == 'outreach_studio' else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Outreach Studio
                         </a>
                     {% else %}
-                        <a href="{{ url_for('dashboard') }}" 
-                           class="px-3 py-1 rounded-md font-body-sm text-[13px] transition-all {{ 'bg-primary/10 text-primary font-bold border border-primary/20 shadow-sm' if request.endpoint == 'dashboard' else 'text-on-surface-variant font-medium hover:text-on-surface hover:bg-surface-container-high/50' }}">
+                        <a href="{{ url_for('dashboard') }}" @mouseenter="onHover($event)"
+                           class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint == 'dashboard' else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Dashboard
                         </a>
-                        <a href="{{ url_for('outreach_studio') }}" 
-                           class="px-3 py-1 rounded-md font-body-sm text-[13px] transition-all {{ 'bg-primary/10 text-primary font-bold border border-primary/20 shadow-sm' if request.endpoint == 'outreach_studio' else 'text-on-surface-variant font-medium hover:text-on-surface hover:bg-surface-container-high/50' }}">
+                        <a href="{{ url_for('outreach_studio') }}" @mouseenter="onHover($event)"
+                           class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint == 'outreach_studio' else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Outreach Studio
                         </a>
-                        <a href="{{ url_for('learning_path') }}" 
-                           class="px-3 py-1 rounded-md font-body-sm text-[13px] transition-all {{ 'bg-primary/10 text-primary font-bold border border-primary/20 shadow-sm' if request.endpoint == 'learning_path' else 'text-on-surface-variant font-medium hover:text-on-surface hover:bg-surface-container-high/50' }}">
+                        <a href="{{ url_for('learning_path') }}" @mouseenter="onHover($event)"
+                           class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint == 'learning_path' else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Skill Gap & Roadmap
                         </a>
                     {% endif %}
                 {% else %}
-                    <a href="{{ url_for('index') }}#features" class="px-3 py-1 rounded-md text-on-surface-variant font-medium hover:text-primary transition-colors font-body-sm text-[13px]">Product</a>
-                    <a href="{{ url_for('index') }}#architecture" class="px-3 py-1 rounded-md text-on-surface-variant font-medium hover:text-primary transition-colors font-body-sm text-[13px]">Architecture</a>
-                    <a href="{{ url_for('index') }}#setup" class="px-3 py-1 rounded-md text-on-surface-variant font-medium hover:text-primary transition-colors font-body-sm text-[13px]">Self-Hosting</a>
-                    <a href="{{ url_for('index') }}#faq" class="px-3 py-1 rounded-md text-on-surface-variant font-medium hover:text-primary transition-colors font-body-sm text-[13px]">FAQ</a>
+                    <a href="{{ url_for('index') }}#features" @mouseenter="onHover($event)" class="nav-item relative z-10 px-3 py-1 rounded-md text-on-surface-variant font-medium hover:text-primary transition-colors font-body-sm text-[13px]">Product</a>
+                    <a href="{{ url_for('index') }}#architecture" @mouseenter="onHover($event)" class="nav-item relative z-10 px-3 py-1 rounded-md text-on-surface-variant font-medium hover:text-primary transition-colors font-body-sm text-[13px]">Architecture</a>
+                    <a href="{{ url_for('index') }}#setup" @mouseenter="onHover($event)" class="nav-item relative z-10 px-3 py-1 rounded-md text-on-surface-variant font-medium hover:text-primary transition-colors font-body-sm text-[13px]">Self-Hosting</a>
+                    <a href="{{ url_for('index') }}#faq" @mouseenter="onHover($event)" class="nav-item relative z-10 px-3 py-1 rounded-md text-on-surface-variant font-medium hover:text-primary transition-colors font-body-sm text-[13px]">FAQ</a>
                 {% endif %}
             </div>
         </div>
@@ -180,35 +229,36 @@
                 <span class="material-symbols-outlined text-[20px]">menu</span>
             </button>
         </div>
-    </nav>
+        </div>
 
-    <!-- Mobile Drawer -->
-    <div id="mobile-menu" class="md:hidden fixed top-[48px] left-0 right-0 z-40 bg-surface-container-high border-b border-outline-variant px-4 py-3 space-y-2 text-body-sm"
-         x-show="mobileMenuOpen" x-transition x-cloak>
-        {% if current_user.is_authenticated %}
-            {% if current_user.role == 'recruiter' %}
-                <a href="{{ url_for('recruiter_dashboard') }}" class="block py-1 text-on-surface hover:text-primary">Dashboard</a>
-                <a href="{{ url_for('recruiter_post_job') }}" class="block py-1 text-on-surface hover:text-primary">Post Job</a>
-                <a href="{{ url_for('recruiter_company') }}" class="block py-1 text-on-surface hover:text-primary">Company Profile</a>
-                <a href="{{ url_for('outreach_studio') }}" class="block py-1 text-on-surface hover:text-primary">Outreach Studio</a>
+        <!-- Mobile Drawer -->
+        <div id="mobile-menu" class="md:hidden fixed top-[48px] left-0 right-0 z-40 bg-surface-container-high border-b border-outline-variant px-4 py-3 space-y-2 text-body-sm"
+             x-show="mobileMenuOpen" x-transition x-cloak>
+            {% if current_user.is_authenticated %}
+                {% if current_user.role == 'recruiter' %}
+                    <a href="{{ url_for('recruiter_dashboard') }}" class="block py-1 text-on-surface hover:text-primary">Dashboard</a>
+                    <a href="{{ url_for('recruiter_post_job') }}" class="block py-1 text-on-surface hover:text-primary">Post Job</a>
+                    <a href="{{ url_for('recruiter_company') }}" class="block py-1 text-on-surface hover:text-primary">Company Profile</a>
+                    <a href="{{ url_for('outreach_studio') }}" class="block py-1 text-on-surface hover:text-primary">Outreach Studio</a>
+                {% else %}
+                    <a href="{{ url_for('dashboard') }}" class="block py-1 text-on-surface hover:text-primary">Dashboard</a>
+                    <a href="{{ url_for('outreach_studio') }}" class="block py-1 text-on-surface hover:text-primary">Outreach Studio</a>
+                    <a href="{{ url_for('learning_path') }}" class="block py-1 text-on-surface hover:text-primary">Skill Gap & Roadmap</a>
+                {% endif %}
+                <div class="border-t border-outline-variant my-2"></div>
+                <a href="{{ url_for('profile') }}" class="block py-1 text-on-surface hover:text-primary">Profile Settings</a>
+                <a href="{{ url_for('logout') }}" class="block py-1 text-error">Sign out</a>
             {% else %}
-                <a href="{{ url_for('dashboard') }}" class="block py-1 text-on-surface hover:text-primary">Dashboard</a>
-                <a href="{{ url_for('outreach_studio') }}" class="block py-1 text-on-surface hover:text-primary">Outreach Studio</a>
-                <a href="{{ url_for('learning_path') }}" class="block py-1 text-on-surface hover:text-primary">Skill Gap & Roadmap</a>
+                <a href="{{ url_for('login') }}" class="block py-1 text-on-surface hover:text-primary">Sign in</a>
+                <a href="{{ url_for('register') }}" class="block py-1 text-primary font-semibold">Register</a>
             {% endif %}
-            <div class="border-t border-outline-variant my-2"></div>
-            <a href="{{ url_for('profile') }}" class="block py-1 text-on-surface hover:text-primary">Profile Settings</a>
-            <a href="{{ url_for('logout') }}" class="block py-1 text-error">Sign out</a>
-        {% else %}
-            <a href="{{ url_for('login') }}" class="block py-1 text-on-surface hover:text-primary">Sign in</a>
-            <a href="{{ url_for('register') }}" class="block py-1 text-primary font-semibold">Register</a>
-        {% endif %}
-    </div>
+        </div>
+    </nav>
 
     <!-- Flash Notifications (Floating Toast Stack) -->
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    <div class="fixed top-16 right-6 z-50 space-y-2 max-w-sm w-full pointer-events-none" role="region" aria-label="Notifications">
+    <div class="fixed top-16 right-6 z-[110] space-y-2 max-w-sm w-full pointer-events-none" role="region" aria-label="Notifications">
         {% for category, message in messages %}
         <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4500)"
              x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
@@ -241,6 +291,140 @@
 
     <!-- Alpine.js Core -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Global Top Loading Progress Bar -->
+    <div id="spa-progress-bar" class="fixed top-0 left-0 h-[2.5px] bg-gradient-to-r from-primary via-secondary to-primary z-[9999] transition-all duration-300 opacity-0 pointer-events-none shadow-sm shadow-primary/50" style="width: 0%;"></div>
+
+    <!-- Seamless Instant SPA Navigation Router (Zero Page Reloads) -->
+    <script>
+        (function() {
+            const EXCLUDED_PATHS = ['/logout', '/login', '/register', '/reauth_google', '/auth'];
+
+            async function spaNavigate(url, pushState = true) {
+                const mainEl = document.getElementById('main-content');
+                const progressBar = document.getElementById('spa-progress-bar');
+
+                if (progressBar) {
+                    progressBar.style.width = '35%';
+                    progressBar.style.opacity = '1';
+                    setTimeout(() => {
+                        if (progressBar && progressBar.style.opacity === '1') {
+                            progressBar.style.width = '70%';
+                        }
+                    }, 120);
+                }
+
+                if (mainEl) {
+                    mainEl.style.opacity = '0.45';
+                    mainEl.style.transition = 'opacity 120ms ease-out';
+                }
+
+                // Update active state in nav bar immediately for stretchy animation
+                const currentPath = new URL(url, window.location.origin).pathname;
+                document.querySelectorAll('.nav-item').forEach(link => {
+                    const linkPath = new URL(link.href, window.location.origin).pathname;
+                    if (linkPath === currentPath) {
+                        link.classList.add('nav-item-active', 'text-primary', 'font-bold');
+                        link.classList.remove('text-on-surface-variant', 'font-medium');
+                    } else {
+                        link.classList.remove('nav-item-active', 'text-primary', 'font-bold');
+                        link.classList.add('text-on-surface-variant', 'font-medium');
+                    }
+                });
+                window.dispatchEvent(new CustomEvent('nav:changed'));
+
+                try {
+                    const res = await fetch(url);
+                    if (!res.ok) {
+                        window.location.href = url;
+                        return;
+                    }
+                    const html = await res.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+
+                    // Update Title
+                    if (doc.title) document.title = doc.title;
+
+                    // Collect all scripts from both main and body/head
+                    const newMain = doc.getElementById('main-content');
+                    const allNewScripts = doc.querySelectorAll('script');
+
+                    if (newMain && mainEl) {
+                        mainEl.innerHTML = newMain.innerHTML;
+
+                        // Execute all scripts from the fetched page
+                        allNewScripts.forEach(oldScript => {
+                            if (oldScript.src && oldScript.src.includes('alpinejs')) return;
+                            if (oldScript.textContent.includes('spaNavigate')) return;
+
+                            const newScript = document.createElement('script');
+                            Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                            newScript.textContent = oldScript.textContent;
+                            document.body.appendChild(newScript);
+                            setTimeout(() => newScript.remove(), 10);
+                        });
+
+                        // Reinitialize Alpine.js on the new DOM tree
+                        if (window.Alpine) {
+                            window.Alpine.initTree(mainEl);
+                        }
+
+                        // Dispatch page lifecycle events
+                        document.dispatchEvent(new Event('DOMContentLoaded'));
+                        window.dispatchEvent(new CustomEvent('page:loaded', { detail: { url } }));
+                    } else {
+                        window.location.href = url;
+                        return;
+                    }
+
+                    if (pushState) {
+                        window.history.pushState({}, '', url);
+                    }
+                    window.scrollTo({ top: 0, behavior: 'instant' });
+                } catch (e) {
+                    console.warn('SPA navigation failed, falling back to standard load:', e);
+                    window.location.href = url;
+                } finally {
+                    if (mainEl) {
+                        mainEl.style.opacity = '1';
+                    }
+                    if (progressBar) {
+                        progressBar.style.width = '100%';
+                        setTimeout(() => {
+                            progressBar.style.opacity = '0';
+                            setTimeout(() => { progressBar.style.width = '0%'; }, 300);
+                        }, 150);
+                    }
+                    window.dispatchEvent(new CustomEvent('nav:changed'));
+                }
+            }
+
+            // Intercept internal link clicks
+            document.addEventListener('click', (e) => {
+                const link = e.target.closest('a');
+                if (!link || !link.href) return;
+                
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || link.target === '_blank') return;
+
+                const url = new URL(link.href, window.location.origin);
+                if (url.origin !== window.location.origin) return;
+                if (url.hash && url.pathname === window.location.pathname) return;
+                if (EXCLUDED_PATHS.some(p => url.pathname.startsWith(p))) return;
+                if (link.hasAttribute('download') || link.getAttribute('onclick')) return;
+
+                e.preventDefault();
+                spaNavigate(link.href, true);
+            });
+
+            // Handle browser Back / Forward navigation
+            window.addEventListener('popstate', () => {
+                spaNavigate(window.location.href, false);
+            });
+
+            window.spaNavigate = spaNavigate;
+        })();
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 

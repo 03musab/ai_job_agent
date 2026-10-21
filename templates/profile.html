@@ -17,6 +17,44 @@
         </div>
     </div>
 
+    <!-- Profile Picture Section -->
+    <div class="border border-outline-variant rounded-xl p-6 bg-surface-container">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <!-- Profile Picture Preview -->
+                {% if user_details and user_details.profile_picture %}
+                    {% set pp = user_details.profile_picture %}
+                    {% set pp_parts = pp.split('/') %}
+                    {% set user_id = pp_parts[1] if pp_parts|length > 1 else current_user.id %}
+                    {% set filename = pp_parts[-1] %}
+                    <img src="{{ url_for('serve_user_uploads', user_id=user_id, filename=filename) }}" alt="Profile Picture" class="w-20 h-20 rounded-full object-cover border-2 border-primary" id="profile-pic-preview">
+                {% else %}
+                    <div class="w-20 h-20 rounded-full bg-secondary/20 flex items-center justify-center border-2 border-outline-variant" id="profile-pic-preview">
+                        <span class="material-symbols-outlined text-[32px] text-on-surface-variant">person</span>
+                    </div>
+                {% endif %}
+                <div>
+                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Profile Picture</span>
+                    <h2 class="font-headline-lg text-on-surface text-[18px] font-medium">Personalize Your Profile</h2>
+                    <p class="font-body-sm text-[12px] text-on-surface-variant mt-1">Upload a professional photo to make your profile stand out to employers</p>
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2">
+                <label for="profile_picture" class="px-4 py-2 bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary font-data-mono text-[10px] rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px]">photo_camera</span>
+                    <span>Upload Photo</span>
+                    <input id="profile_picture" name="profile_picture" type="file" accept="image/*" class="sr-only" onchange="previewProfilePicture(this)">
+                </label>
+                {% if user_details and user_details.profile_picture %}
+                <button type="button" onclick="removeProfilePicture()" class="px-4 py-2 bg-error-container text-on-error font-data-mono text-[10px] rounded-lg hover:bg-error transition-colors flex items-center justify-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                    <span>Remove</span>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     <!-- Main Profile Card Form -->
     <div class="border border-outline-variant rounded-xl p-6 bg-surface-container">
         <form id="main-profile-form" action="{{ url_for('profile') }}" method="POST" enctype="multipart/form-data" class="space-y-6" novalidate>
@@ -198,4 +236,53 @@
         </form>
     </div>
 </div>
+
+<script>
+function previewProfilePicture(input) {
+    const preview = document.getElementById('profile-pic-preview');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // If preview is a div (placeholder), replace with img
+            if (preview.tagName === 'DIV') {
+                const img = document.createElement('img');
+                img.id = 'profile-pic-preview';
+                img.className = 'w-20 h-20 rounded-full object-cover border-2 border-primary';
+                img.src = e.target.result;
+                preview.replaceWith(img);
+            } else {
+                preview.src = e.target.result;
+            }
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function removeProfilePicture() {
+    const preview = document.getElementById('profile-pic-preview');
+    const input = document.getElementById('profile_picture');
+    
+    // Clear the file input
+    input.value = '';
+    
+    // Replace image with placeholder div
+    const placeholder = document.createElement('div');
+    placeholder.id = 'profile-pic-preview';
+    placeholder.className = 'w-20 h-20 rounded-full bg-secondary/20 flex items-center justify-center border-2 border-outline-variant';
+    placeholder.innerHTML = '<span class="material-symbols-outlined text-[32px] text-on-surface-variant">person</span>';
+    
+    preview.replaceWith(placeholder);
+    
+    // Add a hidden field to indicate removal
+    let removalField = document.getElementById('profile_picture_removed');
+    if (!removalField) {
+        removalField = document.createElement('input');
+        removalField.type = 'hidden';
+        removalField.name = 'profile_picture_removed';
+        removalField.id = 'profile_picture_removed';
+        removalField.value = 'true';
+        document.getElementById('main-profile-form').appendChild(removalField);
+    }
+}
+</script>
 {% endblock %}

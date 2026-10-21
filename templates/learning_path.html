@@ -513,8 +513,8 @@
 
 {% block scripts %}
 <script>
-document.addEventListener('alpine:init', () => {
-    Alpine.data('learningPath', () => ({
+window.learningPath = function() {
+    return {
         targetRole: '',
         targetCompany: '',
         loading: false,
@@ -830,7 +830,15 @@ document.addEventListener('alpine:init', () => {
             ];
             return videoIds[Math.abs(hash) % videoIds.length];
         }
-    }));
-});
+    };
+};
+
+if (window.Alpine) {
+    Alpine.data('learningPath', window.learningPath);
+} else {
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('learningPath', window.learningPath);
+    });
+}
 </script>
 {% endblock %}
