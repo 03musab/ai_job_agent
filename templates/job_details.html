@@ -7,85 +7,193 @@
     <!-- Top Navigation -->
     <div class="flex items-center justify-between">
         <a href="{{ url_for('dashboard') }}" id="back-to-dashboard-link"
-            class="font-data-mono text-[11px] text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1.5 uppercase tracking-wider">
-            <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-            Return to Seeker Console
+            class="font-mono text-[11.5px] text-slate-500 hover:text-emerald-600 transition-colors flex items-center gap-1.5 uppercase tracking-wider font-medium">
+            <span class="material-symbols-outlined text-[17px]">arrow_back</span>
+            Back to Job Matches
         </a>
 
         <div class="flex items-center gap-2">
-            {% set score = [job.relevance_score | default(0) | int, 100] | min if job.relevance_score else 0 %}
-            <span class="font-data-mono text-[10px] px-2.5 py-1 rounded border uppercase font-bold
-                {% if score >= 80 %}bg-secondary/15 border-secondary/40 text-secondary
-                {% elif score >= 60 %}bg-tertiary/15 border-tertiary/40 text-tertiary
-                {% else %}bg-outline-variant text-on-surface-variant{% endif %}">
-                {{ score }}% Fit Match
+            <!-- AI Fit Match Badge -->
+            <span class="font-mono text-[11px] px-3 py-1 rounded-full uppercase font-bold flex items-center gap-1.5
+                {% if job.match_score >= 80 %}bg-emerald-50 border border-emerald-300 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800
+                {% elif job.match_score >= 65 %}bg-sky-50 border border-sky-300 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800
+                {% else %}bg-slate-100 border border-slate-300 text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700{% endif %}">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                {{ job.match_score }}% Match
             </span>
+            
             {% if job.status %}
-            <span class="font-data-mono text-[10px] px-2.5 py-1 rounded border border-outline-variant bg-surface-container-high text-on-surface uppercase">
+            <span class="font-mono text-[11px] px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 uppercase font-semibold">
                 {{ job.status_text or job.status }}
             </span>
             {% endif %}
         </div>
     </div>
 
-    <!-- Main Specification Card -->
-    <div class="border border-outline-variant rounded-xl bg-surface-container overflow-hidden">
+    <!-- Main Specification Card (Linear / Stripe Spec) -->
+    <div class="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
         
         <!-- Requisition Header -->
-        <div class="p-6 border-b border-outline-variant bg-surface-container-low flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-                <div class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest mb-1">{{ job.company }}</div>
-                <h1 class="font-headline-lg text-on-surface text-[24px] font-bold">{{ job.title }}</h1>
+        <div class="p-6 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-800/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
+            <div class="flex items-start gap-4">
+                <!-- Company Logo / Avatar -->
+                <div class="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 flex items-center justify-center shrink-0 shadow-xs mt-0.5 overflow-hidden relative">
+                    <img src="{{ job.company | company_logo_url }}" alt="{{ job.company }}" class="w-7 h-7 object-contain" loading="lazy"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="w-full h-full bg-emerald-500/10 text-[#059669] dark:text-[#19D889] font-bold text-[18px] items-center justify-center hidden" style="display: none;">
+                        {{ (job.company or 'C')[0] | upper }}
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 mb-1 flex-wrap">
+                        <span class="font-mono text-[11px] text-slate-500 uppercase tracking-widest font-semibold">{{ job.company }}</span>
+                        {% if job.is_jobsnap_native or job.source == 'Recruiter' or job.posted_by_recruiter_id %}
+                        <span class="px-2 py-0.5 rounded-full text-[9.5px] font-mono font-bold bg-primary/15 text-primary border border-primary/30 flex items-center gap-1 shadow-2xs">
+                            <span class="material-symbols-outlined text-[13px]">verified</span>
+                            Published on JobSnap
+                        </span>
+                        {% endif %}
+                        {% if job.is_remote %}
+                        <span class="px-2 py-0.5 rounded-full text-[9.5px] font-mono font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                            Remote / Hybrid
+                        </span>
+                        {% endif %}
+                    </div>
+                    <h1 class="font-['Arvo',serif] text-slate-900 dark:text-slate-100 text-[25px] font-bold leading-tight tracking-tight">{{ job.title }}</h1>
+                </div>
             </div>
             
-            <div class="flex items-center gap-2 shrink-0">
+            <div class="flex items-center gap-2.5 shrink-0 w-full md:w-auto flex-wrap">
+                {% if job.has_applied_via_jobsnap or job.status == 'applied' %}
+                <button type="button" disabled id="btn-applied-state"
+                    class="flex-1 md:flex-none px-4 py-2.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-[#19D889] font-semibold text-[13px] rounded-xl flex items-center justify-center gap-2 cursor-default shadow-2xs">
+                    <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                    <span>Applied via JobSnap</span>
+                </button>
+                {% elif job.is_jobsnap_native or job.source == 'Recruiter' or job.posted_by_recruiter_id or not job.link %}
+                <button type="button" onclick="openDirectApplyModal({{ job.id }}, '{{ job.title|escape }}', '{{ job.company|escape }}', {{ job.match_score|default(80) }})"
+                    id="btn-direct-apply"
+                    class="flex-1 md:flex-none px-5 py-2.5 bg-[#19D889] hover:bg-[#10b981] text-[#064e3b] hover:text-white font-semibold text-[13px] rounded-xl shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">bolt</span>
+                    <span>Apply with JobSnap</span>
+                </button>
+                {% else %}
                 <a href="{{ job.link }}" target="_blank"
-                    class="px-5 py-2 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-primary-container transition-colors flex items-center gap-1.5 shadow-sm">
-                    <span class="material-symbols-outlined text-[16px]">open_in_new</span>
-                    Apply on Portal
+                    class="flex-1 md:flex-none px-4 py-2.5 bg-[#19D889] hover:bg-[#10b981] text-[#064e3b] hover:text-white font-semibold text-[13px] rounded-xl shadow-sm transition-all flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-[17px]">open_in_new</span>
+                    <span>Apply on Portal</span>
                 </a>
-                <button type="button" onclick="openStatusModal({{ job.id }}, '{{ job.status }}', '{{ job.notes | default('') }}')"
-                    class="px-3.5 py-2 border border-outline-variant bg-surface-container-high text-on-surface font-label-caps text-label-caps rounded-lg hover:border-primary transition-colors">
+                {% endif %}
+                <a href="{{ url_for('outreach_studio') }}?company={{ job.company | urlencode }}"
+                    class="px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-sky-600 hover:border-sky-500 text-[13px] font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                    title="Find hiring managers and recruiters at {{ job.company }}">
+                    <span class="material-symbols-outlined text-[17px] text-sky-500">person_search</span>
+                    Find Recruiter
+                </a>
+                <button type="button" onclick="openStatusModal({{ job.id }}, '{{ job.status }}', '{{ job.notes | default('') | escape }}')"
+                    class="px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[13px] font-semibold rounded-xl hover:border-emerald-500 hover:text-emerald-600 transition-colors">
                     Update Pipeline
                 </button>
             </div>
         </div>
 
-        <!-- Telemetry Pills Grid -->
-        <div class="grid grid-cols-2 md:grid-cols-4 border-b border-outline-variant bg-surface-container-lowest divide-x divide-outline-variant/40">
-            <div class="p-4">
-                <div class="font-data-mono text-[9px] text-on-surface-variant uppercase tracking-widest">Location</div>
-                <div class="font-body-sm text-[13px] text-on-surface font-semibold mt-0.5">{{ job.location or 'Remote / Unspecified' }}</div>
+        <!-- Telemetry Key Metrics Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 divide-x divide-slate-100 dark:divide-slate-800">
+            <div class="p-4 sm:p-5">
+                <div class="font-mono text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Location</div>
+                <div class="text-[14px] text-slate-800 dark:text-slate-200 font-bold mt-1">{{ job.location or 'Remote / Bengaluru, India' }}</div>
             </div>
-            <div class="p-4">
-                <div class="font-data-mono text-[9px] text-on-surface-variant uppercase tracking-widest">Compensation</div>
-                <div class="font-body-sm text-[13px] text-on-surface font-semibold mt-0.5">{{ job.salary or 'Competitive' }}</div>
+            <div class="p-4 sm:p-5">
+                <div class="font-mono text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Target Compensation</div>
+                <div class="text-[14px] text-emerald-700 dark:text-[#19D889] font-bold mt-1">{{ job.formatted_salary }}</div>
             </div>
-            <div class="p-4">
-                <div class="font-data-mono text-[9px] text-on-surface-variant uppercase tracking-widest">Experience</div>
-                <div class="font-body-sm text-[13px] text-on-surface font-semibold mt-0.5">{{ job.experience or 'Not Specified' }}</div>
+            <div class="p-4 sm:p-5">
+                <div class="font-mono text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Required Experience</div>
+                <div class="text-[14px] text-slate-800 dark:text-slate-200 font-bold mt-1">{{ job.formatted_experience }}</div>
             </div>
-            <div class="p-4">
-                <div class="font-data-mono text-[9px] text-on-surface-variant uppercase tracking-widest">Contract Format</div>
-                <div class="font-body-sm text-[13px] text-on-surface font-semibold mt-0.5">{{ job.job_type or 'Full-Time' }}</div>
+            <div class="p-4 sm:p-5">
+                <div class="font-mono text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Contract Format</div>
+                <div class="text-[14px] text-slate-800 dark:text-slate-200 font-bold mt-1">{{ job.job_type or 'Full-Time' }}</div>
             </div>
         </div>
 
-        <!-- Spec Body & Skills -->
-        <div class="p-6 space-y-6">
+        <!-- Spec Body & AI Matching Section -->
+        <div class="p-6 sm:p-8 space-y-7">
             
-            <!-- Skill Stack Tags -->
+            <!-- AI Resume Matching & ATS Scanner Card -->
+            <div class="border border-emerald-500/30 rounded-2xl p-5 bg-emerald-50/20 dark:bg-emerald-950/20 space-y-4">
+                <div class="flex items-center justify-between border-b border-emerald-500/20 pb-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-lg bg-emerald-500/15 text-[#059669] dark:text-[#19D889] flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[18px]">verified_user</span>
+                        </span>
+                        <div>
+                            <h2 class="text-[14px] font-bold text-slate-900 dark:text-slate-100">AI Match Analysis & ATS Fit</h2>
+                            <p class="font-mono text-[10.5px] text-slate-500">Live resume scanner against requisition requirements</p>
+                        </div>
+                    </div>
+                    <span class="font-mono text-[12px] font-bold px-3 py-1 rounded-full bg-emerald-500/15 text-[#059669] dark:text-[#19D889] border border-emerald-500/30">
+                        {{ job.match_score }}% Fit Index
+                    </span>
+                </div>
+
+                <!-- Explanation -->
+                <p class="text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
+                    {{ job.match_explanation }}
+                </p>
+
+                <!-- Matched Skills & Missing Skills Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                    <!-- Matched Skills -->
+                    <div class="border border-emerald-200 dark:border-emerald-800/40 rounded-xl p-3.5 bg-white dark:bg-slate-900/60">
+                        <span class="font-mono text-[10px] text-emerald-700 dark:text-emerald-300 uppercase tracking-widest font-bold block mb-2">
+                            Matched Skills (In Your Resume)
+                        </span>
+                        <div class="flex flex-wrap gap-1.5">
+                            {% for skill in (job.matched_skills or []) %}
+                            <span class="font-mono text-[11px] px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1 font-medium">
+                                <span class="text-emerald-600 font-bold">✓</span>
+                                <span>{{ skill }}</span>
+                            </span>
+                            {% else %}
+                            <span class="text-[12px] text-slate-400 italic">No specific skill matches detected.</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Skills to Highlight / Add to Resume -->
+                    <div class="border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 bg-white dark:bg-slate-900/60">
+                        <span class="font-mono text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-2">
+                            Keywords to Highlight for ATS Optimization
+                        </span>
+                        <div class="flex flex-wrap gap-1.5">
+                            {% for skill in (job.missing_skills or []) %}
+                            <a href="{{ url_for('learning_path') }}?skill={{ skill | urlencode }}"
+                               class="font-mono text-[11px] px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100 dark:hover:bg-amber-900/40 flex items-center gap-1 transition-colors group"
+                               title="Generate step-by-step roadmap for {{ skill }}">
+                                <span class="material-symbols-outlined text-[13px] text-amber-600 group-hover:scale-110 transition-transform">school</span>
+                                <span>Learn {{ skill }}</span>
+                            </a>
+                            {% else %}
+                            <span class="text-[12px] text-emerald-600 font-medium">All major core skills already aligned!</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- All Required Competencies & Extracted Tools -->
             {% if job.skills or job.extracted_tools %}
             <div>
-                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-2">Required Competencies</span>
-                <div class="flex flex-wrap gap-1.5">
+                <span class="font-mono text-[10.5px] text-slate-500 uppercase tracking-widest block mb-2.5 font-bold">Comprehensive Competency Stack</span>
+                <div class="flex flex-wrap gap-2">
                     {% for skill in (job.skills or '').split(',') if skill.strip() %}
-                    <span class="font-data-mono text-[10px] px-2.5 py-1 rounded bg-surface-container-high border border-outline-variant text-primary">
+                    <span class="font-mono text-[11px] px-3 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200">
                         {{ skill.strip() }}
                     </span>
                     {% endfor %}
                     {% for tool in (job.extracted_tools or '').split(',') if tool.strip() %}
-                    <span class="font-data-mono text-[10px] px-2.5 py-1 rounded bg-surface-container-highest border border-outline-variant/60 text-secondary">
+                    <span class="font-mono text-[11px] px-3 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300">
                         {{ tool.strip() }}
                     </span>
                     {% endfor %}
@@ -93,46 +201,137 @@
             </div>
             {% endif %}
 
-            <!-- Description Container -->
-            <div>
-                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-2">Job Specification</span>
-                <div class="p-5 rounded-lg bg-surface-container-lowest border border-outline-variant/50 text-body-sm text-on-surface-variant leading-relaxed whitespace-pre-wrap font-sans text-[13px]">
+            <!-- Description Container with On-Demand AI Breakdown -->
+            <div class="space-y-3">
+                <div class="flex items-center justify-between flex-wrap gap-2.5">
+                    <div class="flex items-center gap-2">
+                        <span class="font-mono text-[10.5px] text-slate-500 uppercase tracking-widest font-bold">Job Description & Responsibilities</span>
+                        <span id="jd-stats-pill" class="font-mono text-[9.5px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-semibold">
+                            Raw Source
+                        </span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <!-- AI Breakdown Action Button -->
+                        <button type="button" id="ai-breakdown-btn" onclick="triggerAiBreakdown()"
+                            class="px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold text-[12px] rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer">
+                            <span class="material-symbols-outlined text-[16px]" id="ai-btn-icon">auto_awesome</span>
+                            <span id="ai-btn-label">Format with AI</span>
+                        </button>
+
+                        <div class="flex items-center gap-2" id="jd-controls" style="display: none;">
+                            <span class="text-slate-300 dark:text-slate-700 text-xs">|</span>
+                            <button type="button" onclick="toggleAllJdSections(true)" class="font-mono text-[10px] text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors uppercase font-medium flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[13px]">unfold_more</span>
+                                Expand
+                            </button>
+                            <span class="text-slate-300 dark:text-slate-700 text-xs">|</span>
+                            <button type="button" onclick="toggleAllJdSections(false)" class="font-mono text-[10px] text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors uppercase font-medium flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[13px]">unfold_less</span>
+                                Collapse
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Default Raw Text View -->
+                <div id="job-description-raw-container" class="rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 p-6 text-slate-800 dark:text-slate-200 leading-relaxed font-sans text-[13.5px] whitespace-pre-wrap">
                     {{ job.description or 'No full description indexed for this requisition.' }}
+                </div>
+
+                <!-- Hidden Raw Data for JS parsing -->
+                <div id="job-description-raw" class="hidden">{{ job.description or '' }}</div>
+
+                <!-- AI Circular Progress Loading Card (Active during 5-second synthesis) -->
+                <div id="job-description-loading" class="hidden rounded-2xl bg-[#fcfbf8] dark:bg-slate-900 border border-emerald-500/25 p-10 text-center shadow-xs">
+                    <div class="max-w-md mx-auto space-y-5">
+                        <!-- Circular Progress Indicator -->
+                        <div class="relative w-28 h-28 mx-auto flex items-center justify-center">
+                            <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="42" stroke="currentColor" stroke-width="6" class="text-slate-200 dark:text-slate-800" fill="transparent" />
+                                <circle id="ai-circle-progress" cx="50" cy="50" r="42" stroke="#10b981" stroke-width="6" stroke-linecap="round" fill="transparent" stroke-dasharray="263.89" stroke-dashoffset="263.89" style="transition: stroke-dashoffset 0.08s linear;" />
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                <span class="material-symbols-outlined text-emerald-500 text-[20px] mb-0.5 animate-pulse" id="ai-circle-icon">auto_awesome</span>
+                                <span id="ai-progress-percent" class="font-mono text-[16px] font-bold text-slate-800 dark:text-slate-100 tracking-tight">0%</span>
+                            </div>
+                        </div>
+
+                        <!-- Status Message & Subtitle -->
+                        <div class="space-y-1.5">
+                            <h4 id="ai-progress-status" class="font-mono text-[12.5px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                                Initializing AI Synthesizer...
+                            </h4>
+                            <p class="text-[12px] text-slate-500 dark:text-slate-400 font-sans">
+                                Parsing raw enterprise posting into categorized executive sections & bullet specifications.
+                            </p>
+                        </div>
+
+                        <!-- Progress Bar Track below for added visual weight -->
+                        <div class="w-48 mx-auto h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <div id="ai-linear-progress" class="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-75" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Structured Rendered Container (Shown when complete after 5 seconds) -->
+                <div id="job-description-rendered" class="hidden rounded-2xl bg-[#fcfbf8] dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden animate-fade-in">
+                    <!-- Rendered by formatJobDescription() -->
                 </div>
             </div>
 
             <!-- Metadata Row -->
-            <div class="border-t border-outline-variant pt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-on-surface-variant font-data-mono text-[11px]">
-                <div><span class="uppercase text-outline text-[9px] block">Indexed Date</span>{{ job.found_date or 'Recent' }}</div>
-                <div><span class="uppercase text-outline text-[9px] block">Source Board</span>{{ job.source or 'Direct Scrape' }}</div>
-                <div><span class="uppercase text-outline text-[9px] block">Deadline</span>{{ job.deadline or 'Open' }}</div>
-                <div><span class="uppercase text-outline text-[9px] block">Database ID</span>#{{ job.id }}</div>
+            <div class="border-t border-slate-100 dark:border-slate-800 pt-5 grid grid-cols-2 sm:grid-cols-4 gap-4 text-slate-500 font-mono text-[11px]">
+                <div><span class="uppercase text-slate-400 text-[9.5px] block font-bold mb-0.5">Date Indexed</span>{{ job.found_date or 'Recent' }}</div>
+                <div><span class="uppercase text-slate-400 text-[9.5px] block font-bold mb-0.5">Source Portal</span>{{ job.source or 'Direct Sourced' }}</div>
+                <div><span class="uppercase text-slate-400 text-[9.5px] block font-bold mb-0.5">Application Deadline</span>{{ job.deadline or 'Active' }}</div>
+                <div><span class="uppercase text-slate-400 text-[9.5px] block font-bold mb-0.5">Requisition ID</span>#{{ job.id }}</div>
             </div>
 
         </div>
 
         <!-- Footer Actions Bar -->
-        <div class="px-6 py-4 border-t border-outline-variant bg-surface-container-low flex flex-wrap items-center justify-between gap-3">
+        <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-2">
                 {% if job.link and (job.link.startswith('http://') or job.link.startswith('https://')) and not job.posted_by_recruiter_id and job.source != 'Recruiter' and '127.0.0.1' not in job.link and 'localhost' not in job.link and 'jobsnap' not in (job.link | lower) %}
                 <button type="button" onclick="analyzeTraffic({{ job.id }})"
-                    class="px-3 py-1.5 bg-surface-container border border-outline-variant text-on-surface font-data-mono text-[10px] uppercase rounded hover:border-primary transition-colors flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-[14px]">query_stats</span>
-                    Analyze Web Traffic
+                    class="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-mono text-[11px] uppercase rounded-xl hover:border-emerald-500 transition-colors flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[15px]">query_stats</span>
+                    Analyze Company Traffic
                 </button>
                 {% endif %}
+                <a href="{{ url_for('outreach_studio') }}?company={{ job.company | urlencode }}"
+                    class="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-mono text-[11px] uppercase rounded-xl hover:border-sky-500 hover:text-sky-600 transition-colors flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[15px] text-sky-500">person_search</span>
+                    Contact Recruiter
+                </a>
+                {% if job.is_jobsnap_native or job.source == 'Recruiter' or job.posted_by_recruiter_id %}
+                    {% if job.has_applied_via_jobsnap or job.status == 'applied' %}
+                    <span class="px-3.5 py-2 bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-[#19D889] font-mono text-[11px] uppercase rounded-xl flex items-center gap-1.5 font-bold">
+                        <span class="material-symbols-outlined text-[15px]">check_circle</span>
+                        Applied via JobSnap
+                    </span>
+                    {% else %}
+                    <button type="button" onclick="openDirectApplyModal({{ job.id }}, '{{ job.title|escape }}', '{{ job.company|escape }}', {{ job.match_score|default(80) }})"
+                        class="px-3.5 py-2 bg-[#19D889] hover:bg-[#10b981] text-[#064e3b] hover:text-white font-mono text-[11px] uppercase rounded-xl transition-colors flex items-center gap-1.5 font-bold shadow-2xs cursor-pointer">
+                        <span class="material-symbols-outlined text-[15px]">bolt</span>
+                        Apply with JobSnap
+                    </button>
+                    {% endif %}
+                {% else %}
                 <button type="button" onclick="openApplyModal({{ job.id }}, '{{ job.link }}')"
-                    class="px-3 py-1.5 bg-surface-container border border-outline-variant text-on-surface font-data-mono text-[10px] uppercase rounded hover:border-secondary transition-colors flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-[14px]">bolt</span>
+                    class="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-mono text-[11px] uppercase rounded-xl hover:border-emerald-500 transition-colors flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[15px]">smart_toy</span>
                     Assisted Apply
                 </button>
+                {% endif %}
             </div>
 
             <form action="{{ url_for('delete_job', job_id=job.id) }}" method="POST"
                 onsubmit="return confirm('Permanently delete this job from your pipeline?');">
                 <button type="submit"
-                    class="font-data-mono text-[10px] text-error hover:text-error/80 uppercase px-3 py-1.5 border border-error/30 rounded hover:bg-error/10 transition-colors">
-                    Delete Entry
+                    class="font-mono text-[11px] text-rose-600 hover:text-rose-700 uppercase px-3.5 py-2 border border-rose-200 dark:border-rose-900/60 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors font-medium">
+                    Delete Job
                 </button>
             </form>
         </div>
@@ -143,19 +342,19 @@
 <!-- Modal for Job Status Update -->
 <div id="status-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true">
     <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" onclick="closeStatusModal()"></div>
-    <div class="relative mx-auto p-5 border border-outline-variant w-full max-w-md rounded-xl bg-surface-container z-10 shadow-2xl space-y-4">
-        <div class="flex justify-between items-center border-b border-outline-variant pb-2">
-            <h3 class="font-headline-md text-on-surface text-[15px] font-bold">Update Pipeline Status</h3>
-            <button onclick="closeStatusModal()" class="text-on-surface-variant hover:text-on-surface">
+    <div class="relative mx-auto p-6 border border-slate-200 dark:border-slate-700 w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 z-10 shadow-2xl space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2.5">
+            <h3 class="font-headline-md text-slate-900 dark:text-slate-100 text-[16px] font-bold">Update Pipeline Status</h3>
+            <button onclick="closeStatusModal()" class="text-slate-400 hover:text-slate-600">
                 <span class="material-symbols-outlined text-[18px]">close</span>
             </button>
         </div>
-        <form id="status-form" action="{{ url_for('update_job_status') }}" method="POST" class="space-y-3">
+        <form id="status-form" action="{{ url_for('update_job_status') }}" method="POST" class="space-y-3.5">
             <input type="hidden" name="job_id" id="status-job-id" value="{{ job.id }}">
             <div>
-                <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Current State</label>
+                <label class="font-mono text-[10.5px] text-slate-500 uppercase tracking-widest block mb-1 font-semibold">Current State</label>
                 <select id="status" name="status"
-                    class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-1.5 text-body-sm text-on-surface focus:border-primary focus:outline-none">
+                    class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-[13px] text-slate-900 dark:text-slate-100 focus:border-[#19D889] focus:outline-none">
                     <option value="new">New</option>
                     <option value="applied">Applied</option>
                     <option value="interview">Interview</option>
@@ -165,15 +364,15 @@
                 </select>
             </div>
             <div>
-                <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Telemetry Notes</label>
+                <label class="font-mono text-[10.5px] text-slate-500 uppercase tracking-widest block mb-1 font-semibold">Recruiter / Interview Notes</label>
                 <textarea id="notes" name="notes" rows="3"
-                    class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded p-2.5 text-body-sm text-on-surface focus:border-primary focus:outline-none font-mono text-[11px]">{{ job.notes or '' }}</textarea>
+                    class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 text-[12.5px] text-slate-900 dark:text-slate-100 focus:border-[#19D889] focus:outline-none font-mono text-[11px]">{{ job.notes or '' }}</textarea>
             </div>
-            <div class="flex justify-end gap-2 pt-2 border-t border-outline-variant">
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <button type="button" onclick="closeStatusModal()"
-                    class="px-3 py-1.5 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps">Cancel</button>
+                    class="px-3.5 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[12px] font-semibold">Cancel</button>
                 <button type="submit"
-                    class="px-4 py-1.5 bg-primary text-on-primary rounded font-label-caps text-label-caps hover:bg-primary-container">Save</button>
+                    class="px-4 py-1.5 bg-[#19D889] hover:bg-[#10b981] text-[#064e3b] hover:text-white rounded-lg text-[12px] font-semibold shadow-sm transition-all">Save Changes</button>
             </div>
         </form>
     </div>
@@ -182,14 +381,14 @@
 <!-- Modal for Assisted Apply -->
 <div id="apply-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true">
     <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" onclick="closeApplyModal()"></div>
-    <div class="relative mx-auto p-5 border border-outline-variant w-full max-w-sm rounded-xl bg-surface-container z-10 shadow-2xl space-y-4 text-center">
-        <h3 class="font-headline-md text-on-surface text-[15px] font-bold">Assisted Apply Engine</h3>
-        <p class="font-body-sm text-[12px] text-on-surface-variant">
+    <div class="relative mx-auto p-6 border border-slate-200 dark:border-slate-700 w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 z-10 shadow-2xl space-y-4 text-center">
+        <h3 class="font-headline-md text-slate-900 dark:text-slate-100 text-[16px] font-bold">Assisted Apply Engine</h3>
+        <p class="text-[12.5px] text-slate-500 leading-relaxed">
             Spawns background automation worker to inject user profile data into target portal.
         </p>
-        <div class="flex justify-center gap-2 pt-2 border-t border-outline-variant">
-            <button type="button" onclick="closeApplyModal()" class="px-3 py-1.5 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps">Cancel</button>
-            <button type="button" id="start-apply-btn" class="px-4 py-1.5 bg-primary text-on-primary rounded font-label-caps text-label-caps hover:bg-primary-container">Start Automation</button>
+        <div class="flex justify-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <button type="button" onclick="closeApplyModal()" class="px-3.5 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-600 rounded-lg text-[12px] font-semibold">Cancel</button>
+            <button type="button" id="start-apply-btn" class="px-4 py-1.5 bg-[#19D889] hover:bg-[#10b981] text-[#064e3b] hover:text-white rounded-lg text-[12px] font-semibold shadow-sm transition-all">Start Automation</button>
         </div>
     </div>
 </div>
@@ -197,47 +396,906 @@
 <!-- Modal for Traffic Analysis -->
 <div id="traffic-analysis-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true">
     <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" onclick="closeTrafficAnalysisModal()"></div>
-    <div class="relative mx-auto p-5 border border-outline-variant w-full max-w-md rounded-xl bg-surface-container z-10 shadow-2xl space-y-4">
-        <div class="flex justify-between items-center border-b border-outline-variant pb-2">
-            <h3 class="font-headline-md text-on-surface text-[15px] font-bold">Company Traffic Telemetry</h3>
-            <button onclick="closeTrafficAnalysisModal()" class="text-on-surface-variant hover:text-on-surface">
+    <div class="relative mx-auto p-6 border border-slate-200 dark:border-slate-700 w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 z-10 shadow-2xl space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2.5">
+            <h3 class="font-headline-md text-slate-900 dark:text-slate-100 text-[16px] font-bold">Company Traffic Telemetry</h3>
+            <button onclick="closeTrafficAnalysisModal()" class="text-slate-400 hover:text-slate-600">
                 <span class="material-symbols-outlined text-[18px]">close</span>
             </button>
         </div>
-        <div id="traffic-modal-placeholder" class="text-center py-6 font-data-mono text-[11px] text-on-surface-variant">
+        <div id="traffic-modal-placeholder" class="text-center py-6 font-mono text-[12px] text-slate-500">
             Querying company traffic metrics...
         </div>
         <div id="traffic-modal-results" class="hidden space-y-3">
             <div class="grid grid-cols-3 gap-2 text-center">
-                <div class="p-2 rounded bg-surface-container-lowest border border-outline-variant/40">
-                    <div id="traffic-visits" class="font-data-mono text-[14px] font-bold text-primary">--</div>
-                    <div class="font-data-mono text-[9px] text-on-surface-variant uppercase mt-0.5">Visits</div>
+                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <div id="traffic-visits" class="font-mono text-[15px] font-bold text-emerald-600">--</div>
+                    <div class="font-mono text-[9.5px] text-slate-400 uppercase mt-0.5">Visits</div>
                 </div>
-                <div class="p-2 rounded bg-surface-container-lowest border border-outline-variant/40">
-                    <div id="traffic-bounce-rate" class="font-data-mono text-[14px] font-bold text-secondary">--</div>
-                    <div class="font-data-mono text-[9px] text-on-surface-variant uppercase mt-0.5">Bounce</div>
+                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <div id="traffic-bounce-rate" class="font-mono text-[15px] font-bold text-sky-600">--</div>
+                    <div class="font-mono text-[9.5px] text-slate-400 uppercase mt-0.5">Bounce</div>
                 </div>
-                <div class="p-2 rounded bg-surface-container-lowest border border-outline-variant/40">
-                    <div id="traffic-pages-per-visit" class="font-data-mono text-[14px] font-bold text-tertiary">--</div>
-                    <div class="font-data-mono text-[9px] text-on-surface-variant uppercase mt-0.5">Pages/V</div>
+                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <div id="traffic-pages-per-visit" class="font-mono text-[15px] font-bold text-amber-600">--</div>
+                    <div class="font-mono text-[9.5px] text-slate-400 uppercase mt-0.5">Pages/V</div>
                 </div>
             </div>
-            <div id="traffic-message" class="font-data-mono text-[11px] text-on-surface-variant"></div>
+            <div id="traffic-message" class="font-mono text-[12px] text-slate-600 dark:text-slate-400"></div>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<style>
+/* ── Job Description & Responsibilities Modern Brief Styling ──────────────────────── */
+.jd-section {
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+    transition: background-color 0.15s ease;
+}
+.dark .jd-section {
+    border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+}
+.jd-section:last-child {
+    border-bottom: none;
+}
+
+.jd-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    cursor: pointer;
+    background: transparent;
+    user-select: none;
+    transition: all 0.15s ease;
+}
+.jd-section-header:hover {
+    background-color: rgba(244, 240, 231, 0.75);
+}
+.dark .jd-section-header:hover {
+    background-color: rgba(15, 23, 42, 0.6);
+}
+
+.jd-section-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.jd-section-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.jd-section-title-wrap {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.jd-section-title {
+    font-family: 'Arvo', Georgia, serif;
+    font-size: 14.5px;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+}
+.jd-bullet-item strong {
+    font-family: 'Arvo', Georgia, serif;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+}
+
+.jd-section-count {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10px;
+    color: rgb(148, 163, 184);
+    letter-spacing: 0.04em;
+    margin-top: 1px;
+}
+
+.jd-chevron {
+    font-size: 20px;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    color: rgb(148, 163, 184);
+}
+.jd-section.open .jd-chevron {
+    transform: rotate(180deg);
+}
+
+.jd-section-body {
+    display: none;
+    padding: 0 20px 20px 64px;
+}
+.jd-section.open .jd-section-body {
+    display: block;
+}
+
+@media (max-width: 640px) {
+    .jd-section-body {
+        padding: 0 16px 16px 16px;
+    }
+}
+
+/* ── Bullet Points & Prose ────────────────────────────────────────────────── */
+.jd-bullets-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.jd-bullet-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    font-size: 13px;
+    line-height: 1.65;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: background-color 0.12s ease;
+}
+.jd-bullet-item:hover {
+    background-color: rgba(244, 240, 231, 0.7);
+}
+.dark .jd-bullet-item:hover {
+    background-color: rgba(30, 41, 59, 0.35);
+}
+
+.jd-bullet-marker {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-top: 8px;
+    flex-shrink: 0;
+}
+
+.jd-prose {
+    font-size: 13.5px;
+    line-height: 1.75;
+    color: rgb(51, 65, 85);
+}
+.dark .jd-prose {
+    color: rgb(203, 213, 225);
+}
+
+/* ── Thematic Section Color Palettes ─────────────────────────────────────── */
+/* Emerald - About */
+.jd-theme-emerald .jd-section-icon { background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.25); }
+.dark .jd-theme-emerald .jd-section-icon { color: #10b981; }
+.jd-theme-emerald .jd-section-title { color: #065f46; }
+.dark .jd-theme-emerald .jd-section-title { color: #34d399; }
+.jd-theme-emerald .jd-bullet-marker { background-color: #10b981; }
+
+/* Indigo - Role */
+.jd-theme-indigo .jd-section-icon { background: rgba(99, 102, 241, 0.12); color: #4f46e5; border: 1px solid rgba(99, 102, 241, 0.25); }
+.dark .jd-theme-indigo .jd-section-icon { color: #818cf8; }
+.jd-theme-indigo .jd-section-title { color: #3730a3; }
+.dark .jd-theme-indigo .jd-section-title { color: #a5b4fc; }
+.jd-theme-indigo .jd-bullet-marker { background-color: #6366f1; }
+
+/* Amber - Responsibilities */
+.jd-theme-amber .jd-section-icon { background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.25); }
+.dark .jd-theme-amber .jd-section-icon { color: #fbbf24; }
+.jd-theme-amber .jd-section-title { color: #92400e; }
+.dark .jd-theme-amber .jd-section-title { color: #fcd34d; }
+.jd-theme-amber .jd-bullet-marker { background-color: #f59e0b; }
+
+/* Sky - Required Skills */
+.jd-theme-sky .jd-section-icon { background: rgba(14, 165, 233, 0.12); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.25); }
+.dark .jd-theme-sky .jd-section-icon { color: #38bdf8; }
+.jd-theme-sky .jd-section-title { color: #075985; }
+.dark .jd-theme-sky .jd-section-title { color: #7dd3fc; }
+.jd-theme-sky .jd-bullet-marker { background-color: #0ea5e9; }
+
+/* Purple - Nice to Have */
+.jd-theme-purple .jd-section-icon { background: rgba(168, 85, 247, 0.12); color: #9333ea; border: 1px solid rgba(168, 85, 247, 0.25); }
+.dark .jd-theme-purple .jd-section-icon { color: #c084fc; }
+.jd-theme-purple .jd-section-title { color: #6b21a8; }
+.dark .jd-theme-purple .jd-section-title { color: #d8b4fe; }
+.jd-theme-purple .jd-bullet-marker { background-color: #a855f7; }
+
+/* Rose - Why Join */
+.jd-theme-rose .jd-section-icon { background: rgba(244, 63, 94, 0.12); color: #e11d48; border: 1px solid rgba(244, 63, 94, 0.25); }
+.dark .jd-theme-rose .jd-section-icon { color: #fb7185; }
+.jd-theme-rose .jd-section-title { color: #9f1239; }
+.dark .jd-theme-rose .jd-section-title { color: #fda4af; }
+.jd-theme-rose .jd-bullet-marker { background-color: #f43f5e; }
+
+/* Teal - Culture & EEO */
+.jd-theme-teal .jd-section-icon { background: rgba(20, 184, 166, 0.12); color: #0d9488; border: 1px solid rgba(20, 184, 166, 0.25); }
+.dark .jd-theme-teal .jd-section-icon { color: #2dd4bf; }
+.jd-theme-teal .jd-section-title { color: #115e59; }
+.dark .jd-theme-teal .jd-section-title { color: #5eead4; }
+.jd-theme-teal .jd-bullet-marker { background-color: #14b8a6; }
+
+/* Slate - Default */
+.jd-theme-slate .jd-section-icon { background: rgba(148, 163, 184, 0.15); color: #475569; border: 1px solid rgba(148, 163, 184, 0.25); }
+.dark .jd-theme-slate .jd-section-icon { color: #94a3b8; }
+.jd-theme-slate .jd-section-title { color: #1e293b; }
+.dark .jd-theme-slate .jd-section-title { color: #cbd5e1; }
+.jd-theme-slate .jd-bullet-marker { background-color: #64748b; }
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const backLink = document.getElementById('back-to-dashboard-link');
     const lastUrl = sessionStorage.getItem('last_dashboard_url');
-    if (lastUrl && backLink) {
-        backLink.href = lastUrl;
-    }
+    if (lastUrl && backLink) backLink.href = lastUrl;
 });
 
+/* ── State & On-Demand AI Breakdown Trigger with 5-Second Circular Progress ── */
+let isAiBreakdownActive = false;
+let isAiFormatted = false;
+let aiProgressTimer = null;
+const CIRCLE_CIRCUMFERENCE = 263.89;
+
+function triggerAiBreakdown() {
+    const rawContainer = document.getElementById('job-description-raw-container');
+    const loadingContainer = document.getElementById('job-description-loading');
+    const renderedContainer = document.getElementById('job-description-rendered');
+    const btn = document.getElementById('ai-breakdown-btn');
+    const btnIcon = document.getElementById('ai-btn-icon');
+    const btnLabel = document.getElementById('ai-btn-label');
+    const controls = document.getElementById('jd-controls');
+    const statsPill = document.getElementById('jd-stats-pill');
+
+    const circleProgress = document.getElementById('ai-circle-progress');
+    const percentEl = document.getElementById('ai-progress-percent');
+    const statusEl = document.getElementById('ai-progress-status');
+    const linearProgress = document.getElementById('ai-linear-progress');
+    const circleIcon = document.getElementById('ai-circle-icon');
+
+    if (isAiBreakdownActive) {
+        // Toggle back to raw view
+        isAiBreakdownActive = false;
+        renderedContainer.classList.add('hidden');
+        if (loadingContainer) loadingContainer.classList.add('hidden');
+        rawContainer.classList.remove('hidden');
+        if (controls) controls.style.display = 'none';
+
+        btn.className = "px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold text-[12px] rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer";
+        btnIcon.textContent = "auto_awesome";
+        btnLabel.textContent = "Format with AI";
+
+        if (statsPill) {
+            statsPill.className = "font-mono text-[9.5px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 font-semibold";
+            statsPill.textContent = "Raw Source";
+        }
+        return;
+    }
+
+    // If already synthesized previously, switch to formatted view immediately
+    if (isAiFormatted) {
+        rawContainer.classList.add('hidden');
+        if (loadingContainer) loadingContainer.classList.add('hidden');
+        renderedContainer.classList.remove('hidden');
+        if (controls) controls.style.display = 'flex';
+
+        btn.className = "px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-slate-700 dark:text-slate-300 font-semibold text-[12px] rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer";
+        btnIcon.textContent = "visibility";
+        btnLabel.textContent = "View Raw Text";
+        isAiBreakdownActive = true;
+        return;
+    }
+
+    // First time: Start 5-Second Circular Progress Animation
+    btn.disabled = true;
+    btnIcon.textContent = "sync";
+    btnIcon.classList.add("animate-spin");
+    btnLabel.textContent = "Synthesizing with AI (0%)...";
+
+    rawContainer.classList.add('hidden');
+    renderedContainer.classList.add('hidden');
+    if (controls) controls.style.display = 'none';
+    if (loadingContainer) loadingContainer.classList.remove('hidden');
+
+    if (statsPill) {
+        statsPill.className = "font-mono text-[9.5px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 font-semibold";
+        statsPill.textContent = "Synthesizing...";
+    }
+
+    // Reset progress visuals
+    if (circleProgress) {
+        circleProgress.style.strokeDasharray = CIRCLE_CIRCUMFERENCE;
+        circleProgress.style.strokeDashoffset = CIRCLE_CIRCUMFERENCE;
+    }
+    if (percentEl) percentEl.textContent = "0%";
+    if (linearProgress) linearProgress.style.width = "0%";
+    if (circleIcon) {
+        circleIcon.textContent = "auto_awesome";
+        circleIcon.classList.add("animate-pulse");
+    }
+
+    const duration = 5000; // Exact 5 seconds
+    const intervalTime = 40;
+    const startTime = Date.now();
+    let preRendered = false;
+
+    if (aiProgressTimer) clearInterval(aiProgressTimer);
+
+    aiProgressTimer = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(100, Math.round((elapsed / duration) * 100));
+
+        // Background Pre-render at ~25% (around 1.25s) while container is still hidden:
+        // This pre-builds the DOM, parses CSS rules, resolves Arvo fonts & measures layout!
+        if (progress >= 25 && !preRendered) {
+            preRendered = true;
+            try {
+                formatJobDescription();
+                isAiFormatted = true;
+            } catch (err) {
+                console.error("Background pre-render error:", err);
+            }
+        }
+
+        // Update circular ring stroke
+        if (circleProgress) {
+            const offset = CIRCLE_CIRCUMFERENCE - (progress / 100) * CIRCLE_CIRCUMFERENCE;
+            circleProgress.style.strokeDashoffset = offset;
+        }
+
+        // Update numerical percent
+        if (percentEl) percentEl.textContent = `${progress}%`;
+        if (linearProgress) linearProgress.style.width = `${progress}%`;
+        btnLabel.textContent = `Synthesizing with AI (${progress}%)...`;
+
+        // Update progressive telemetry status message
+        if (statusEl) {
+            if (progress < 20) {
+                statusEl.textContent = "Deconstructing raw enterprise text...";
+            } else if (progress < 42) {
+                statusEl.textContent = "Extracting telemetry, role focus & metadata...";
+            } else if (progress < 68) {
+                statusEl.textContent = "Identifying core competencies & stack requirements...";
+            } else if (progress < 88) {
+                statusEl.textContent = "Synthesizing categorized Arvo brief...";
+            } else {
+                statusEl.textContent = "Finalizing executive requisition format...";
+            }
+        }
+
+        // When 5 seconds elapsed (100% complete)
+        if (elapsed >= duration) {
+            clearInterval(aiProgressTimer);
+            aiProgressTimer = null;
+
+            if (!preRendered) {
+                formatJobDescription();
+                isAiFormatted = true;
+            }
+
+            if (circleIcon) {
+                circleIcon.classList.remove("animate-pulse");
+                circleIcon.textContent = "check_circle";
+            }
+            if (statusEl) {
+                statusEl.textContent = "Requisition Formatted Successfully!";
+            }
+
+            // Short 300ms pause so the user sees the completed 100% state
+            setTimeout(() => {
+                if (loadingContainer) loadingContainer.classList.add('hidden');
+                renderedContainer.classList.remove('hidden');
+                if (controls) controls.style.display = 'flex';
+
+                btnIcon.classList.remove("animate-spin");
+                btn.disabled = false;
+                isAiBreakdownActive = true;
+
+                btn.className = "px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-slate-700 dark:text-slate-300 font-semibold text-[12px] rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer";
+                btnIcon.textContent = "visibility";
+                btnLabel.textContent = "View Raw Text";
+
+                if (statsPill) {
+                    statsPill.className = "font-mono text-[9.5px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 font-semibold";
+                }
+            }, 300);
+        }
+    }, intervalTime);
+}
+
+/* ── Text Normalizer (Cleans Fancy Unicode, Quotes, Smart Dashes, and Glitches) ──── */
+function normalizeText(str) {
+    if (!str) return '';
+    return str
+        .normalize('NFKD') // Converts Unicode mathematical alphanumeric letters to standard characters
+        .replace(/[\u2018\u2019`]/g, "'")
+        .replace(/[\u201C\u201D]/g, '"')
+        .replace(/[\u2013\u2014]/g, ' — ')
+        .replace(/\uFFFD/g, ' — ')
+        .replace(/[-=_*~]{3,}/g, '\n\n')
+        .replace(/\bShow more\s*Show less\s*$/i, '')
+        .trim();
+}
+
+/* ── Section Registry & Categorization ───────────────────────────────────── */
+const SECTION_REGISTRY = [
+    {
+        key: 'about',
+        theme: 'emerald',
+        icon: 'corporate_fare',
+        titleFallback: 'About the Company',
+        regex: /\b(About\s+(?:the\s+Company|Us|[A-Z][A-Za-z0-9&]+)|Who\s+We\s+Are|Company\s+Overview|Our\s+Mission|What\s+We\s+Do)\b/i
+    },
+    {
+        key: 'role',
+        theme: 'indigo',
+        icon: 'badge',
+        titleFallback: 'The Role & Overview',
+        regex: /\b(The\s+Role|Role\s+Overview|Position\s+Overview|About\s+the\s+Role|Job\s+Summary|Role\s+Summary|Overview:?)\b/i
+    },
+    {
+        key: 'responsibilities',
+        theme: 'amber',
+        icon: 'task_alt',
+        titleFallback: "What You'll Do",
+        regex: /\b(What\s+You(?:'ll|\s+Will)\s+Do|Key\s+Responsibilities|Core\s+Responsibilities|Responsibilities:?|Primary\s+Duties|What\s+You\s+Will\s+Build)\b/i
+    },
+    {
+        key: 'compensation',
+        theme: 'emerald',
+        icon: 'payments',
+        titleFallback: 'Compensation & Benefits',
+        regex: /\b(Full\s+Time\s+Salary\s+Range|Salary\s+Range|Compensation\s*(?:&|and)\s*Benefits|Total\s+Rewards|Salary:?)\b/i
+    },
+    {
+        key: 'skills',
+        theme: 'sky',
+        icon: 'verified',
+        titleFallback: "What We're Looking For",
+        regex: /\b(What\s+We(?:'re|\s+Are)\s+Looking\s+For|Required\s+Skills(?:\s*&\s*Abilities)?|Requirements:?|Basic\s+Qualifications|Minimum\s+Qualifications|Qualifications:?|Most\s+Relevant\s+Skills|Candidate\s+Profile|Skills\s*(?:&|and)\s*Experience|What\s+You\s+Need)\b/i
+    },
+    {
+        key: 'nice',
+        theme: 'purple',
+        icon: 'stars',
+        titleFallback: 'Preferred & Nice to Have',
+        regex: /\b(Nice\s+to\s+Have|Preferred\s+Qualifications|Bonus\s+Points|Good\s+to\s+Have|Other\s+Relevant\s+Skills|Desired\s+Skills)\b/i
+    },
+    {
+        key: 'why',
+        theme: 'rose',
+        icon: 'rocket_launch',
+        titleFallback: 'Why Join the Team',
+        regex: /\b(Why\s+[A-Z][A-Za-z0-9&]+(?:\s+AI)?\??|Why\s+Join(?:\s+[A-Za-z0-9&]+)?\??|What\s+We\s+Offer|Benefits\s*(?:&|and)\s*Perks|Why\s+Work\s+With\s+Us\??|Perks\s*(?:&|and)\s*Benefits)\b/i
+    },
+    {
+        key: 'eeo',
+        theme: 'teal',
+        icon: 'diversity_3',
+        titleFallback: 'Equal Opportunity & Culture',
+        regex: /\b(Equal\s+Employment\s+Opportunity|EEO\s+Statement|Inclusion\s*&\s*Diversity)\b/i
+    }
+];
+
+const ACTION_VERBS = [
+    'Own', 'Build', 'Engineer', 'Work', 'Feed', 'Design', 'Develop', 'Lead', 'Create', 'Manage',
+    'Collaborate', 'Drive', 'Solve', 'Power', 'Codify', 'Evolve', 'Implement', 'Partner', 'Contribute',
+    'Ship', 'Scale', 'Architect', 'Deliver', 'Oversee', 'Spearhead', 'Execute', 'Optimize'
+];
+
+const QUAL_STARTERS = [
+    '\\d+[-–—\\s]+\\d+\\+?\\s+years?',
+    'Hands-on', 'Comfort with ambiguity', 'Strong communication', 'Strong foundation',
+    'Genuine passion', 'A curious', 'A customer-first', 'Experience with',
+    'Familiarity with', 'Proficiency in', 'Bachelor', 'Master',
+    'Small team', 'Compete \\(and win\\)', 'In addition to', 'Citi offers', 'Citi also offers',
+    'Traction:', 'Building:', 'Team:', 'You\'ll work with:'
+];
+
+const patternVerbs = ACTION_VERBS.map(v => v + '\\s+(?:[a-z]{3,}|\\()').join('|');
+const patternQuals = QUAL_STARTERS.join('|');
+const bulletSplitRegex = new RegExp('(?<=[a-z0-9)»”"';])\\s+(?=(?:' + patternVerbs + '|' + patternQuals + '))');
+
+/* ── Main Engine (Zero-AI Deterministic Formatter) ──────────────────────── */
+function formatJobDescription() {
+    const rawEl = document.getElementById('job-description-raw');
+    const container = document.getElementById('job-description-rendered');
+    const controls = document.getElementById('jd-controls');
+    const statsPill = document.getElementById('jd-stats-pill');
+    if (!rawEl || !container) return;
+
+    let raw = (rawEl.textContent || '').trim();
+    if (!raw) {
+        container.innerHTML = '<div class="p-8 text-center text-slate-400 font-mono text-[12px] italic">No detailed description indexed for this requisition.</div>';
+        return;
+    }
+
+    // 1. Sanitize & Normalize
+    raw = normalizeText(raw);
+
+    // 2. Extract Enterprise / Workday Key-Values if present
+    const workdayMeta = extractWorkdayMeta(raw);
+    
+    // 3. Separate Compliance & Legal boilerplate
+    const { cleanContent, legalContent } = extractLegalAndCompliance(raw);
+
+    // 4. Parse main content into sections
+    let sections = parseSectionsFromRaw(cleanContent);
+
+    // 5. If legal content was found, append it as a collapsed legal drawer
+    if (legalContent) {
+        if (!sections) sections = [];
+        sections.push({
+            key: 'compliance',
+            theme: 'slate',
+            icon: 'gavel',
+            title: 'Compliance & Legal Disclosures',
+            points: extractBulletPoints(legalContent),
+            rawBody: legalContent,
+            isLegal: true
+        });
+    }
+
+    if (controls) controls.style.display = 'flex';
+    if (statsPill) {
+        statsPill.classList.remove('hidden');
+        statsPill.textContent = `${(sections ? sections.length : 0) + (workdayMeta ? 1 : 0)} Sections Indexed`;
+    }
+
+    let html = '';
+
+    // Render Workday / Enterprise Telemetry Grid if present
+    if (workdayMeta) {
+        html += renderWorkdayMetaGrid(workdayMeta);
+    }
+
+    // Render each section
+    if (sections && sections.length > 0) {
+        sections.forEach((sec, idx) => {
+            const isOpen = !sec.isLegal && (idx === 0 || idx === 1 || idx === 2);
+            html += renderSectionHtml(sec, isOpen);
+        });
+    }
+
+    container.innerHTML = html;
+
+    // Attach click listeners to accordion headers
+    container.querySelectorAll('.jd-section-header').forEach(header => {
+        header.addEventListener('click', function () {
+            const section = header.closest('.jd-section');
+            if (section) section.classList.toggle('open');
+        });
+    });
+}
+
+/* ── Workday & Enterprise Metadata Extractor ─────────────────────────────── */
+function extractWorkdayMeta(text) {
+    const fields = [
+        { key: 'Education', icon: 'school', regex: /\bEducation:\s*([^\n\r]+)/i },
+        { key: 'Job Family Group', icon: 'folder_open', regex: /\bJob Family Group:\s*([^\n\r]+)/i },
+        { key: 'Job Family', icon: 'work', regex: /\bJob Family:\s*([^\n\r]+)/i },
+        { key: 'Time Type', icon: 'schedule', regex: /\bTime Type:\s*([^\n\r]+)/i },
+        { key: 'Primary Location', icon: 'location_on', regex: /\bPrimary Location:\s*([^\n\r]+)/i },
+        { key: 'Closing Date', icon: 'event', regex: /\b(?:Anticipated\s+)?Posting Close Date:\s*([^\n\r]+)/i }
+    ];
+
+    let found = [];
+    fields.forEach(f => {
+        const m = f.regex.exec(text);
+        if (m) {
+            let val = m[1].trim();
+            val = val.replace(/\s+Primary Location$/i, '').trim();
+            found.push({ label: f.key, icon: f.icon, value: val });
+        }
+    });
+
+    return found.length >= 2 ? found : null;
+}
+
+function renderWorkdayMetaGrid(metaList) {
+    let itemsHtml = metaList.map(item => `
+        <div class="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+            <span class="material-symbols-outlined text-slate-500 text-[18px] mt-0.5">${item.icon}</span>
+            <div class="min-w-0 flex-1">
+                <span class="font-mono text-[9.5px] uppercase tracking-wider text-slate-400 block font-bold">${escapeHtml(item.label)}</span>
+                <span class="text-[12.5px] font-semibold text-slate-800 dark:text-slate-200 block truncate" title="${escapeHtml(item.value)}">${escapeHtml(item.value)}</span>
+            </div>
+        </div>
+    `).join('');
+
+    return `
+        <div class="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/20">
+            <div class="flex items-center gap-2 mb-3">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span class="font-mono text-[10.5px] uppercase tracking-widest font-bold text-slate-600 dark:text-slate-300">Enterprise Job Description & Responsibilitiess</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                ${itemsHtml}
+            </div>
+        </div>
+    `;
+}
+
+/* ── Extract Legal & Compliance Notices into Drawer ──────────────────────── */
+function extractLegalAndCompliance(text) {
+    const legalRegex = /(?:^|[.!?\n]\s*)(Automated Processing and AI[\s\S]+|Citi is an equal opportunity employer[\s\S]+|Equal Employment Opportunity[\s\S]{100,})/i;
+    const match = legalRegex.exec(text);
+
+    if (match && match.index > 50) {
+        const cleanContent = text.slice(0, match.index).trim();
+        const legalContent = match[0].trim();
+        return { cleanContent, legalContent };
+    }
+
+    return { cleanContent: text, legalContent: null };
+}
+
+/* ── Synthesize Structured Executive Sections for Unstructured Postings ── */
+function synthesizeUnstructuredSections(text) {
+    if (!text || !text.trim()) return [];
+
+    const paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+
+    if (paragraphs.length >= 2) {
+        const result = [];
+        const sectionArchetypes = [
+            { title: "Role Overview & Focus", theme: "indigo", icon: "badge", key: "role" },
+            { title: "Core Responsibilities & Deliverables", theme: "amber", icon: "task_alt", key: "responsibilities" },
+            { title: "Technical Domain & Qualifications", theme: "sky", icon: "verified", key: "skills" },
+            { title: "Additional Scope & Culture", theme: "teal", icon: "hub", key: "culture" }
+        ];
+
+        paragraphs.forEach((para, idx) => {
+            const arch = sectionArchetypes[Math.min(idx, sectionArchetypes.length - 1)];
+            const pts = extractBulletPoints(para);
+            result.push({
+                key: arch.key,
+                theme: arch.theme,
+                icon: arch.icon,
+                title: arch.title,
+                points: pts.length > 0 ? pts : [para],
+                rawBody: para
+            });
+        });
+        return result;
+    }
+
+    let sentences = text.split(/(?<=[.!?])\s+(?=[A-Z0-9])/).map(s => s.trim()).filter(Boolean);
+    if (sentences.length === 0) sentences = [text.trim()];
+
+    const sections = [];
+    sections.push({
+        key: 'role',
+        theme: 'indigo',
+        icon: 'badge',
+        title: 'Role Focus & Mission',
+        points: sentences.slice(0, Math.min(2, sentences.length)),
+        rawBody: sentences.slice(0, Math.min(2, sentences.length)).join(' ')
+    });
+
+    if (sentences.length > 2) {
+        sections.push({
+            key: 'responsibilities',
+            theme: 'amber',
+            icon: 'task_alt',
+            title: 'Core Deliverables & Scope',
+            points: sentences.slice(2),
+            rawBody: sentences.slice(2).join(' ')
+        });
+    }
+
+    return sections;
+}
+
+/* ── Parse Sections from Raw Text ────────────────────────────────────────── */
+function parseSectionsFromRaw(clean) {
+    let matches = [];
+
+    SECTION_REGISTRY.forEach(st => {
+        let globalRegex = new RegExp(st.regex.source, 'gi');
+        let m;
+        while ((m = globalRegex.exec(clean)) !== null) {
+            let matchedText = m[1];
+            // Filter out lowercase running prose
+            if (!/^[A-Z]/.test(matchedText)) continue;
+            // Filter out incidental words matched inside sentences
+            if (/^(?:requirements|qualifications|responsibilities|about)$/i.test(matchedText) && !/^[A-Z]/.test(matchedText)) {
+                continue;
+            }
+            matches.push({
+                index: m.index + m[0].indexOf(matchedText),
+                rawMatch: matchedText,
+                registry: st
+            });
+        }
+    });
+
+    matches.sort((a, b) => a.index - b.index);
+
+    let sections = [];
+
+    // Pretext before first detected heading (Company intro or Role overview)
+    if (matches.length > 0 && matches[0].index > 25) {
+        let preText = clean.slice(0, matches[0].index).trim();
+        let isAbout = /\b(We\s+build|About|We\s+are|Traction|Founded|Our\s+mission)\b/i.test(preText);
+        let title = isAbout ? "Company & Overview" : "The Role & Overview";
+        let key = isAbout ? "about" : "role";
+        let theme = isAbout ? "emerald" : "indigo";
+        let icon = isAbout ? "corporate_fare" : "badge";
+
+        sections.push({
+            key: key,
+            theme: theme,
+            icon: icon,
+            title: title,
+            points: extractBulletPoints(preText),
+            rawBody: preText
+        });
+    }
+
+    for (let i = 0; i < matches.length; i++) {
+        let curr = matches[i];
+        let nextIndex = (i + 1 < matches.length) ? matches[i + 1].index : clean.length;
+        let body = clean.slice(curr.index + curr.rawMatch.length, nextIndex).trim();
+        body = body.replace(/^[?:—–\-\s]+/, '').trim();
+
+        const points = extractBulletPoints(body);
+
+        sections.push({
+            key: curr.registry.key,
+            theme: curr.registry.theme,
+            icon: curr.registry.icon,
+            title: curr.rawMatch.trim(),
+            points: points,
+            rawBody: body
+        });
+    }
+
+    // Synthesize executive sections if no standard headings found
+    if (sections.length === 0) {
+        sections = synthesizeUnstructuredSections(clean);
+    }
+
+    return sections;
+}
+
+/* ── Segment Section Content into Rich Bullet Items ──────────────────────── */
+function extractBulletPoints(body) {
+    if (!body) return [];
+
+    // Case 1: Text already has clean newlines with bullet symbols (allows 1 or more bullets)
+    const lines = body.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length >= 1 && lines.some(l => /^[\-•*·–—\d]+[\.\)]?\s+/.test(l))) {
+        return lines.map(l => l.replace(/^[\-•*·–—\d]+[\.\)]?\s+/, '').trim()).filter(Boolean);
+    }
+
+    // Case 2: Smashed sentences with action verbs & qualification clauses
+    let pts = body.split(bulletSplitRegex).map(p => p.trim()).filter(Boolean);
+    if (pts.length >= 2 && pts.every(p => p.length >= 10)) {
+        return pts;
+    }
+
+    // Case 3: Semicolon separated list
+    if (body.includes(';') && (body.match(/;/g) || []).length >= 2) {
+        let semiList = body.split(';').map(s => s.replace(/^(?:and|including:?)\s+/i, '').trim()).filter(Boolean);
+        if (semiList.length >= 2) return semiList;
+    }
+
+    // Case 4: Sentence splitting for clear reading
+    let sentences = body.split(/(?<=[.!?])\s+(?=[A-Z0-9])/).map(s => s.trim()).filter(Boolean);
+    return sentences.length >= 1 ? sentences : [body];
+}
+
+/* ── HTML Renderer for a Section ─────────────────────────────────────────── */
+function renderSectionHtml(section, isOpen) {
+    const openClass = isOpen ? 'open' : '';
+    const theme = section.theme;
+
+    let bodyContent = '';
+
+    if (section.points && section.points.length >= 1) {
+        bodyContent = '<ul class="jd-bullets-list">';
+        section.points.forEach(pt => {
+            const formatted = formatPointText(pt, theme);
+            bodyContent += `
+                <li class="jd-bullet-item">
+                    <span class="jd-bullet-marker"></span>
+                    <div class="flex-1 text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
+                        ${formatted}
+                    </div>
+                </li>
+            `;
+        });
+        bodyContent += '</ul>';
+    } else {
+        bodyContent = `<p class="jd-prose font-sans">${escapeHtml(section.rawBody || '')}</p>`;
+    }
+
+    const count = section.points ? section.points.length : 1;
+
+    return `
+        <div class="jd-section jd-theme-${theme} ${openClass}">
+            <div class="jd-section-header">
+                <div class="jd-section-left">
+                    <div class="jd-section-icon">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">${section.icon}</span>
+                    </div>
+                    <div class="jd-section-title-wrap">
+                        <h3 class="jd-section-title">${escapeHtml(section.title)}</h3>
+                        <span class="jd-section-count">${count} item${count !== 1 ? 's' : ''}</span>
+                    </div>
+                </div>
+                <span class="material-symbols-outlined jd-chevron">expand_more</span>
+            </div>
+            <div class="jd-section-body">
+                ${bodyContent}
+            </div>
+        </div>
+    `;
+}
+
+/* ── Point Formatting (Bolds Lead-ins and Category Pills) ─────────────────── */
+function formatPointText(text, theme) {
+    text = text.replace(/^[?\-–—•*·:\s]+/, '').trim();
+    if (!text) return '';
+
+    // Check for "Label:" pattern e.g. "Team:", "Building:", "Traction:"
+    let labelMatch = text.match(/^([A-Za-z0-9\s/&’'—–-]{2,25}:)\s*(.*)/);
+    if (labelMatch) {
+        return `<span class="inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 mr-1.5">${escapeHtml(labelMatch[1])}</span><span class="text-slate-700 dark:text-slate-300">${escapeHtml(labelMatch[2])}</span>`;
+    }
+
+    // Check for Salary / Range pattern e.g. "$96,960.00 - $145,440.00" or "Up to 18LPA"
+    let salaryMatch = text.match(/^((?:\$[\d,.]+(?:\s*-\s*\$[\d,.]+)?|Up\s+to\s+\d+\s*[A-Za-z]+))\s*(.*)/i);
+    if (salaryMatch) {
+        return `<span class="inline-block px-2.5 py-0.5 rounded font-mono font-bold text-[12px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 mr-1.5">${escapeHtml(salaryMatch[1])}</span><span class="text-slate-700 dark:text-slate-300">${escapeHtml(salaryMatch[2])}</span>`;
+    }
+
+    // Check for "Heading. Rest of sentence" pattern (e.g. "Solve hard integration problems. Take ambiguous...")
+    let sentenceMatch = text.match(/^([A-Z0-9][^.!?]{5,65}[.!?])\s+(.*)/);
+    if (sentenceMatch) {
+        return `<strong class="font-semibold text-slate-900 dark:text-slate-100">${escapeHtml(sentenceMatch[1])}</strong> <span class="text-slate-600 dark:text-slate-300">${escapeHtml(sentenceMatch[2])}</span>`;
+    }
+
+    // Check for "Title — Description" or "Title - Description" pattern
+    let dashMatch = text.match(/^([A-Z0-9].*?(?:—|–|\s+-\s+))\s*(.*)/);
+    if (dashMatch && dashMatch[1].length <= 85) {
+        return `<strong class="font-semibold text-slate-900 dark:text-slate-100">${escapeHtml(dashMatch[1])}</strong> <span class="text-slate-600 dark:text-slate-300">${escapeHtml(dashMatch[2])}</span>`;
+    }
+
+    // Check for "Lead-in Title: Description" pattern
+    let colonMatch = text.match(/^([A-Z0-9].*?:)\s+(.*)/);
+    if (colonMatch && colonMatch[1].length <= 75) {
+        return `<strong class="font-semibold text-slate-900 dark:text-slate-100">${escapeHtml(colonMatch[1])}</strong> <span class="text-slate-600 dark:text-slate-300">${escapeHtml(colonMatch[2])}</span>`;
+    }
+
+    return `<span class="text-slate-700 dark:text-slate-300">${escapeHtml(text)}</span>`;
+}
+
+/* ── Expand / Collapse All ───────────────────────────────────────────────── */
+function toggleAllJdSections(expand) {
+    const sections = document.querySelectorAll('.jd-section');
+    sections.forEach(s => {
+        if (expand) s.classList.add('open');
+        else s.classList.remove('open');
+    });
+}
+
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+/* ── Pipeline & Utility Modals ───────────────────────────────────────────── */
 function openStatusModal(jobId, status, notes) {
     document.getElementById('status-job-id').value = jobId;
     document.getElementById('status').value = status || 'new';
@@ -298,4 +1356,178 @@ function closeTrafficAnalysisModal() {
     document.getElementById('traffic-analysis-modal').classList.add('hidden');
 }
 </script>
+
+<!-- Modal: Direct Apply with JobSnap -->
+<div id="direct-apply-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" onclick="closeDirectApplyModal()"></div>
+    <div class="relative mx-auto p-6 border border-slate-200 dark:border-slate-700 w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 z-10 shadow-2xl space-y-5 animate-fade-in">
+        
+        <!-- Header -->
+        <div class="flex justify-between items-start border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-[#19D889] shadow-xs">
+                    <span class="material-symbols-outlined text-[20px]">bolt</span>
+                </div>
+                <div>
+                    <h3 class="font-headline-md text-slate-900 dark:text-slate-100 text-[17px] font-bold">Apply with JobSnap</h3>
+                    <p class="text-[12px] text-slate-500">Published requisition · Direct recruiter delivery</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeDirectApplyModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg transition-colors" title="Close">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+        </div>
+
+        <!-- Role & Applicant Overview -->
+        <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h4 id="apply-modal-title" class="text-[14.5px] font-bold text-slate-900 dark:text-slate-100">{{ job.title }}</h4>
+                    <p id="apply-modal-company" class="font-mono text-[11.5px] text-slate-500 font-semibold uppercase">{{ job.company }}</p>
+                </div>
+                <span class="font-mono text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-[#19D889] border border-emerald-500/30">
+                    {{ job.match_score|default(80) }}% Fit
+                </span>
+            </div>
+
+            <!-- Profile Info Included -->
+            <div class="border-t border-slate-200/60 dark:border-slate-700/60 pt-2.5 space-y-1.5 text-[12px]">
+                <div class="flex items-center justify-between text-slate-600 dark:text-slate-300">
+                    <span class="font-medium">Candidate Name:</span>
+                    <span class="font-semibold text-slate-900 dark:text-slate-100">{{ current_user.username }}</span>
+                </div>
+                <div class="flex items-center justify-between text-slate-600 dark:text-slate-300">
+                    <span class="font-medium">Direct Email:</span>
+                    <span class="font-mono text-[11px] text-slate-900 dark:text-slate-100">{{ current_user.email }}</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-emerald-700 dark:text-[#19D889] text-[11px] pt-1 font-medium">
+                    <span class="material-symbols-outlined text-[15px]">task_alt</span>
+                    <span>Parsed profile resume & verified skills attached automatically</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Note to Recruiter -->
+        <div class="space-y-1.5">
+            <label for="apply-note-input" class="block font-mono text-[10.5px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">
+                Note to Recruiter (Optional)
+            </label>
+            <textarea id="apply-note-input" rows="3" placeholder="Brief note highlighting your availability, relevant projects, or portfolio..."
+                class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-[12.5px] text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-[#19D889] focus:ring-1 focus:ring-[#19D889] resize-none"></textarea>
+        </div>
+
+        <!-- Notification Message -->
+        <div id="apply-feedback-msg" class="hidden text-[12px] p-2.5 rounded-xl font-medium"></div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <button type="button" onclick="closeDirectApplyModal()"
+                class="px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 rounded-xl text-[12px] font-semibold transition-colors">
+                Cancel
+            </button>
+            <button type="button" id="btn-submit-direct-apply" onclick="submitDirectApplication()"
+                class="px-5 py-2 bg-[#19D889] hover:bg-[#10b981] text-[#064e3b] hover:text-white rounded-xl text-[12.5px] font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer">
+                <span class="material-symbols-outlined text-[16px]">send</span>
+                <span>Submit Application</span>
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+let currentDirectApplyJobId = null;
+let currentDirectApplyMatchScore = null;
+
+function openDirectApplyModal(jobId, jobTitle, company, matchScore) {
+    currentDirectApplyJobId = jobId;
+    currentDirectApplyMatchScore = matchScore;
+    const modal = document.getElementById('direct-apply-modal');
+    if (!modal) return;
+    const titleEl = document.getElementById('apply-modal-title');
+    const compEl = document.getElementById('apply-modal-company');
+    if (titleEl && jobTitle) titleEl.textContent = jobTitle;
+    if (compEl && company) compEl.textContent = company;
+    const noteInput = document.getElementById('apply-note-input');
+    if (noteInput) noteInput.value = '';
+    const feedback = document.getElementById('apply-feedback-msg');
+    if (feedback) feedback.classList.add('hidden');
+    modal.classList.remove('hidden');
+}
+
+function closeDirectApplyModal() {
+    const modal = document.getElementById('direct-apply-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function submitDirectApplication() {
+    if (!currentDirectApplyJobId) return;
+    const btn = document.getElementById('btn-submit-direct-apply');
+    const noteInput = document.getElementById('apply-note-input');
+    const feedback = document.getElementById('apply-feedback-msg');
+    const note = noteInput ? noteInput.value.trim() : '';
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span> Submitting...';
+    }
+
+    try {
+        const res = await fetch('/api/applications', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                job_id: currentDirectApplyJobId,
+                ai_match_score: currentDirectApplyMatchScore || 80,
+                notes: note
+            })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            if (feedback) {
+                feedback.className = 'text-[12px] p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-medium';
+                feedback.textContent = 'Application submitted successfully! The recruiter has been notified.';
+                feedback.classList.remove('hidden');
+            }
+            setTimeout(() => {
+                closeDirectApplyModal();
+                const directBtn = document.getElementById('btn-direct-apply');
+                if (directBtn) {
+                    directBtn.outerHTML = `
+                        <button type="button" disabled class="flex-1 md:flex-none px-4 py-2.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-[#19D889] font-semibold text-[13px] rounded-xl flex items-center justify-center gap-2 cursor-default shadow-2xs">
+                            <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                            <span>Applied via JobSnap</span>
+                        </button>
+                    `;
+                }
+            }, 800);
+        } else {
+            if (feedback) {
+                feedback.className = 'text-[12px] p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 font-medium';
+                feedback.textContent = data.error || 'Failed to submit application. Please try again.';
+                feedback.classList.remove('hidden');
+            }
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">send</span> Try Again';
+            }
+        }
+    } catch (err) {
+        if (feedback) {
+            feedback.className = 'text-[12px] p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 font-medium';
+            feedback.textContent = 'Network error while submitting application.';
+            feedback.classList.remove('hidden');
+        }
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">send</span> Try Again';
+        }
+    }
+}
+</script>
+
 {% endblock %}

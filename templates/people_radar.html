@@ -20,7 +20,7 @@
             <form action="{{ url_for('delete_all_personal_contacts') }}" method="POST"
                 onsubmit="return confirm('Are you sure you want to delete ALL contacts?');">
                 <button type="submit"
-                    class="font-data-mono text-[10px] text-error hover:text-error/80 border border-error/30 hover:bg-error/10 px-3 py-1.5 rounded uppercase tracking-wider transition-colors">
+                    class="font-mono text-[10px] text-rose-600 dark:text-rose-400 bg-rose-50/80 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 hover:bg-rose-100 dark:hover:bg-rose-900/50 hover:border-rose-300 dark:hover:border-rose-700 px-3 py-1.5 rounded-lg uppercase tracking-wider transition-colors cursor-pointer">
                     Delete All
                 </button>
             </form>
@@ -149,7 +149,7 @@
                 <button type="button" onclick="closeSendMessageModal()"
                     class="px-3 py-1.5 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps hover:bg-surface-container-high">Cancel</button>
                 <button type="submit"
-                    class="px-4 py-1.5 bg-primary text-on-primary rounded font-label-caps text-label-caps hover:bg-primary-container">Send Email</button>
+                    class="px-4 py-1.5 bg-primary text-on-primary rounded font-label-caps text-label-caps hover:bg-emerald-600">Send Email</button>
             </div>
         </form>
     </div>
@@ -176,7 +176,7 @@
                 <button type="button" onclick="closeNoteModal()"
                     class="px-3 py-1.5 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps hover:bg-surface-container-high">Cancel</button>
                 <button type="submit"
-                    class="px-4 py-1.5 bg-primary text-on-primary rounded font-label-caps text-label-caps hover:bg-primary-container">Save Note</button>
+                    class="px-4 py-1.5 bg-primary text-on-primary rounded font-label-caps text-label-caps hover:bg-emerald-600">Save Note</button>
             </div>
         </form>
     </div>

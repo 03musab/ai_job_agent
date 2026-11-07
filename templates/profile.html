@@ -229,7 +229,7 @@
             <!-- Save Action Button -->
             <div class="border-t border-outline-variant pt-5 flex justify-end gap-3">
                 <button type="submit"
-                    class="px-6 py-2.5 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-primary-container transition-colors shadow-sm">
+                    class="px-6 py-2.5 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-emerald-600 transition-colors shadow-sm">
                     Save Profile Settings
                 </button>
             </div>
@@ -238,6 +238,81 @@
 </div>
 
 <script>
+// ── Resume drag-and-drop ──────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+    const dropZone = document.getElementById('resume-drop-zone');
+    const resumeInput = document.getElementById('resume');
+    if (!dropZone || !resumeInput) return;
+
+    // Clicking anywhere on the drop zone triggers the file picker
+    dropZone.addEventListener('click', function (e) {
+        if (e.target.closest('label')) return;
+        resumeInput.click();
+    });
+
+    function highlight() {
+        dropZone.style.borderColor = 'var(--color-primary, #6750a4)';
+        dropZone.style.borderStyle = 'solid';
+    }
+    function unhighlight() {
+        dropZone.style.borderColor = '';
+        dropZone.style.borderStyle = 'dashed';
+    }
+
+    ['dragenter', 'dragover'].forEach(function(evt) {
+        dropZone.addEventListener(evt, function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            highlight();
+        });
+    });
+
+    ['dragleave', 'dragend'].forEach(function(evt) {
+        dropZone.addEventListener(evt, function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            unhighlight();
+        });
+    });
+
+    dropZone.addEventListener('drop', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        unhighlight();
+
+        var files = e.dataTransfer.files;
+        if (!files || files.length === 0) return;
+
+        var file = files[0];
+        var allowed = [
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ];
+        if (allowed.indexOf(file.type) === -1 && !file.name.match(/\.(pdf|docx)$/i)) {
+            alert('Only PDF or DOCX files are accepted.');
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            alert('File exceeds the 10 MB limit.');
+            return;
+        }
+
+        var dt = new DataTransfer();
+        dt.items.add(file);
+        resumeInput.files = dt.files;
+
+        var nameSpan = dropZone.querySelector('label span');
+        if (nameSpan) nameSpan.textContent = file.name;
+    });
+
+    resumeInput.addEventListener('change', function () {
+        if (resumeInput.files.length > 0) {
+            var nameSpan = dropZone.querySelector('label span');
+            if (nameSpan) nameSpan.textContent = resumeInput.files[0].name;
+        }
+    });
+});
+// ─────────────────────────────────────────────────────────────────────────────
 function previewProfilePicture(input) {
     const preview = document.getElementById('profile-pic-preview');
     if (input.files && input.files[0]) {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-background" :class="{ 'dark': darkMode }" x-data="{ darkMode: localStorage.getItem('darkMode') === 'false' ? false : true }">
+<html lang="en" class="h-full bg-background" :class="{ 'dark': darkMode }" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }">
 
 <head>
     <meta charset="UTF-8">
@@ -18,7 +18,7 @@
     <!-- Fonts from Stitch Design Spec -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Arvo:ital,wght@0,400;0,700;1,400;1,700&family=Plus+Jakarta+Sans:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
@@ -41,6 +41,7 @@
     </a>
 
     <!-- Top Navigation Bar (Frosted Glass Stitch Precision Spec) -->
+    {% block navbar %}
     <nav class="bg-surface/80 backdrop-blur-xl fixed top-0 left-0 right-0 w-full h-[48px] z-[100] border-b border-outline-variant/60 shadow-lg shadow-black/10 transition-colors" aria-label="Main menu" x-data="{ mobileMenuOpen: false }">
         <div class="flex justify-between items-center px-gutter h-full w-full">
         
@@ -61,11 +62,15 @@
                          const sync = () => this.syncActive();
                          this.$nextTick(sync);
                          setTimeout(sync, 50);
-                         setTimeout(sync, 250);
+                         setTimeout(sync, 150);
+                         setTimeout(sync, 350);
                          if (document.fonts) {
                              document.fonts.ready.then(sync);
                          }
                          window.addEventListener('resize', sync);
+                         window.addEventListener('nav:changed', sync);
+                         window.addEventListener('page:loaded', sync);
+                         window.addEventListener('popstate', sync);
                      },
                      syncActive() {
                          const activeEl = this.$el.querySelector('.nav-item-active');
@@ -75,6 +80,26 @@
                                  width: activeEl.offsetWidth + 'px',
                                  opacity: 1
                              };
+                         } else {
+                             const currentPath = window.location.pathname;
+                             const allLinks = Array.from(this.$el.querySelectorAll('.nav-item'));
+                             const match = allLinks.find(link => {
+                                 const linkPath = new URL(link.href, window.location.origin).pathname;
+                                 return typeof window.matchesNavItem === 'function' ? window.matchesNavItem(linkPath, currentPath) : linkPath === currentPath;
+                             });
+                             if (match && match.offsetWidth > 0) {
+                                 allLinks.forEach(l => {
+                                     l.classList.remove('nav-item-active', 'text-primary', 'font-bold');
+                                     l.classList.add('text-on-surface-variant', 'font-medium');
+                                 });
+                                 match.classList.add('nav-item-active', 'text-primary', 'font-bold');
+                                 match.classList.remove('text-on-surface-variant', 'font-medium');
+                                 this.activePill = {
+                                     left: match.offsetLeft + 'px',
+                                     width: match.offsetWidth + 'px',
+                                     opacity: 1
+                                 };
+                             }
                          }
                      },
                      onHover(e) {
@@ -92,7 +117,10 @@
                          this.isHovered = false;
                      }
                  }"
-                 @mouseleave="onLeave()">
+                 @mouseleave="onLeave()"
+                 @nav:changed.window="syncActive()"
+                 @page:loaded.window="syncActive()"
+                 @popstate.window="syncActive()">
 
                 <!-- Liquid Glassmorphism Stretchy Sliding Pill -->
                 <div class="absolute top-1/2 -translate-y-1/2 h-[30px] rounded-lg bg-primary/15 backdrop-blur-xl border border-primary/35 shadow-sm pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
@@ -103,32 +131,39 @@
                 {% if current_user.is_authenticated %}
                     {% if current_user.role == 'recruiter' %}
                         <a href="{{ url_for('recruiter_dashboard') }}" @mouseenter="onHover($event)"
+                           @click="activePill = { left: $el.offsetLeft + 'px', width: $el.offsetWidth + 'px', opacity: 1 }"
                            class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint == 'recruiter_dashboard' else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Dashboard
                         </a>
                         <a href="{{ url_for('recruiter_post_job') }}" @mouseenter="onHover($event)"
-                           class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint == 'recruiter_post_job' else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
+                           @click="activePill = { left: $el.offsetLeft + 'px', width: $el.offsetWidth + 'px', opacity: 1 }"
+                           class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint in ['recruiter_post_job', 'post_job'] else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Post Job
                         </a>
                         <a href="{{ url_for('recruiter_company') }}" @mouseenter="onHover($event)"
+                           @click="activePill = { left: $el.offsetLeft + 'px', width: $el.offsetWidth + 'px', opacity: 1 }"
                            class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint == 'recruiter_company' else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Company Profile
                         </a>
                         <a href="{{ url_for('outreach_studio') }}" @mouseenter="onHover($event)"
-                           class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint == 'outreach_studio' else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
+                           @click="activePill = { left: $el.offsetLeft + 'px', width: $el.offsetWidth + 'px', opacity: 1 }"
+                           class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint in ['outreach_studio', 'people_radar', 'message_vault'] else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Outreach Studio
                         </a>
                     {% else %}
                         <a href="{{ url_for('dashboard') }}" @mouseenter="onHover($event)"
+                           @click="activePill = { left: $el.offsetLeft + 'px', width: $el.offsetWidth + 'px', opacity: 1 }"
                            class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint == 'dashboard' else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
-                            Dashboard
+                            Job Matches
                         </a>
                         <a href="{{ url_for('outreach_studio') }}" @mouseenter="onHover($event)"
-                           class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint == 'outreach_studio' else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
+                           @click="activePill = { left: $el.offsetLeft + 'px', width: $el.offsetWidth + 'px', opacity: 1 }"
+                           class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint in ['outreach_studio', 'people_radar', 'message_vault'] else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Outreach Studio
                         </a>
                         <a href="{{ url_for('learning_path') }}" @mouseenter="onHover($event)"
-                           class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint == 'learning_path' else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
+                           @click="activePill = { left: $el.offsetLeft + 'px', width: $el.offsetWidth + 'px', opacity: 1 }"
+                           class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint in ['learning_path', 'skill_gap'] else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Skill Gap & Roadmap
                         </a>
                     {% endif %}
@@ -217,7 +252,7 @@
                 <a href="{{ url_for('login') }}" class="font-body-sm text-[13px] text-on-surface-variant hover:text-primary transition-colors">
                     Sign in
                 </a>
-                <a href="{{ url_for('register') }}" class="px-3 py-1 bg-primary text-on-primary font-label-caps text-label-caps rounded hover:bg-primary-container transition-colors">
+                <a href="{{ url_for('register') }}" class="px-3 py-1 bg-primary text-on-primary font-label-caps text-label-caps rounded hover:bg-emerald-600 transition-colors">
                     Register
                 </a>
             {% endif %}
@@ -241,7 +276,7 @@
                     <a href="{{ url_for('recruiter_company') }}" class="block py-1 text-on-surface hover:text-primary">Company Profile</a>
                     <a href="{{ url_for('outreach_studio') }}" class="block py-1 text-on-surface hover:text-primary">Outreach Studio</a>
                 {% else %}
-                    <a href="{{ url_for('dashboard') }}" class="block py-1 text-on-surface hover:text-primary">Dashboard</a>
+                    <a href="{{ url_for('dashboard') }}" class="block py-1 text-on-surface hover:text-primary">Job Matches</a>
                     <a href="{{ url_for('outreach_studio') }}" class="block py-1 text-on-surface hover:text-primary">Outreach Studio</a>
                     <a href="{{ url_for('learning_path') }}" class="block py-1 text-on-surface hover:text-primary">Skill Gap & Roadmap</a>
                 {% endif %}
@@ -254,6 +289,7 @@
             {% endif %}
         </div>
     </nav>
+    {% endblock %}
 
     <!-- Flash Notifications (Floating Toast Stack) -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -285,7 +321,7 @@
     {% endwith %}
 
     <!-- Main Content Area -->
-    <div class="flex-1 flex flex-col pt-[48px] min-h-screen bg-background" id="main-content">
+    <div class="flex-1 flex flex-col {% block main_class %}pt-[48px]{% endblock %} min-h-screen bg-background" id="main-content">
         {% block content %}{% endblock %}
     </div>
 
@@ -299,6 +335,29 @@
     <script>
         (function() {
             const EXCLUDED_PATHS = ['/logout', '/login', '/register', '/reauth_google', '/auth'];
+
+            function matchesNavItem(linkPath, currentPath) {
+                const normalize = p => (p || '').replace(/\/+$/, '').toLowerCase();
+                const lp = normalize(linkPath);
+                const cp = normalize(currentPath);
+
+                if (lp === cp) return true;
+
+                // Outreach Studio routes group
+                const outreachRoutes = ['/outreach', '/outreach_studio', '/people_radar', '/message_vault'];
+                if (outreachRoutes.includes(lp) && outreachRoutes.includes(cp)) return true;
+
+                // Learning Path / Skill Gap routes group
+                const learningRoutes = ['/learning_path', '/skill_gap', '/roadmap'];
+                if (learningRoutes.includes(lp) && learningRoutes.includes(cp)) return true;
+
+                // Recruiter Post Job
+                const postJobRoutes = ['/recruiter_post_job', '/post_job'];
+                if (postJobRoutes.includes(lp) && postJobRoutes.includes(cp)) return true;
+
+                return false;
+            }
+            window.matchesNavItem = matchesNavItem;
 
             async function spaNavigate(url, pushState = true) {
                 const mainEl = document.getElementById('main-content');
@@ -323,7 +382,7 @@
                 const currentPath = new URL(url, window.location.origin).pathname;
                 document.querySelectorAll('.nav-item').forEach(link => {
                     const linkPath = new URL(link.href, window.location.origin).pathname;
-                    if (linkPath === currentPath) {
+                    if (matchesNavItem(linkPath, currentPath)) {
                         link.classList.add('nav-item-active', 'text-primary', 'font-bold');
                         link.classList.remove('text-on-surface-variant', 'font-medium');
                     } else {

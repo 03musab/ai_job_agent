@@ -1,4 +1,4 @@
-<!-- Top Job Picks for You — 3D Fan Carousel (Stitch Spec) -->
+<!-- Top Job Picks for You — 3D Fan Carousel (Linear / Stripe Spec) -->
 {% if current_user.role != 'recruiter' %}
 {% if top_picks %}
 <script type="application/json" id="picks-json-data">{{ top_picks | tojson }}</script>
@@ -22,67 +22,104 @@
         user-select: none;
     }
     .fan-card:hover {
-        filter: brightness(1.05);
+        filter: brightness(1.02);
     }
     .fan-dot {
         transition: all 0.3s ease;
     }
 </style>
-<div class="mb-6 border border-outline-variant rounded-lg p-4 bg-surface-container-low" x-data="fanCarousel(window.__topPicks__)">
+<div class="mb-5 border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-white dark:bg-slate-900 shadow-sm" x-data="fanCarousel(window.__topPicks__)">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-[18px] text-tertiary">star</span>
+    <div class="flex items-center justify-between mb-3 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+        <div class="flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-[#19D889]">
+                <span class="material-symbols-outlined text-[17px]">auto_awesome</span>
+            </div>
             <div>
-                <h2 class="font-headline-md text-[14px] text-on-surface font-semibold">Top Job Picks For You</h2>
-                <p class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Resume Skill Matched</p>
+                <div class="flex items-center gap-2">
+                    <h2 class="font-headline-md text-[15px] text-slate-900 dark:text-slate-100 font-bold">Recommended For You</h2>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
+                        AI Resume Match
+                    </span>
+                </div>
+                <p class="font-mono text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Ranked by skills alignment, seniority tier, and market signals</p>
             </div>
         </div>
-        <div class="flex items-center gap-1">
+        <div class="flex items-center gap-1.5">
             <button @click="prev()" :disabled="activeIndex === 0"
-                class="p-1 rounded border border-outline-variant/60 bg-surface-container text-on-surface-variant hover:text-primary hover:border-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                class="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-600 hover:border-emerald-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center">
                 <span class="material-symbols-outlined text-[16px]">chevron_left</span>
             </button>
             <button @click="next()" :disabled="activeIndex === picks.length - 1"
-                class="p-1 rounded border border-outline-variant/60 bg-surface-container text-on-surface-variant hover:text-primary hover:border-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                class="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-600 hover:border-emerald-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center">
                 <span class="material-symbols-outlined text-[16px]">chevron_right</span>
             </button>
         </div>
     </div>
 
     <!-- 3D Fan Stage -->
-    <div class="fan-stage relative w-full overflow-hidden" style="height: 280px;">
+    <div class="fan-stage relative w-full overflow-hidden" style="height: 295px;">
         <template x-for="(pick, i) in picks" :key="i">
             <div class="fan-card absolute" :style="getCardStyle(i)" @click="setActive(i)">
                 <!-- Card face -->
-                <div class="border rounded-lg flex flex-col overflow-hidden transition-all duration-300 bg-surface-container"
-                     :class="i === activeIndex ? 'border-primary shadow-xl ring-1 ring-primary/40' : 'border-outline-variant shadow-md'"
-                     style="width: 240px; height: 260px;">
-                    <div class="p-4 flex-1 flex flex-col">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="font-data-mono text-[10px] px-1.5 py-0.5 rounded border border-outline-variant bg-surface-container-high text-on-surface-variant"
-                                  x-text="pick.status_text"></span>
-                            <span x-show="pick.relevance_score > 0"
-                                  class="font-data-mono text-[11px] font-bold text-secondary px-1.5 py-0.5 rounded bg-secondary/10 border border-secondary/20"
-                                  x-text="Math.min(Math.round(pick.relevance_score), 100) + '%'"></span>
+                <div class="border rounded-xl flex flex-col overflow-hidden transition-all duration-300 bg-white dark:bg-slate-800/95"
+                     :class="i === activeIndex ? 'border-emerald-500 shadow-xl ring-2 ring-emerald-500/20' : 'border-slate-200 dark:border-slate-700 shadow-md'"
+                     style="width: 275px; height: 280px;">
+                    
+                    <div class="p-4 flex-1 flex flex-col justify-between">
+                        <!-- Top: Avatar, Status & AI Match Badge -->
+                        <div>
+                            <div class="flex items-center justify-between mb-2.5">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 rounded-lg bg-white dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600/80 flex items-center justify-center shrink-0 shadow-xs overflow-hidden relative">
+                                        <img :src="getCompanyLogo(pick.company)" :alt="pick.company" class="w-5 h-5 object-contain" loading="lazy"
+                                             @error="$el.style.display='none'; $el.nextElementSibling.style.display='flex'">
+                                        <div class="w-full h-full bg-emerald-500/10 text-[#059669] dark:text-[#19D889] font-bold text-[13px] items-center justify-center hidden" style="display: none;">
+                                            <span x-text="(pick.company || 'C')[0].toUpperCase()"></span>
+                                        </div>
+                                    </div>
+                                    <span class="font-mono text-[10px] text-slate-500 truncate max-w-[100px]" x-text="pick.company"></span>
+                                </div>
+                                <span class="font-mono text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    <span x-text="(pick.match_score || Math.min(Math.round(pick.relevance_score || 75), 100)) + '% Match'"></span>
+                                </span>
+                            </div>
+
+                            <!-- Role Title -->
+                            <h3 class="font-semibold text-slate-900 dark:text-slate-100 text-[13.5px] leading-snug line-clamp-2"
+                                x-text="pick.title"></h3>
+                            
+                            <!-- Badges: Salary & Exp -->
+                            <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                                <span class="font-mono text-[10px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                                      x-text="pick.formatted_salary || 'Competitive'"></span>
+                                <span class="font-mono text-[10px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                                      x-text="pick.formatted_experience || '2+ yrs exp'"></span>
+                            </div>
                         </div>
-                        <h3 class="font-body-sm font-semibold text-on-surface text-[13px] leading-snug line-clamp-2"
-                            x-text="pick.title"></h3>
-                        <p class="font-data-mono text-[11px] text-on-surface-variant mt-1"
-                            x-text="pick.company"></p>
-                        <div class="flex flex-wrap gap-1 mt-auto pt-2">
-                            <template x-for="skill in pick.matched_skills.slice(0,3)" :key="skill">
-                                <span class="font-data-mono text-[9px] px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant border border-outline-variant/30"
-                                      x-text="skill"></span>
-                            </template>
+
+                        <!-- Matched Skills Preview -->
+                        <div class="pt-2">
+                            <span class="text-[9px] uppercase font-mono tracking-wider text-slate-400 block mb-1">Matched Competencies</span>
+                            <div class="flex flex-wrap gap-1">
+                                <template x-for="skill in (pick.matched_skills || []).slice(0, 3)" :key="skill">
+                                    <span class="font-mono text-[9.5px] px-1.5 py-0.5 rounded bg-emerald-50/70 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/40 flex items-center gap-0.5">
+                                        <span class="text-emerald-600 font-bold">✓</span>
+                                        <span x-text="skill"></span>
+                                    </span>
+                                </template>
+                            </div>
                         </div>
                     </div>
+
                     <!-- View Details on active -->
-                    <div class="px-3 pb-3 pt-1" x-show="i === activeIndex" x-transition>
+                    <div class="px-3 pb-3 pt-1 border-t border-slate-100 dark:border-slate-800" x-show="i === activeIndex" x-transition>
                         <a :href="'/job/' + pick.id"
-                            class="w-full bg-primary text-on-primary font-label-caps text-label-caps py-1.5 rounded flex items-center justify-center hover:bg-primary-container transition-colors"
+                            class="w-full bg-[#19D889] hover:bg-[#10b981] text-[#064e3b] hover:text-white font-semibold text-[12px] py-1.5 rounded-lg flex items-center justify-center gap-1 shadow-sm transition-all"
                             @click.stop>
-                            View Details
+                            <span>View Requisition</span>
+                            <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
                         </a>
                     </div>
                 </div>
@@ -91,10 +128,10 @@
     </div>
 
     <!-- Dot indicators -->
-    <div class="flex justify-center gap-1 mt-3">
+    <div class="flex justify-center gap-1 mt-2">
         <template x-for="(pick, i) in picks" :key="i">
             <button @click="setActive(i)" class="fan-dot rounded-full transition-all"
-                :class="i === activeIndex ? 'w-4 h-1.5 bg-primary' : 'w-1.5 h-1.5 bg-outline-variant hover:bg-outline'">
+                :class="i === activeIndex ? 'w-5 h-1.5 bg-[#19D889]' : 'w-1.5 h-1.5 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400'">
             </button>
         </template>
     </div>
@@ -103,23 +140,35 @@
 <script>
     function fanCarousel(picks) {
         return {
-            picks,
-            activeIndex: Math.floor(picks.length / 2),
+            picks: picks || [],
+            activeIndex: Math.min(2, Math.floor((picks || []).length / 2)),
+            getCompanyLogo(company) {
+                if (!company) return '';
+                const clean = company.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+                const known = {
+                    'google': 'google.com', 'microsoft': 'microsoft.com', 'apple': 'apple.com', 'amazon': 'amazon.com',
+                    'meta': 'meta.com', 'netflix': 'netflix.com', 'stripe': 'stripe.com', 'linear': 'linear.app',
+                    'vercel': 'vercel.com', 'openai': 'openai.com', 'github': 'github.com', 'spotify': 'spotify.com',
+                    'airbnb': 'airbnb.com', 'uber': 'uber.com', 'lyft': 'lyft.com', 'salesforce': 'salesforce.com',
+                    'notion': 'notion.so', 'slack': 'slack.com', 'figma': 'figma.com', 'datadog': 'datadoghq.com'
+                };
+                const domain = known[clean] || (clean ? clean + '.com' : 'company.com');
+                return 'https://www.google.com/s2/favicons?domain=' + domain + '&sz=128';
+            },
             prev() { if (this.activeIndex > 0) this.activeIndex--; },
             next() { if (this.activeIndex < this.picks.length - 1) this.activeIndex++; },
             setActive(i) { this.activeIndex = i; },
             getCardStyle(i) {
                 const diff = i - this.activeIndex;
                 const abs = Math.abs(diff);
-                const stageW = 800;
-                const cardW = 240;
-                const offsetMap = { 0: 0, 1: 180, 2: 300, 3: 380, 4: 440 };
-                const xOff = (offsetMap[abs] || abs * 110) * Math.sign(diff);
-                const rotateMap = { 0: 0, 1: 25, 2: 40, 3: 50, 4: 58 };
-                const rotY = -(rotateMap[abs] || 55) * Math.sign(diff);
-                const scaleMap = { 0: 1, 1: 0.82, 2: 0.68, 3: 0.58, 4: 0.5 };
-                const scale = scaleMap[abs] || 0.45;
-                const opacityMap = { 0: 1, 1: 0.85, 2: 0.65, 3: 0.45, 4: 0.3 };
+                const cardW = 275;
+                const offsetMap = { 0: 0, 1: 200, 2: 340, 3: 420, 4: 480 };
+                const xOff = (offsetMap[abs] || abs * 120) * Math.sign(diff);
+                const rotateMap = { 0: 0, 1: 22, 2: 36, 3: 46, 4: 52 };
+                const rotY = -(rotateMap[abs] || 50) * Math.sign(diff);
+                const scaleMap = { 0: 1, 1: 0.84, 2: 0.70, 3: 0.60, 4: 0.52 };
+                const scale = scaleMap[abs] || 0.48;
+                const opacityMap = { 0: 1, 1: 0.88, 2: 0.65, 3: 0.45, 4: 0.3 };
                 const opacity = opacityMap[abs] || 0.25;
                 const zIndex = 50 - abs * 10;
 

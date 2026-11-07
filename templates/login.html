@@ -1,286 +1,378 @@
 {% extends "base.html" %}
 {% block title %}Sign In & Register — AI JobSnap{% endblock %}
+{% block navbar %}{% endblock %}
+{% block body_class %}min-h-screen w-full lg:h-screen lg:overflow-hidden m-0 p-0 bg-[#070c1e]{% endblock %}
+{% block main_class %}p-0 m-0 min-h-screen w-full lg:h-screen lg:overflow-hidden{% endblock %}
 
 {% block content %}
-<div class="flex-1 flex flex-col items-center justify-center p-4 py-8 sm:py-12 my-auto w-full">
-    <div class="w-full max-w-[840px] flex flex-col items-center gap-6 z-[10]">
+<!-- Full-Screen Split Authentication Portal (Mobile Responsive) -->
+<div class="w-full min-h-screen flex flex-col lg:flex-row bg-[#070c1e] m-0 p-0 relative">
 
-        <!-- Header Telemetry -->
-        <div class="text-center">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container border border-outline-variant mb-2">
-                <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Enterprise Access Node</span>
-            </div>
-            <h1 class="font-headline-lg text-on-surface text-[24px] font-bold">AI JobSnap Console</h1>
-        </div>
-
-        <!-- Mobile Segmented Tabs for Instant Switch (Mobile Only) -->
-        <div class="flex md:hidden w-full max-w-xs bg-surface-container border border-outline-variant p-1 rounded-xl shadow-sm">
-            <button type="button" id="mobileTabSignIn" onclick="setAuthMode('login')"
-                class="flex-1 py-2 text-center text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer bg-primary text-on-primary shadow-sm">
-                Sign In
-            </button>
-            <button type="button" id="mobileTabSignUp" onclick="setAuthMode('register')"
-                class="flex-1 py-2 text-center text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer text-on-surface-variant hover:text-on-surface">
-                Create Account
-            </button>
-        </div>
-
-        <!-- 3D Card Swap Auth Container -->
-        <div class="auth-container relative w-full rounded-2xl border border-outline-variant shadow-xl overflow-hidden bg-surface-container z-0" id="auth-container">
-            
-            <!-- Sign Up Form Panel (Left) -->
-            <div class="form-container sign-up-container absolute top-0 left-0 h-full w-full md:w-1/2 p-6 sm:p-8 flex flex-col justify-center transition-all duration-500 ease-in-out">
-                <form action="{{ url_for('register') }}" method="POST" class="space-y-3.5 max-w-xs mx-auto w-full">
-                    <div>
-                        <h2 class="font-headline-md text-on-surface text-[20px] font-bold">Create Account</h2>
-                        <p class="font-body-sm text-[12px] text-on-surface-variant">Initialize your career telemetry profile</p>
-                    </div>
-
-                    <div>
-                        <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Username</label>
-                        <input name="username" type="text" required autocomplete="username" placeholder="e.g. musab_dev"
-                            class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-body-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition-colors">
-                    </div>
-
-                    <div>
-                        <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Password</label>
-                        <input name="password" type="password" required autocomplete="new-password" placeholder="••••••••"
-                            class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-body-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition-colors">
-                    </div>
-
-                    <div>
-                        <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Account Role</label>
-                        <select name="role"
-                            class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-body-sm text-on-surface focus:border-primary focus:outline-none transition-colors">
-                            <option value="seeker">Job Seeker (Candidate)</option>
-                            <option value="recruiter">Recruiter / Enterprise</option>
-                        </select>
-                    </div>
-
-                    <button type="submit" id="submitSignUpBtn"
-                        class="w-full bg-primary text-on-primary font-label-caps text-label-caps py-2.5 rounded-lg hover:bg-primary-container transition-colors shadow-md mt-2 flex items-center justify-center gap-1.5 cursor-pointer">
-                        <span class="material-symbols-outlined text-[16px]">how_to_reg</span>
-                        Create Account
-                    </button>
-
-                    <!-- Mobile Fallback Switcher -->
-                    <div class="block md:hidden pt-2 text-center">
-                        <button type="button" onclick="setAuthMode('login')" class="font-data-mono text-[12px] text-primary underline cursor-pointer p-1">
-                            Already have an account? Sign In
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Sign In Form Panel (Left default) -->
-            <div class="form-container sign-in-container absolute top-0 left-0 h-full w-full md:w-1/2 p-6 sm:p-8 flex flex-col justify-center transition-all duration-500 ease-in-out">
-                <form action="{{ url_for('login') }}" method="POST" class="space-y-4 max-w-xs mx-auto w-full">
-                    <div>
-                        <h2 class="font-headline-md text-on-surface text-[20px] font-bold">Welcome Back</h2>
-                        <p class="font-body-sm text-[12px] text-on-surface-variant">Sign in to your active mission control</p>
-                    </div>
-
-                    <div>
-                        <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Username</label>
-                        <input name="username" type="text" required autocomplete="username" placeholder="Username"
-                            class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-body-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition-colors">
-                    </div>
-
-                    <div>
-                        <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Password</label>
-                        <input name="password" type="password" required autocomplete="current-password" placeholder="••••••••"
-                            class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-body-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition-colors">
-                    </div>
-
-                    <button type="submit" id="submitSignInBtn"
-                        class="w-full bg-primary text-on-primary font-label-caps text-label-caps py-2.5 rounded-lg hover:bg-primary-container transition-colors shadow-md mt-2 flex items-center justify-center gap-1.5 cursor-pointer">
-                        <span class="material-symbols-outlined text-[16px]">login</span>
-                        Authenticate
-                    </button>
-
-                    <!-- Mobile Fallback Switcher -->
-                    <div class="block md:hidden pt-2 text-center">
-                        <button type="button" onclick="setAuthMode('register')" class="font-data-mono text-[12px] text-primary underline cursor-pointer p-1">
-                            Need an account? Register
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Sliding Overlay Container (Desktop) -->
-            <div class="overlay-container hidden md:block absolute top-0 left-1/2 w-1/2 h-full overflow-hidden transition-transform duration-500 ease-in-out z-50">
-                <div class="overlay relative -left-full h-full w-[200%] text-white transition-transform duration-500 ease-in-out bg-gradient-to-br from-[#5243d6] via-[#4335b8] to-[#1e176b]">
-                    
-                    <!-- Floating Atmospheric Orbs -->
-                    <div class="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
-                    <div class="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-secondary/20 blur-2xl pointer-events-none"></div>
-
-                    <!-- Overlay Left (Visible during Sign Up mode to swap back to Sign In) -->
-                    <div class="overlay-panel overlay-left absolute top-0 left-0 w-1/2 h-full flex flex-col items-center justify-center px-10 text-center transition-transform duration-500 ease-in-out">
-                        <span class="material-symbols-outlined text-[36px] text-white/90 mb-2">lock_open</span>
-                        <h2 class="font-headline-lg text-[22px] font-bold text-white mb-2">Existing Operator?</h2>
-                        <p class="font-body-sm text-[13px] text-white/80 mb-6 leading-relaxed">
-                            Log into your verified workspace to track ongoing requisitions and automated pipelines.
-                        </p>
-                        <button type="button" id="signInBtn"
-                            class="px-6 py-2.5 rounded-full border-2 border-white/80 text-white font-label-caps text-label-caps uppercase tracking-wider hover:bg-white hover:text-primary transition-all duration-200 shadow-lg cursor-pointer">
-                            Sign In
-                        </button>
-                    </div>
-
-                    <!-- Overlay Right (Visible during Sign In mode to swap to Sign Up) -->
-                    <div class="overlay-panel overlay-right absolute top-0 right-0 w-1/2 h-full flex flex-col items-center justify-center px-10 text-center transition-transform duration-500 ease-in-out">
-                        <span class="material-symbols-outlined text-[36px] text-white/90 mb-2">rocket_launch</span>
-                        <h2 class="font-headline-lg text-[22px] font-bold text-white mb-2">New Candidate?</h2>
-                        <p class="font-body-sm text-[13px] text-white/80 mb-6 leading-relaxed">
-                            Configure your automated job radar, resume parsing intelligence, and assisted applications.
-                        </p>
-                        <button type="button" id="signUpBtn"
-                            class="px-6 py-2.5 rounded-full border-2 border-white/80 text-white font-label-caps text-label-caps uppercase tracking-wider hover:bg-white hover:text-primary transition-all duration-200 shadow-lg cursor-pointer">
-                            Get Started
-                        </button>
-                    </div>
-
+    <!-- ============================================================== -->
+    <!-- LEFT COLUMN: Crisp Form Surface (White Card with Pill Geometry) -->
+    <!-- ============================================================== -->
+    <div class="w-full lg:w-[440px] xl:w-[480px] shrink-0 bg-white text-slate-900 p-6 sm:p-10 xl:p-14 flex flex-col justify-between relative z-20 shadow-2xl lg:shadow-[25px_0_60px_rgba(0,0,0,0.35)] min-h-screen lg:min-h-0 lg:h-full overflow-y-auto">
+        
+        <!-- Brand Mark / Logo Header -->
+        <div class="flex items-center justify-between gap-2 pb-4">
+            <div class="flex items-center gap-2.5 sm:gap-3">
+                <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-sm shrink-0">
+                    <span class="material-symbols-outlined text-[19px] sm:text-[20px]">layers</span>
+                </div>
+                <div class="leading-tight">
+                    <span class="font-headline-md text-[16px] sm:text-[17px] font-bold tracking-tight text-slate-900 block">AI JobSnap</span>
+                    <span class="font-data-mono text-[9px] sm:text-[10px] text-slate-500 tracking-wider uppercase block">Console Access</span>
                 </div>
             </div>
 
+            <!-- Mobile Quick Header: About Link & Segmented Toggle Pill -->
+            <div class="flex items-center gap-2.5 lg:hidden">
+                <a href="https://jobsnap.me/#home" target="_blank" rel="noopener noreferrer" class="text-[11px] font-semibold text-slate-500 hover:text-slate-900 uppercase tracking-wider px-1">About</a>
+                <div class="flex bg-slate-100 p-0.5 rounded-full border border-slate-200 text-[11px] font-semibold">
+                    <button type="button" onclick="setAuthMode('login')" id="mobileBtnLogin" class="px-2.5 py-1 rounded-full bg-slate-900 text-white transition-colors duration-200 cursor-pointer">Sign In</button>
+                    <button type="button" onclick="setAuthMode('register')" id="mobileBtnRegister" class="px-2.5 py-1 rounded-full text-slate-600 transition-colors duration-200 cursor-pointer">Register</button>
+                </div>
+            </div>
         </div>
 
-        <!-- Security Badge -->
-        <div class="flex items-center gap-2 font-data-mono text-[10px] text-on-surface-variant/80">
-            <span class="material-symbols-outlined text-[13px]">shield</span>
-            <span>Zero-Trust Enterprise Protocol · Session Encrypted</span>
+        <!-- Form Content Wrapper -->
+        <div class="my-auto py-4 sm:py-6">
+            <!-- Circular Avatar Silhouette Badge (Faithful to Mockup) -->
+            <div id="avatarBadge" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#1c2238] text-white flex items-center justify-center mx-auto mb-6 sm:mb-7 shadow-lg ring-4 ring-slate-100">
+                <span class="material-symbols-outlined text-[32px] sm:text-[40px]">person</span>
+            </div>
+
+            <!-- Animated Form Container -->
+            <div class="relative w-full max-w-xs mx-auto min-h-[330px]">
+
+                <!-- ==================== SIGN IN FORM ==================== -->
+                <div id="signInSection" class="auth-panel auth-panel-active">
+                    <form action="{{ url_for('login') }}" method="POST" class="space-y-4">
+                        <!-- Pill Input: Username (Borderless) -->
+                        <div class="relative">
+                            <div class="flex items-center rounded-full px-4 py-3 sm:py-2.5 bg-slate-100 focus-within:bg-slate-50 focus-within:ring-2 focus-within:ring-slate-900/15 transition-all">
+                                <span class="material-symbols-outlined text-slate-500 text-[20px] mr-2.5 select-none shrink-0">person_outline</span>
+                                <input name="username" type="text" required autocomplete="username" placeholder="USERNAME"
+                                    class="w-full bg-transparent border-none p-0 text-[16px] sm:text-[13px] font-semibold text-slate-900 placeholder:text-slate-400 placeholder:tracking-wider focus:outline-none uppercase tracking-wider">
+                            </div>
+                        </div>
+
+                        <!-- Pill Input: Password (Borderless) -->
+                        <div class="relative">
+                            <div class="flex items-center rounded-full px-4 py-3 sm:py-2.5 bg-slate-100 focus-within:bg-slate-50 focus-within:ring-2 focus-within:ring-slate-900/15 transition-all">
+                                <span class="material-symbols-outlined text-slate-500 text-[20px] mr-2.5 select-none shrink-0">lock_outline</span>
+                                <input name="password" type="password" required autocomplete="current-password" placeholder="••••••••••••"
+                                    class="w-full bg-transparent border-none p-0 text-[16px] sm:text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <!-- Pill Action Button: LOGIN -->
+                        <button type="submit" id="submitSignInBtn"
+                            class="w-full bg-[#1c2238] hover:bg-slate-900 text-white font-bold text-[13px] tracking-widest uppercase py-3.5 rounded-full transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 mt-2">
+                            <span>LOGIN</span>
+                        </button>
+
+                        <!-- Utilities: Remember Me & Forgot Password -->
+                        <div class="flex items-center justify-between text-[11px] text-slate-600 px-1 pt-1 font-medium">
+                            <label class="flex items-center gap-1.5 cursor-pointer hover:text-slate-900 select-none">
+                                <input type="checkbox" name="remember" class="w-3.5 h-3.5 rounded border-slate-400 text-slate-900 focus:ring-0 cursor-pointer">
+                                <span>Remember me</span>
+                            </label>
+                            <a href="#" onclick="alert('Password reset instructions will be sent to your registered email.'); return false;" class="hover:text-slate-900 transition-colors">
+                                Forgot password?
+                            </a>
+                        </div>
+
+                        <!-- Switcher to Register Mode -->
+                        <div class="text-center pt-1">
+                            <button type="button" onclick="setAuthMode('register')" class="text-[11px] text-slate-600 hover:text-slate-900 underline font-medium cursor-pointer">
+                                Don't have an account? Create Account
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- ==================== SIGN UP FORM ==================== -->
+                <div id="signUpSection" class="auth-panel auth-panel-hidden">
+                    <form action="{{ url_for('register') }}" method="POST" class="space-y-3.5">
+                        <!-- Pill Input: Username (Borderless) -->
+                        <div class="relative">
+                            <div class="flex items-center rounded-full px-4 py-2.5 sm:py-2 bg-slate-100 focus-within:bg-slate-50 focus-within:ring-2 focus-within:ring-slate-900/15 transition-all">
+                                <span class="material-symbols-outlined text-slate-500 text-[19px] mr-2.5 select-none shrink-0">badge</span>
+                                <input name="username" type="text" required autocomplete="username" placeholder="NEW USERNAME"
+                                    class="w-full bg-transparent border-none p-0 text-[16px] sm:text-[12px] font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none uppercase tracking-wider">
+                            </div>
+                        </div>
+
+                        <!-- Pill Input: Password (Borderless) -->
+                        <div class="relative">
+                            <div class="flex items-center rounded-full px-4 py-2.5 sm:py-2 bg-slate-100 focus-within:bg-slate-50 focus-within:ring-2 focus-within:ring-slate-900/15 transition-all">
+                                <span class="material-symbols-outlined text-slate-500 text-[19px] mr-2.5 select-none shrink-0">lock_outline</span>
+                                <input name="password" type="password" required autocomplete="new-password" placeholder="NEW PASSWORD"
+                                    class="w-full bg-transparent border-none p-0 text-[16px] sm:text-[12px] text-slate-900 placeholder:text-slate-400 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <!-- Pill Input: Account Role (Borderless) -->
+                        <div class="relative">
+                            <div class="flex items-center rounded-full px-4 py-2.5 sm:py-2 bg-slate-100 focus-within:bg-slate-50 focus-within:ring-2 focus-within:ring-slate-900/15 transition-all">
+                                <span class="material-symbols-outlined text-slate-500 text-[19px] mr-2.5 select-none shrink-0">manage_accounts</span>
+                                <select name="role" class="w-full bg-transparent border-none p-0 text-[16px] sm:text-[12px] font-semibold text-slate-900 focus:outline-none cursor-pointer pr-2">
+                                    <option value="seeker">Job Seeker (Candidate)</option>
+                                    <option value="recruiter">Recruiter / Enterprise</option>
+                                </select>
+                                <span class="material-symbols-outlined text-slate-500 text-[18px] ml-auto pointer-events-none select-none">expand_more</span>
+                            </div>
+                        </div>
+
+                        <!-- Pill Action Button: REGISTER -->
+                        <button type="submit" id="submitSignUpBtn"
+                            class="w-full bg-[#1c2238] hover:bg-slate-900 text-white font-bold text-[13px] tracking-widest uppercase py-3.5 rounded-full transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 mt-2">
+                            <span>CREATE ACCOUNT</span>
+                        </button>
+
+                        <div class="text-center pt-1">
+                            <button type="button" onclick="setAuthMode('login')" class="text-[11px] text-slate-600 hover:text-slate-900 underline font-medium cursor-pointer">
+                                Already registered? Return to Login
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Pagination Dots (Sign In & Register States) -->
+        <div class="flex items-center justify-center gap-2 pt-2">
+            <button type="button" onclick="setAuthMode('login')" id="dotLogin" class="dot-indicator w-2.5 h-2.5 rounded-full bg-slate-900 cursor-pointer" title="Sign In"></button>
+            <button type="button" onclick="setAuthMode('register')" id="dotRegister" class="dot-indicator w-2.5 h-2.5 rounded-full bg-slate-300 hover:bg-slate-500 cursor-pointer" title="Create Account"></button>
         </div>
 
     </div>
+
+    <!-- ============================================================== -->
+    <!-- RIGHT COLUMN: Luminous 3D Fluid Wave Mesh Hero Canvas          -->
+    <!-- Visible on Desktop Screens (lg+), Cleanly Hidden on Mobile     -->
+    <!-- ============================================================== -->
+    <div class="hidden lg:flex flex-1 relative overflow-hidden bg-[#070c1e] text-white p-8 sm:p-12 lg:p-16 flex-col justify-between h-full min-h-[520px]">
+        
+        <!-- Vector S-Curve Fluid Wave Canvas (Edge-to-Edge Full Screen) -->
+        <div class="absolute inset-0 pointer-events-none overflow-hidden select-none">
+            <svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <!-- Flowing Golden Champagne Lit-Face Gradient -->
+                    <linearGradient id="champagneCrest" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#fffdf5" stop-opacity="0.95" />
+                        <stop offset="25%" stop-color="#fde68a" stop-opacity="0.90" />
+                        <stop offset="55%" stop-color="#fef3c7" stop-opacity="0.75" />
+                        <stop offset="85%" stop-color="#38bdf8" stop-opacity="0.4" />
+                        <stop offset="100%" stop-color="#0284c7" stop-opacity="0" />
+                    </linearGradient>
+
+                    <!-- Azure to Sapphire Ocean Gradient -->
+                    <linearGradient id="oceanDeep" x1="30%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.75" />
+                        <stop offset="40%" stop-color="#1d4ed8" stop-opacity="0.85" />
+                        <stop offset="75%" stop-color="#111c44" stop-opacity="0.95" />
+                        <stop offset="100%" stop-color="#070c1e" stop-opacity="1" />
+                    </linearGradient>
+
+                    <!-- Top Right Champagne Horizon Glow -->
+                    <radialGradient id="topRightGlow" cx="80%" cy="15%" r="65%">
+                        <stop offset="0%" stop-color="#fef08a" stop-opacity="0.45" />
+                        <stop offset="45%" stop-color="#38bdf8" stop-opacity="0.25" />
+                        <stop offset="80%" stop-color="#070c1e" stop-opacity="0" />
+                    </radialGradient>
+
+                    <!-- Gentle Wave Gaussian Blur Filter -->
+                    <filter id="softWaveBlur" x="-10%" y="-10%" width="120%" height="120%">
+                        <feGaussianBlur stdDeviation="28" />
+                    </filter>
+                    
+                    <filter id="deepWaveBlur" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="45" />
+                    </filter>
+                </defs>
+
+                <!-- Base Deep Navy Screen Fill -->
+                <rect width="1200" height="900" fill="#070c1e" />
+
+                <!-- Ambient Top-Right Horizon Glow -->
+                <rect width="1200" height="900" fill="url(#topRightGlow)" />
+
+                <!-- 3D Wave Shadow Valley (Deep Navy/Indigo Underlayer) -->
+                <path d="M250,-50 C120,200 160,420 380,560 C580,680 720,620 900,520 C1080,420 1150,220 1250,150 L1250,950 L-50,950 L-50,-50 Z" 
+                      fill="url(#oceanDeep)" filter="url(#deepWaveBlur)" opacity="0.9" />
+
+                <!-- Primary S-Curve Ribbon (Luminous Champagne Face matching reference image) -->
+                <path d="M220,-80 C80,180 140,430 400,580 C640,710 820,660 1020,480 C1140,380 1200,200 1250,-80 Z" 
+                      fill="url(#champagneCrest)" filter="url(#softWaveBlur)" opacity="0.85" />
+
+                <!-- Luminous Light Crest Core Accent -->
+                <path d="M180,-80 C80,160 150,420 410,570 C630,690 850,650 1080,420" 
+                      stroke="#ffffff" stroke-width="48" stroke-linecap="round" opacity="0.22" filter="url(#softWaveBlur)" />
+
+                <!-- Bottom Azure Reflection Bloom -->
+                <circle cx="950" cy="750" r="320" fill="#1e40af" opacity="0.35" filter="url(#deepWaveBlur)" />
+                <circle cx="450" cy="650" r="260" fill="#0284c7" opacity="0.25" filter="url(#deepWaveBlur)" />
+            </svg>
+        </div>
+
+        <!-- Top Navigation Bar in Hero (Matching Reference Image) -->
+        <div class="relative z-10 flex items-center justify-between">
+            <!-- Nav Links -->
+            <div class="hidden sm:flex items-center gap-8 text-[12px] font-semibold tracking-wider uppercase text-white/85">
+                <a href="https://jobsnap.me/#home" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">About</a>
+            </div>
+
+            <!-- Right Pill CTA (Menu Removed) -->
+            <div class="flex items-center gap-4 ml-auto">
+                <button type="button" id="heroNavToggleBtn" onclick="toggleAuthMode()"
+                    class="px-6 py-2 rounded-full bg-white/20 hover:bg-white text-white hover:text-slate-900 border border-white/35 text-[11px] font-bold uppercase tracking-wider backdrop-blur-md transition-all duration-200 cursor-pointer shadow-md">
+                    <span id="heroNavToggleText">Sign Up</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Hero Center / Bottom Content Area -->
+        <div class="relative z-10 max-w-xl mt-auto pt-20 pb-6">
+            <h1 class="font-headline-lg text-[52px] sm:text-[68px] font-bold text-white tracking-tight leading-none mb-4">
+                Welcome.
+            </h1>
+            <p id="heroSubtext" class="text-white/85 text-[14px] sm:text-[15px] leading-relaxed max-w-md mb-6">
+                Streamline candidate intelligence, resume-aware matching, and automated career telemetry with AI JobSnap.
+            </p>
+
+            <!-- Dynamic Auth Switcher Prompt -->
+            <div class="text-[13px] text-white/85">
+                <span id="heroPromptLabel">Not a member?</span>
+                <button type="button" id="heroPromptBtn" onclick="toggleAuthMode()" class="text-white font-bold underline ml-1 hover:text-amber-200 transition-colors cursor-pointer">
+                    Sign up now
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer Micro-Telemetry -->
+        <div class="relative z-10 flex items-center justify-between text-[11px] text-white/50 border-t border-white/10 pt-3.5 font-data-mono">
+            <span>Enterprise v2.4 · Zero-Trust SSL</span>
+            <span>AI JobSnap Telemetry</span>
+        </div>
+
+    </div>
+
 </div>
 
 <style>
-/* 3D Swap Cards CSS Engine */
-.auth-container {
-    min-height: 520px;
+/* Professional Pure Fade Transitions */
+.auth-panel {
+    transition: opacity 220ms ease-in-out;
+    will-change: opacity;
 }
 
-@media (min-width: 768px) {
-    .auth-container {
-        height: 520px;
-    }
-
-    .sign-in-container {
-        z-index: 2;
-        overflow: hidden;
-    }
-
-    .auth-container.right-panel-active .sign-in-container {
-        transform: translateX(100%);
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    .sign-up-container {
-        opacity: 0;
-        z-index: 1;
-        pointer-events: none;
-        overflow: hidden;
-    }
-
-    .auth-container.right-panel-active .sign-up-container {
-        transform: translateX(100%);
-        opacity: 1;
-        z-index: 5;
-        animation: swapCardShow 0.5s;
-        pointer-events: all;
-    }
-
-    @keyframes swapCardShow {
-        0%, 49.99% {
-            opacity: 0;
-            z-index: 1;
-        }
-        50%, 100% {
-            opacity: 1;
-            z-index: 5;
-        }
-    }
-
-    .auth-container.right-panel-active .overlay-container {
-        transform: translateX(-100%);
-    }
-
-    .auth-container.right-panel-active .overlay {
-        transform: translateX(50%);
-    }
-
-    .overlay-left {
-        transform: translateX(-20%);
-    }
-
-    .auth-container.right-panel-active .overlay-left {
-        transform: translateX(0);
-    }
-
-    .overlay-right {
-        transform: translateX(0);
-    }
-
-    .auth-container.right-panel-active .overlay-right {
-        transform: translateX(20%);
-    }
+.auth-panel-active {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    position: relative !important;
+    visibility: visible !important;
 }
 
-@media (max-width: 767px) {
-    .auth-container {
-        height: auto;
-        min-height: auto;
-    }
+.auth-panel-hidden {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    width: 100%;
+    visibility: hidden;
+}
 
-    .form-container {
-        position: relative !important;
-        width: 100% !important;
-        transform: none !important;
-        opacity: 1 !important;
-        pointer-events: all !important;
-    }
+.dot-indicator {
+    transition: background-color 220ms ease, opacity 220ms ease;
+}
 
-    .sign-up-container {
-        display: none !important;
-    }
+/* Eradicate unwanted white boxes / borders forced by base styles or browser user-agent */
+.auth-panel input[type="text"],
+.auth-panel input[type="password"],
+.auth-panel select {
+    border: none !important;
+    background-color: transparent !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+}
 
-    .auth-container.right-panel-active .sign-in-container {
-        display: none !important;
-    }
-
-    .auth-container.right-panel-active .sign-up-container {
-        display: flex !important;
-    }
+/* Chrome/Safari/Edge Autofill Background fix */
+.auth-panel input:-webkit-autofill,
+.auth-panel input:-webkit-autofill:hover, 
+.auth-panel input:-webkit-autofill:focus,
+.auth-panel input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 40px #f1f5f9 inset !important;
+    -webkit-text-fill-color: #0f172a !important;
+    transition: background-color 5000s ease-in-out 0s;
 }
 </style>
 {% endblock %}
 
 {% block scripts %}
 <script>
+let currentMode = 'login';
+
 function setAuthMode(mode) {
-    const authContainer = document.getElementById('auth-container');
-    const tabSignIn = document.getElementById('mobileTabSignIn');
-    const tabSignUp = document.getElementById('mobileTabSignUp');
-    if (!authContainer) return;
+    if (mode === currentMode && document.readyState === 'complete') return;
+    currentMode = mode;
+
+    const signInSec = document.getElementById('signInSection');
+    const signUpSec = document.getElementById('signUpSection');
+    const dotLogin = document.getElementById('dotLogin');
+    const dotRegister = document.getElementById('dotRegister');
+    const heroToggleText = document.getElementById('heroNavToggleText');
+    const heroPromptLabel = document.getElementById('heroPromptLabel');
+    const heroPromptBtn = document.getElementById('heroPromptBtn');
+    const mobileBtnLogin = document.getElementById('mobileBtnLogin');
+    const mobileBtnRegister = document.getElementById('mobileBtnRegister');
 
     if (mode === 'register') {
-        authContainer.classList.add('right-panel-active');
-        if (tabSignUp && tabSignIn) {
-            tabSignUp.className = "flex-1 py-2 text-center text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer bg-primary text-on-primary shadow-sm";
-            tabSignIn.className = "flex-1 py-2 text-center text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer text-on-surface-variant hover:text-on-surface";
+        // Pure Professional Fade to Registration Form
+        if (signInSec) signInSec.className = "auth-panel auth-panel-hidden";
+        if (signUpSec) signUpSec.className = "auth-panel auth-panel-active";
+
+        // Active Dot State
+        if (dotLogin) dotLogin.className = "dot-indicator w-2.5 h-2.5 rounded-full bg-slate-300 hover:bg-slate-500 cursor-pointer";
+        if (dotRegister) dotRegister.className = "dot-indicator w-2.5 h-2.5 rounded-full bg-slate-900 cursor-pointer";
+
+        if (heroToggleText) heroToggleText.textContent = "Sign In";
+        if (heroPromptLabel) heroPromptLabel.textContent = "Already have an account?";
+        if (heroPromptBtn) heroPromptBtn.textContent = "Sign in here";
+
+        if (mobileBtnLogin && mobileBtnRegister) {
+            mobileBtnRegister.className = "px-3 py-1 rounded-full bg-slate-900 text-white transition-colors duration-200";
+            mobileBtnLogin.className = "px-3 py-1 rounded-full text-slate-600 transition-colors duration-200";
         }
+
         if (history.replaceState) {
             history.replaceState(null, '', '#register');
         }
     } else {
-        authContainer.classList.remove('right-panel-active');
-        if (tabSignUp && tabSignIn) {
-            tabSignIn.className = "flex-1 py-2 text-center text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer bg-primary text-on-primary shadow-sm";
-            tabSignUp.className = "flex-1 py-2 text-center text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer text-on-surface-variant hover:text-on-surface";
+        // Pure Professional Fade to Login Form
+        if (signUpSec) signUpSec.className = "auth-panel auth-panel-hidden";
+        if (signInSec) signInSec.className = "auth-panel auth-panel-active";
+
+        // Active Dot State
+        if (dotLogin) dotLogin.className = "dot-indicator w-2.5 h-2.5 rounded-full bg-slate-900 cursor-pointer";
+        if (dotRegister) dotRegister.className = "dot-indicator w-2.5 h-2.5 rounded-full bg-slate-300 hover:bg-slate-500 cursor-pointer";
+
+        if (heroToggleText) heroToggleText.textContent = "Sign Up";
+        if (heroPromptLabel) heroPromptLabel.textContent = "Not a member?";
+        if (heroPromptBtn) heroPromptBtn.textContent = "Sign up now";
+
+        if (mobileBtnLogin && mobileBtnRegister) {
+            mobileBtnLogin.className = "px-3 py-1 rounded-full bg-slate-900 text-white transition-colors duration-200";
+            mobileBtnRegister.className = "px-3 py-1 rounded-full text-slate-600 transition-colors duration-200";
         }
+
         if (history.replaceState) {
             history.replaceState(null, '', window.location.pathname + window.location.search);
         }
@@ -288,30 +380,33 @@ function setAuthMode(mode) {
 }
 window.setAuthMode = setAuthMode;
 
+function toggleAuthMode() {
+    setAuthMode(currentMode === 'login' ? 'register' : 'login');
+}
+window.toggleAuthMode = toggleAuthMode;
+
 function initAuth() {
-    const signUpBtn = document.getElementById('signUpBtn');
-    const signInBtn = document.getElementById('signInBtn');
-
-    if (signUpBtn) {
-        signUpBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            setAuthMode('register');
-        });
-    }
-
-    if (signInBtn) {
-        signInBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            setAuthMode('login');
-        });
-    }
-
-    // Auto-activate registration card if URL contains #register
     if (window.location.hash === '#register') {
         setAuthMode('register');
     } else {
         setAuthMode('login');
     }
+
+    // Persist and restore entered username across visits
+    const usernameInputs = document.querySelectorAll('input[name="username"]');
+    const savedUsername = localStorage.getItem('jobsnap_auth_username');
+    if (savedUsername) {
+        usernameInputs.forEach(input => {
+            if (!input.value) input.value = savedUsername;
+        });
+    }
+    usernameInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            if (this.value) {
+                localStorage.setItem('jobsnap_auth_username', this.value);
+            }
+        });
+    });
 }
 
 document.addEventListener('DOMContentLoaded', initAuth);
@@ -322,7 +417,6 @@ window.addEventListener('hashchange', function () {
         setAuthMode('login');
     }
 });
-// Also run immediately in case DOM is already parsed
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
     initAuth();
 }

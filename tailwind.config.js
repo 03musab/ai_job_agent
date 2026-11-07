@@ -57,6 +57,8 @@ module.exports = {
                 "row-height-standard": "44px",
             },
             fontFamily: {
+                "arvo": ["Arvo", "Georgia", "serif"],
+                "serif": ["Arvo", "Georgia", "serif"],
                 "display": ["Plus Jakarta Sans", "Inter", "sans-serif"],
                 "headline-lg": ["Plus Jakarta Sans", "Inter", "sans-serif"],
                 "headline-md": ["Plus Jakarta Sans", "Inter", "sans-serif"],

@@ -30,7 +30,7 @@
         <span class="material-symbols-outlined text-[36px] text-outline mb-2">domain</span>
         <h2 class="font-headline-md text-on-surface text-[15px] font-semibold">No Company Registered</h2>
         <p class="font-body-sm text-[12px] text-on-surface-variant mt-1 mb-4">Initialize your organization entity to publish verified job openings.</p>
-        <button @click="startCreate()" class="px-5 py-2 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-primary-container transition-colors">
+        <button @click="startCreate()" class="px-5 py-2 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-emerald-600 transition-colors">
             Create Company Profile
         </button>
     </div>
@@ -53,7 +53,7 @@
                         <input type="file" accept=".png,.jpg,.jpeg,.svg,.webp" @change="handleLogoSelect($event)" class="hidden" />
                     </label>
                     <button x-show="logoFile" @click="uploadLogo()" :disabled="logoUploading"
-                        class="px-3 py-1.5 bg-primary text-on-primary font-data-mono text-[10px] uppercase rounded hover:bg-primary-container">
+                        class="px-3 py-1.5 bg-primary text-on-primary font-data-mono text-[10px] uppercase rounded hover:bg-emerald-600">
                         Upload
                     </button>
                     <button x-show="company && company.logo" @click="deleteLogo()" :disabled="logoDeleting"
@@ -117,7 +117,7 @@
 
             <div class="flex justify-end pt-3 border-t border-outline-variant">
                 <button type="submit" :disabled="submitting"
-                    class="px-6 py-2.5 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-primary-container transition-colors shadow-sm">
+                    class="px-6 py-2.5 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-emerald-600 transition-colors shadow-sm">
                     <span x-text="isEditing ? 'Update Company Profile' : 'Save Profile'"></span>
                 </button>
             </div>

@@ -8,189 +8,7 @@
     <p class="mt-3 font-data-mono text-[11px] text-on-surface-variant uppercase tracking-widest">Loading Recruiter Console...</p>
 </div>
 
-<div id="dashboard-content" class="opacity-0 max-w-[1600px] mx-auto w-full px-container-padding py-6 flex-1 flex flex-col gap-6" x-data="recruiterDashboard()" x-init="init()">
-
-    <!-- 1. Hero Header -->
-    <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <!-- Brand + Greeting -->
-        <div class="flex items-center gap-4">
-            <template x-if="company && company.logo">
-                <div class="w-12 h-12 rounded-lg bg-surface-container-highest border border-outline-variant flex items-center justify-center overflow-hidden shrink-0">
-                    <img :src="'/company/logo/{{ current_user.id }}/' + company.logo.replace(/\\/g, '/').split('/').pop()" alt="Logo" class="max-w-[75%] max-h-[75%] object-contain"/>
-                </div>
-            </template>
-            <template x-if="!company || !company.logo">
-                <div class="w-12 h-12 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center text-primary font-headline-md text-[18px] font-bold shrink-0">
-                    <span x-text="'{{ current_user.username }}'.charAt(0).toUpperCase()"></span>
-                </div>
-            </template>
-
-            <div class="flex flex-col">
-                <span id="greeting-text" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Good day</span>
-                <div class="flex items-center gap-3">
-                    <h1 class="font-headline-lg text-on-surface text-[20px] font-bold" x-text="'{{ current_user.username }}'"></h1>
-                    <template x-if="companyName">
-                        <span class="font-data-mono text-[10px] px-2 py-0.5 rounded border border-outline-variant bg-surface-container-high text-on-surface-variant" x-text="companyName"></span>
-                    </template>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick Actions & Profile Status -->
-        <div class="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
-            <template x-if="company">
-                <div class="flex items-center gap-2 border border-outline-variant/60 rounded px-3 py-1.5 bg-surface-container-lowest">
-                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase">Profile:</span>
-                    <span class="font-data-mono text-[11px] font-bold text-secondary" x-text="company.profile_completion + '%'"></span>
-                    <a href="{{ url_for('recruiter_company') }}" class="font-data-mono text-[10px] text-primary hover:underline ml-1">Edit</a>
-                </div>
-            </template>
-            <a href="{{ url_for('recruiter_post_job') }}"
-                class="px-4 py-2 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-primary-container transition-colors flex items-center gap-1.5 shadow-sm">
-                <span class="material-symbols-outlined text-[16px]">add</span>
-                Post Requisition
-            </a>
-        </div>
-    </div>
-
-    <!-- 2. KPI Metric Pills -->
-    <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
-        <template x-for="metric in kpiRings" :key="metric.key">
-            <div class="bg-surface-container border border-outline-variant rounded-xl p-3 flex flex-col justify-between hover:border-primary/40 transition-colors cursor-pointer"
-                 @click="metric.onClick ? metric.onClick() : null">
-                <div class="flex items-center justify-between">
-                    <span class="font-data-mono text-[9px] text-on-surface-variant uppercase tracking-widest truncate" x-text="metric.label"></span>
-                    <span class="w-1.5 h-1.5 rounded-full" :style="`background: ${metric.color}`"></span>
-                </div>
-                <span class="font-headline-lg text-[20px] font-bold mt-1" :style="`color: ${metric.color}`" x-text="metric.count"></span>
-            </div>
-        </template>
-    </div>
-
-    <!-- 3. Pipeline & Trend Analytics -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <!-- Hiring Funnel -->
-        <div class="border border-outline-variant rounded-xl p-4 bg-surface-container flex flex-col justify-between">
-            <div class="flex items-center justify-between mb-3 border-b border-outline-variant pb-2">
-                <h2 class="font-headline-md text-on-surface text-[14px] font-semibold">Hiring Pipeline Funnel</h2>
-                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest" x-text="funnelTotal() + ' Total Candidates'"></span>
-            </div>
-            <div class="space-y-2">
-                <template x-for="(stage, idx) in pipelineStages" :key="stage.key">
-                    <div class="flex items-center gap-3 text-body-sm">
-                        <span class="w-20 font-data-mono text-[11px] text-on-surface-variant text-right uppercase" x-text="stage.label"></span>
-                        <div class="flex-1 bg-surface-container-high rounded h-4 overflow-hidden border border-outline-variant/30">
-                            <div class="h-full transition-all duration-700 flex items-center px-2"
-                                 :class="stage.barColor"
-                                 :style="'width: ' + funnelPct(stage.key) + '%'">
-                            </div>
-                        </div>
-                        <span class="w-8 font-data-mono text-[11px] font-bold text-on-surface text-right" x-text="pipeline[stage.key] || 0"></span>
-                    </div>
-                </template>
-            </div>
-        </div>
-
-        <!-- Trend Chart / Activity -->
-        <div class="border border-outline-variant rounded-xl p-4 bg-surface-container flex flex-col justify-between">
-            <div class="flex items-center justify-between mb-3 border-b border-outline-variant pb-2">
-                <h2 class="font-headline-md text-on-surface text-[14px] font-semibold">Application Velocity</h2>
-                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">14 Day Trajectory</span>
-            </div>
-            <div class="flex-1 flex flex-col justify-center min-h-[140px]">
-                <template x-if="trendPoints.length > 1">
-                    <svg class="w-full h-32" viewBox="0 0 600 200" preserveAspectRatio="none">
-                        <defs>
-                            <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#c0c1ff" stop-opacity="0.3"/>
-                                <stop offset="100%" stop-color="#c0c1ff" stop-opacity="0.0"/>
-                            </linearGradient>
-                        </defs>
-                        <polygon :points="trendAreaPoints()" fill="url(#trendGrad)"/>
-                        <polyline :points="trendLinePoints()" fill="none" stroke="#c0c1ff" stroke-width="2"/>
-                    </svg>
-                </template>
-                <div x-show="trendPoints.length <= 1" class="text-center text-on-surface-variant py-4 font-data-mono text-[11px]">
-                    Waiting for multiday telemetry data...
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 4. Active Tables: Candidates & Requisitions -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        
-        <!-- Recent Applications Table -->
-        <div id="applications-section" class="border border-outline-variant rounded-xl bg-surface-container overflow-hidden flex flex-col">
-            <div class="px-4 py-3 border-b border-outline-variant flex items-center justify-between bg-surface-container-low">
-                <h2 class="font-headline-md text-on-surface text-[14px] font-semibold">Recent Applicants</h2>
-                <span class="font-data-mono text-[10px] text-on-surface-variant" x-text="applications.length + ' Received'"></span>
-            </div>
-            <div class="overflow-x-auto flex-1">
-                <table class="w-full text-left">
-                    <thead>
-                        <tr class="border-b border-outline-variant text-on-surface-variant font-data-mono text-[9px] uppercase tracking-widest bg-surface/50">
-                            <th class="px-4 py-2">Candidate</th>
-                            <th class="px-4 py-2">Position</th>
-                            <th class="px-4 py-2 text-center">Match</th>
-                            <th class="px-4 py-2 text-right">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-outline-variant/40 font-body-sm text-[12px]">
-                        <template x-for="app in applications" :key="app.id">
-                            <tr class="hover:bg-surface-container-high transition-colors">
-                                <td class="px-4 py-2.5">
-                                    <div class="font-semibold text-on-surface" x-text="app.applicant_name"></div>
-                                    <div class="font-data-mono text-[10px] text-on-surface-variant" x-text="app.applicant_email || 'No email'"></div>
-                                </td>
-                                <td class="px-4 py-2.5 text-on-surface-variant truncate max-w-[140px]" x-text="app.job_title"></td>
-                                <td class="px-4 py-2.5 text-center font-data-mono font-bold text-secondary" x-text="(app.ai_match_score ? Math.round(app.ai_match_score) : '--') + '%'"></td>
-                                <td class="px-4 py-2.5 text-right">
-                                    <button @click="updateAppStatus(app.id, 'shortlisted')" class="px-2 py-0.5 rounded border border-primary text-primary hover:bg-primary/10 font-data-mono text-[9px] uppercase">
-                                        Shortlist
-                                    </button>
-                                </td>
-                            </tr>
-                        </template>
-                        <tr x-show="applications.length === 0">
-                            <td colspan="4" class="text-center py-8 text-on-surface-variant/60 font-data-mono text-[11px]">
-                                No applicants registered yet.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Active Requisitions -->
-        <div id="active-jobs-section" class="border border-outline-variant rounded-xl bg-surface-container overflow-hidden flex flex-col">
-            <div class="px-4 py-3 border-b border-outline-variant flex items-center justify-between bg-surface-container-low">
-                <h2 class="font-headline-md text-on-surface text-[14px] font-semibold">Active Requisitions</h2>
-                <a href="{{ url_for('recruiter_post_job') }}" class="font-data-mono text-[10px] text-primary hover:underline uppercase">+ New</a>
-            </div>
-            <div class="divide-y divide-outline-variant/40 overflow-y-auto max-h-[300px] flex-1">
-                <template x-for="job in activeJobs" :key="job.id">
-                    <div class="px-4 py-2.5 hover:bg-surface-container-high transition-colors flex items-center justify-between">
-                        <div class="min-w-0 flex-1 mr-2">
-                            <a :href="'/job/' + job.id" class="font-semibold text-on-surface text-[13px] truncate block hover:text-primary transition-colors" x-text="job.title"></a>
-                            <div class="font-data-mono text-[10px] text-on-surface-variant" x-text="(job.location || 'Remote') + ' · ' + (job.application_count || 0) + ' applications'"></div>
-                        </div>
-                        <button @click="closeJob(job.id)" class="px-2 py-0.5 rounded border border-error/30 text-error hover:bg-error/10 font-data-mono text-[9px] uppercase">
-                            Close
-                        </button>
-                    </div>
-                </template>
-                <div x-show="activeJobs.length === 0" class="text-center py-8 text-on-surface-variant/60 font-data-mono text-[11px]">
-                    No active job requisitions.
-                </div>
-            </div>
-        </div>
-    </div>
-
-</div>
-{% endblock %}
-
-{% block scripts %}
+<!-- Register Alpine component BEFORE the x-data div so it's available on both fresh load and SPA navigation -->
 <script>
     window.recruiterDashboard = function() {
         return {
@@ -203,6 +21,120 @@
             company: null,
             companyName: '',
             trendPoints: [],
+
+            // HR Talent Analytics & Excel Features
+            applicantSearch: '',
+            stageFilter: 'all',
+            jobFilter: 'all',
+            sortBy: 'match_desc',
+
+            get uniqueApplicationJobs() {
+                const map = new Map();
+                for (const app of this.applications) {
+                    if (app.job_title && !map.has(app.job_title)) {
+                        map.set(app.job_title, app.job_id);
+                    }
+                }
+                return Array.from(map.entries()).map(([title, id]) => ({ title, id }));
+            },
+
+            get filteredApplications() {
+                let list = [...this.applications];
+                if (this.applicantSearch && this.applicantSearch.trim()) {
+                    const q = this.applicantSearch.toLowerCase().trim();
+                    list = list.filter(a =>
+                        (a.applicant_name && a.applicant_name.toLowerCase().includes(q)) ||
+                        (a.applicant_email && a.applicant_email.toLowerCase().includes(q)) ||
+                        (a.job_title && a.job_title.toLowerCase().includes(q)) ||
+                        (a.notes && a.notes.toLowerCase().includes(q))
+                    );
+                }
+                if (this.stageFilter && this.stageFilter !== 'all') {
+                    list = list.filter(a => (a.status || 'applied').toLowerCase() === this.stageFilter.toLowerCase());
+                }
+                if (this.jobFilter && this.jobFilter !== 'all') {
+                    list = list.filter(a => a.job_title === this.jobFilter || String(a.job_id) === String(this.jobFilter));
+                }
+                if (this.sortBy === 'match_desc') {
+                    list.sort((a, b) => (b.ai_match_score || 0) - (a.ai_match_score || 0));
+                } else if (this.sortBy === 'match_asc') {
+                    list.sort((a, b) => (a.ai_match_score || 0) - (b.ai_match_score || 0));
+                } else if (this.sortBy === 'date_desc') {
+                    list.sort((a, b) => (b.applied_date || '').localeCompare(a.applied_date || ''));
+                } else if (this.sortBy === 'name_asc') {
+                    list.sort((a, b) => (a.applicant_name || '').localeCompare(b.applicant_name || ''));
+                }
+                return list;
+            },
+
+            get talentMetrics() {
+                const apps = this.applications;
+                if (!apps || apps.length === 0) {
+                    return { avgMatch: 0, qualifiedPct: 0, topCandidate: null, activeInPipeline: 0 };
+                }
+                const scores = apps.map(a => a.ai_match_score || 0);
+                const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+                const qualified = apps.filter(a => (a.ai_match_score || 0) >= 60).length;
+                const qualifiedPct = Math.round((qualified / apps.length) * 100);
+                const sorted = [...apps].sort((a, b) => (b.ai_match_score || 0) - (a.ai_match_score || 0));
+                const top = sorted[0];
+                const inPipeline = apps.filter(a => ['shortlisted', 'interview', 'offer', 'hired'].includes((a.status || '').toLowerCase())).length;
+                return {
+                    avgMatch: avg,
+                    qualifiedPct,
+                    topCandidate: top ? top.applicant_name : null,
+                    activeInPipeline: inPipeline
+                };
+            },
+
+            get hasActiveFilters() {
+                return (this.applicantSearch && this.applicantSearch.trim() !== '') ||
+                       this.stageFilter !== 'all' ||
+                       this.jobFilter !== 'all' ||
+                       this.sortBy !== 'match_desc';
+            },
+
+            resetFilters() {
+                this.applicantSearch = '';
+                this.stageFilter = 'all';
+                this.jobFilter = 'all';
+                this.sortBy = 'match_desc';
+            },
+
+            exportToExcel() {
+                const rows = this.filteredApplications.length > 0 ? this.filteredApplications : this.applications;
+                if (!rows || rows.length === 0) {
+                    alert('No candidates available to export.');
+                    return;
+                }
+                const headers = ['Application ID', 'Candidate Name', 'Email', 'Position', 'Company', 'Match Score (%)', 'Stage', 'Applied Date', 'Note'];
+                const csvRows = [headers.join(',')];
+                for (const a of rows) {
+                    const row = [
+                        a.id || '',
+                        `"${(a.applicant_name || '').replace(/"/g, '""')}"`,
+                        `"${(a.applicant_email || '').replace(/"/g, '""')}"`,
+                        `"${(a.job_title || '').replace(/"/g, '""')}"`,
+                        `"${(a.job_company || '').replace(/"/g, '""')}"`,
+                        a.ai_match_score ? Math.round(a.ai_match_score) : 0,
+                        `"${(a.status || 'applied').toUpperCase()}"`,
+                        `"${(a.applied_date || '').replace(/"/g, '""')}"`,
+                        `"${(a.notes || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`
+                    ];
+                    csvRows.push(row.join(','));
+                }
+                const csvContent = '\uFEFF' + csvRows.join('\r\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                const dateStr = new Date().toISOString().split('T')[0];
+                link.setAttribute('href', url);
+                link.setAttribute('download', `JobSnap_Candidates_Roster_${dateStr}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            },
 
             pipelineStages: [
                 { key: 'applied', label: 'Applied', barColor: 'bg-primary/60' },
@@ -246,32 +178,66 @@
             },
 
             funnelPct(key) {
-                const max = Math.max(...Object.values(this.pipeline).map(v => v || 0), 1);
-                return Math.max(8, Math.round(((this.pipeline[key] || 0) / max) * 100));
+                const total = this.funnelTotal();
+                const count = (this.pipeline && this.pipeline[key]) || 0;
+                if (!total || count === 0) return 0;
+                return Math.max(6, Math.min(100, Math.round((count / total) * 100)));
             },
 
             funnelTotal() {
-                return Object.values(this.pipeline).reduce((a, b) => a + (b || 0), 0);
+                if (this.pipeline && typeof this.pipeline.applied === 'number') {
+                    return this.pipeline.applied;
+                }
+                return (this.stats && this.stats.total_applications) || 0;
             },
 
-            generateTrend() {
-                const pts = [];
-                const days = 14;
-                const total = this.stats.total_applications || 0;
-                if (total === 0) { this.trendPoints = []; return; }
-                const avg = Math.max(1, Math.round(total / days));
-                for (let i = days - 1; i >= 0; i--) {
-                    const base = avg * (0.3 + (i / days) * 0.7);
-                    const noise = Math.round(base * (0.5 + Math.random() * 0.5));
-                    pts.push({ day: i, count: Math.max(0, noise) });
+            selectedProfile: null,
+            profileLoading: false,
+            showProfileModal: false,
+
+            async viewApplicantProfile(appId) {
+                console.log('viewApplicantProfile called for app ID:', appId);
+                const fallbackApp = this.applications.find(a => a.id === appId) || {};
+                this.selectedProfile = {
+                    application_id: appId,
+                    job_id: fallbackApp.job_id,
+                    job_title: fallbackApp.job_title || 'Position',
+                    job_company: fallbackApp.job_company || '',
+                    applicant_name: fallbackApp.applicant_name || 'Candidate',
+                    applicant_email: fallbackApp.applicant_email || '',
+                    status: fallbackApp.status || 'applied',
+                    applied_date: fallbackApp.applied_date || '',
+                    ai_match_score: fallbackApp.ai_match_score || 0,
+                    applicant_note: fallbackApp.notes || '',
+                    authorized_to_work: 'Authorized',
+                    willing_to_relocate: 'Open',
+                    skills: [],
+                    experience: [],
+                    summary: ''
+                };
+                this.showProfileModal = true;
+                this.profileLoading = true;
+
+                try {
+                    const resp = await fetch(`/api/recruiters/{{ current_user.id }}/applications/${appId}/profile`);
+                    const data = await resp.json();
+                    if (data.success && data.profile) {
+                        this.selectedProfile = data.profile;
+                    }
+                } catch (err) {
+                    console.error('Failed to load applicant profile:', err);
+                } finally {
+                    this.profileLoading = false;
                 }
-                pts[pts.length - 1].count = total;
-                this.trendPoints = pts;
+            },
+
+            closeProfileModal() {
+                this.showProfileModal = false;
+                this.selectedProfile = null;
             },
 
             async init() {
                 await this.fetchDashboard();
-                this.generateTrend();
                 this.hideLoader();
             },
 
@@ -287,6 +253,9 @@
                         this.aiInsights = data.ai_insights;
                         this.notifications = data.notifications;
                         this.company = data.company;
+                        if (data.application_velocity) {
+                            this.trendPoints = data.application_velocity;
+                        }
                         if (data.company && data.company.company_name) {
                             this.companyName = data.company.company_name;
                         }
@@ -304,22 +273,37 @@
             },
 
             async updateAppStatus(appId, status) {
+                const targetApp = this.applications.find(a => a.id === appId);
+                const previousStatus = targetApp ? targetApp.status : null;
+                if (targetApp) { targetApp.status = status; }
+
                 try {
-                    const resp = await fetch(`/api/applications/${appId}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
-                    if (resp.ok) { await this.fetchDashboard(); this.generateTrend(); }
-                } catch (err) { }
+                    const resp = await fetch(`/api/applications/${appId}/status`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                        body: JSON.stringify({ status })
+                    });
+                    if (resp.ok) {
+                        await this.fetchDashboard();
+                    } else {
+                        if (targetApp && previousStatus) { targetApp.status = previousStatus; }
+                    }
+                } catch (err) {
+                    if (targetApp && previousStatus) { targetApp.status = previousStatus; }
+                }
             },
 
             async closeJob(jobId) {
                 if (!confirm('Close this job listing?')) return;
                 try {
                     const resp = await fetch('/update_job_status/' + jobId, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'status=archived' });
-                    if (resp.ok) { await this.fetchDashboard(); this.generateTrend(); }
+                    if (resp.ok) { await this.fetchDashboard(); }
                 } catch (err) { }
             }
         };
     };
 
+    // Register with Alpine — works for both fresh page load and SPA navigation
     if (window.Alpine) {
         Alpine.data('recruiterDashboard', window.recruiterDashboard);
     } else {
@@ -328,4 +312,536 @@
         });
     }
 </script>
+
+<div id="dashboard-content" class="opacity-0 max-w-[1600px] mx-auto w-full px-container-padding py-6 flex-1 flex flex-col gap-6" x-data="recruiterDashboard()" x-init="init()">
+
+    <!-- 1. Hero Header -->
+    <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <!-- Brand + Greeting -->
+        <div class="flex items-center gap-4">
+            <template x-if="company && company.logo">
+                <div class="w-12 h-12 rounded-lg bg-surface-container-highest border border-outline-variant flex items-center justify-center overflow-hidden shrink-0">
+                    <img :src="'/company/logo/{{ current_user.id }}/' + company.logo.replace(/\\/g, '/').split('/').pop()" alt="Logo" class="max-w-[75%] max-h-[75%] object-contain"/>
+                </div>
+            </template>
+            <template x-if="!company || !company.logo">
+                <div class="w-12 h-12 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center text-primary font-headline-md text-[18px] font-bold shrink-0">
+                    <span x-text="'{{ current_user.username }}'.charAt(0).toUpperCase()"></span>
+                </div>
+            </template>
+
+            <div class="flex flex-col">
+                <span id="greeting-text" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Good day</span>
+                <div class="flex items-center gap-3">
+                    <h1 class="font-headline-lg text-on-surface text-[20px] font-bold" x-text="'{{ current_user.username }}'"></h1>
+                    <template x-if="companyName">
+                        <span class="font-data-mono text-[10px] px-2 py-0.5 rounded border border-outline-variant bg-surface-container-high text-on-surface-variant" x-text="companyName"></span>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Profile Status -->
+        <div class="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
+            <template x-if="company">
+                <div class="flex items-center gap-2 border border-outline-variant/60 rounded px-3 py-1.5 bg-surface-container-lowest">
+                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase">Profile:</span>
+                    <span class="font-data-mono text-[11px] font-bold text-secondary" x-text="company.profile_completion + '%'"></span>
+                    <a href="{{ url_for('recruiter_company') }}" class="font-data-mono text-[10px] text-primary hover:underline ml-1">Edit</a>
+                </div>
+            </template>
+            <a href="{{ url_for('recruiter_post_job') }}"
+                class="px-4 py-2 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-1.5 shadow-sm">
+                <span class="material-symbols-outlined text-[16px]">add</span>
+                Post Requisition
+            </a>
+        </div>
+    </div>
+
+    <!-- 2. KPI Metric Pills -->
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+        <template x-for="metric in kpiRings" :key="metric.key">
+            <div class="bg-surface-container border border-outline-variant rounded-xl p-3 flex flex-col justify-between hover:border-primary/40 transition-colors cursor-pointer"
+                 @click="metric.onClick ? metric.onClick() : null">
+                <div class="flex items-center justify-between">
+                    <span class="font-data-mono text-[9px] text-on-surface-variant uppercase tracking-widest truncate" x-text="metric.label"></span>
+                    <span class="w-1.5 h-1.5 rounded-full" :style="`background: ${metric.color}`"></span>
+                </div>
+                <span class="font-headline-lg text-[20px] font-bold mt-1" :style="`color: ${metric.color}`" x-text="metric.count"></span>
+            </div>
+        </template>
+    </div>
+
+    <!-- 3. Pipeline & Trend Analytics -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Hiring Funnel -->
+        <div class="border border-outline-variant rounded-xl p-4 bg-surface-container flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3 border-b border-outline-variant pb-2">
+                <h2 class="font-headline-md text-on-surface text-[14px] font-semibold">Hiring Pipeline Funnel</h2>
+                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest" x-text="funnelTotal() + ' Total Candidates'"></span>
+            </div>
+            <div class="space-y-2">
+                <template x-for="(stage, idx) in pipelineStages" :key="stage.key">
+                    <div class="flex items-center gap-3 text-body-sm">
+                        <span class="w-20 font-data-mono text-[11px] text-on-surface-variant text-right uppercase" x-text="stage.label"></span>
+                        <div class="flex-1 bg-surface-container-high rounded h-4 overflow-hidden border border-outline-variant/30">
+                            <div class="h-full transition-all duration-700 flex items-center px-2"
+                                 :class="stage.barColor"
+                                 :style="'width: ' + funnelPct(stage.key) + '%'">
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 w-16 justify-end shrink-0">
+                            <span class="font-data-mono text-[11px] font-bold text-on-surface" x-text="pipeline[stage.key] || 0"></span>
+                            <span class="font-data-mono text-[9.5px] text-on-surface-variant/70" x-text="funnelTotal() > 0 ? '(' + funnelPct(stage.key) + '%)' : ''"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Trend Chart / Activity -->
+        <div class="border border-outline-variant rounded-xl p-4 bg-surface-container flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3 border-b border-outline-variant pb-2">
+                <h2 class="font-headline-md text-on-surface text-[14px] font-semibold">Application Velocity</h2>
+                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">14 Day Trajectory</span>
+            </div>
+            <div class="flex-1 flex flex-col justify-center min-h-[140px]">
+                <template x-if="trendPoints.length > 1">
+                    <svg class="w-full h-32" viewBox="0 0 600 200" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#c0c1ff" stop-opacity="0.3"/>
+                                <stop offset="100%" stop-color="#c0c1ff" stop-opacity="0.0"/>
+                            </linearGradient>
+                        </defs>
+                        <polygon :points="trendAreaPoints()" fill="url(#trendGrad)"/>
+                        <polyline :points="trendLinePoints()" fill="none" stroke="#c0c1ff" stroke-width="2"/>
+                    </svg>
+                </template>
+                <div x-show="trendPoints.length <= 1" class="text-center text-on-surface-variant py-4 font-data-mono text-[11px]">
+                    Waiting for multiday telemetry data...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Active Tables: Candidates & Requisitions -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        
+        <!-- Recent Applications Table with HR Talent Intelligence & Excel Suite -->
+        <div id="applications-section" class="border border-outline-variant rounded-xl bg-surface-container overflow-hidden flex flex-col">
+            
+            <!-- Header with Title, Count, and Excel Export CTA -->
+            <div class="px-4 py-3 border-b border-outline-variant flex items-center justify-between bg-surface-container-low flex-wrap gap-2">
+                <div class="flex items-center gap-2">
+                    <h2 class="font-headline-md text-on-surface text-[14px] font-semibold">Recent Applicants</h2>
+                    <span class="font-data-mono text-[9.5px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-bold"
+                          x-text="filteredApplications.length + (hasActiveFilters ? ' of ' + applications.length : '') + ' Candidates'"></span>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <!-- Reset Filters Button (if active) -->
+                    <button type="button" x-show="hasActiveFilters" @click="resetFilters()"
+                        class="text-[10px] font-data-mono text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1 cursor-pointer">
+                        <span class="material-symbols-outlined text-[13px]">restart_alt</span>
+                        Reset
+                    </button>
+
+                    <!-- Export Excel Roster Button -->
+                    <button type="button" @click="exportToExcel()"
+                        class="px-2.5 py-1 rounded-lg bg-emerald-600/15 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-600/30 font-data-mono text-[10px] font-bold uppercase transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                        title="Download candidate roster as an Excel CSV file">
+                        <span class="material-symbols-outlined text-[14px]">table_view</span>
+                        <span>Export Excel</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Talent Intelligence Analytics Quick Bar (HR KPI Strip) -->
+            <div class="px-4 py-2 border-b border-outline-variant/60 bg-surface/50 flex items-center justify-between text-[11px] font-data-mono flex-wrap gap-2">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-1 text-on-surface-variant">
+                        <span class="text-[9px] uppercase tracking-wider text-on-surface-variant/70">Avg Fit:</span>
+                        <span class="font-bold text-secondary text-[11.5px]" x-text="talentMetrics.avgMatch + '%'"></span>
+                    </div>
+                    <span class="text-outline-variant/80">·</span>
+                    <div class="flex items-center gap-1 text-on-surface-variant">
+                        <span class="text-[9px] uppercase tracking-wider text-on-surface-variant/70">Qualified (&ge;60%):</span>
+                        <span class="font-bold text-primary text-[11.5px]" x-text="talentMetrics.qualifiedPct + '%'"></span>
+                    </div>
+                    <span class="text-outline-variant/80">·</span>
+                    <div class="flex items-center gap-1 text-on-surface-variant">
+                        <span class="text-[9px] uppercase tracking-wider text-on-surface-variant/70">In Pipeline:</span>
+                        <span class="font-bold text-indigo-400 text-[11.5px]" x-text="talentMetrics.activeInPipeline"></span>
+                    </div>
+                </div>
+                <template x-if="talentMetrics.topCandidate">
+                    <div class="text-[10px] text-on-surface-variant/80 flex items-center gap-1">
+                        <span>⭐ Top Match:</span>
+                        <span class="font-semibold text-on-surface" x-text="talentMetrics.topCandidate"></span>
+                    </div>
+                </template>
+            </div>
+
+            <!-- HR Filter & Search Toolbar -->
+            <div class="px-4 py-2.5 border-b border-outline-variant bg-surface/30 flex items-center gap-2 flex-wrap text-[11px]">
+                <!-- Search input -->
+                <div class="relative flex-1 min-w-[125px]">
+                    <span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-[14px] text-on-surface-variant">search</span>
+                    <input type="text" x-model="applicantSearch" placeholder="Search candidate, email, role..."
+                        class="w-full pl-6 pr-2 py-1 rounded-lg bg-surface border border-outline-variant text-[11px] text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors">
+                </div>
+
+                <!-- Stage Filter -->
+                <select x-model="stageFilter" class="px-2 py-1 rounded-lg bg-surface border border-outline-variant text-[10.5px] font-data-mono text-on-surface focus:outline-none focus:border-primary transition-colors cursor-pointer">
+                    <option value="all">All Stages</option>
+                    <option value="applied">Applied</option>
+                    <option value="shortlisted">Shortlisted</option>
+                    <option value="interview">Interview</option>
+                    <option value="offer">Offer</option>
+                    <option value="hired">Hired</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+
+                <!-- Job Filter (if multiple jobs) -->
+                <template x-if="uniqueApplicationJobs.length > 1">
+                    <select x-model="jobFilter" class="px-2 py-1 rounded-lg bg-surface border border-outline-variant text-[10.5px] font-data-mono text-on-surface focus:outline-none focus:border-primary transition-colors cursor-pointer max-w-[120px] truncate">
+                        <option value="all">All Positions</option>
+                        <template x-for="job in uniqueApplicationJobs" :key="job.title">
+                            <option :value="job.title" x-text="job.title"></option>
+                        </template>
+                    </select>
+                </template>
+
+                <!-- Sort By -->
+                <select x-model="sortBy" class="px-2 py-1 rounded-lg bg-surface border border-outline-variant text-[10.5px] font-data-mono text-on-surface focus:outline-none focus:border-primary transition-colors cursor-pointer">
+                    <option value="match_desc">Highest Match</option>
+                    <option value="match_asc">Lowest Match</option>
+                    <option value="date_desc">Newest First</option>
+                    <option value="name_asc">Name (A-Z)</option>
+                </select>
+            </div>
+
+            <!-- Table (Scrollable) -->
+            <div class="overflow-x-auto flex-1 max-h-[350px]">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="border-b border-outline-variant text-on-surface-variant font-data-mono text-[9.5px] uppercase tracking-widest bg-surface/50 sticky top-0 backdrop-blur-xs z-1">
+                            <th class="px-4 py-2">Candidate</th>
+                            <th class="px-4 py-2">Position</th>
+                            <th class="px-4 py-2 text-center">Match</th>
+                            <th class="px-4 py-2 text-center">Stage</th>
+                            <th class="px-4 py-2 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/40 font-body-sm text-[12px]">
+                        <template x-for="app in filteredApplications" :key="app.id">
+                            <tr class="hover:bg-surface-container-high transition-colors">
+                                <td class="px-4 py-2.5">
+                                    <button type="button" @click="viewApplicantProfile(app.id)" class="text-left group cursor-pointer">
+                                        <div class="font-semibold text-on-surface group-hover:text-primary transition-colors flex items-center gap-1.5">
+                                            <span x-text="app.applicant_name"></span>
+                                            <span class="material-symbols-outlined text-[13px] text-primary opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
+                                        </div>
+                                        <div class="font-data-mono text-[10px] text-on-surface-variant" x-text="app.applicant_email || 'Direct applicant'"></div>
+                                    </button>
+                                </td>
+                                <td class="px-4 py-2.5 text-on-surface-variant truncate max-w-[140px]" x-text="app.job_title"></td>
+                                <td class="px-4 py-2.5 text-center font-data-mono font-bold text-secondary" x-text="(app.ai_match_score ? Math.round(app.ai_match_score) : '--') + '%'"></td>
+                                
+                                <!-- Real Stage Badge -->
+                                <td class="px-4 py-2.5 text-center">
+                                    <span class="font-data-mono text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider inline-flex items-center gap-1"
+                                          :class="{
+                                              'bg-primary/15 text-primary border border-primary/30': app.status === 'applied',
+                                              'bg-secondary/15 text-secondary border border-secondary/30': app.status === 'shortlisted',
+                                              'bg-indigo-500/15 text-indigo-500 border border-indigo-500/30': app.status === 'interview',
+                                              'bg-amber-500/15 text-amber-500 border border-amber-500/30': app.status === 'offer',
+                                              'bg-green-500/15 text-green-500 border border-green-500/30': app.status === 'hired',
+                                              'bg-rose-500/15 text-rose-500 border border-rose-500/30': app.status === 'rejected'
+                                          }">
+                                        <span class="w-1.5 h-1.5 rounded-full"
+                                              :class="{
+                                                  'bg-primary': app.status === 'applied',
+                                                  'bg-secondary': app.status === 'shortlisted',
+                                                  'bg-indigo-500': app.status === 'interview',
+                                                  'bg-amber-500': app.status === 'offer',
+                                                  'bg-green-500': app.status === 'hired',
+                                                  'bg-rose-500': app.status === 'rejected'
+                                              }"></span>
+                                        <span x-text="app.status || 'applied'"></span>
+                                    </span>
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="px-4 py-2.5 text-right">
+                                    <div class="flex items-center justify-end gap-1.5">
+                                        <!-- Profile View Button -->
+                                        <button type="button" @click="viewApplicantProfile(app.id)"
+                                            class="px-2 py-1 rounded-lg border border-outline-variant hover:border-primary text-on-surface-variant hover:text-primary font-data-mono text-[10px] transition-colors cursor-pointer"
+                                            title="View candidate credentials and resume">
+                                            Profile
+                                        </button>
+
+                                        <!-- Shortlist Action -->
+                                        <template x-if="app.status === 'applied'">
+                                            <button @click="updateAppStatus(app.id, 'shortlisted')"
+                                                class="px-2.5 py-1 rounded-lg bg-secondary/15 hover:bg-secondary text-secondary hover:text-white border border-secondary/30 font-data-mono text-[10px] font-bold uppercase transition-all shadow-2xs cursor-pointer">
+                                                Shortlist
+                                            </button>
+                                        </template>
+
+                                        <!-- Advance to Interview (if already shortlisted) -->
+                                        <template x-if="app.status === 'shortlisted'">
+                                            <button @click="updateAppStatus(app.id, 'interview')"
+                                                class="px-2.5 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-600 text-indigo-500 hover:text-white border border-indigo-500/30 font-data-mono text-[10px] font-bold uppercase transition-all shadow-2xs cursor-pointer">
+                                                Interview
+                                            </button>
+                                        </template>
+
+                                        <!-- Advanced state indicator -->
+                                        <template x-if="app.status === 'interview' || app.status === 'offer' || app.status === 'hired'">
+                                            <span class="px-2 py-1 font-data-mono text-[10px] text-on-surface-variant/70">
+                                                Advanced
+                                            </span>
+                                        </template>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+
+                        <!-- Empty state when no applications in DB -->
+                        <tr x-show="applications.length === 0">
+                            <td colspan="5" class="text-center py-8 text-on-surface-variant/60 font-data-mono text-[11px]">
+                                No applicants registered yet.
+                            </td>
+                        </tr>
+
+                        <!-- Empty state when filtered out -->
+                        <tr x-show="applications.length > 0 && filteredApplications.length === 0">
+                            <td colspan="5" class="text-center py-8 text-on-surface-variant/70 font-data-mono text-[11px]">
+                                <div class="space-y-1.5">
+                                    <span class="material-symbols-outlined text-[20px] text-on-surface-variant/50">filter_list_off</span>
+                                    <div>No candidates match your current search or filters.</div>
+                                    <button type="button" @click="resetFilters()" class="text-primary hover:underline font-semibold text-[10.5px]">Clear all filters</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Active Requisitions -->
+        <div id="active-jobs-section" class="border border-outline-variant rounded-xl bg-surface-container overflow-hidden flex flex-col">
+            <div class="px-4 py-3 border-b border-outline-variant flex items-center justify-between bg-surface-container-low">
+                <h2 class="font-headline-md text-on-surface text-[14px] font-semibold">Active Requisitions</h2>
+                <a href="{{ url_for('recruiter_post_job') }}" class="font-data-mono text-[10px] text-primary hover:underline uppercase">+ New</a>
+            </div>
+            <div class="divide-y divide-outline-variant/40 overflow-y-auto max-h-[300px] flex-1">
+                <template x-for="job in activeJobs" :key="job.id">
+                    <div class="px-4 py-2.5 hover:bg-surface-container-high transition-colors flex items-center justify-between">
+                        <div class="min-w-0 flex-1 mr-2">
+                            <a :href="'/job/' + job.id" class="font-semibold text-on-surface text-[13px] truncate block hover:text-primary transition-colors" x-text="job.title"></a>
+                            <div class="font-data-mono text-[10px] text-on-surface-variant" x-text="(job.location || 'Remote') + ' · ' + (job.application_count || 0) + ' applications'"></div>
+                        </div>
+                        <button @click="closeJob(job.id)" class="px-2 py-0.5 rounded border border-error/30 text-error hover:bg-error/10 font-data-mono text-[9px] uppercase">
+                            Close
+                        </button>
+                    </div>
+                </template>
+                <div x-show="activeJobs.length === 0" class="text-center py-8 text-on-surface-variant/60 font-data-mono text-[11px]">
+                    No active job requisitions.
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Candidate Professional Profile Modal (Compact & Clean) -->
+    <div id="applicant-profile-modal" x-show="showProfileModal" x-cloak
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-xs" @click="closeProfileModal()"></div>
+        <div class="relative mx-auto w-full max-w-lg bg-surface border border-outline-variant rounded-xl shadow-2xl z-10 overflow-hidden max-h-[85vh] flex flex-col animate-fade-in"
+             @click.away="closeProfileModal()">
+            
+            <!-- Modal Header (Compact) -->
+            <div class="px-4 py-3 border-b border-outline-variant flex items-center justify-between bg-surface-container-low shrink-0">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-8 h-8 rounded-lg bg-primary/10 border border-primary/25 text-primary flex items-center justify-center font-bold text-[13px] shrink-0 shadow-2xs">
+                        <span x-text="selectedProfile ? (selectedProfile.applicant_name || 'A')[0].toUpperCase() : '?'"></span>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <h3 class="font-headline-md text-on-surface text-[14px] font-bold truncate max-w-[210px]" x-text="selectedProfile?.applicant_name || 'Applicant Profile'"></h3>
+                            <span class="font-data-mono text-[9px] px-1.5 py-0.2 rounded-full font-bold uppercase tracking-wider"
+                                  :class="{
+                                      'bg-primary/15 text-primary border border-primary/30': selectedProfile?.status === 'applied',
+                                      'bg-secondary/15 text-secondary border border-secondary/30': selectedProfile?.status === 'shortlisted',
+                                      'bg-indigo-500/15 text-indigo-500 border border-indigo-500/30': selectedProfile?.status === 'interview',
+                                      'bg-amber-500/15 text-amber-500 border border-amber-500/30': selectedProfile?.status === 'offer',
+                                      'bg-green-500/15 text-green-500 border border-green-500/30': selectedProfile?.status === 'hired',
+                                      'bg-rose-500/15 text-rose-500 border border-rose-500/30': selectedProfile?.status === 'rejected'
+                                  }"
+                                  x-text="selectedProfile?.status || 'applied'"></span>
+                        </div>
+                        <p class="font-body-sm text-[11px] text-on-surface-variant flex items-center gap-1.5 truncate">
+                            <span class="font-medium text-on-surface truncate max-w-[140px]" x-text="selectedProfile?.job_title"></span>
+                            <span>·</span>
+                            <span class="font-data-mono text-[10.5px] truncate" x-text="selectedProfile?.applicant_email || 'Direct applicant'"></span>
+                        </p>
+                    </div>
+                </div>
+                <button type="button" @click="closeProfileModal()" class="text-on-surface-variant hover:text-on-surface p-1 rounded-md hover:bg-surface-container transition-colors shrink-0" title="Close">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+
+            <!-- Modal Body (Compact & Scrollable) -->
+            <div class="p-3.5 sm:p-4 overflow-y-auto space-y-3 custom-scrollbar flex-1 text-[12px]">
+                <template x-if="profileLoading">
+                    <div class="py-10 text-center text-on-surface-variant flex flex-col items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[26px] animate-spin text-primary">progress_activity</span>
+                        <span class="font-data-mono text-[11px]">Loading candidate credentials...</span>
+                    </div>
+                </template>
+
+                <template x-if="!profileLoading && selectedProfile">
+                    <div class="space-y-3">
+                        
+                        <!-- Quick KPI Dock (Compact) -->
+                        <div class="grid grid-cols-4 gap-1.5">
+                            <div class="p-2 rounded-lg bg-surface-container border border-outline-variant/60 text-center">
+                                <span class="font-data-mono text-[8px] uppercase tracking-wider text-on-surface-variant block">Fit Score</span>
+                                <span class="font-data-mono text-[13px] font-bold text-secondary block mt-0.5" x-text="(selectedProfile.ai_match_score ? Math.round(selectedProfile.ai_match_score) : 65) + '%'"></span>
+                            </div>
+                            <div class="p-2 rounded-lg bg-surface-container border border-outline-variant/60 text-center">
+                                <span class="font-data-mono text-[8px] uppercase tracking-wider text-on-surface-variant block">Experience</span>
+                                <span class="font-body-sm text-[11.5px] font-semibold text-on-surface block mt-0.5 truncate" x-text="selectedProfile.experience_years || 'Experienced'"></span>
+                            </div>
+                            <div class="p-2 rounded-lg bg-surface-container border border-outline-variant/60 text-center">
+                                <span class="font-data-mono text-[8px] uppercase tracking-wider text-on-surface-variant block">Work Auth</span>
+                                <span class="font-body-sm text-[11.5px] font-semibold text-on-surface block mt-0.5 capitalize truncate" x-text="selectedProfile.authorized_to_work || 'Yes'"></span>
+                            </div>
+                            <div class="p-2 rounded-lg bg-surface-container border border-outline-variant/60 text-center">
+                                <span class="font-data-mono text-[8px] uppercase tracking-wider text-on-surface-variant block">Relocate</span>
+                                <span class="font-body-sm text-[11.5px] font-semibold text-on-surface block mt-0.5 capitalize truncate" x-text="selectedProfile.willing_to_relocate || 'Open'"></span>
+                            </div>
+                        </div>
+
+                        <!-- Professional Links (Compact) -->
+                        <div x-show="selectedProfile.linkedin_url || selectedProfile.github_url || selectedProfile.portfolio_url"
+                             class="flex items-center gap-1.5 flex-wrap">
+                            <template x-if="selectedProfile.linkedin_url">
+                                <a :href="selectedProfile.linkedin_url" target="_blank"
+                                   class="font-data-mono text-[10px] px-2 py-0.5 rounded-md border border-outline-variant bg-surface-container hover:border-primary text-primary transition-colors flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[12px]">link</span>
+                                    <span>LinkedIn ↗</span>
+                                </a>
+                            </template>
+                            <template x-if="selectedProfile.github_url">
+                                <a :href="selectedProfile.github_url" target="_blank"
+                                   class="font-data-mono text-[10px] px-2 py-0.5 rounded-md border border-outline-variant bg-surface-container hover:border-primary text-primary transition-colors flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[12px]">code</span>
+                                    <span>GitHub ↗</span>
+                                </a>
+                            </template>
+                            <template x-if="selectedProfile.portfolio_url">
+                                <a :href="selectedProfile.portfolio_url" target="_blank"
+                                   class="font-data-mono text-[10px] px-2 py-0.5 rounded-md border border-outline-variant bg-surface-container hover:border-primary text-primary transition-colors flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[12px]">language</span>
+                                    <span>Portfolio ↗</span>
+                                </a>
+                            </template>
+                        </div>
+
+                        <!-- Candidate Application Note (if any) -->
+                        <div x-show="selectedProfile.applicant_note" class="p-2.5 rounded-lg bg-primary/5 border border-primary/20 space-y-0.5">
+                            <span class="font-data-mono text-[9px] text-primary uppercase font-bold tracking-wider block">Candidate Note</span>
+                            <p class="font-body-sm text-[11.5px] text-on-surface leading-snug" x-text="selectedProfile.applicant_note"></p>
+                        </div>
+
+                        <!-- Verified Competencies & Skills (with Collapsible +X more) -->
+                        <div class="space-y-1.5" x-data="{ showAllSkills: false }">
+                            <div class="flex items-center justify-between">
+                                <span class="font-data-mono text-[9px] uppercase tracking-wider text-on-surface-variant font-bold">
+                                    Verified Competencies (<span x-text="selectedProfile.skills ? selectedProfile.skills.length : 0"></span>)
+                                </span>
+                                <template x-if="selectedProfile.skills && selectedProfile.skills.length > 8">
+                                    <button type="button" @click="showAllSkills = !showAllSkills" class="font-data-mono text-[9.5px] text-primary hover:underline font-semibold cursor-pointer">
+                                        <span x-text="showAllSkills ? 'Show less' : '+' + (selectedProfile.skills.length - 8) + ' more'"></span>
+                                    </button>
+                                </template>
+                            </div>
+                            <div class="flex flex-wrap gap-1">
+                                <template x-for="(skill, idx) in (selectedProfile.skills || [])" :key="skill">
+                                    <span x-show="showAllSkills || idx < 8"
+                                          class="font-data-mono text-[10px] px-2 py-0.5 rounded-md bg-surface-container border border-outline-variant text-on-surface font-medium inline-flex items-center gap-1">
+                                        <span class="text-primary font-bold text-[9px]">✓</span>
+                                        <span x-text="skill"></span>
+                                    </span>
+                                </template>
+                                <span x-show="!selectedProfile.skills || selectedProfile.skills.length === 0" class="font-data-mono text-[10.5px] text-on-surface-variant/70 italic">
+                                    Skills calibrated automatically via JobSnap resume scanner.
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Professional Summary (Compact) -->
+                        <div x-show="selectedProfile.summary" class="space-y-1">
+                            <span class="font-data-mono text-[9px] uppercase tracking-wider text-on-surface-variant font-bold block">Summary</span>
+                            <p class="font-body-sm text-[11.5px] text-on-surface leading-relaxed p-2.5 rounded-lg bg-surface-container border border-outline-variant/60"
+                               x-text="selectedProfile.summary"></p>
+                        </div>
+
+                        <!-- Work History Highlights (Compact) -->
+                        <div x-show="selectedProfile.experience && selectedProfile.experience.length > 0" class="space-y-1.5">
+                            <span class="font-data-mono text-[9px] uppercase tracking-wider text-on-surface-variant font-bold block">Experience Highlights</span>
+                            <div class="space-y-1">
+                                <template x-for="(exp, idx) in selectedProfile.experience" :key="idx">
+                                    <div class="p-2 rounded-lg bg-surface-container border border-outline-variant/60 text-[11px] flex items-center justify-between gap-2">
+                                        <div class="font-medium text-on-surface truncate" x-text="typeof exp === 'string' ? exp : (exp.title || exp.role || '') + (exp.company ? ' at ' + exp.company : '')"></div>
+                                        <div x-show="exp.duration" class="font-data-mono text-[9px] text-on-surface-variant shrink-0" x-text="exp.duration"></div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                    </div>
+                </template>
+            </div>
+
+            <!-- Modal Footer Actions (Compact) -->
+            <div class="px-4 py-2.5 border-t border-outline-variant bg-surface-container-low flex items-center justify-between gap-2 shrink-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="font-data-mono text-[9.5px] text-on-surface-variant hidden sm:inline">Stage:</span>
+                    <button type="button" @click="updateAppStatus(selectedProfile.application_id, 'shortlisted'); selectedProfile.status = 'shortlisted'"
+                        class="px-2.5 py-1 rounded-lg bg-secondary/15 hover:bg-secondary text-secondary hover:text-white border border-secondary/30 font-data-mono text-[10px] font-bold uppercase transition-all shadow-2xs cursor-pointer">
+                        Shortlist
+                    </button>
+                    <button type="button" @click="updateAppStatus(selectedProfile.application_id, 'interview'); selectedProfile.status = 'interview'"
+                        class="px-2.5 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-600 text-indigo-500 hover:text-white border border-indigo-500/30 font-data-mono text-[10px] font-bold uppercase transition-all shadow-2xs cursor-pointer">
+                        Schedule Interview
+                    </button>
+                    <button type="button" @click="updateAppStatus(selectedProfile.application_id, 'rejected'); selectedProfile.status = 'rejected'"
+                        class="px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-500/30 font-data-mono text-[10px] font-bold uppercase transition-all shadow-2xs cursor-pointer">
+                        Reject
+                    </button>
+                </div>
+                <button type="button" @click="closeProfileModal()"
+                    class="px-3 py-1 rounded-lg border border-outline-variant text-on-surface-variant hover:text-on-surface font-body-sm text-[11px] font-medium transition-colors cursor-pointer shrink-0">
+                    Done
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+</div>
 {% endblock %}

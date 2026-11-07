@@ -42,11 +42,17 @@
                         <div class="font-data-mono text-[10px] text-on-surface-variant truncate">{{ template.subject or 'No subject' }}</div>
                     </div>
                     <div class="flex items-center gap-1 shrink-0">
-                        <button type="button" class="edit-btn p-1 text-on-surface-variant hover:text-primary rounded">
-                            <span class="material-symbols-outlined text-[15px]">edit</span>
+                        <button type="button" class="edit-btn p-1 text-on-surface-variant hover:text-primary rounded" title="Edit Template">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
                         </button>
-                        <button type="button" class="delete-btn p-1 text-error/70 hover:text-error rounded" data-id="{{ template.id }}">
-                            <span class="material-symbols-outlined text-[15px]">delete</span>
+                        <button type="button" class="delete-btn p-1 text-error/70 hover:text-error rounded" data-id="{{ template.id }}" title="Delete Template">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
                         </button>
                     </div>
                 </div>
@@ -91,7 +97,7 @@
                             Clear
                         </button>
                         <button type="submit" id="save-btn"
-                            class="px-5 py-1.5 bg-primary text-on-primary rounded font-label-caps text-label-caps hover:bg-primary-container transition-colors shadow-sm">
+                            class="px-5 py-1.5 bg-primary text-on-primary rounded font-label-caps text-label-caps hover:bg-emerald-600 transition-colors shadow-sm">
                             Save Template
                         </button>
                     </div>
@@ -101,7 +107,10 @@
             <!-- Live Telemetry Preview Card -->
             <div class="border border-outline-variant rounded-xl p-5 bg-surface-container-low">
                 <div class="flex items-center gap-2 mb-2">
-                    <span class="material-symbols-outlined text-[15px] text-secondary">visibility</span>
+                    <svg class="w-3.5 h-3.5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
                     <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Terminal Output Preview</span>
                 </div>
                 <div class="p-3 bg-surface-container-lowest border border-outline-variant/40 rounded-lg min-h-[100px] font-mono text-[12px] space-y-2">
