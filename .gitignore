@@ -32,3 +32,7 @@ static/css/output.css
 cloudflared.exe
 ngrok.exe
 ngrok.zip
+
+# Security Scanner Temp Artifacts
+bandit_results.json
+pip_audit_results.json

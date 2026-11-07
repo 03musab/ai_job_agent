@@ -1,0 +1,56 @@
+name: "Hosting Readiness Agent"
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  hosting-readiness:
+    name: "Audit Cloud Hosting Readiness"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Set up Python Environment"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: "Run Hosting Readiness Agent"
+        run: |
+          python scripts/hosting_readiness_agent.py
+
+      - name: "Publish Hosting Guide to GitHub Actions Step Summary"
+        run: |
+          cat HOSTING_READINESS.md >> $GITHUB_STEP_SUMMARY
+
+      - name: "Upload Hosting Readiness Report"
+        uses: actions/upload-artifact@v4
+        with:
+          name: hosting-readiness-guide
+          path: HOSTING_READINESS.md
+          retention-days: 30
+
+      - name: "Commit & Push Updated HOSTING_READINESS.md"
+        if: github.event_name != 'pull_request'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add HOSTING_READINESS.md Procfile .env.example Dockerfile docker-compose.yml render.yaml
+          if git diff --staged --quiet; then
+            echo "No hosting readiness changes to commit."
+          else
+            git commit -m "chore(infra): update cloud hosting readiness configurations [skip ci]"
+            git push
+          fi
+

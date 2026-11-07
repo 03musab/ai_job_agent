@@ -1,0 +1,35 @@
+services:
+  # Web Service
+  - type: web
+    name: ai-jobsnap-web
+    runtime: python
+    buildCommand: "npm ci && npm run build:css && pip install -r requirements.txt"
+    startCommand: "gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 'app:app'"
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: DEBUG
+        value: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: ai-jobsnap-redis
+          property: connectionString
+
+  # Celery Background Worker
+  - type: worker
+    name: ai-jobsnap-worker
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "celery -A app.celery worker --loglevel=info"
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: ai-jobsnap-redis
+          property: connectionString
+
+  # Managed Redis Queue
+  - type: redis
+    name: ai-jobsnap-redis
+    ipAllowList: [] # internal access only

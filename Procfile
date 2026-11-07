@@ -1,3 +1,3 @@
-web: python -m flask run --host=0.0.0.0 --debug --reload
-worker: python -m celery -A app.celery worker --loglevel=info --pool=solo
-beat: python -m celery -A app.celery beat --loglevel=info
+web: gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 "app:app"
+worker: celery -A app.celery worker --loglevel=info
+beat: celery -A app.celery beat --loglevel=info
