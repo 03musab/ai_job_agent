@@ -1,35 +1,35 @@
 services:
-  # Web Service
+  # 1. Main Web Application (Runs Gunicorn + Celery Background Worker & Beat Scheduler)
   - type: web
     name: ai-jobsnap-web
     runtime: python
-    buildCommand: "npm ci && npm run build:css && pip install -r requirements.txt"
-    startCommand: "gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 'app:app'"
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "bash start.sh"
+    healthCheckPath: /healthz
     envVars:
       - key: FLASK_ENV
         value: production
       - key: DEBUG
         value: false
+      - key: SECRET_KEY
+        generateValue: true
       - key: REDIS_URL
         fromService:
-          type: redis
+          type: keyvalue
           name: ai-jobsnap-redis
           property: connectionString
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: CEREBRAS_API_KEY
+        sync: false
+      - key: NEWS_API_KEY
+        sync: false
 
-  # Celery Background Worker
-  - type: worker
-    name: ai-jobsnap-worker
-    runtime: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "celery -A app.celery worker --loglevel=info"
-    envVars:
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: ai-jobsnap-redis
-          property: connectionString
-
-  # Managed Redis Queue
-  - type: redis
+  # 2. Managed Key Value (Valkey / Redis) Queue Broker
+  - type: keyvalue
     name: ai-jobsnap-redis
-    ipAllowList: [] # internal access only
+    plan: free
+    ipAllowList: [] # internal private access only

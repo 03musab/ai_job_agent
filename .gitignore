@@ -23,10 +23,6 @@ token.json
 
 # Node.js
 node_modules/
-package-lock.json
-
-# Generated CSS
-static/css/output.css
 
 # Cloudflare & Ngrok binaries
 cloudflared.exe

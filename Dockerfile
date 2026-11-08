@@ -13,22 +13,31 @@ RUN npm run build:css
 FROM python:3.12-slim
 WORKDIR /app
 
-# Install essential OS packages for SQLite & networking
+# Install essential OS packages for networking, sqlite & building C extensions
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl gcc sqlite3 && \
+    curl gcc libpq-dev sqlite3 && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt gunicorn
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy application code & compiled CSS from Stage 1
 COPY . .
 COPY --from=frontend-builder /app/static/css/output.css ./static/css/output.css
 
-# Expose port
-ENV PORT=5000
+# Environment configuration
+ENV FLASK_ENV=production \
+    DEBUG=False \
+    PYTHONUNBUFFERED=1 \
+    PORT=5000
+
 EXPOSE 5000
 
-# Default entrypoint runs Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", "--timeout", "120", "app:app"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-5000}/healthz || exit 1
+
+# Default entrypoint dynamically binds to cloud-assigned $PORT
+CMD sh -c "gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 2 --threads 4 --timeout 120 app:app"

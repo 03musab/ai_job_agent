@@ -3,33 +3,64 @@ version: '3.8'
 services:
   web:
     build: .
+    restart: unless-stopped
     ports:
       - "5000:5000"
     environment:
       - PORT=5000
+      - FLASK_ENV=production
+      - DEBUG=False
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - DEBUG=False
+    env_file:
+      - .env
     volumes:
       - db-data:/app/instance
+      - uploads-data:/app/uploads
     depends_on:
       - redis
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     ports:
       - "6379:6379"
+    volumes:
+      - redis-data:/data
 
   worker:
     build: .
+    restart: unless-stopped
     command: celery -A app.celery worker --loglevel=info
     environment:
+      - FLASK_ENV=production
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file:
+      - .env
+    volumes:
+      - db-data:/app/instance
+      - uploads-data:/app/uploads
+    depends_on:
+      - redis
+
+  beat:
+    build: .
+    restart: unless-stopped
+    command: celery -A app.celery beat --loglevel=info
+    environment:
+      - FLASK_ENV=production
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file:
+      - .env
     depends_on:
       - redis
 
 volumes:
   db-data:
+  uploads-data:
+  redis-data:

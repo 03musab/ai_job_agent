@@ -1,5 +1,7 @@
 Flask
 Flask-Login
+Flask-SQLAlchemy>=3.1.1
+SQLAlchemy>=2.0.40
 celery
 redis
 requests
@@ -11,13 +13,18 @@ openpyxl
 google-api-python-client
 google-auth-oauthlib
 google-auth-httplib2
+google-generativeai>=0.8.5
+cerebras-cloud-sdk>=1.64.1
 gevent
 schedule
 PyMuPDF
 python-docx
+pdfminer.six>=20260107
 honcho
 reportlab
 dnspython
 xhtml2pdf
 undetected-chromedriver
 gunicorn
+python-dotenv>=1.0.1
+psycopg2-binary>=2.9.9

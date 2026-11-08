@@ -152,7 +152,10 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 # Database Configuration for Learning Paths (SQLite for now, switch to Postgres later)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///learning_paths.db')
+database_url = os.environ.get('DATABASE_URL', 'sqlite:///learning_paths.db')
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 with app.app_context():
@@ -181,9 +184,10 @@ app.config['COMPANY_LOGO_FOLDER'] = COMPANY_LOGO_FOLDER
 ALLOWED_LOGO_EXTENSIONS = {'png', 'jpg', 'jpeg', 'svg', 'webp'}
 MAX_LOGO_SIZE = 5 * 1024 * 1024  # 5MB
 
-# Use new style Celery config keys (lowercase without CELERY_ prefix), with fallback to old env vars
-broker_url = os.environ.get('broker_url') or os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-result_backend = os.environ.get('result_backend') or os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+# Use new style Celery config keys (lowercase without CELERY_ prefix), with fallback to old env vars and REDIS_URL
+redis_fallback = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+broker_url = os.environ.get('broker_url') or os.environ.get('CELERY_BROKER_URL') or redis_fallback
+result_backend = os.environ.get('result_backend') or os.environ.get('CELERY_RESULT_BACKEND') or redis_fallback
 app.config['broker_url'] = broker_url
 app.config['result_backend'] = result_backend
 # Enforce secure SECRET_KEY usage
@@ -195,6 +199,13 @@ elif app.config['SECRET_KEY'] == 'dev-secret-key-change-in-production':
 
 # Initialize Celery (top-level, so it's imported by all processes)
 celery = make_celery(app)
+
+# --- Zero-dependency Liveness Probe for Orchestrators (Docker, Render, Railway, K8s) ---
+@app.route('/healthz')
+@app.route('/ping')
+def healthz():
+    """Zero-dependency liveness probe for orchestrators."""
+    return jsonify({'status': 'ok'}), 200
 
 # --- Health Check Endpoint for Scraping Readiness ---
 @app.route('/health')
@@ -5626,7 +5637,9 @@ def index():
         if current_user.role == 'recruiter':
             return redirect(url_for('recruiter_dashboard'))
         return redirect(url_for('dashboard'))
-    return redirect('https://aijobsnap.vercel.app/')
+    # Unauthenticated visitor redirected to marketing landing page
+    landing_url = os.environ.get('MARKETING_URL', 'https://jobsnap.me/')
+    return redirect(landing_url)
 
 @app.route('/privacy')
 def privacy():

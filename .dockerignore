@@ -1,0 +1,41 @@
+# Git & Version Control
+.git/
+.gitignore
+.github/
+
+# Python Virtual Environments & Cache
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local Secrets & Credentials (NEVER bake into image)
+.env
+token.pickle
+token.json
+credentials.json
+
+# Local Databases (Mount volume in production instead)
+*.db
+*.sqlite3
+instance/
+
+# Local Celery State & Logs
+celerybeat-schedule*
+*.log
+
+# Node.js Build Artifacts
+node_modules/
+package-lock.json
+
+# Test Artifacts & Scratch
+tests/
+scratch/
+.coverage
+htmlcov/
+
