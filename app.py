@@ -36,6 +36,7 @@ import gevent.monkey
 import pandas as pd
 import requests
 import schedule
+from sqlalchemy import inspect
 from bs4 import BeautifulSoup
 from celery import Celery
 from celery.schedules import crontab
@@ -161,23 +162,25 @@ if database_url and database_url.startswith("postgres://"):
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
-with app.app_context():
-    try:
+
+
+def initialize_database():
+    """Create database tables and apply lightweight schema updates before serving."""
+    with app.app_context():
         db.create_all()
-        # Migration check for topics_data column in learning_modules
-        try:
-            with db.engine.connect() as conn:
-                try:
-                    conn.execute(db.text("SELECT topics_data FROM learning_modules LIMIT 1"))
-                except Exception:
-                    logger.info("Migrating learning_modules: adding topics_data column")
-                    conn.execute(db.text("ALTER TABLE learning_modules ADD COLUMN topics_data JSON"))
-                    conn.commit()
-        except Exception as e:
-            logger.warning(f"Migration check failed: {e}")
-    except Exception as e:
-        logger.info(f"Database tables already created or concurrent check: {e}")
-        logger.warning(f"Migration check failed: {e}")
+
+        inspector = inspect(db.engine)
+        if "learning_modules" in inspector.get_table_names():
+            column_names = {
+                column["name"] for column in inspector.get_columns("learning_modules")
+            }
+            if "topics_data" not in column_names:
+                logger.info("Migrating learning_modules: adding topics_data column")
+                with db.engine.begin() as conn:
+                    conn.execute(
+                        db.text("ALTER TABLE learning_modules ADD COLUMN topics_data JSON")
+                    )
+        logger.info("Database tables and schema are ready.")
 
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -8896,7 +8899,7 @@ def export_learning_path(path_id):
 
 # This part runs the Flask app if executed directly
 if __name__ == "__main__":
-    # Initialize database
+    initialize_database()
     db_instance = JobDatabase()
     db_instance.init_db() # Ensure tables are created/migrated
 

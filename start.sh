@@ -15,6 +15,9 @@ trap cleanup EXIT INT TERM
 
 echo "[start.sh] Initializing AI JobSnap..."
 
+# Initialize the schema once before the web server and worker import the app.
+python -c "from app import initialize_database; initialize_database()"
+
 # 1. Use Celery's in-process pool to avoid forking another memory-heavy app process.
 if [ "${RUN_CELERY_IN_WEB:-true}" = "true" ]; then
     echo "[start.sh] Starting Celery worker (pool=solo)..."
