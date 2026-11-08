@@ -1,13 +1,20 @@
 # 🚀 AI JobSnap — Cloud Hosting Readiness & Deployment Guide
 
+<<<<<<< HEAD
 > **Status:** 🟢 **100% Production Ready** (`11/11` checks passing — `100%`)  
 > **Audit Timestamp:** `2026-11-08 06:16:35 UTC`  
 > **Environment:** Multi-Cloud (Render, Railway, Docker, Fly.io, Self-Hosted VPS)  
+=======
+> **Readiness Level:** 🟡 **Minor Preparations Needed** (`85%` passing)  
+> **Audit Timestamp:** `2026-11-07 20:41:13 UTC`  
+> **Commit Reference:** `02d121ec`  
+>>>>>>> 7b2e8c63ac80c6b9c259c5dd35fe56918abfc315
 
 ## 📋 Hosting Audit Checklist
 
 | Status | Check Area | Impact | Details |
 | :---: | :--- | :--- | :--- |
+<<<<<<< HEAD
 | ✅ | **Production WSGI Server (Gunicorn)** | `CRITICAL` | Procfile configures Gunicorn with multi-worker threads and 120s timeout for web traffic. |
 | ✅ | **Docker Multi-Stage & Orchestration** | `HIGH` | Dockerfile, .dockerignore, and docker-compose.yml are present with persistent volumes and healthchecks. |
 | ✅ | **Cloud Platform Blueprints (Render & Railway)** | `HIGH` | render.yaml and railway.json exist for automated 1-click cloud deployment with managed Redis & Web workers. |
@@ -19,10 +26,27 @@
 | ✅ | **Background Worker & Beat Scheduler Configuration** | `HIGH` | Procfile and docker-compose define independent worker and beat scheduler processes. |
 | ✅ | **Compiled Production CSS (static/css/output.css)** | `MEDIUM` | Minified output.css is compiled and ready for serving in production. |
 | ✅ | **Production Python Dependencies (Gunicorn, Psycopg2)** | `CRITICAL` | requirements.txt includes gunicorn (WSGI) and psycopg2-binary (PostgreSQL driver). |
+=======
+| ✅ | **Production WSGI Server (Gunicorn)** | `CRITICAL` | Procfile uses Gunicorn with multi-worker threads rather than single-threaded Flask development server. |
+| ✅ | **Docker Containerization (Dockerfile & docker-compose.yml)** | `HIGH` | Standard Dockerfile and docker-compose.yml exist for reproducible cross-cloud deployment. |
+| ✅ | **Production Environment Specification (.env.example)** | `HIGH` | Safe environment blueprint exists for cloud configuration without leaking live secrets. |
+| ⚠️ | **Compiled Production CSS (static/css/output.css)** | `MEDIUM` | output.css is missing or uncompiled; frontend styles may fail. |
+| ✅ | **Database Storage Persistence (Postgres / Persistent Volume)** | `HIGH` | The application supports SQLite locally. For ephemeral cloud containers (Render, Railway, Heroku), attach a persistent disk or connect a managed PostgreSQL instance via DATABASE_URL. |
+| ✅ | **Background Worker & Scheduler (Celery + Redis)** | `HIGH` | Procfile defines separate process roles for the web app, background worker, and beat scheduler. |
+| ✅ | **Cloud Platform Blueprint (render.yaml)** | `MEDIUM` | Infrastructure-as-code blueprint exists for 1-click cloud deployment. |
+>>>>>>> 7b2e8c63ac80c6b9c259c5dd35fe56918abfc315
 
 ## 🔑 Complete Keys & Environment Configuration Blueprint
 
+<<<<<<< HEAD
 Before starting your cloud instance, populate these environment variables (see `.env.example`):
+=======
+### ❌ Compiled Production CSS (static/css/output.css) (`MEDIUM`)
+- **Problem:** output.css is missing or uncompiled; frontend styles may fail.
+- **Remediation:** Run `npm run build:css` during deployment build hook.
+
+## 🌐 Platform-by-Platform Deployment Instructions
+>>>>>>> 7b2e8c63ac80c6b9c259c5dd35fe56918abfc315
 
 | Variable Name | Required | Default / Example | Purpose / Acquisition |
 | :--- | :---: | :--- | :--- |
