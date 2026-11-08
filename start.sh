@@ -1,8 +1,17 @@
 #!/bin/bash
 set -e
 
-# Prevent glibc memory fragmentation in low-memory containers
+# Prevent glibc memory fragmentation in low-memory Linux containers
 export MALLOC_ARENA_MAX=2
+
+# Cleanup function to kill background worker if web server exits
+cleanup() {
+    echo "[start.sh] Web server stopped, terminating background worker..."
+    if [ -n "$CELERY_PID" ]; then
+        kill -TERM "$CELERY_PID" 2>/dev/null || true
+    fi
+}
+trap cleanup EXIT INT TERM
 
 echo "[start.sh] Initializing AI JobSnap..."
 
@@ -12,11 +21,6 @@ if [ "${RUN_CELERY_IN_WEB:-true}" = "true" ]; then
     celery -A app.celery worker --loglevel=info --concurrency=1 --max-tasks-per-child=20 &
     CELERY_PID=$!
     echo "[start.sh] Celery worker running (PID: $CELERY_PID)"
-
-    echo "[start.sh] Starting Celery beat scheduler in background..."
-    celery -A app.celery beat --loglevel=info &
-    BEAT_PID=$!
-    echo "[start.sh] Celery beat running (PID: $BEAT_PID)"
 fi
 
 # 2. Start Gunicorn with 1 worker and 4 threads (handles concurrent requests within memory limits)

@@ -5641,8 +5641,12 @@ def scheduled_job_hunt_for_all_users():
 
 
 # --- Flask Routes ---
-@app.route('/')
+@app.route('/', methods=['GET', 'HEAD'])
 def index():
+    # Fast 200 OK for Render's Go-http-client port scanner and health probes
+    if request.method == 'HEAD':
+        return '', 200
+
     if current_user.is_authenticated:
         if current_user.role == 'recruiter':
             return redirect(url_for('recruiter_dashboard'))
