@@ -10,6 +10,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.8
+      - key: MALLOC_ARENA_MAX
+        value: 2
       - key: FLASK_ENV
         value: production
       - key: DEBUG

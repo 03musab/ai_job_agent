@@ -162,17 +162,21 @@ app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 with app.app_context():
-    db.create_all()
-    # Migration check for topics_data column in learning_modules
     try:
-        with db.engine.connect() as conn:
-            try:
-                conn.execute(db.text("SELECT topics_data FROM learning_modules LIMIT 1"))
-            except Exception:
-                logger.info("Migrating learning_modules: adding topics_data column")
-                conn.execute(db.text("ALTER TABLE learning_modules ADD COLUMN topics_data JSON"))
-                conn.commit()
+        db.create_all()
+        # Migration check for topics_data column in learning_modules
+        try:
+            with db.engine.connect() as conn:
+                try:
+                    conn.execute(db.text("SELECT topics_data FROM learning_modules LIMIT 1"))
+                except Exception:
+                    logger.info("Migrating learning_modules: adding topics_data column")
+                    conn.execute(db.text("ALTER TABLE learning_modules ADD COLUMN topics_data JSON"))
+                    conn.commit()
+        except Exception as e:
+            logger.warning(f"Migration check failed: {e}")
     except Exception as e:
+        logger.info(f"Database tables already created or concurrent check: {e}")
         logger.warning(f"Migration check failed: {e}")
 
 UPLOAD_FOLDER = 'uploads'
