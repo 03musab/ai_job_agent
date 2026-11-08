@@ -15,10 +15,10 @@ trap cleanup EXIT INT TERM
 
 echo "[start.sh] Initializing AI JobSnap..."
 
-# 1. Start Celery worker with single-worker concurrency to fit in 512MB RAM
+# 1. Use Celery's in-process pool to avoid forking another memory-heavy app process.
 if [ "${RUN_CELERY_IN_WEB:-true}" = "true" ]; then
-    echo "[start.sh] Starting Celery worker (concurrency=1, max-tasks=20)..."
-    celery -A app.celery worker --loglevel=info --concurrency=1 --max-tasks-per-child=20 &
+    echo "[start.sh] Starting Celery worker (pool=solo)..."
+    celery -A app.celery worker --loglevel=info --pool=solo --concurrency=1 &
     CELERY_PID=$!
     echo "[start.sh] Celery worker running (PID: $CELERY_PID)"
 fi
