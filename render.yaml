@@ -8,6 +8,8 @@ services:
     startCommand: "bash start.sh"
     healthCheckPath: /healthz
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
       - key: FLASK_ENV
         value: production
       - key: DEBUG

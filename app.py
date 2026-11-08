@@ -46,7 +46,10 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-import undetected_chromedriver as uc
+try:
+    import undetected_chromedriver as uc
+except Exception:
+    uc = None
 from selenium import webdriver
 from selenium.common.exceptions import (NoSuchElementException, TimeoutException,
                                         WebDriverException as SeleniumWebDriverException)
@@ -5541,6 +5544,9 @@ def assisted_apply_task(user_id: int, job_id: int):
 
     # 2. Launch a NON-headless Selenium browser
     driver = None
+    if uc is None:
+        logger.error("[AssistApply] undetected_chromedriver is not available in this environment.")
+        return {'status': 'error', 'message': 'Browser automation is unavailable in this environment.'}
     try:
         # Use undetected_chromedriver to avoid bot detection
         options = uc.ChromeOptions()
@@ -5926,6 +5932,8 @@ def setup_assisted_apply_start_browser():
     """
     # This function is now deprecated in favor of the re-authentication flow.
     # We will re-use the Google Auth flow which is more robust.
+    if uc is None:
+        return jsonify({'status': 'error', 'message': 'Browser automation is unavailable in this cloud environment.'}), 400
     try:
         temp_profile_dir = os.path.abspath(os.path.join(app.config['UPLOAD_FOLDER'], 'chrome_setup_profile'))
         if not os.path.exists(temp_profile_dir):
@@ -5958,6 +5966,8 @@ def setup_assisted_apply_detect():
     detected_path = os.path.abspath(os.path.join(app.config['UPLOAD_FOLDER'], 'chrome_setup_profile'))
     profile_name_for_setup = "Default" # For the setup wizard, we assume the 'Default' profile
 
+    if uc is None:
+        return jsonify({'status': 'error', 'message': 'Browser automation is unavailable in this cloud environment.'}), 400
     try:
         if not detected_path or not os.path.isdir(detected_path):
             return jsonify({'status': 'error', 'message': f"Could not auto-detect a valid profile path. Detected: {detected_path}"}), 500
@@ -6015,6 +6025,9 @@ def test_assisted_apply_connection():
 
     if not profile_path or not os.path.isdir(profile_path):
         return jsonify({'status': 'error', 'message': 'No profile path is configured or the path is invalid.'}), 400
+
+    if uc is None:
+        return jsonify({'status': 'error', 'message': 'Browser automation is unavailable in this cloud environment.'}), 400
 
     driver = None
     try:

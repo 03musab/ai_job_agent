@@ -25,6 +25,7 @@ reportlab
 dnspython
 xhtml2pdf
 undetected-chromedriver
+setuptools>=70.0.0
 gunicorn
 python-dotenv>=1.0.1
 psycopg2-binary>=2.9.9
