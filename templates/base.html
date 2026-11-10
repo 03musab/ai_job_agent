@@ -167,6 +167,13 @@
                             Skill Gap & Roadmap
                         </a>
                     {% endif %}
+                    {% if current_user.is_admin %}
+                        <a href="{{ url_for('admin_pro_invites') }}" @mouseenter="onHover($event)"
+                           @click="activePill = { left: $el.offsetLeft + 'px', width: $el.offsetWidth + 'px', opacity: 1 }"
+                           class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint in ['admin_pro_invites', 'admin_upload_contacts'] else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
+                            Admin Panel
+                        </a>
+                    {% endif %}
                 {% else %}
                     <a href="{{ url_for('index') }}#features" @mouseenter="onHover($event)" class="nav-item relative z-10 px-3 py-1 rounded-md text-on-surface-variant font-medium hover:text-primary transition-colors font-body-sm text-[13px]">Product</a>
                     <a href="{{ url_for('index') }}#architecture" @mouseenter="onHover($event)" class="nav-item relative z-10 px-3 py-1 rounded-md text-on-surface-variant font-medium hover:text-primary transition-colors font-body-sm text-[13px]">Architecture</a>
@@ -213,6 +220,11 @@
                                 <p class="font-headline-md text-[13px] font-bold text-on-surface">{{ current_user.username }}</p>
                                 <span class="font-data-mono text-[9px] px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/30 uppercase font-bold tracking-wider">{{ current_user.role }}</span>
                             </div>
+                            {% if current_user.is_pro %}
+                            <span class="inline-flex items-center gap-1 mt-1 font-data-mono text-[9px] px-1.5 py-0.5 rounded bg-amber-400/15 text-amber-300 border border-amber-400/30 uppercase font-bold tracking-wider">
+                                <span class="material-symbols-outlined text-[12px]">verified</span> Pro
+                            </span>
+                            {% endif %}
                         </div>
 
                         <!-- Menu Items -->
@@ -227,10 +239,16 @@
                                 <span>Message Vault</span>
                             </a>
                             {% endif %}
+                            {% if current_user.is_admin %}
+                            <a href="{{ url_for('admin_pro_invites') }}" class="flex items-center gap-2.5 px-3 py-2 text-on-surface hover:bg-primary/10 hover:text-primary rounded-lg transition-colors font-medium">
+                                <span class="material-symbols-outlined text-[17px] text-tertiary">verified</span>
+                                <span>Pro Invitations</span>
+                            </a>
                             <a href="{{ url_for('admin_upload_contacts') }}" class="flex items-center gap-2.5 px-3 py-2 text-on-surface hover:bg-primary/10 hover:text-primary rounded-lg transition-colors font-medium">
                                 <span class="material-symbols-outlined text-[17px] text-tertiary">upload_file</span>
                                 <span>Admin Uploads</span>
                             </a>
+                            {% endif %}
                         </div>
 
                         <!-- Divider & Sign Out -->
@@ -279,6 +297,9 @@
                     <a href="{{ url_for('dashboard') }}" class="block py-1 text-on-surface hover:text-primary">Job Matches</a>
                     <a href="{{ url_for('outreach_studio') }}" class="block py-1 text-on-surface hover:text-primary">Outreach Studio</a>
                     <a href="{{ url_for('learning_path') }}" class="block py-1 text-on-surface hover:text-primary">Skill Gap & Roadmap</a>
+                {% endif %}
+                {% if current_user.is_admin %}
+                    <a href="{{ url_for('admin_pro_invites') }}" class="block py-1 text-on-surface hover:text-primary">Admin Panel</a>
                 {% endif %}
                 <div class="border-t border-outline-variant my-2"></div>
                 <a href="{{ url_for('profile') }}" class="block py-1 text-on-surface hover:text-primary">Profile Settings</a>
@@ -354,6 +375,10 @@
                 // Recruiter Post Job
                 const postJobRoutes = ['/recruiter_post_job', '/post_job'];
                 if (postJobRoutes.includes(lp) && postJobRoutes.includes(cp)) return true;
+
+                // Admin Panel routes group
+                const adminRoutes = ['/admin', '/admin/pro-invites', '/admin/upload_contacts'];
+                if (adminRoutes.includes(lp) && adminRoutes.includes(cp)) return true;
 
                 return false;
             }

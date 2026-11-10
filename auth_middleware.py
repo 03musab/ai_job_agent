@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import flash, redirect, url_for, jsonify, request
+from flask import abort, flash, redirect, url_for, jsonify, request
 from flask_login import current_user, login_required
 
 
@@ -26,6 +26,16 @@ def require_role(*roles: str):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+
+def require_admin(f):
+    """Restrict an endpoint to authenticated users named in ADMIN_USERNAMES."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not getattr(current_user, 'is_admin', False):
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def require_company_owner(f):

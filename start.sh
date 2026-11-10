@@ -15,6 +15,11 @@ trap cleanup EXIT INT TERM
 
 echo "[start.sh] Initializing AI JobSnap..."
 
+if [ "${REQUIRE_POSTGRES:-false}" = "true" ] && [ "${DATABASE_MIGRATION_COMPLETE:-false}" != "true" ]; then
+    echo "[start.sh] PostgreSQL cutover is blocked until SQLite data migration is completed."
+    exit 1
+fi
+
 # Initialize the schema once before the web server and worker import the app.
 python -c "from app import initialize_database; initialize_database()"
 

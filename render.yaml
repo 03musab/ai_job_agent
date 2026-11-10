@@ -18,6 +18,28 @@ services:
         value: false
       - key: SECRET_KEY
         generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-jobsnap-db
+          property: connectionString
+      - key: REQUIRE_POSTGRES
+        value: "true"
+      - key: DATABASE_MIGRATION_COMPLETE
+        value: "false"
+      - key: ADMIN_USERNAMES
+        sync: false
+      - key: PUBLIC_APP_URL
+        value: "https://app.jobsnap.me"
+      - key: MAIL_SERVER
+        sync: false
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
       - key: REDIS_URL
         fromService:
           type: keyvalue
@@ -37,3 +59,9 @@ services:
     name: ai-jobsnap-redis
     plan: free
     ipAllowList: [] # internal private access only
+
+databases:
+  - name: ai-jobsnap-db
+    databaseName: ai_jobsnap
+    user: ai_jobsnap
+    plan: basic-256mb

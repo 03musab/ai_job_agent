@@ -3,7 +3,14 @@
 
 {% block content %}
 <div class="max-w-[600px] mx-auto px-container-padding py-8 flex-1 flex flex-col gap-6 w-full">
-    
+    <div class="flex items-center gap-2">
+        <a href="{{ url_for('admin_pro_invites') }}" class="px-3 py-1.5 rounded-lg font-body-sm text-[13px] font-medium bg-surface-container border border-outline-variant text-on-surface-variant hover:text-on-surface transition-colors">
+            Pro Invitations
+        </a>
+        <a href="{{ url_for('admin_upload_contacts') }}" class="px-3 py-1.5 rounded-lg font-body-sm text-[13px] font-semibold bg-primary/15 text-primary border border-primary/35">
+            Directory Uploads
+        </a>
+    </div>
     <!-- Top Header -->
     <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex justify-between items-center">
         <div>
@@ -21,27 +28,6 @@
     <!-- Main Admin Card -->
     <div class="border border-outline-variant rounded-xl p-6 bg-surface-container">
         
-        {% if needs_auth %}
-        <div class="space-y-4">
-            <div class="text-center py-4">
-                <span class="material-symbols-outlined text-[40px] text-error mb-2">lock</span>
-                <h2 class="font-headline-md text-on-surface text-[16px] font-bold">Root Authentication Required</h2>
-                <p class="font-body-sm text-[12px] text-on-surface-variant mt-1">Provide administrative security passphrase to continue.</p>
-            </div>
-
-            <form action="{{ url_for('admin_upload_contacts') }}" method="POST" class="space-y-4">
-                <div>
-                    <label for="admin_password" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Master Password</label>
-                    <input type="password" name="admin_password" id="admin_password" required placeholder="••••••••"
-                        class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-2 text-body-sm text-on-surface focus:border-primary focus:outline-none">
-                </div>
-                <button type="submit"
-                    class="w-full bg-primary text-on-primary font-label-caps text-label-caps py-2.5 rounded-lg hover:bg-emerald-600 transition-colors shadow-sm">
-                    Authenticate Session
-                </button>
-            </form>
-        </div>
-        {% else %}
         <div class="space-y-6">
             
             <!-- Upload CSV -->
@@ -52,6 +38,7 @@
                 </p>
 
                 <form action="{{ url_for('admin_upload_contacts') }}" method="POST" enctype="multipart/form-data" id="upload-form" class="space-y-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <div class="border-2 border-dashed border-outline-variant/60 rounded-xl p-6 text-center hover:border-primary transition-colors bg-surface-container-lowest">
                         <span class="material-symbols-outlined text-[32px] text-on-surface-variant mb-2">upload_file</span>
                         <input type="file" name="contacts_csv" id="contacts_csv" required
@@ -72,6 +59,7 @@
                 </p>
                 <form action="{{ url_for('clear_global_contacts') }}" method="POST"
                     onsubmit="return confirm('CRITICAL: Purge ALL global contacts permanently?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <button type="submit"
                         class="w-full border border-error/40 text-error hover:bg-error/10 font-data-mono text-[10px] uppercase py-2 rounded transition-colors">
                         Purge Global Directory
@@ -80,8 +68,6 @@
             </div>
 
         </div>
-        {% endif %}
-
     </div>
 </div>
 {% endblock %}

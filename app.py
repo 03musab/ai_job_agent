@@ -4,13 +4,17 @@ import concurrent.futures
 import csv
 import datetime
 import hashlib
+import hmac
+import html
 import json
 import logging
 import os
 import pickle
 import random
 import re
+import secrets
 import signal
+import ssl
 import sqlite3
 import sys
 import threading
@@ -27,7 +31,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import unquote_plus
-from urllib.parse import quote_plus, urljoin
+from urllib.parse import quote_plus, urljoin, urlsplit
 from io import BytesIO, StringIO
 
 # --- Third-Party Imports ---
@@ -40,7 +44,7 @@ from sqlalchemy import inspect
 from bs4 import BeautifulSoup
 from celery import Celery
 from celery.schedules import crontab
-from flask import Flask, flash, jsonify, redirect, render_template, request, url_for, Response, stream_with_context, session
+from flask import Flask, abort, flash, jsonify, redirect, render_template, request, url_for, Response, stream_with_context, session
 from flask_login import (LoginManager, UserMixin, current_user, login_required,
                          login_user, logout_user)
 from google.auth.transport.requests import Request
@@ -99,7 +103,8 @@ from roadmap_service import RoadmapService
 from ai_utils import safe_ai_request
 from learning_models import LearningPath, LearningModule, UserLearningProgress
 from extensions import db
-from auth_middleware import require_role, require_company_owner, require_recruiter_company_owner
+from database import connect_database, is_postgres_configured
+from auth_middleware import require_admin, require_role, require_company_owner, require_recruiter_company_owner
 from company_validation import validate_company, sanitize_company_data
 
 if os.environ.get('ENABLE_GEVENT_PATCH', '0') == '1':
@@ -130,6 +135,21 @@ LINKEDIN_DETAIL_MAX_WORKERS = int(os.environ.get('LINKEDIN_DETAIL_MAX_WORKERS', 
 
 # --- Helpers ---
 
+_postgres_schema_lock = threading.Lock()
+_postgres_schema_ready = set()
+
+
+def _initialize_database_once(database_instance, schema_name: str):
+    if not is_postgres_configured():
+        database_instance.init_db()
+        return
+    key = (os.environ.get('DATABASE_URL'), schema_name)
+    with _postgres_schema_lock:
+        if key not in _postgres_schema_ready:
+            database_instance.init_db()
+            _postgres_schema_ready.add(key)
+
+
 def normalize_for_hash(text: str) -> str:
     """Normalize text for consistent hashing (trim, lowercase, collapse whitespace)."""
     if text is None:
@@ -154,9 +174,16 @@ def make_celery(app):
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production'
 
 # Database Configuration for Learning Paths (SQLite for now, switch to Postgres later)
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///learning_paths.db')
+if os.environ.get('REQUIRE_POSTGRES', '').strip().lower() == 'true' and not database_url.startswith(
+    ('postgres://', 'postgresql://', 'postgresql+psycopg2://', 'postgresql+psycopg://')
+):
+    raise RuntimeError("REQUIRE_POSTGRES is enabled but DATABASE_URL is not a PostgreSQL URL.")
 if database_url and database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
@@ -794,20 +821,37 @@ class Company:
         )
 
 class User(UserMixin):
-    def __init__(self, id, username, password_hash, role='seeker', email_recipients='', send_excel_attachment=True):
+    def __init__(self, id, username, password_hash, role='seeker', email_recipients='',
+                 send_excel_attachment=True, email=None, is_pro=False, account_status='active'):
         self.id = id
         self.username = username
         self.password_hash = password_hash
         self.role = role
         self.email_recipients = email_recipients
         self.send_excel_attachment = send_excel_attachment
+        self.email = email
+        self.is_pro = bool(is_pro)
+        self.account_status = account_status
+
+    @property
+    def is_admin(self):
+        admins = {
+            username.strip().casefold()
+            for username in os.environ.get('ADMIN_USERNAMES', '').split(',')
+            if username.strip()
+        }
+        return self.username.casefold() in admins
 
     @staticmethod
     def get(user_id):
         db = JobDatabase()
-        conn = sqlite3.connect(db.db_path, timeout=10)
+        conn = connect_database(db.db_path, timeout=10)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, username, password_hash, role, email_recipients, send_excel_attachment FROM users WHERE id = ?", (user_id,))
+        cursor.execute("""
+            SELECT id, username, password_hash, role, email_recipients,
+                   send_excel_attachment, email, is_pro, account_status
+            FROM users WHERE id = ?
+        """, (user_id,))
         user_data = cursor.fetchone()
         conn.close()
         if user_data:
@@ -817,9 +861,13 @@ class User(UserMixin):
     @staticmethod
     def get_by_username(username):
         db = JobDatabase()
-        conn = sqlite3.connect(db.db_path, timeout=10)
+        conn = connect_database(db.db_path, timeout=10)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, username, password_hash, role, email_recipients, send_excel_attachment FROM users WHERE username = ?", (username,))
+        cursor.execute("""
+            SELECT id, username, password_hash, role, email_recipients,
+                   send_excel_attachment, email, is_pro, account_status
+            FROM users WHERE username = ?
+        """, (username,))
         user_data = cursor.fetchone()
         conn.close()
         if user_data:
@@ -836,11 +884,11 @@ class JobDatabase:
 
     def __init__(self, db_path="jobs.db"):
         self.db_path = db_path
-        self.init_db()
+        _initialize_database_once(self, "jobs")
 
     def init_db(self):
         """Initializes the SQLite database table(s) if they don't exist, and performs schema migrations."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
 
         # --- Users Table ---
@@ -851,7 +899,10 @@ class JobDatabase:
                 password_hash TEXT NOT NULL,
                 role TEXT NOT NULL DEFAULT 'seeker',
                 email_recipients TEXT DEFAULT '',
-                send_excel_attachment BOOLEAN DEFAULT TRUE
+                send_excel_attachment BOOLEAN DEFAULT TRUE,
+                email TEXT,
+                is_pro BOOLEAN NOT NULL DEFAULT FALSE,
+                account_status TEXT NOT NULL DEFAULT 'active'
             )
         ''')
         # Perform ALTER TABLE for new user columns if they don't exist
@@ -866,6 +917,31 @@ class JobDatabase:
         if 'email_recipients' not in user_columns:
             try: cursor.execute("ALTER TABLE users ADD COLUMN email_recipients TEXT DEFAULT ''"); conn.commit(); logger.info("Added email_recipients column to users table.")
             except sqlite3.OperationalError as e: logger.warning(f"email_recipients column already exists or error altering users table: {e}")
+        if 'email' not in user_columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN email TEXT")
+            conn.commit()
+        if 'is_pro' not in user_columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN is_pro BOOLEAN NOT NULL DEFAULT FALSE")
+            conn.commit()
+        if 'account_status' not in user_columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN account_status TEXT NOT NULL DEFAULT 'active'")
+            conn.commit()
+        cursor.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_normalized
+            ON users (LOWER(email))
+            WHERE email IS NOT NULL AND TRIM(email) <> ''
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS password_setup_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token_hash TEXT UNIQUE NOT NULL,
+                expires_at TEXT NOT NULL,
+                used_at TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        """)
 
         # --- Jobs Table ---
         cursor.execute('''
@@ -1113,11 +1189,17 @@ class JobDatabase:
             logger.info("RUN_JOB_HASH_MIGRATION=1 detected; starting job_hash migration...")
             self.migrate_job_hashes_normalized()
 
-    def add_user(self, username: str, password_hash: str, role: str = 'seeker') -> Optional[int]:
-        conn = sqlite3.connect(self.db_path, timeout=10)
+    def add_user(self, username: str, password_hash: str, role: str = 'seeker',
+                 email: Optional[str] = None, is_pro: bool = False,
+                 account_status: str = 'active') -> Optional[int]:
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
-            cursor.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", (username, password_hash, role))
+            cursor.execute("""
+                INSERT INTO users
+                    (username, password_hash, role, email, is_pro, account_status)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (username, password_hash, role, email, bool(is_pro), account_status))
             conn.commit()
             logger.info(f"Created user: {username} with role: {role}")
             return cursor.lastrowid
@@ -1136,7 +1218,7 @@ class JobDatabase:
         norm = f"{normalize_for_hash(job.title)}|{normalize_for_hash(job.company)}|{normalize_for_hash(job.location)}|{user_id}"
         job_hash = hashlib.md5(norm.encode('utf-8')).hexdigest()
 
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -1214,7 +1296,7 @@ class JobDatabase:
                              experience_filter: Optional[str] = None,
                              salary_filter: Optional[str] = None) -> Tuple[List[Dict], int]:
         """Retrieves jobs for a specific user from the database, with filters and pagination."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
 
         query_columns = """
@@ -1329,7 +1411,7 @@ class JobDatabase:
     def save_search_profile(self, user_id: int, profile_name: str, search_terms: str,
                             location: str, experience: str, job_type: str) -> Optional[int]:
         """Saves a search profile for a user. Returns profile ID on success, None on failure."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -1350,7 +1432,7 @@ class JobDatabase:
 
     def get_search_profiles(self, user_id: int) -> List[Dict]:
         """Retrieves all saved search profiles for a user."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute("SELECT id, profile_name, search_terms, location, experience, job_type FROM search_profiles WHERE user_id = ?", (user_id,))
         profiles_raw = cursor.fetchall()
@@ -1362,7 +1444,7 @@ class JobDatabase:
 
     def get_search_profile_by_id(self, profile_id: int, user_id: int) -> Optional[Dict]:
         """Retrieves a single search profile by ID and user ID."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute("SELECT id, profile_name, search_terms, location, experience, job_type FROM search_profiles WHERE id = ? AND user_id = ?", (profile_id, user_id))
         profile_data = cursor.fetchone()
@@ -1374,7 +1456,7 @@ class JobDatabase:
 
     def delete_search_profile(self, profile_id: int, user_id: int) -> bool:
         """Deletes a search profile for a user."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute("DELETE FROM search_profiles WHERE id = ? AND user_id = ?", (profile_id, user_id))
         conn.commit()
@@ -1384,7 +1466,7 @@ class JobDatabase:
 
     def update_user_settings(self, user_id: int, email_recipients: str, send_excel_attachment: bool) -> bool:
         """Updates user's email notification settings."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -1402,7 +1484,7 @@ class JobDatabase:
 
     def get_user_settings(self, user_id: int) -> Optional[Dict]:
         """Retrieves a user's email notification settings."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute("SELECT email_recipients, send_excel_attachment FROM users WHERE id = ?", (user_id,))
         settings_data = cursor.fetchone()
@@ -1412,7 +1494,7 @@ class JobDatabase:
 
     def update_job_status_and_notes(self, job_id: int, user_id: int, status: str, notes: str) -> bool:
         """Updates the application status and notes for a specific job."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             applied_val = 1 if status in ('applied', 'interview', 'offered') else 0
@@ -1429,11 +1511,17 @@ class JobDatabase:
 
     def record_job_feedback(self, user_id: int, job_id: int, feedback_type: str) -> bool:
         """Records user feedback for a job and updates the job's feedback status."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("UPDATE jobs SET user_feedback = ? WHERE id = ? AND user_id = ?", (feedback_type, job_id, user_id))
-            cursor.execute("INSERT OR REPLACE INTO user_job_feedback (user_id, job_id, feedback_type, timestamp) VALUES (?, ?, ?, ?)",
+            cursor.execute("""
+                INSERT INTO user_job_feedback (user_id, job_id, feedback_type, timestamp)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(user_id, job_id) DO UPDATE SET
+                    feedback_type = excluded.feedback_type,
+                    timestamp = excluded.timestamp
+            """,
                            (user_id, job_id, feedback_type, datetime.datetime.now().isoformat()))
             conn.commit()
             return True
@@ -1445,7 +1533,7 @@ class JobDatabase:
 
     def delete_job(self, job_id: int, user_id: int) -> bool:
         """Deletes a specific job for a user."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("DELETE FROM jobs WHERE id = ? AND user_id = ?", (job_id, user_id))
@@ -1459,7 +1547,7 @@ class JobDatabase:
 
     def delete_jobs(self, job_ids: List[int], user_id: int) -> int:
         """Deletes multiple jobs for a user."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             placeholders = ','.join(['?'] * len(job_ids))
@@ -1475,7 +1563,7 @@ class JobDatabase:
 
     def delete_all_jobs(self, user_id: int) -> int:
         """Deletes all jobs for a user."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("DELETE FROM jobs WHERE user_id = ?", (user_id,))
@@ -1490,7 +1578,7 @@ class JobDatabase:
 
     def get_job_status_counts(self, user_id: int) -> Dict[str, int]:
         """Retrieves the count of jobs for each status for a specific user."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
 
         # Initialize counts to ensure all statuses are present, even if they are 0.
@@ -1537,7 +1625,7 @@ class JobDatabase:
         import re as _re
         from datetime import datetime as _dt
 
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -1818,7 +1906,7 @@ class JobDatabase:
 
     def update_custom_score(self, user_id: int, keyword: str, keyword_type: str, change_multiplier: float) -> None:
         """Adjusts the custom relevance score multiplier for a specific keyword for a user."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("SELECT score_multiplier FROM user_custom_scores WHERE user_id = ? AND keyword = ? AND keyword_type = ?",
@@ -1843,7 +1931,7 @@ class JobDatabase:
 
     def get_custom_scores(self, user_id: int) -> Dict[Tuple[str, str], float]:
         """Retrieves all custom score multipliers for a given user."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute("SELECT keyword, keyword_type, score_multiplier FROM user_custom_scores WHERE user_id = ?", (user_id,))
         rows = cursor.fetchall()
@@ -1857,7 +1945,7 @@ class JobDatabase:
 
     def migrate_job_hashes_normalized(self) -> None:
         """One-time migration to recompute job_hash using normalized title/company/location and user_id."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             # Fetch user_id to make the hash user-specific
@@ -1889,7 +1977,7 @@ class JobDatabase:
 
     def get_user_details(self, user_id: int) -> Optional[Dict]:
         """Retrieves a user's application details."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         conn.row_factory = sqlite3.Row # This allows accessing columns by name
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM user_details WHERE user_id = ?", (user_id,))
@@ -1901,17 +1989,33 @@ class JobDatabase:
 
     def save_user_details(self, user_id: int, details: Dict) -> bool:
         """Saves or updates a user's application details."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
-            # Using INSERT OR REPLACE (UPSERT) for simplicity
             cursor.execute('''
-                INSERT OR REPLACE INTO user_details (
+                INSERT INTO user_details (
                     user_id, full_name, email, phone, address,
                     linkedin_url, github_url, portfolio_url,
                     resume_path, cover_letter_template, browser_profile_path, browser_profile_name,
                     resume_parsed_data, willing_to_relocate, authorized_to_work, assisted_apply_mode, profile_picture
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    full_name = excluded.full_name,
+                    email = excluded.email,
+                    phone = excluded.phone,
+                    address = excluded.address,
+                    linkedin_url = excluded.linkedin_url,
+                    github_url = excluded.github_url,
+                    portfolio_url = excluded.portfolio_url,
+                    resume_path = excluded.resume_path,
+                    cover_letter_template = excluded.cover_letter_template,
+                    browser_profile_path = excluded.browser_profile_path,
+                    browser_profile_name = excluded.browser_profile_name,
+                    resume_parsed_data = excluded.resume_parsed_data,
+                    willing_to_relocate = excluded.willing_to_relocate,
+                    authorized_to_work = excluded.authorized_to_work,
+                    assisted_apply_mode = excluded.assisted_apply_mode,
+                    profile_picture = excluded.profile_picture
             ''', (
                 user_id,
                 details.get('full_name'), details.get('email'), details.get('phone'),
@@ -1935,7 +2039,7 @@ class JobDatabase:
 
     def delete_user_details(self, user_id: int) -> bool:
         """Deletes a user's application details from the user_details table."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("DELETE FROM user_details WHERE user_id = ?", (user_id,))
@@ -1948,7 +2052,7 @@ class JobDatabase:
             conn.close()
 
     def save_company(self, recruiter_id: int, data: Dict) -> bool:
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             existing = self.get_company_by_recruiter(recruiter_id)
@@ -2003,7 +2107,7 @@ class JobDatabase:
             conn.close()
 
     def get_company_by_recruiter(self, recruiter_id: int) -> Optional[Dict]:
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute(
@@ -2022,7 +2126,7 @@ class JobDatabase:
             conn.close()
 
     def delete_company(self, recruiter_id: int) -> bool:
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute(
@@ -2038,7 +2142,7 @@ class JobDatabase:
             conn.close()
 
     def get_recruiter_dashboard_stats(self, recruiter_id: int) -> Dict:
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute(
@@ -2087,7 +2191,7 @@ class JobDatabase:
             conn.close()
 
     def get_recruiter_active_jobs(self, recruiter_id: int) -> List[Dict]:
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -2110,7 +2214,7 @@ class JobDatabase:
 
     def get_recruiter_application_velocity(self, recruiter_id: int, days: int = 14) -> List[Dict]:
         """Computes real daily application counts for this recruiter's jobs over the last N days."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("""
@@ -2149,7 +2253,7 @@ class JobDatabase:
 
     def get_applicant_profile_for_recruiter(self, recruiter_id: int, application_id: int) -> Optional[Dict]:
         """Returns safe, professional candidate details for this application without exposing private info."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         try:
@@ -2222,7 +2326,7 @@ class JobDatabase:
             conn.close()
 
     def get_recruiter_applications(self, recruiter_id: int, limit: int = 10) -> List[Dict]:
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -2252,7 +2356,7 @@ class JobDatabase:
 
     def get_recruiter_pipeline(self, recruiter_id: int) -> Dict[str, int]:
         """Calculates accurate cumulative hiring pipeline conversion metrics for this recruiter's jobs."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         stages = ['applied', 'reviewed', 'shortlisted', 'interview', 'offer', 'hired', 'rejected']
         raw_counts = {s: 0 for s in stages}
@@ -2294,7 +2398,7 @@ class JobDatabase:
             conn.close()
 
     def generate_ai_insights(self, recruiter_id: int) -> List[Dict]:
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         insights = []
         try:
@@ -2372,7 +2476,7 @@ class JobDatabase:
             conn.close()
 
     def get_recruiter_notifications(self, recruiter_id: int, limit: int = 10) -> List[Dict]:
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -2392,7 +2496,7 @@ class JobDatabase:
             conn.close()
 
     def create_recruiter_notification(self, recruiter_id: int, notif_type: str, message: str, related_job_id: int = None) -> bool:
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -2409,7 +2513,7 @@ class JobDatabase:
 
     def add_application(self, job_id: int, applicant_name: str, applicant_email: str = None,
                         applicant_user_id: int = None, ai_match_score: float = None) -> Optional[int]:
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             now = datetime.datetime.now().isoformat()
@@ -2436,7 +2540,7 @@ class JobDatabase:
             conn.close()
 
     def update_application_status(self, application_id: int, status: str, notes: str = None) -> bool:
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             if notes:
@@ -2487,11 +2591,11 @@ class OutreachDatabase:
 
     def __init__(self, db_path="outreach.db"):
         self.db_path = db_path
-        self.init_db()
+        _initialize_database_once(self, "outreach")
 
     def init_db(self):
         """Initializes the outreach database tables if they don't exist."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
 
         # Contacts Table
@@ -2594,7 +2698,7 @@ class OutreachDatabase:
 
     def get_outreach_stats(self, user_id: int) -> Dict[str, Any]:
         """Retrieves key statistics for the outreach dashboard."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         stats = {}
         try:
@@ -2608,7 +2712,7 @@ class OutreachDatabase:
 
     def add_campaign(self, user_id: int, data: Dict) -> Optional[int]:
         """Adds a new campaign to the database."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -2631,7 +2735,7 @@ class OutreachDatabase:
 
     def update_campaign_status(self, campaign_id: int, user_id: int, status: str) -> bool:
         """Updates the status of a campaign (e.g., to 'active')."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("UPDATE campaigns SET status = ? WHERE id = ? AND user_id = ?", (status, campaign_id, user_id))
@@ -2642,7 +2746,7 @@ class OutreachDatabase:
 
     def delete_campaign(self, campaign_id: int, user_id: int) -> bool:
         """Deletes a campaign."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("DELETE FROM campaigns WHERE id = ? AND user_id = ?", (campaign_id, user_id))
@@ -2653,7 +2757,7 @@ class OutreachDatabase:
 
     def get_templates_by_user(self, user_id: int) -> List[Dict]:
         """Retrieves all templates for a specific user, providing starter templates if empty."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         try:
@@ -2695,7 +2799,7 @@ class OutreachDatabase:
 
     def add_template(self, user_id: int, data: Dict) -> Optional[int]:
         """Adds a new template to the database."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -2720,7 +2824,7 @@ class OutreachDatabase:
 
     def get_template_by_id(self, template_id: int, user_id: int) -> Optional[Dict]:
         """Retrieves a single template by its ID for a specific user."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         try:
@@ -2735,7 +2839,7 @@ class OutreachDatabase:
 
     def update_template(self, template_id: int, user_id: int, data: Dict) -> bool:
         """Updates an existing template."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -2762,7 +2866,7 @@ class OutreachDatabase:
 
     def delete_template(self, template_id: int, user_id: int) -> bool:
         """Deletes a template from the database."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("DELETE FROM templates WHERE id = ? AND user_id = ?", (template_id, user_id))
@@ -2776,7 +2880,7 @@ class OutreachDatabase:
 
     def add_global_contacts(self, contacts: List[Dict]) -> int:
         """Adds a list of contact dictionaries to the global contacts table, ignoring duplicates."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         inserted_count = 0
         try:
@@ -2804,7 +2908,7 @@ class OutreachDatabase:
         Searches global contacts for keywords and copies matches to a user's personal contacts.
         Returns the number of new contacts added.
         """
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         
         # Build the search query for global contacts
@@ -2833,7 +2937,7 @@ class OutreachDatabase:
 
     def add_contact(self, user_id: int, data: Dict) -> bool:
         """Adds a new contact, avoiding duplicates based on LinkedIn URL."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -2856,7 +2960,7 @@ class OutreachDatabase:
 
     def get_contacts_by_user(self, user_id: int) -> List[Dict]:
         """Retrieves all contacts for a specific user, seeding from global directory if empty."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         try:
@@ -2887,7 +2991,7 @@ class OutreachDatabase:
 
     def clear_global_contacts(self) -> int:
         """Deletes all records from the global_hiring_contacts table."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("DELETE FROM global_hiring_contacts")
@@ -2899,7 +3003,7 @@ class OutreachDatabase:
 
     def delete_contact(self, contact_id: int, user_id: int) -> bool:
         """Deletes a single personal contact for a specific user."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("DELETE FROM contacts WHERE id = ? AND user_id = ?", (contact_id, user_id))
@@ -2910,7 +3014,7 @@ class OutreachDatabase:
 
     def delete_all_contacts_for_user(self, user_id: int) -> int:
         """Deletes all personal contacts for a specific user."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("DELETE FROM contacts WHERE user_id = ?", (user_id,))
@@ -2922,7 +3026,7 @@ class OutreachDatabase:
 
     def update_contact_note(self, contact_id: int, user_id: int, note: str) -> bool:
         """Updates the note for a specific contact."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("UPDATE contacts SET notes = ? WHERE id = ? AND user_id = ?", (note, contact_id, user_id))
@@ -2934,7 +3038,7 @@ class OutreachDatabase:
 
     def get_campaigns_with_analytics(self, user_id: int) -> List[Dict]:
         """Retrieves all campaigns for a user, enriched with analytics from outreach_logs."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn = connect_database(self.db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         try:
@@ -5499,7 +5603,7 @@ def assisted_apply_task(user_id: int, job_id: int):
     Uses a pre-existing browser profile if configured by the user, to maintain login sessions.
     """
     db = JobDatabase()
-    conn = sqlite3.connect(db.db_path, timeout=10)
+    conn = connect_database(db.db_path, timeout=10)
     conn.row_factory = sqlite3.Row # Use row_factory for dict-like access
     cursor = conn.cursor()
 
@@ -5620,7 +5724,7 @@ def assisted_apply_task(user_id: int, job_id: int):
 @celery.task(name='app.scheduled_job_hunt_for_all_users')
 def scheduled_job_hunt_for_all_users():
     db = JobDatabase()
-    conn = sqlite3.connect(db.db_path, timeout=10)
+    conn = connect_database(db.db_path, timeout=10)
     cursor = conn.cursor()
     cursor.execute("SELECT id, username FROM users")
     users = cursor.fetchall()
@@ -5693,6 +5797,517 @@ def page_not_found(e):
     return render_template('404.html', now=datetime.datetime.now()), 404
 
 
+def _admin_csrf_token() -> str:
+    if 'admin_csrf_token' not in session:
+        session['admin_csrf_token'] = secrets.token_urlsafe(32)
+    return session['admin_csrf_token']
+
+
+def _check_admin_csrf():
+    expected = session.get('admin_csrf_token', '')
+    provided = request.form.get('csrf_token', '')
+    if not expected or not provided or not hmac.compare_digest(expected, provided):
+        abort(400)
+
+
+def _valid_invite_email(value: str) -> Optional[str]:
+    email_address = (value or '').strip().casefold()
+    if len(email_address) > 254 or not re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', email_address):
+        return None
+    return email_address
+
+
+def _invite_username_base(name: str, email_address: str) -> str:
+    source = name.strip() or email_address.partition('@')[0]
+    ascii_name = source.encode('ascii', 'ignore').decode('ascii').casefold()
+    username = re.sub(r'[^a-z0-9._-]+', '.', ascii_name).strip('._-')
+    if not username:
+        local_part = email_address.partition('@')[0].encode('ascii', 'ignore').decode('ascii').casefold()
+        username = re.sub(r'[^a-z0-9._-]+', '.', local_part).strip('._-')
+    return (username or 'member')[:48]
+
+
+def _parse_invite_entries():
+    entries = []
+    errors = []
+    uploaded = request.files.get('invite_csv')
+    if uploaded and uploaded.filename:
+        raw_csv = uploaded.stream.read(2 * 1024 * 1024 + 1)
+        if len(raw_csv) > 2 * 1024 * 1024:
+            errors.append('CSV file exceeds the 2 MB limit.')
+        else:
+            try:
+                reader = csv.DictReader(StringIO(raw_csv.decode('utf-8-sig')))
+                headers = {
+                    str(header or '').strip().casefold(): header
+                    for header in (reader.fieldnames or [])
+                }
+                email_header = headers.get('email') or headers.get('email address')
+                name_header = headers.get('name') or headers.get('full_name') or headers.get('full name')
+                if not email_header:
+                    errors.append('CSV needs an Email column.')
+                else:
+                    for line_number, row in enumerate(reader, start=2):
+                        entries.append({
+                            'email': row.get(email_header, ''),
+                            'name': row.get(name_header, '') if name_header else '',
+                            'line': line_number,
+                        })
+            except UnicodeDecodeError:
+                errors.append('CSV must use UTF-8 encoding.')
+
+    pasted = request.form.get('invitees', '').strip()
+    if pasted:
+        for line_number, row in enumerate(csv.reader(StringIO(pasted)), start=1):
+            if row and row[0].strip().casefold() in ('email', 'email address'):
+                continue
+            entries.append({
+                'email': row[0] if row else '',
+                'name': row[1] if len(row) > 1 else '',
+                'line': line_number,
+            })
+
+    normalized = []
+    seen = set()
+    for entry in entries:
+        email_address = _valid_invite_email(entry['email'])
+        if not email_address:
+            errors.append(f"Invalid email in row {entry['line']}.")
+            continue
+        if email_address in seen:
+            continue
+        seen.add(email_address)
+        normalized.append({
+            'email': email_address,
+            'name': str(entry['name'] or '').strip()[:120],
+        })
+    if not normalized and not errors:
+        errors.append('Add at least one valid email address.')
+    return normalized, errors
+
+
+def _send_mime_via_gmail_token(message: MIMEMultipart) -> bool:
+    """Send a MIME message via existing non-interactive Gmail OAuth credentials."""
+    token_path = 'token.pickle'
+    if not os.path.exists(token_path):
+        return False
+
+    with open(token_path, 'rb') as token_file:
+        creds = pickle.load(token_file)
+
+    allowed_scopes = {'https://www.googleapis.com/auth/gmail.send', 'https://mail.google.com/'}
+    if creds and getattr(creds, 'scopes', None) and not (set(creds.scopes) & allowed_scopes):
+        return False
+
+    if creds and not creds.valid and creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+        try:
+            with open(token_path, 'wb') as token_file:
+                pickle.dump(creds, token_file)
+        except OSError as exc:
+            logger.warning(f"Could not persist refreshed Gmail token: {exc}")
+
+    if not creds or not creds.valid:
+        return False
+
+    service = build('gmail', 'v1', credentials=creds)
+    raw = base64.urlsafe_b64encode(message.as_bytes()).decode('ascii')
+    service.users().messages().send(userId='me', body={'raw': raw}).execute()
+    return True
+
+
+def _build_pro_invite_email_bodies(name: str, username: str, setup_link: str) -> Tuple[str, str]:
+    """Build polished plain-text and HTML invitation bodies for Pro onboarding."""
+    clean_name = (name or '').strip()
+    plain_greeting = f"Hi {clean_name}," if clean_name else "Hello,"
+    html_greeting = f"Hi <strong>{html.escape(clean_name)}</strong>," if clean_name else "Hello,"
+
+    plain_body = (
+        f"{plain_greeting}\n\n"
+        "Welcome to AI JobSnap Pro. Your invitation has been approved and your account is ready to activate.\n\n"
+        "Account Details\n"
+        "---------------\n"
+        "Plan: AI JobSnap Pro\n"
+        f"Username: {username}\n"
+        "Link Validity: 24 hours (one-time use)\n\n"
+        "Complete your setup and choose your password using this secure one-time link:\n"
+        f"{setup_link}\n\n"
+        "For your security, this link can only be used once and expires in 24 hours. "
+        "If you were not expecting this invitation, you can safely ignore this email.\n\n"
+        "Best regards,\n"
+        "The AI JobSnap Team"
+    )
+
+    safe_username = html.escape(username)
+    safe_link = html.escape(setup_link, quote=True)
+    html_body = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to AI JobSnap Pro</title>
+</head>
+<body style="margin: 0; padding: 24px 12px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a; line-height: 1.6;">
+    <span style="display: none; font-size: 1px; color: #f8fafc; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden;">
+        Your AI JobSnap Pro account is ready — activate it using your one-time setup link.
+    </span>
+    <table role="presentation" align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 560px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);">
+        <tr>
+            <td style="padding: 24px 32px; border-bottom: 1px solid #f1f5f9;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em; color: #0f172a;">
+                            AI JobSnap
+                        </td>
+                        <td align="right">
+                            <span style="display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: #059669; background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 4px 10px; border-radius: 999px; text-transform: uppercase;">
+                                Pro Access
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 32px;">
+                <h1 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: -0.01em;">
+                    Your Pro account is ready
+                </h1>
+                <p style="margin: 0 0 16px 0; font-size: 15px; color: #334155;">
+                    {html_greeting}
+                </p>
+                <p style="margin: 0 0 22px 0; font-size: 14px; color: #475569;">
+                    Welcome to <strong style="color: #0f172a;">AI JobSnap Pro</strong>. Your invitation has been confirmed, giving you full access to AI resume matching, curated career roadmaps, and outreach automation.
+                </p>
+
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin: 0 0 24px 0;">
+                    <tr>
+                        <td style="padding: 16px 20px;">
+                            <p style="margin: 0 0 8px 0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b;">
+                                Account Details
+                            </p>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 13.5px;">
+                                <tr>
+                                    <td style="padding: 4px 0; color: #64748b; width: 120px;">Plan</td>
+                                    <td style="padding: 4px 0; color: #0f172a; font-weight: 600;">AI JobSnap Pro</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 4px 0; color: #64748b;">Username</td>
+                                    <td style="padding: 4px 0;">
+                                        <span style="display: inline-block; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; font-weight: 600; color: #0f172a; background-color: #e2e8f0; padding: 2px 8px; border-radius: 4px;">
+                                            {safe_username}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 4px 0; color: #64748b;">Link Validity</td>
+                                    <td style="padding: 4px 0; color: #0f172a; font-weight: 500;">24 hours (one-time use)</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 24px 0;">
+                    <tr>
+                        <td align="center" bgcolor="#0f172a" style="border-radius: 8px;">
+                            <a href="{safe_link}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 13px 26px; font-size: 14px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px;">
+                                Set Up Your Password &rarr;
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+
+                <p style="margin: 0 0 8px 0; font-size: 12.5px; color: #64748b;">
+                    If the button above doesn&#39;t work, copy and paste this URL into your browser:
+                </p>
+                <p style="margin: 0 0 24px 0; font-size: 12px; line-height: 1.5; word-break: break-all;">
+                    <a href="{safe_link}" style="color: #0284c7; text-decoration: underline;">{safe_link}</a>
+                </p>
+
+                <div style="border-top: 1px solid #f1f5f9; padding-top: 18px;">
+                    <p style="margin: 0 0 12px 0; font-size: 12.5px; color: #64748b;">
+                        For your security, this link can only be used once and expires in 24 hours. If you were not expecting this invitation, you can safely ignore this message.
+                    </p>
+                    <p style="margin: 0; font-size: 13.5px; color: #334155;">
+                        Best regards,<br>
+                        <strong style="color: #0f172a;">The AI JobSnap Team</strong>
+                    </p>
+                </div>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
+    return plain_body, html_body
+
+
+def _send_password_setup_email(email_address: str, name: str, username: str, token: str):
+    mail_server = os.environ.get('MAIL_SERVER')
+    mail_username = os.environ.get('MAIL_USERNAME')
+    mail_password = os.environ.get('MAIL_PASSWORD')
+    smtp_configured = all((mail_server, mail_username, mail_password))
+    if not smtp_configured and not os.path.exists('token.pickle'):
+        raise RuntimeError('Email delivery is not configured. Set MAIL_SERVER, MAIL_USERNAME, and MAIL_PASSWORD.')
+
+    public_url = os.environ.get('PUBLIC_APP_URL', '').strip() or 'https://app.jobsnap.me'
+    parsed_url = urlsplit(public_url)
+    if not parsed_url.netloc or (
+        os.environ.get('FLASK_ENV') == 'production' and parsed_url.scheme != 'https'
+    ):
+        raise RuntimeError('PUBLIC_APP_URL must be an absolute HTTPS URL in production.')
+
+    setup_path = url_for('set_password', token=token).lstrip('/')
+    setup_link = urljoin(public_url.rstrip('/') + '/', setup_path)
+    plain_body, html_body = _build_pro_invite_email_bodies(name, username, setup_link)
+    message = MIMEMultipart('alternative')
+    message['Subject'] = 'Welcome to AI JobSnap Pro — Set Up Your Account'
+    mail_from = os.environ.get('MAIL_FROM') or mail_username
+    if mail_from:
+        message['From'] = mail_from
+    message['To'] = email_address
+    message.attach(MIMEText(plain_body, 'plain', 'utf-8'))
+    message.attach(MIMEText(html_body, 'html', 'utf-8'))
+
+    if not smtp_configured:
+        if _send_mime_via_gmail_token(message):
+            return
+        raise RuntimeError('Email delivery is not configured. Set MAIL_SERVER, MAIL_USERNAME, and MAIL_PASSWORD.')
+
+    port = int(os.environ.get('MAIL_PORT', '587'))
+    if port == 465:
+        with smtplib.SMTP_SSL(mail_server, port, timeout=15, context=ssl.create_default_context()) as server:
+            server.login(mail_username, mail_password)
+            server.send_message(message)
+    else:
+        with smtplib.SMTP(mail_server, port, timeout=15) as server:
+            server.ehlo()
+            server.starttls(context=ssl.create_default_context())
+            server.ehlo()
+            server.login(mail_username, mail_password)
+            server.send_message(message)
+
+
+def _invite_pro_user(email_address: str, name: str) -> str:
+    db_instance = JobDatabase()
+    conn = connect_database(db_instance.db_path, timeout=10)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT DISTINCT u.id, u.username, u.password_hash, u.role,
+                   u.email_recipients, u.send_excel_attachment, u.email,
+                   u.is_pro, u.account_status
+            FROM users u
+            LEFT JOIN user_details d ON d.user_id = u.id
+            WHERE LOWER(TRIM(COALESCE(NULLIF(u.email, ''), d.email, ''))) = ?
+        """, (email_address,))
+        matches = cursor.fetchall()
+        if len(matches) > 1:
+            return 'ambiguous'
+
+        if matches:
+            user = matches[0]
+            user_id, username, account_status = user[0], user[1], user[8]
+            if account_status == 'pending':
+                result = 'invited'
+            else:
+                result = 'already_pro' if bool(user[7]) else 'upgraded'
+            cursor.execute(
+                "UPDATE users SET email = ?, is_pro = TRUE WHERE id = ?",
+                (email_address, user_id),
+            )
+        else:
+            base_username = _invite_username_base(name, email_address)
+            username = base_username
+            suffix = 2
+            while True:
+                cursor.execute("SELECT 1 FROM users WHERE LOWER(username) = ?", (username.casefold(),))
+                if cursor.fetchone() is None:
+                    break
+                username = f"{base_username[:44]}{suffix}"
+                suffix += 1
+            initial_password = generate_password_hash(secrets.token_urlsafe(32))
+            cursor.execute("""
+                INSERT INTO users
+                    (username, password_hash, role, email, is_pro, account_status)
+                VALUES (?, ?, 'seeker', ?, TRUE, 'pending')
+            """, (username, initial_password, email_address))
+            user_id = cursor.lastrowid
+            if user_id is None:
+                raise RuntimeError('Could not create the invited account.')
+            account_status = 'pending'
+            result = 'invited'
+
+        cursor.execute("""
+            INSERT INTO user_details (user_id, full_name, email)
+            VALUES (?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                full_name = COALESCE(NULLIF(user_details.full_name, ''), excluded.full_name),
+                email = excluded.email
+        """, (user_id, name or None, email_address))
+
+        if account_status == 'active':
+            conn.commit()
+            return result
+
+        now = datetime.datetime.utcnow()
+        token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
+        cursor.execute("""
+            UPDATE password_setup_tokens SET used_at = ?
+            WHERE user_id = ? AND used_at IS NULL
+        """, (now.isoformat(), user_id))
+        cursor.execute("""
+            INSERT INTO password_setup_tokens (user_id, token_hash, expires_at, created_at)
+            VALUES (?, ?, ?, ?)
+        """, (
+            user_id,
+            token_hash,
+            (now + datetime.timedelta(hours=24)).isoformat(),
+            now.isoformat(),
+        ))
+        _send_password_setup_email(email_address, name, username, token)
+        conn.commit()
+        return result
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+@app.route('/admin/pro-invites', methods=['GET', 'POST'])
+@login_required
+@require_admin
+def admin_pro_invites():
+    csrf_token = _admin_csrf_token()
+    if request.method == 'POST':
+        _check_admin_csrf()
+        if request.form.get('action') == 'preview':
+            entries, errors = _parse_invite_entries()
+            for error in errors:
+                flash(error, 'danger')
+            if not entries:
+                return render_template(
+                    'admin_pro_invites.html',
+                    csrf_token=csrf_token,
+                    preview_entries=None,
+                )
+            return render_template(
+                'admin_pro_invites.html',
+                csrf_token=csrf_token,
+                preview_entries=entries,
+            )
+
+        if request.form.get('action') == 'send':
+            try:
+                entries = json.loads(request.form.get('entries_json', ''))
+            except (TypeError, ValueError):
+                abort(400)
+            if not isinstance(entries, list) or not entries or len(entries) > 500:
+                abort(400)
+            invited = upgraded = already_pro = 0
+            errors = []
+            seen = set()
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    errors.append('One invitation row was invalid.')
+                    continue
+                email_address = _valid_invite_email(entry.get('email', ''))
+                if not email_address or email_address in seen:
+                    errors.append('An invitation contained an invalid or repeated email.')
+                    continue
+                seen.add(email_address)
+                name = str(entry.get('name') or '').strip()[:120]
+                try:
+                    result = _invite_pro_user(email_address, name)
+                    if result == 'ambiguous':
+                        errors.append('An email matched multiple existing accounts and was skipped.')
+                    elif result == 'invited':
+                        invited += 1
+                    elif result == 'upgraded':
+                        upgraded += 1
+                    elif result == 'already_pro':
+                        already_pro += 1
+                except Exception:
+                    logger.error("Pro invitation failed.", exc_info=True)
+                    errors.append('An invitation could not be completed. Check email/database configuration and retry.')
+            if invited or upgraded or already_pro:
+                flash(
+                    f'{invited} invitation email(s) sent; {upgraded} existing account(s) upgraded; '
+                    f'{already_pro} account(s) were already Pro.',
+                    'success',
+                )
+            for error in errors:
+                flash(error, 'danger')
+            return redirect(url_for('admin_pro_invites'))
+        abort(400)
+
+    return render_template(
+        'admin_pro_invites.html',
+        csrf_token=csrf_token,
+        preview_entries=None,
+    )
+
+
+@app.route('/set-password/<token>', methods=['GET', 'POST'])
+def set_password(token):
+    token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
+    conn = connect_database(JobDatabase().db_path, timeout=10)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT t.id, t.user_id, t.expires_at, u.account_status
+        FROM password_setup_tokens t
+        JOIN users u ON u.id = t.user_id
+        WHERE t.token_hash = ? AND t.used_at IS NULL
+    """, (token_hash,))
+    invitation = cursor.fetchone()
+    if not invitation:
+        conn.close()
+        abort(404)
+    try:
+        expires_at = datetime.datetime.fromisoformat(invitation[2])
+    except (TypeError, ValueError):
+        conn.close()
+        logger.error("Password setup token has an invalid expiry value.")
+        abort(404)
+    if expires_at <= datetime.datetime.utcnow() or invitation[3] != 'pending':
+        conn.close()
+        abort(404)
+
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        if len(password) < 12:
+            flash('Choose a password with at least 12 characters.', 'danger')
+        elif password != confirm_password:
+            flash('The passwords do not match.', 'danger')
+        else:
+            now = datetime.datetime.utcnow().isoformat()
+            cursor.execute("""
+                UPDATE password_setup_tokens SET used_at = ?
+                WHERE id = ? AND used_at IS NULL AND expires_at > ?
+            """, (now, invitation[0], now))
+            if cursor.rowcount != 1:
+                conn.rollback()
+                conn.close()
+                abort(404)
+            cursor.execute(
+                "UPDATE users SET password_hash = ?, account_status = 'active' WHERE id = ? AND account_status = 'pending'",
+                (generate_password_hash(password), invitation[1]),
+            )
+            if cursor.rowcount != 1:
+                conn.rollback()
+                conn.close()
+                abort(404)
+            conn.commit()
+            conn.close()
+            flash('Password set successfully. You can now sign in.', 'success')
+            return redirect(url_for('login'))
+    conn.close()
+    return render_template('set_password.html')
+
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
@@ -5700,7 +6315,10 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        role = request.form.get('role', 'seeker') # Get role from form
+        role = request.form.get('role', 'seeker')
+        if role not in ('seeker', 'recruiter'):
+            flash('Invalid account role.', 'danger')
+            return redirect(url_for('login') + '#register')
         password_hash = generate_password_hash(password)
         db = JobDatabase()
         user_id = db.add_user(username, password_hash, role)
@@ -5712,23 +6330,49 @@ def register():
             return redirect(url_for('login') + '#register')
     return redirect(url_for('login') + '#register')
 
+@app.route('/admin/login')
+def admin_login():
+    """Open the shared sign-in form in administrator-only mode."""
+    return redirect(url_for('login', admin='1'))
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    admin_login_mode = (
+        request.args.get('admin') == '1'
+        or request.form.get('admin_login') == '1'
+    )
     if current_user.is_authenticated:
+        if admin_login_mode:
+            if current_user.is_admin:
+                return redirect(url_for('admin_pro_invites'))
+            logout_user()
+            flash('Sign in with an authorized administrator account.', 'danger')
+            return redirect(url_for('login', admin='1'))
         return redirect(url_for('dashboard'))
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
         db_user = User.get_by_username(username)
-        if db_user and check_password_hash(db_user.password_hash, password):
+        if db_user and db_user.account_status == 'active' and check_password_hash(db_user.password_hash, password):
             login_user(db_user)
+            if admin_login_mode and not db_user.is_admin:
+                logout_user()
+                flash('This account is not authorized for administrator access.', 'danger')
+                return redirect(url_for('login', admin='1'))
             flash('Logged in successfully!', 'success')
+            if admin_login_mode:
+                return redirect(url_for('admin_pro_invites'))
             if db_user.role == 'recruiter':
                 return redirect(url_for('recruiter_dashboard'))
             return redirect(url_for('dashboard'))
         else:
             flash('Login Unsuccessful. Please check username and password', 'danger')
-    return render_template('login.html', now=datetime.datetime.now())
+    return render_template(
+        'login.html',
+        now=datetime.datetime.now(),
+        admin_login=admin_login_mode,
+    )
 
 @app.route('/logout')
 @login_required
@@ -6119,22 +6763,12 @@ def delete_all_personal_contacts():
 
 @app.route('/admin/upload_contacts', methods=['GET', 'POST'])
 @login_required
+@require_admin
 def admin_upload_contacts():
-    # Admin password protection
-    admin_pass = os.environ.get('ADMIN_UPLOAD_PASS', 'admin123')
-    
-    if not session.get('admin_authenticated'):
-        if request.method == 'POST' and request.form.get('admin_password'):
-            if request.form.get('admin_password') == admin_pass:
-                session['admin_authenticated'] = True
-                flash('Admin authenticated successfully.', 'success')
-                return redirect(url_for('admin_upload_contacts'))
-            else:
-                flash('Invalid admin password.', 'danger')
-        
-        return render_template('admin_upload.html', needs_auth=True)
+    csrf_token = _admin_csrf_token()
 
     if request.method == 'POST':
+        _check_admin_csrf()
         if 'contacts_csv' not in request.files:
             flash('No file part in the request.', 'danger')
             return redirect(request.url)
@@ -6203,14 +6837,13 @@ def admin_upload_contacts():
                 flash(f'An error occurred: {e}', 'danger')
             return redirect(url_for('admin_upload_contacts'))
 
-    return render_template('admin_upload.html', needs_auth=False)
+    return render_template('admin_upload.html', needs_auth=False, csrf_token=csrf_token)
 
 @app.route('/admin/clear_global_contacts', methods=['POST'])
 @login_required
+@require_admin
 def clear_global_contacts():
-    if not session.get('admin_authenticated'):
-        flash('Admin authentication required.', 'danger')
-        return redirect(url_for('admin_upload_contacts'))
+    _check_admin_csrf()
     try:
         outreach_db = OutreachDatabase()
         count = outreach_db.clear_global_contacts()
@@ -6882,7 +7515,7 @@ def dashboard():
     user_skills = []
     user_years = None
     try:
-        conn = sqlite3.connect(db.db_path, timeout=10)
+        conn = connect_database(db.db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         c.execute("SELECT resume_parsed_data FROM user_details WHERE user_id = ?", (current_user.id,))
@@ -6976,7 +7609,7 @@ def job_details(job_id):
     # Load user skills
     user_skills = []
     try:
-        conn = sqlite3.connect(db.db_path, timeout=10)
+        conn = connect_database(db.db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         c.execute("SELECT resume_parsed_data FROM user_details WHERE user_id = ?", (current_user.id,))
@@ -7922,7 +8555,7 @@ def api_mark_notification_read(recruiter_id, notification_id):
         return jsonify({'error': 'Unauthorized'}), 403
     try:
         db = JobDatabase()
-        conn = sqlite3.connect(db.db_path, timeout=10)
+        conn = connect_database(db.db_path, timeout=10)
         cursor = conn.cursor()
         cursor.execute("UPDATE recruiter_notifications SET is_read = 1 WHERE id = ? AND recruiter_id = ?",
                        (notification_id, recruiter_id))

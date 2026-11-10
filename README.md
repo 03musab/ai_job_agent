@@ -28,7 +28,7 @@
 
 | Layer | Technologies |
 |---|---|
-| **Backend** | Python 3.10+, Flask, Flask-Login, Celery, SQLite, SQLAlchemy, `gevent` |
+| **Backend** | Python 3.10+, Flask, Flask-Login, Celery, SQLite (local), PostgreSQL (Render), SQLAlchemy, `gevent` |
 | **Frontend** | Tailwind CSS, Bootstrap 5, Jinja2, Chart.js, HTML5 / Vanilla JS |
 | **Task Queue & Caching** | Redis (Celery broker & result backend) |
 | **Scraping & Automation** | Selenium WebDriver (Edge / Chrome), `BeautifulSoup4`, `requests` |
@@ -109,6 +109,20 @@ ADMIN_ALERT_EMAIL=admin@example.com
 # Optional: Path to custom WebDriver executable
 EDGE_DRIVER_PATH="C:\WebDrivers\msedgedriver.exe"
 ```
+
+### Render PostgreSQL and Pro invitations
+
+The Render blueprint provisions a managed PostgreSQL database and connects it to the web service through `DATABASE_URL`. Login, signup, application records, outreach data, and learning-path data use that same hosted database in production; local development and tests can continue to use SQLite.
+
+The current SQLite database files are not included in deployments. Before switching an existing live installation, make a backup of its `jobs.db`, `outreach.db`, and `instance/learning_paths.db` files while they are still accessible. The app does not automatically migrate them at startup. The Render blueprint links the internal database URL automatically, but the web process stays blocked until migration is verified. After the Render database is available, set `DATABASE_URL` locally to its external connection URL and run:
+
+```powershell
+python scripts\migrate_sqlite_to_postgres.py --confirm
+```
+
+The migration command creates SQLite backups, requires an empty PostgreSQL target, copies the records, and verifies row counts. After it succeeds, set `DATABASE_MIGRATION_COMPLETE=true` in Render to let the service start against the already-linked internal URL. Do not commit either connection URL. Render's managed PostgreSQL is a separate paid resource; check the current Render dashboard for available plans and pricing. If you cannot back up the existing SQLite files, do not enable the migration flag or cut over.
+
+To enable the Pro invite page, set `ADMIN_USERNAMES` in Render to the username of an existing trusted account. Configure `PUBLIC_APP_URL`, `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, and optionally `MAIL_FROM` in Render's environment settings. The page is inaccessible to other logged-in accounts. Admin confirmation sends a one-time password setup email; tests mock mail delivery and never send real email.
 
 ### 4. Google API Setup (Gmail & Calendar)
 

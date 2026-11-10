@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Sign In & Register — AI JobSnap{% endblock %}
+{% block title %}{% if admin_login %}Admin Sign In{% else %}Sign In & Register — AI JobSnap{% endif %}{% endblock %}
 {% block navbar %}{% endblock %}
 {% block body_class %}min-h-screen w-full lg:h-screen lg:overflow-hidden m-0 p-0 bg-[#070c1e]{% endblock %}
 {% block main_class %}p-0 m-0 min-h-screen w-full lg:h-screen lg:overflow-hidden{% endblock %}
@@ -28,10 +28,12 @@
             <!-- Mobile Quick Header: About Link & Segmented Toggle Pill -->
             <div class="flex items-center gap-2.5 lg:hidden">
                 <a href="https://jobsnap.me/#home" target="_blank" rel="noopener noreferrer" class="text-[11px] font-semibold text-slate-500 hover:text-slate-900 uppercase tracking-wider px-1">About</a>
+                {% if not admin_login %}
                 <div class="flex bg-slate-100 p-0.5 rounded-full border border-slate-200 text-[11px] font-semibold">
                     <button type="button" onclick="setAuthMode('login')" id="mobileBtnLogin" class="px-2.5 py-1 rounded-full bg-slate-900 text-white transition-colors duration-200 cursor-pointer">Sign In</button>
                     <button type="button" onclick="setAuthMode('register')" id="mobileBtnRegister" class="px-2.5 py-1 rounded-full text-slate-600 transition-colors duration-200 cursor-pointer">Register</button>
                 </div>
+                {% endif %}
             </div>
         </div>
 
@@ -47,7 +49,14 @@
 
                 <!-- ==================== SIGN IN FORM ==================== -->
                 <div id="signInSection" class="auth-panel auth-panel-active">
-                    <form action="{{ url_for('login') }}" method="POST" class="space-y-4">
+                    {% if admin_login %}
+                    <div class="mb-4 text-center">
+                        <h1 class="text-lg font-bold text-slate-900">Administrator Sign In</h1>
+                        <p class="mt-1 text-xs text-slate-600">Use an account authorized for admin access.</p>
+                    </div>
+                    {% endif %}
+                    <form action="{{ url_for('login', admin='1') if admin_login else url_for('login') }}" method="POST" class="space-y-4">
+                        {% if admin_login %}<input type="hidden" name="admin_login" value="1">{% endif %}
                         <!-- Pill Input: Username (Borderless) -->
                         <div class="relative">
                             <div class="flex items-center rounded-full px-4 py-3 sm:py-2.5 bg-slate-100 focus-within:bg-slate-50 focus-within:ring-2 focus-within:ring-slate-900/15 transition-all">
@@ -83,16 +92,26 @@
                             </a>
                         </div>
 
+                        {% if admin_login %}
+                        <div class="text-center pt-1">
+                            <a href="{{ url_for('login') }}" class="text-[11px] text-slate-600 hover:text-slate-900 underline font-medium">Return to regular sign in</a>
+                        </div>
+                        {% else %}
                         <!-- Switcher to Register Mode -->
                         <div class="text-center pt-1">
                             <button type="button" onclick="setAuthMode('register')" class="text-[11px] text-slate-600 hover:text-slate-900 underline font-medium cursor-pointer">
                                 Don't have an account? Create Account
                             </button>
                         </div>
+                        <div class="text-center pt-1">
+                            <a href="{{ url_for('admin_login') }}" class="text-[11px] text-slate-500 hover:text-slate-900 underline font-medium">Administrator sign in</a>
+                        </div>
+                        {% endif %}
                     </form>
                 </div>
 
                 <!-- ==================== SIGN UP FORM ==================== -->
+                {% if not admin_login %}
                 <div id="signUpSection" class="auth-panel auth-panel-hidden">
                     <form action="{{ url_for('register') }}" method="POST" class="space-y-3.5">
                         <!-- Pill Input: Username (Borderless) -->
@@ -138,14 +157,17 @@
                         </div>
                     </form>
                 </div>
+                {% endif %}
             </div>
         </div>
 
         <!-- Bottom Pagination Dots (Sign In & Register States) -->
+        {% if not admin_login %}
         <div class="flex items-center justify-center gap-2 pt-2">
             <button type="button" onclick="setAuthMode('login')" id="dotLogin" class="dot-indicator w-2.5 h-2.5 rounded-full bg-slate-900 cursor-pointer" title="Sign In"></button>
             <button type="button" onclick="setAuthMode('register')" id="dotRegister" class="dot-indicator w-2.5 h-2.5 rounded-full bg-slate-300 hover:bg-slate-500 cursor-pointer" title="Create Account"></button>
         </div>
+        {% endif %}
 
     </div>
 
@@ -225,12 +247,14 @@
             </div>
 
             <!-- Right Pill CTA (Menu Removed) -->
+            {% if not admin_login %}
             <div class="flex items-center gap-4 ml-auto">
                 <button type="button" id="heroNavToggleBtn" onclick="toggleAuthMode()"
                     class="px-6 py-2 rounded-full bg-white/20 hover:bg-white text-white hover:text-slate-900 border border-white/35 text-[11px] font-bold uppercase tracking-wider backdrop-blur-md transition-all duration-200 cursor-pointer shadow-md">
                     <span id="heroNavToggleText">Sign Up</span>
                 </button>
             </div>
+            {% endif %}
         </div>
 
         <!-- Hero Center / Bottom Content Area -->
@@ -243,12 +267,16 @@
             </p>
 
             <!-- Dynamic Auth Switcher Prompt -->
+            {% if not admin_login %}
             <div class="text-[13px] text-white/85">
                 <span id="heroPromptLabel">Not a member?</span>
                 <button type="button" id="heroPromptBtn" onclick="toggleAuthMode()" class="text-white font-bold underline ml-1 hover:text-amber-200 transition-colors cursor-pointer">
                     Sign up now
                 </button>
             </div>
+            {% else %}
+            <p class="text-sm text-white/85">Restricted administrator access</p>
+            {% endif %}
         </div>
 
         <!-- Footer Micro-Telemetry -->
