@@ -1,8 +1,8 @@
 # 🛡️ Automated Security Audit Report
 
 > **Status:** 🔴 **Action Required**  
-> **Generated:** `2026-11-08 08:24:37 UTC`  
-> **Branch/Ref:** `main` (`f9413cbd`)  
+> **Generated:** `2026-11-10 09:02:14 UTC`  
+> **Branch/Ref:** `main` (`42d3210e`)  
 
 ## 📊 Executive Summary
 
@@ -19,177 +19,177 @@
 Identified `47` code security items across Python source files:
 
 ### 1. [🚨 HIGH] Use of weak MD5 hash for security. Consider usedforsecurity=False
-- **File:** [`./app.py:1130`](./app.py#L1130)
+- **File:** [`./app.py:1137`](./app.py#L1137)
 - **Rule ID:** `B324` (hashlib)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html)
 
 ```python
-1129         norm = f"{normalize_for_hash(job.title)}|{normalize_for_hash(job.company)}|{normalize_for_hash(job.location)}|{user_id}"
-1130         job_hash = hashlib.md5(norm.encode('utf-8')).hexdigest()
-1131
+1136         norm = f"{normalize_for_hash(job.title)}|{normalize_for_hash(job.company)}|{normalize_for_hash(job.location)}|{user_id}"
+1137         job_hash = hashlib.md5(norm.encode('utf-8')).hexdigest()
+1138
 ```
 
 ### 2. [🚨 HIGH] Use of weak MD5 hash for security. Consider usedforsecurity=False
-- **File:** [`./app.py:1863`](./app.py#L1863)
+- **File:** [`./app.py:1870`](./app.py#L1870)
 - **Rule ID:** `B324` (hashlib)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html)
 
 ```python
-1862                 norm = f"{normalize_for_hash(title)}|{normalize_for_hash(company)}|{normalize_for_hash(location)}|{user_id}"
-1863                 new_hash = hashlib.md5(norm.encode('utf-8')).hexdigest()
-1864                 if new_hash != old_hash:
+1869                 norm = f"{normalize_for_hash(title)}|{normalize_for_hash(company)}|{normalize_for_hash(location)}|{user_id}"
+1870                 new_hash = hashlib.md5(norm.encode('utf-8')).hexdigest()
+1871                 if new_hash != old_hash:
 ```
 
 ### 3. [🚨 HIGH] Use of weak MD5 hash for security. Consider usedforsecurity=False
-- **File:** [`./app.py:3874`](./app.py#L3874)
+- **File:** [`./app.py:3881`](./app.py#L3881)
 - **Rule ID:** `B324` (hashlib)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html)
 
 ```python
-3873             norm = f"{normalize_for_hash(job.title)}|{normalize_for_hash(job.company)}|{normalize_for_hash(job.location)}"
-3874             key = hashlib.md5(norm.encode('utf-8')).hexdigest()
-3875             if key not in unique_jobs or job.relevance_score > unique_jobs[key].relevance_score:
+3880             norm = f"{normalize_for_hash(job.title)}|{normalize_for_hash(job.company)}|{normalize_for_hash(job.location)}"
+3881             key = hashlib.md5(norm.encode('utf-8')).hexdigest()
+3882             if key not in unique_jobs or job.relevance_score > unique_jobs[key].relevance_score:
 ```
 
 ### 4. [🚨 HIGH] Use of weak MD5 hash for security. Consider usedforsecurity=False
-- **File:** [`./app.py:6179`](./app.py#L6179)
+- **File:** [`./app.py:6190`](./app.py#L6190)
 - **Rule ID:** `B324` (hashlib)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html)
 
 ```python
-6178                     if not processed_row.get('linkedin_url') and processed_row.get('email'):
-6179                         email_hash = hashlib.md5(str(processed_row['email']).lower().encode()).hexdigest()
-6180                         processed_row['linkedin_url'] = f"csv-upload-{email_hash}"
+6189                     if not processed_row.get('linkedin_url') and processed_row.get('email'):
+6190                         email_hash = hashlib.md5(str(processed_row['email']).lower().encode()).hexdigest()
+6191                         processed_row['linkedin_url'] = f"csv-upload-{email_hash}"
 ```
 
 ### 5. [🚨 HIGH] Use of weak MD5 hash for security. Consider usedforsecurity=False
-- **File:** [`./app.py:6477`](./app.py#L6477)
+- **File:** [`./app.py:6488`](./app.py#L6488)
 - **Rule ID:** `B324` (hashlib)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html)
 
 ```python
-6476                             if contact_data.get('email'):
-6477                                 email_hash = hashlib.md5(contact_data['email'].lower().encode()).hexdigest()
-6478                                 contact_data['linkedin_url'] = f"repo-{email_hash}"
+6487                             if contact_data.get('email'):
+6488                                 email_hash = hashlib.md5(contact_data['email'].lower().encode()).hexdigest()
+6489                                 contact_data['linkedin_url'] = f"repo-{email_hash}"
 ```
 
 ### 6. [🚨 HIGH] Use of weak MD5 hash for security. Consider usedforsecurity=False
-- **File:** [`./app.py:6481`](./app.py#L6481)
+- **File:** [`./app.py:6492`](./app.py#L6492)
 - **Rule ID:** `B324` (hashlib)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html)
 
 ```python
-6480                                 unique_str = f"{contact_data.get('full_name')}-{contact_data.get('company')}"
-6481                                 unique_hash = hashlib.md5(unique_str.encode()).hexdigest()
-6482                                 contact_data['linkedin_url'] = f"repo-noemail-{unique_hash}"
+6491                                 unique_str = f"{contact_data.get('full_name')}-{contact_data.get('company')}"
+6492                                 unique_hash = hashlib.md5(unique_str.encode()).hexdigest()
+6493                                 contact_data['linkedin_url'] = f"repo-noemail-{unique_hash}"
 ```
 
 ### 7. [🚨 HIGH] Use of weak MD5 hash for security. Consider usedforsecurity=False
-- **File:** [`./app.py:6593`](./app.py#L6593)
+- **File:** [`./app.py:6604`](./app.py#L6604)
 - **Rule ID:** `B324` (hashlib)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html)
 
 ```python
-6592     if not linkedin_url:
-6593         email_hash = hashlib.md5(data['email'].lower().encode()).hexdigest()
-6594         linkedin_url = f"manual-entry-{email_hash}"
+6603     if not linkedin_url:
+6604         email_hash = hashlib.md5(data['email'].lower().encode()).hexdigest()
+6605         linkedin_url = f"manual-entry-{email_hash}"
 ```
 
 ### 8. [🚨 HIGH] Use of weak MD5 hash for security. Consider usedforsecurity=False
-- **File:** [`./app.py:6666`](./app.py#L6666)
+- **File:** [`./app.py:6677`](./app.py#L6677)
 - **Rule ID:** `B324` (hashlib)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b324_hashlib.html)
 
 ```python
-6665                 if not processed_row.get('linkedin_url') and processed_row.get('email'):
-6666                     email_hash = hashlib.md5(processed_row['email'].lower().encode()).hexdigest()
-6667                     processed_row['linkedin_url'] = f"csv-import-{email_hash}"
+6676                 if not processed_row.get('linkedin_url') and processed_row.get('email'):
+6677                     email_hash = hashlib.md5(processed_row['email'].lower().encode()).hexdigest()
+6678                     processed_row['linkedin_url'] = f"csv-import-{email_hash}"
 ```
 
 ### 9. [🚨 HIGH] A Flask app appears to be run with debug=True, which exposes the Werkzeug debugger and allows the execution of arbitrary code.
-- **File:** [`./app.py:8905`](./app.py#L8905)
+- **File:** [`./app.py:8916`](./app.py#L8916)
 - **Rule ID:** `B201` (flask_debug_true)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b201_flask_debug_true.html)
 
 ```python
-8904         logger.warning(f"Could not automatically open browser: {e}")
-8905     app.run(debug=True, host='0.0.0.0', port=5000)
+8915         logger.warning(f"Could not automatically open browser: {e}")
+8916     app.run(debug=True, host='0.0.0.0', port=5000)
 ```
 
 ### 10. [⚠️ MEDIUM] Possible SQL injection vector through string-based query construction.
-- **File:** [`./app.py:1220`](./app.py#L1220)
+- **File:** [`./app.py:1227`](./app.py#L1227)
 - **Rule ID:** `B608` (hardcoded_sql_expressions)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b608_hardcoded_sql_expressions.html)
 
 ```python
-1219         """
-1220         query = f"SELECT {query_columns} FROM jobs WHERE (user_id = ? OR user_id = 15 OR user_id IS NULL OR posted_by_recruiter_id IS NOT NULL)"
-1221         params = [user_id]
+1226         """
+1227         query = f"SELECT {query_columns} FROM jobs WHERE (user_id = ? OR user_id = 15 OR user_id IS NULL OR posted_by_recruiter_id IS NOT NULL)"
+1228         params = [user_id]
 ```
 
 ### 11. [⚠️ MEDIUM] Possible SQL injection vector through string-based query construction.
-- **File:** [`./app.py:1276`](./app.py#L1276)
+- **File:** [`./app.py:1283`](./app.py#L1283)
 - **Rule ID:** `B608` (hardcoded_sql_expressions)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b608_hardcoded_sql_expressions.html)
 
 ```python
-1275 
-1276         count_query = f"SELECT COUNT(*) FROM ({query})"
-1277         cursor.execute(count_query, params)
+1282 
+1283         count_query = f"SELECT COUNT(*) FROM ({query})"
+1284         cursor.execute(count_query, params)
 ```
 
 ### 12. [⚠️ MEDIUM] Possible SQL injection vector through string-based query construction.
-- **File:** [`./app.py:1459`](./app.py#L1459)
+- **File:** [`./app.py:1466`](./app.py#L1466)
 - **Rule ID:** `B608` (hardcoded_sql_expressions)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b608_hardcoded_sql_expressions.html)
 
 ```python
-1458             placeholders = ','.join(['?'] * len(job_ids))
-1459             cursor.execute(f"DELETE FROM jobs WHERE id IN ({placeholders}) AND user_id = ?", (*job_ids, user_id))
-1460             deleted_count = cursor.rowcount
+1465             placeholders = ','.join(['?'] * len(job_ids))
+1466             cursor.execute(f"DELETE FROM jobs WHERE id IN ({placeholders}) AND user_id = ?", (*job_ids, user_id))
+1467             deleted_count = cursor.rowcount
 ```
 
 ### 13. [⚠️ MEDIUM] Possible SQL injection vector through string-based query construction.
-- **File:** [`./app.py:2814`](./app.py#L2814)
+- **File:** [`./app.py:2821`](./app.py#L2821)
 - **Rule ID:** `B608` (hardcoded_sql_expressions)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b608_hardcoded_sql_expressions.html)
 
 ```python
-2813 
-2814         search_query = f"SELECT * FROM global_hiring_contacts WHERE {' OR '.join(where_clauses)}"
-2815         cursor.execute(search_query, params)
+2820 
+2821         search_query = f"SELECT * FROM global_hiring_contacts WHERE {' OR '.join(where_clauses)}"
+2822         cursor.execute(search_query, params)
 ```
 
 ### 14. [⚠️ MEDIUM] Pickle and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue.
-- **File:** [`./app.py:4295`](./app.py#L4295)
+- **File:** [`./app.py:4302`](./app.py#L4302)
 - **Rule ID:** `B301` (blacklist)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b301-pickle)
 
 ```python
-4294             with open('token.pickle', 'rb') as token:
-4295                 creds = pickle.load(token)
-4296
+4301             with open('token.pickle', 'rb') as token:
+4302                 creds = pickle.load(token)
+4303
 ```
 
 ### 15. [⚠️ MEDIUM] Pickle and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue.
-- **File:** [`./app.py:4781`](./app.py#L4781)
+- **File:** [`./app.py:4788`](./app.py#L4788)
 - **Rule ID:** `B301` (blacklist)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b301-pickle)
 
 ```python
-4780             with open('token.pickle', 'rb') as token:
-4781                 creds = pickle.load(token)
-4782
+4787             with open('token.pickle', 'rb') as token:
+4788                 creds = pickle.load(token)
+4789
 ```
 
 ### 16. [⚠️ MEDIUM] Possible binding to all interfaces.
-- **File:** [`./app.py:8905`](./app.py#L8905)
+- **File:** [`./app.py:8916`](./app.py#L8916)
 - **Rule ID:** `B104` (hardcoded_bind_all_interfaces)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b104_hardcoded_bind_all_interfaces.html)
 
 ```python
-8904         logger.warning(f"Could not automatically open browser: {e}")
-8905     app.run(debug=True, host='0.0.0.0', port=5000)
+8915         logger.warning(f"Could not automatically open browser: {e}")
+8916     app.run(debug=True, host='0.0.0.0', port=5000)
 ```
 
 ### 17. [⚠️ MEDIUM] Pickle and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue.
@@ -263,242 +263,242 @@ Identified `47` code security items across Python source files:
 ```
 
 ### 23. [ℹ️ LOW] Try, Except, Continue detected.
-- **File:** [`./app.py:2123`](./app.py#L2123)
+- **File:** [`./app.py:2130`](./app.py#L2130)
 - **Rule ID:** `B112` (try_except_continue)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b112_try_except_continue.html)
 
 ```python
-2122                     date_counts[dt_part] = date_counts.get(dt_part, 0) + 1
-2123                 except Exception:
-2124                     continue
-2125
+2129                     date_counts[dt_part] = date_counts.get(dt_part, 0) + 1
+2130                 except Exception:
+2131                     continue
+2132
 ```
 
 ### 24. [ℹ️ LOW] Try, Except, Pass detected.
-- **File:** [`./app.py:2680`](./app.py#L2680)
+- **File:** [`./app.py:2687`](./app.py#L2687)
 - **Rule ID:** `B110` (try_except_pass)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b110_try_except_pass.html)
 
 ```python
-2679                         ''', (user_id, dt['template_name'], dt['subject'], dt['body'], now_str))
-2680                     except Exception:
-2681                         pass
-2682                 conn.commit()
+2686                         ''', (user_id, dt['template_name'], dt['subject'], dt['body'], now_str))
+2687                     except Exception:
+2688                         pass
+2689                 conn.commit()
 ```
 
 ### 25. [ℹ️ LOW] Try, Except, Pass detected.
-- **File:** [`./app.py:2872`](./app.py#L2872)
+- **File:** [`./app.py:2879`](./app.py#L2879)
 - **Rule ID:** `B110` (try_except_pass)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b110_try_except_pass.html)
 
 ```python
-2871                         ))
-2872                     except Exception:
-2873                         pass
-2874                 conn.commit()
+2878                         ))
+2879                     except Exception:
+2880                         pass
+2881                 conn.commit()
 ```
 
 ### 26. [ℹ️ LOW] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
-- **File:** [`./app.py:3012`](./app.py#L3012)
+- **File:** [`./app.py:3019`](./app.py#L3019)
 - **Rule ID:** `B311` (blacklist)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b311-random)
 
 ```python
-3011             options.add_argument('--disable-dev-shm-usage')
-3012             random_user_agent = random.choice(USER_AGENTS)
-3013             options.add_argument(f"user-agent={random_user_agent}")
+3018             options.add_argument('--disable-dev-shm-usage')
+3019             random_user_agent = random.choice(USER_AGENTS)
+3020             options.add_argument(f"user-agent={random_user_agent}")
 ```
 
 ### 27. [ℹ️ LOW] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
-- **File:** [`./app.py:3234`](./app.py#L3234)
+- **File:** [`./app.py:3241`](./app.py#L3241)
 - **Rule ID:** `B311` (blacklist)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b311-random)
 
 ```python
-3233             }
-3234             headers = {'User-Agent': random.choice(USER_AGENTS)}
-3235             try:
+3240             }
+3241             headers = {'User-Agent': random.choice(USER_AGENTS)}
+3242             try:
 ```
 
 ### 28. [ℹ️ LOW] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
-- **File:** [`./app.py:3237`](./app.py#L3237)
+- **File:** [`./app.py:3244`](./app.py#L3244)
 - **Rule ID:** `B311` (blacklist)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b311-random)
 
 ```python
-3236                 logger.info(f"[LinkedIn] Sending request to LinkedIn for job list (page {page + 1})...")
-3237                 time.sleep(random.uniform(*self.request_delay))  # Dynamic delay based on scan mode
-3238                 response = requests.get(base_url, params=params, headers=headers, timeout=15, proxies=proxies)
+3243                 logger.info(f"[LinkedIn] Sending request to LinkedIn for job list (page {page + 1})...")
+3244                 time.sleep(random.uniform(*self.request_delay))  # Dynamic delay based on scan mode
+3245                 response = requests.get(base_url, params=params, headers=headers, timeout=15, proxies=proxies)
 ```
 
 ### 29. [ℹ️ LOW] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
-- **File:** [`./app.py:3305`](./app.py#L3305)
+- **File:** [`./app.py:3312`](./app.py#L3312)
 - **Rule ID:** `B311` (blacklist)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b311-random)
 
 ```python
-3304                         logger.info(f"[LinkedIn] Fetching job detail page: {job['link']}")
-3305                         detail_headers = {'User-Agent': random.choice(USER_AGENTS)}
-3306                         time.sleep(random.uniform(2.5, 5.5)) # Increased delay to avoid 429 errors
+3311                         logger.info(f"[LinkedIn] Fetching job detail page: {job['link']}")
+3312                         detail_headers = {'User-Agent': random.choice(USER_AGENTS)}
+3313                         time.sleep(random.uniform(2.5, 5.5)) # Increased delay to avoid 429 errors
 ```
 
 ### 30. [ℹ️ LOW] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
-- **File:** [`./app.py:3306`](./app.py#L3306)
+- **File:** [`./app.py:3313`](./app.py#L3313)
 - **Rule ID:** `B311` (blacklist)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b311-random)
 
 ```python
-3305                         detail_headers = {'User-Agent': random.choice(USER_AGENTS)}
-3306                         time.sleep(random.uniform(2.5, 5.5)) # Increased delay to avoid 429 errors
-3307                         resp = requests.get(job['link'], headers=detail_headers, timeout=15)
+3312                         detail_headers = {'User-Agent': random.choice(USER_AGENTS)}
+3313                         time.sleep(random.uniform(2.5, 5.5)) # Increased delay to avoid 429 errors
+3314                         resp = requests.get(job['link'], headers=detail_headers, timeout=15)
 ```
 
 ### 31. [ℹ️ LOW] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
-- **File:** [`./app.py:3383`](./app.py#L3383)
+- **File:** [`./app.py:3390`](./app.py#L3390)
 - **Rule ID:** `B311` (blacklist)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b311-random)
 
 ```python
-3382             session.headers.update({
-3383                 'User-Agent': random.choice(USER_AGENTS),
-3384                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+3389             session.headers.update({
+3390                 'User-Agent': random.choice(USER_AGENTS),
+3391                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
 ```
 
 ### 32. [ℹ️ LOW] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
-- **File:** [`./app.py:3405`](./app.py#L3405)
+- **File:** [`./app.py:3412`](./app.py#L3412)
 - **Rule ID:** `B311` (blacklist)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b311-random)
 
 ```python
-3404                     # Randomized delay to avoid detection
-3405                     time.sleep(random.uniform(*self.request_delay))
-3406
+3411                     # Randomized delay to avoid detection
+3412                     time.sleep(random.uniform(*self.request_delay))
+3413
 ```
 
 ### 33. [ℹ️ LOW] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
-- **File:** [`./app.py:3605`](./app.py#L3605)
+- **File:** [`./app.py:3612`](./app.py#L3612)
 - **Rule ID:** `B311` (blacklist)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b311-random)
 
 ```python
-3604             # Randomized delay
-3605             time.sleep(random.uniform(1.5, 3.5))
-3606
+3611             # Randomized delay
+3612             time.sleep(random.uniform(1.5, 3.5))
+3613
 ```
 
 ### 34. [ℹ️ LOW] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
-- **File:** [`./app.py:3608`](./app.py#L3608)
+- **File:** [`./app.py:3615`](./app.py#L3615)
 - **Rule ID:** `B311` (blacklist)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b311-random)
 
 ```python
-3607             headers = {
-3608                 'User-Agent': random.choice(USER_AGENTS),
-3609                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+3614             headers = {
+3615                 'User-Agent': random.choice(USER_AGENTS),
+3616                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 ```
 
 ### 35. [ℹ️ LOW] Try, Except, Continue detected.
-- **File:** [`./app.py:4881`](./app.py#L4881)
+- **File:** [`./app.py:4888`](./app.py#L4888)
 - **Rule ID:** `B112` (try_except_continue)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b112_try_except_continue.html)
 
 ```python
-4880                                 row[rel_col-1].value = f"🔴 {val}"
-4881                         except:
-4882                             continue
-4883                 # --- Make Links Clickable and Button Style ---
+4887                                 row[rel_col-1].value = f"🔴 {val}"
+4888                         except:
+4889                             continue
+4890                 # --- Make Links Clickable and Button Style ---
 ```
 
 ### 36. [ℹ️ LOW] Try, Except, Pass detected.
-- **File:** [`./app.py:5463`](./app.py#L5463)
+- **File:** [`./app.py:5470`](./app.py#L5470)
 - **Rule ID:** `B110` (try_except_pass)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b110_try_except_pass.html)
 
 ```python
-5462                 logger.info(f"Cleaned up Excel report: {excel_file}.")
-5463             except Exception:
-5464                 pass
-5465
+5469                 logger.info(f"Cleaned up Excel report: {excel_file}.")
+5470             except Exception:
+5471                 pass
+5472
 ```
 
 ### 37. [ℹ️ LOW] Try, Except, Pass detected.
-- **File:** [`./app.py:5844`](./app.py#L5844)
+- **File:** [`./app.py:5855`](./app.py#L5855)
 - **Rule ID:** `B110` (try_except_pass)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b110_try_except_pass.html)
 
 ```python
-5843                         experience_summary = f"experience as {role}" + (f" at {comp}" if comp else "")
-5844             except Exception:
-5845                 pass
-5846
+5854                         experience_summary = f"experience as {role}" + (f" at {comp}" if comp else "")
+5855             except Exception:
+5856                 pass
+5857
 ```
 
 ### 38. [ℹ️ LOW] Try, Except, Pass detected.
-- **File:** [`./app.py:6977`](./app.py#L6977)
+- **File:** [`./app.py:6988`](./app.py#L6988)
 - **Rule ID:** `B110` (try_except_pass)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b110_try_except_pass.html)
 
 ```python
-6976         conn.close()
-6977     except Exception as e:
-6978         pass
-6979
+6987         conn.close()
+6988     except Exception as e:
+6989         pass
+6990
 ```
 
 ### 39. [ℹ️ LOW] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
-- **File:** [`./app.py:7343`](./app.py#L7343)
+- **File:** [`./app.py:7354`](./app.py#L7354)
 - **Rule ID:** `B311` (blacklist)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b311-random)
 
 ```python
-7342     fake_analysis_data = {
-7343         "monthly_visits": f"{random.randint(50, 500)}K",
-7344         "bounce_rate": f"{random.randint(30, 70)}%",
+7353     fake_analysis_data = {
+7354         "monthly_visits": f"{random.randint(50, 500)}K",
+7355         "bounce_rate": f"{random.randint(30, 70)}%",
 ```
 
 ### 40. [ℹ️ LOW] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
-- **File:** [`./app.py:7344`](./app.py#L7344)
+- **File:** [`./app.py:7355`](./app.py#L7355)
 - **Rule ID:** `B311` (blacklist)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b311-random)
 
 ```python
-7343         "monthly_visits": f"{random.randint(50, 500)}K",
-7344         "bounce_rate": f"{random.randint(30, 70)}%",
-7345         "pages_per_visit": f"{random.uniform(1.5, 5.0):.2f}",
+7354         "monthly_visits": f"{random.randint(50, 500)}K",
+7355         "bounce_rate": f"{random.randint(30, 70)}%",
+7356         "pages_per_visit": f"{random.uniform(1.5, 5.0):.2f}",
 ```
 
 ### 41. [ℹ️ LOW] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
-- **File:** [`./app.py:7345`](./app.py#L7345)
+- **File:** [`./app.py:7356`](./app.py#L7356)
 - **Rule ID:** `B311` (blacklist)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b311-random)
 
 ```python
-7344         "bounce_rate": f"{random.randint(30, 70)}%",
-7345         "pages_per_visit": f"{random.uniform(1.5, 5.0):.2f}",
-7346     }
+7355         "bounce_rate": f"{random.randint(30, 70)}%",
+7356         "pages_per_visit": f"{random.uniform(1.5, 5.0):.2f}",
+7357     }
 ```
 
 ### 42. [ℹ️ LOW] Try, Except, Pass detected.
-- **File:** [`./app.py:7871`](./app.py#L7871)
+- **File:** [`./app.py:7882`](./app.py#L7882)
 - **Rule ID:** `B110` (try_except_pass)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b110_try_except_pass.html)
 
 ```python
-7870                 db.update_job_status_and_notes(job_id, current_user.id, 'applied', notes or 'Applied directly via JobSnap')
-7871             except Exception:
-7872                 pass
-7873             return jsonify({
+7881                 db.update_job_status_and_notes(job_id, current_user.id, 'applied', notes or 'Applied directly via JobSnap')
+7882             except Exception:
+7883                 pass
+7884             return jsonify({
 ```
 
 ### 43. [ℹ️ LOW] Try, Except, Pass detected.
-- **File:** [`./app.py:8825`](./app.py#L8825)
+- **File:** [`./app.py:8836`](./app.py#L8836)
 - **Rule ID:** `B110` (try_except_pass)
 - **Advisory:** [Bandit Documentation](https://bandit.readthedocs.io/en/1.9.4/plugins/b110_try_except_pass.html)
 
 ```python
-8824                 user_name = user_details.get('full_name')
-8825         except: pass
-8826
+8835                 user_name = user_details.get('full_name')
+8836         except: pass
+8837
 ```
 
 ### 44. [ℹ️ LOW] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
