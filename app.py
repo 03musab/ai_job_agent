@@ -48,9 +48,13 @@ from flask import Flask, abort, flash, jsonify, redirect, render_template, reque
 from flask_login import (LoginManager, UserMixin, current_user, login_required,
                          login_user, logout_user)
 from google.auth.transport.requests import Request
+from google.auth.exceptions import GoogleAuthError
 from google.oauth2.credentials import Credentials
+from google.oauth2 import id_token
+from google_auth_oauthlib.flow import Flow
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from oauthlib.oauth2 import OAuth2Error
 try:
     import undetected_chromedriver as uc
 except Exception:
@@ -70,8 +74,13 @@ from selenium.webdriver.edge.service import Service as EdgeService
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.firefox.service import Service as FirefoxService
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask import send_from_directory, send_file
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+
+if 'pytest' not in sys.modules and 'unittest' not in sys.modules:
+    load_dotenv(override=False)
 
 # Try to import ReportLab for PDF generation
 try:
@@ -172,6 +181,7 @@ def make_celery(app):
 
 # Initialize Flask app (top-level, so it's imported by all processes)
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -188,6 +198,10 @@ if database_url and database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,
+    'pool_recycle': 300,
+}
 db.init_app(app)
 
 
@@ -207,6 +221,10 @@ def initialize_database():
                     conn.execute(
                         db.text("ALTER TABLE learning_modules ADD COLUMN topics_data JSON")
                     )
+        if 'JobDatabase' in globals():
+            JobDatabase().init_db()
+        if 'OutreachDatabase' in globals():
+            OutreachDatabase().init_db()
         logger.info("Database tables and schema are ready.")
 
 UPLOAD_FOLDER = 'uploads'
@@ -237,6 +255,147 @@ elif app.config['SECRET_KEY'] == 'dev-secret-key-change-in-production':
 # Initialize Celery (top-level, so it's imported by all processes)
 celery = make_celery(app)
 
+_LOCAL_TASK_RESULTS: Dict[str, Dict[str, Any]] = {}
+_LOCAL_TASK_LOCK = threading.Lock()
+
+
+def _set_local_task_result(task_id: str, state: str, info: Optional[Dict[str, Any]] = None) -> None:
+    """Persist background task state and progress payload in memory."""
+    if not task_id:
+        return
+    with _LOCAL_TASK_LOCK:
+        _LOCAL_TASK_RESULTS[task_id] = {
+            'state': state,
+            'info': dict(info or {}),
+        }
+
+
+def _get_local_task_result(task_id: str) -> Optional[Dict[str, Any]]:
+    """Return a copy of a locally tracked task's state/info, if present."""
+    if not task_id:
+        return None
+    with _LOCAL_TASK_LOCK:
+        entry = _LOCAL_TASK_RESULTS.get(task_id)
+        if not entry:
+            return None
+        return {
+            'state': entry.get('state', 'PENDING'),
+            'info': dict(entry.get('info') or {}),
+        }
+
+
+class _LocalTaskHandle:
+    def __init__(self, task_id: str):
+        self.id = task_id
+
+
+class _LocalTaskRequest:
+    def __init__(self, task_id: str):
+        self.id = task_id
+
+
+class _LocalTaskContext:
+    """In-memory Celery Task stand-in for background threads when Redis is unavailable."""
+
+    def __init__(self, task_id: str):
+        self.request = _LocalTaskRequest(task_id)
+
+    def update_state(self, state: str = 'PROGRESS', meta: Optional[Dict[str, Any]] = None, **kwargs):
+        _set_local_task_result(self.request.id, state, meta or {})
+
+
+class _SafeCeleryTaskContext:
+    """Wraps a bound Celery Task so update_state mirrors locally and never aborts on Redis errors."""
+
+    def __init__(self, celery_task, task_id: Optional[str] = None):
+        self._task = celery_task
+        existing_req = getattr(celery_task, 'request', None)
+        resolved_id = task_id or getattr(existing_req, 'id', None) or f"celery-{uuid.uuid4().hex}"
+        self.request = existing_req if getattr(existing_req, 'id', None) else _LocalTaskRequest(resolved_id)
+
+    def update_state(self, state: str = 'PROGRESS', meta: Optional[Dict[str, Any]] = None, **kwargs):
+        task_id = getattr(self.request, 'id', None)
+        if task_id:
+            _set_local_task_result(task_id, state, meta or {})
+        try:
+            self._task.update_state(state=state, meta=meta, **kwargs)
+        except Exception as state_err:
+            logger.warning(f"Celery update_state skipped for task {task_id} ({state_err}); using local progress store.")
+
+
+def _dispatch_background_task(celery_task, *args, **kwargs):
+    """Enqueue on Celery/Redis when reachable; fall back to an in-process daemon thread."""
+    if os.environ.get('FORCE_LOCAL_THREAD_TASKS', '').lower() not in ('1', 'true'):
+        try:
+            return celery_task.delay(*args, **kwargs)
+        except Exception as broker_err:
+            logger.warning(f"Celery broker unreachable ({broker_err}); falling back to background thread.")
+
+    task_id = f"local-{uuid.uuid4().hex}"
+    _set_local_task_result(task_id, 'PROGRESS', {'progress': 10, 'status': 'Running in background thread...'})
+
+    def _runner():
+        try:
+            with app.app_context():
+                local_runner = getattr(celery_task, '_local_runner', None)
+                if callable(local_runner):
+                    raw_result = local_runner(_LocalTaskContext(task_id), *args, **kwargs)
+                else:
+                    eager = celery_task.apply(args=args, kwargs=kwargs, task_id=task_id)
+                    raw_result = eager.result
+                info = dict(raw_result) if isinstance(raw_result, dict) else {'progress': 100, 'status': 'Complete'}
+                info.setdefault('progress', 100)
+                info.setdefault('status', 'Complete')
+                _set_local_task_result(task_id, 'SUCCESS', info)
+        except Exception as err:
+            logger.exception(f"Background thread task {task_id} failed")
+            _set_local_task_result(task_id, 'FAILURE', {
+                'progress': 100,
+                'status': f"Task failed: {err}",
+                'message': f"Task failed: {err}",
+            })
+
+    t = threading.Thread(target=_runner, daemon=True)
+    t.start()
+    return _LocalTaskHandle(task_id)
+
+
+def _build_task_status_payload(celery_task, task_id: str) -> Dict[str, Any]:
+    """Resolve task state/progress from local store first, then Celery backend safely."""
+    local_entry = _get_local_task_result(task_id)
+    if local_entry:
+        info = local_entry.get('info') or {}
+        return {
+            'state': local_entry['state'],
+            'progress': info.get('progress', 0),
+            'status': info.get('status', ''),
+            **{k: v for k, v in info.items() if k not in ('progress', 'status')},
+        }
+
+    try:
+        task = celery_task.AsyncResult(task_id)
+        state = task.state
+        task_info = task.info
+    except Exception as err:
+        logger.warning(f"Celery AsyncResult lookup failed for {task_id}: {err}")
+        return {'state': 'PENDING', 'progress': 0, 'status': 'Pending...'}
+
+    if state == 'PENDING':
+        return {'state': state, 'progress': 0, 'status': 'Pending...'}
+    if state != 'FAILURE':
+        info_dict = task_info if isinstance(task_info, dict) else {}
+        return {
+            'state': state,
+            'progress': info_dict.get('progress', 0),
+            'status': info_dict.get('status', ''),
+        }
+    return {
+        'state': state,
+        'progress': 100,
+        'status': f"Task failed: {str(task_info)}",
+    }
+
+
 # --- Zero-dependency Liveness Probe for Orchestrators (Docker, Render, Railway, K8s) ---
 @app.route('/healthz')
 @app.route('/ping')
@@ -248,68 +407,24 @@ def healthz():
 @app.route('/health')
 def health():
     try:
-        # Increase timeout and add a single retry to avoid false negatives under load
-        res = celery.control.ping(timeout=5.0)
-        if not res:
-            time.sleep(0.5)
-            res = celery.control.ping(timeout=5.0)
+        res = celery.control.ping(timeout=2.5)
         if res:
-            return jsonify({'status': 'ok', 'message': 'System ready. You can now click Apply to start scraping.'})
-        else:
-            return jsonify({'status': 'error', 'message': 'Celery worker not responding.'}), 503
-    except Exception as e:
-        logger.exception("Health check failed")
-        return jsonify({'status': 'error', 'message': 'Service unavailable'}), 503
+            return jsonify({'status': 'ok', 'worker': 'celery', 'message': 'System ready. You can now click Apply to start scraping.'})
+        return jsonify({'status': 'ok', 'worker': 'thread-fallback', 'message': 'System ready (in-process background worker active).'})
+    except Exception:
+        return jsonify({'status': 'ok', 'worker': 'thread-fallback', 'message': 'System ready (in-process background worker active).'})
 
 @app.route('/task_status/<task_id>')
 @login_required
 def task_status(task_id):
-    """Endpoint to check the status of a Celery task."""
-    task = run_job_hunt_task.AsyncResult(task_id)
-    if task.state == 'PENDING':
-        response = {
-            'state': task.state,
-            'progress': 0,
-            'status': 'Pending...'
-        }
-    elif task.state != 'FAILURE':
-        response = {
-            'state': task.state,
-            'progress': task.info.get('progress', 0),
-            'status': task.info.get('status', '')
-        }
-    else: # Something went wrong in the background
-        response = {
-            'state': task.state,
-            'progress': 100,
-            'status': f"Task failed: {str(task.info)}"
-        }
-    return jsonify(response)
+    """Endpoint to check the status of a Celery or local background task."""
+    return jsonify(_build_task_status_payload(run_job_hunt_task, task_id))
 
 @app.route('/contact_task_status/<task_id>')
 @login_required
 def contact_task_status(task_id):
-    """Endpoint to check the status of a contact scraping Celery task."""
-    task = scrape_contacts_task.AsyncResult(task_id)
-    if task.state == 'PENDING':
-        response = {
-            'state': task.state,
-            'progress': 0,
-            'status': 'Pending...'
-        }
-    elif task.state != 'FAILURE':
-        response = {
-            'state': task.state,
-            'progress': task.info.get('progress', 0),
-            'status': task.info.get('status', '')
-        }
-    else: # Something went wrong
-        response = {
-            'state': task.state,
-            'progress': 100,
-            'status': f"Task failed: {str(task.info)}"
-        }
-    return jsonify(response)
+    """Endpoint to check the status of a contact scraping Celery or local background task."""
+    return jsonify(_build_task_status_payload(scrape_contacts_task, task_id))
 
 
 # --- News Cache ---
@@ -416,27 +531,30 @@ def get_job_news():
 @login_required
 def task_progress_stream(task_id):
     """Stream task progress as SSE events. Clients should connect with EventSource.
-    The server polls Celery AsyncResult for state and meta and emits JSON payloads
-    with keys: percent (int 0-100), state (string), milestone (optional), message (optional).
+    The server polls local thread task state first, then Celery AsyncResult for state
+    and meta and emits JSON payloads with keys: percent (int 0-100), state (string),
+    milestone (optional), message (optional).
     """
     def generate():
         # initial client retry directive
         yield 'retry: 1000\n\n'
-        try:
-            async_result = celery.AsyncResult(task_id)
-        except Exception:
-            payload = {'percent': 0, 'state': 'UNKNOWN', 'milestone': 'init', 'message': 'invalid task id'}
-            yield f"data: {json.dumps(payload)}\n\n"
-            return
 
         while True:
-            try:
-                async_result = celery.AsyncResult(task_id)
-                state = getattr(async_result, 'state', None) or 'PENDING'
-                info = async_result.info or {}
-            except Exception:
-                state = 'UNKNOWN'
-                info = {}
+            ready = False
+            local_entry = _get_local_task_result(task_id)
+            if local_entry is not None:
+                state = local_entry.get('state') or 'PROGRESS'
+                info = local_entry.get('info') or {}
+                ready = state in ('SUCCESS', 'FAILURE')
+            else:
+                try:
+                    async_result = celery.AsyncResult(task_id)
+                    state = getattr(async_result, 'state', None) or 'PENDING'
+                    info = async_result.info or {}
+                    ready = bool(async_result.ready())
+                except Exception:
+                    state = 'UNKNOWN'
+                    info = {}
 
             # Determine percent from meta if present
             percent = None
@@ -460,15 +578,13 @@ def task_progress_stream(task_id):
                     percent = 10
                 elif state == 'PROGRESS':
                     percent = 30
-                elif state == 'SUCCESS':
-                    percent = 100
-                elif state == 'FAILURE':
+                elif state in ('SUCCESS', 'FAILURE'):
                     percent = 100
                 else:
                     percent = 5
 
             milestone = info.get('milestone') if isinstance(info, dict) else None
-            message = info.get('message') if isinstance(info, dict) else None
+            message = (info.get('message') or info.get('status')) if isinstance(info, dict) else None
 
             payload = {
                 'percent': int(max(0, min(100, percent))) if percent is not None else 0,
@@ -480,7 +596,7 @@ def task_progress_stream(task_id):
             yield f"data: {json.dumps(payload)}\n\n"
 
             # Terminate stream on final states
-            if state in ('SUCCESS', 'FAILURE') or async_result.ready():
+            if state in ('SUCCESS', 'FAILURE') or ready:
                 break
 
             time.sleep(0.7)
@@ -822,7 +938,8 @@ class Company:
 
 class User(UserMixin):
     def __init__(self, id, username, password_hash, role='seeker', email_recipients='',
-                 send_excel_attachment=True, email=None, is_pro=False, account_status='active'):
+                 send_excel_attachment=True, email=None, is_pro=False, account_status='active',
+                 onboarding_completed=True):
         self.id = id
         self.username = username
         self.password_hash = password_hash
@@ -832,6 +949,7 @@ class User(UserMixin):
         self.email = email
         self.is_pro = bool(is_pro)
         self.account_status = account_status
+        self.onboarding_completed = bool(onboarding_completed)
 
     @property
     def is_admin(self):
@@ -849,7 +967,8 @@ class User(UserMixin):
         cursor = conn.cursor()
         cursor.execute("""
             SELECT id, username, password_hash, role, email_recipients,
-                   send_excel_attachment, email, is_pro, account_status
+                   send_excel_attachment, email, is_pro, account_status,
+                   onboarding_completed
             FROM users WHERE id = ?
         """, (user_id,))
         user_data = cursor.fetchone()
@@ -865,9 +984,27 @@ class User(UserMixin):
         cursor = conn.cursor()
         cursor.execute("""
             SELECT id, username, password_hash, role, email_recipients,
-                   send_excel_attachment, email, is_pro, account_status
+                   send_excel_attachment, email, is_pro, account_status,
+                   onboarding_completed
             FROM users WHERE username = ?
         """, (username,))
+        user_data = cursor.fetchone()
+        conn.close()
+        if user_data:
+            return User(*user_data)
+        return None
+
+    @staticmethod
+    def get_by_email(email):
+        db = JobDatabase()
+        conn = connect_database(db.db_path, timeout=10)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, username, password_hash, role, email_recipients,
+                   send_excel_attachment, email, is_pro, account_status,
+                   onboarding_completed
+            FROM users WHERE LOWER(email) = LOWER(?)
+        """, (email,))
         user_data = cursor.fetchone()
         conn.close()
         if user_data:
@@ -902,7 +1039,8 @@ class JobDatabase:
                 send_excel_attachment BOOLEAN DEFAULT TRUE,
                 email TEXT,
                 is_pro BOOLEAN NOT NULL DEFAULT FALSE,
-                account_status TEXT NOT NULL DEFAULT 'active'
+                account_status TEXT NOT NULL DEFAULT 'active',
+                onboarding_completed BOOLEAN NOT NULL DEFAULT TRUE
             )
         ''')
         # Perform ALTER TABLE for new user columns if they don't exist
@@ -926,6 +1064,9 @@ class JobDatabase:
         if 'account_status' not in user_columns:
             cursor.execute("ALTER TABLE users ADD COLUMN account_status TEXT NOT NULL DEFAULT 'active'")
             conn.commit()
+        if 'onboarding_completed' not in user_columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN onboarding_completed BOOLEAN NOT NULL DEFAULT TRUE")
+            conn.commit()
         cursor.execute("""
             CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_normalized
             ON users (LOWER(email))
@@ -933,6 +1074,17 @@ class JobDatabase:
         """)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS password_setup_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token_hash TEXT UNIQUE NOT NULL,
+                expires_at TEXT NOT NULL,
+                used_at TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS email_verification_tokens (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
                 token_hash TEXT UNIQUE NOT NULL,
@@ -1191,15 +1343,16 @@ class JobDatabase:
 
     def add_user(self, username: str, password_hash: str, role: str = 'seeker',
                  email: Optional[str] = None, is_pro: bool = False,
-                 account_status: str = 'active') -> Optional[int]:
+                 account_status: str = 'active',
+                 onboarding_completed: bool = True) -> Optional[int]:
         conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
             cursor.execute("""
                 INSERT INTO users
-                    (username, password_hash, role, email, is_pro, account_status)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (username, password_hash, role, email, bool(is_pro), account_status))
+                    (username, password_hash, role, email, is_pro, account_status, onboarding_completed)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (username, password_hash, role, email, bool(is_pro), account_status, bool(onboarding_completed)))
             conn.commit()
             logger.info(f"Created user: {username} with role: {role}")
             return cursor.lastrowid
@@ -1209,6 +1362,43 @@ class JobDatabase:
         except sqlite3.OperationalError as e:
             logger.error(f"Database operational error during user creation: {e}")
             return None
+        finally:
+            conn.close()
+
+    def update_user_role(self, user_id: int, role: str) -> bool:
+        """Update role for an existing user (e.g. 'seeker' or 'recruiter')."""
+        if role not in ('seeker', 'recruiter'):
+            return False
+        conn = connect_database(self.db_path, timeout=10)
+        cursor = conn.cursor()
+        try:
+            cursor.execute("UPDATE users SET role = ? WHERE id = ?", (role, user_id))
+            conn.commit()
+            logger.info(f"Updated role for user {user_id} to {role}")
+            return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error updating role for user {user_id}: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def complete_user_onboarding(self, user_id: int, role: str) -> bool:
+        """Mark 4-step onboarding as completed and save chosen role ('seeker' or 'recruiter')."""
+        if role not in ('seeker', 'recruiter'):
+            return False
+        conn = connect_database(self.db_path, timeout=10)
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "UPDATE users SET role = ?, onboarding_completed = TRUE WHERE id = ?",
+                (role, user_id),
+            )
+            conn.commit()
+            logger.info(f"Completed onboarding for user {user_id} with role {role}")
+            return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error completing onboarding for user {user_id}: {e}")
+            return False
         finally:
             conn.close()
 
@@ -1287,6 +1477,17 @@ class JobDatabase:
         finally:
             conn.close()
 
+    def _user_has_own_jobs(self, cursor, user_id: int) -> bool:
+        """Return True if the user has at least one scraped/saved job of their own."""
+        cursor.execute("SELECT 1 FROM jobs WHERE user_id = ? LIMIT 1", (user_id,))
+        return cursor.fetchone() is not None
+
+    def _user_scope_clause(self, cursor, user_id: int) -> str:
+        """Scope user queries to own + native recruiter jobs once user has own jobs; else demo seed fallback."""
+        if self._user_has_own_jobs(cursor, user_id):
+            return "(user_id = ? OR posted_by_recruiter_id IS NOT NULL)"
+        return "(user_id = ? OR user_id = 15 OR user_id IS NULL OR posted_by_recruiter_id IS NOT NULL)"
+
     def get_jobs_for_user(self, user_id: int, limit=100, offset=0,
                              sort_by='found_date', sort_order='DESC',
                              search_query: Optional[str] = None,
@@ -1306,7 +1507,8 @@ class JobDatabase:
             posted_by_recruiter_id,
             min_experience_years, max_experience_years, extracted_tools, extracted_soft_skills, user_feedback
         """
-        query = f"SELECT {query_columns} FROM jobs WHERE (user_id = ? OR user_id = 15 OR user_id IS NULL OR posted_by_recruiter_id IS NOT NULL)"
+        scope_clause = self._user_scope_clause(cursor, user_id)
+        query = f"SELECT {query_columns} FROM jobs WHERE {scope_clause}"
         params = [user_id]
 
         if search_query:
@@ -1362,7 +1564,7 @@ class JobDatabase:
             elif sal_clean in ('entry', '<15l', '<100k'):
                 query += " AND (min_experience_years <= 2 OR min_experience_years IS NULL)"
 
-        count_query = f"SELECT COUNT(*) FROM ({query})"
+        count_query = f"SELECT COUNT(*) FROM ({query}) AS filtered_jobs_count"
         cursor.execute(count_query, params)
         total_count = cursor.fetchone()[0]
 
@@ -1592,7 +1794,8 @@ class JobDatabase:
         }
 
         try:
-            cursor.execute("SELECT status, COUNT(*) FROM jobs WHERE (user_id = ? OR user_id = 15 OR user_id IS NULL OR posted_by_recruiter_id IS NOT NULL) AND status IS NOT NULL GROUP BY status", (user_id,))
+            scope_clause = self._user_scope_clause(cursor, user_id)
+            cursor.execute(f"SELECT status, COUNT(*) FROM jobs WHERE {scope_clause} AND status IS NOT NULL GROUP BY status", (user_id,))
             rows = cursor.fetchall()
             for status, count in rows:
                 if status in status_counts:
@@ -1832,8 +2035,9 @@ class JobDatabase:
                     pass
 
             # ── Load all jobs ─────────────────────────────────────────────────
-            cursor.execute("""
-                SELECT * FROM jobs WHERE (user_id = ? OR user_id = 15 OR user_id IS NULL OR posted_by_recruiter_id IS NOT NULL)
+            scope_clause = self._user_scope_clause(cursor, user_id)
+            cursor.execute(f"""
+                SELECT * FROM jobs WHERE {scope_clause}
                 ORDER BY found_date DESC
             """, (user_id,))
             all_jobs = [dict(r) for r in cursor.fetchall()]
@@ -5577,23 +5781,35 @@ class JobHunter:
         logger.info(f"🤖 Super Job Agent finished its run for user {self.user_id}.")
 
 # --- Celery Tasks ---
+def _run_job_hunt_impl(task_ctx, user_id: int, search_terms: List[str], location: str, experience: str, job_type: str, scan_mode: str = 'fast'):
+    """Shared job-hunt execution body for Celery workers and in-process background threads."""
+    task_id = getattr(getattr(task_ctx, 'request', None), 'id', 'local')
+    logger.info(f"Job hunt task {task_id} started for user {user_id} with terms {search_terms} at {location} (scan_mode={scan_mode}).")
+    try:
+        logger.info(f"Creating JobHunter instance for user {user_id} with scan_mode={scan_mode}.")
+        hunter = JobHunter(user_id=user_id, search_terms=search_terms, location=location, experience=experience, job_type=job_type, task=task_ctx, scan_mode=scan_mode)
+        logger.info(f"Running JobHunter.run() for user {user_id}.")
+        hunter.run()
+        logger.info(f"Job hunt task {task_id} completed successfully for user {user_id}.")
+        return {
+            'status': 'Complete! Your dashboard will now reload.',
+            'message': 'Complete! Your dashboard will now reload.',
+            'progress': 100,
+        }
+    except Exception as e:
+        logger.error(f"Job hunt task {task_id} failed for user {user_id}: {e}", exc_info=True)
+        if task_ctx:
+            task_ctx.update_state(state='FAILURE', meta={'status': 'Task failed!', 'message': str(e), 'error': str(e), 'progress': 100})
+        raise
+
+
 @celery.task(bind=True, name='app.run_job_hunt_task')
 def run_job_hunt_task(self, user_id: int, search_terms: List[str], location: str, experience: str, job_type: str, scan_mode: str = 'fast'):
     """Celery task to run the job hunt for a specific user and search profile."""
-    logger.info(f"Celery task {self.request.id} started for user {user_id} with terms {search_terms} at {location} (scan_mode={scan_mode}).")
-    try:
-        logger.info(f"Creating JobHunter instance for user {user_id} with scan_mode={scan_mode}.")
-        hunter = JobHunter(user_id=user_id, search_terms=search_terms, location=location, experience=experience, job_type=job_type, task=self, scan_mode=scan_mode)
-        logger.info(f"Running JobHunter.run() for user {user_id}.")
-        hunter.run()
-        logger.info(f"Celery task {self.request.id} completed successfully for user {user_id}.")
-        return {'status': 'Complete! Your dashboard will now reload.', 'progress': 100}
-    except Exception as e:
-        logger.error(f"Celery task {self.request.id} failed for user {user_id}: {e}", exc_info=True)
-        self.update_state(state='FAILURE', meta={'status': 'Task failed!', 'error': str(e), 'progress': 100})
-        # Consider sending an admin alert email here
-        # SmartEmailer().send_email("CRITICAL: Job Hunt Task Failed", f"Task for user {user_id} failed with error: {traceback.format_exc()}", recipients=[ADMIN_ALERT_EMAIL])
-        raise
+    return _run_job_hunt_impl(_SafeCeleryTaskContext(self), user_id, search_terms, location, experience, job_type, scan_mode)
+
+
+run_job_hunt_task._local_runner = _run_job_hunt_impl
 
 # In app.py
 @celery.task(name='app.assisted_apply_task')
@@ -6129,8 +6345,8 @@ def _invite_pro_user(email_address: str, name: str) -> str:
             initial_password = generate_password_hash(secrets.token_urlsafe(32))
             cursor.execute("""
                 INSERT INTO users
-                    (username, password_hash, role, email, is_pro, account_status)
-                VALUES (?, ?, 'seeker', ?, TRUE, 'pending')
+                    (username, password_hash, role, email, is_pro, account_status, onboarding_completed)
+                VALUES (?, ?, 'seeker', ?, TRUE, 'pending', FALSE)
             """, (username, initial_password, email_address))
             user_id = cursor.lastrowid
             if user_id is None:
@@ -6176,11 +6392,37 @@ def _invite_pro_user(email_address: str, name: str) -> str:
         conn.close()
 
 
+def _get_pro_access_users():
+    database = JobDatabase()
+    conn = connect_database(database.db_path, timeout=10)
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, username, email, role, account_status
+            FROM users
+            WHERE is_pro = TRUE
+            ORDER BY LOWER(username), id
+        """)
+        return [
+            {
+                'id': row[0],
+                'username': row[1],
+                'email': row[2],
+                'role': row[3],
+                'account_status': row[4],
+            }
+            for row in cursor.fetchall()
+        ]
+    finally:
+        conn.close()
+
+
 @app.route('/admin/pro-invites', methods=['GET', 'POST'])
 @login_required
 @require_admin
 def admin_pro_invites():
     csrf_token = _admin_csrf_token()
+    pro_access_users = _get_pro_access_users()
     if request.method == 'POST':
         _check_admin_csrf()
         if request.form.get('action') == 'preview':
@@ -6192,11 +6434,13 @@ def admin_pro_invites():
                     'admin_pro_invites.html',
                     csrf_token=csrf_token,
                     preview_entries=None,
+                    pro_access_users=pro_access_users,
                 )
             return render_template(
                 'admin_pro_invites.html',
                 csrf_token=csrf_token,
                 preview_entries=entries,
+                pro_access_users=pro_access_users,
             )
 
         if request.form.get('action') == 'send':
@@ -6247,6 +6491,7 @@ def admin_pro_invites():
         'admin_pro_invites.html',
         csrf_token=csrf_token,
         preview_entries=None,
+        pro_access_users=pro_access_users,
     )
 
 
@@ -6315,20 +6560,410 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        email = request.form.get('email', '').strip().lower()
         role = request.form.get('role', 'seeker')
         if role not in ('seeker', 'recruiter'):
             flash('Invalid account role.', 'danger')
             return redirect(url_for('login') + '#register')
-        password_hash = generate_password_hash(password)
-        db = JobDatabase()
-        user_id = db.add_user(username, password_hash, role)
-        if user_id:
-            flash('Registration successful! Please log in.', 'success')
-            return redirect(url_for('login'))
-        else:
-            flash('Username already exists. Please choose a different one.', 'danger')
+        if not re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', email):
+            flash('Enter a valid email address to create your account.', 'danger')
             return redirect(url_for('login') + '#register')
+        try:
+            user_id = _create_email_account(username, password, email, role)
+        except (OSError, RuntimeError, smtplib.SMTPException, ValueError) as error:
+            logger.error('Could not send email verification message: %s', type(error).__name__)
+            flash('We could not send the confirmation email. Please try again later.', 'danger')
+            return redirect(url_for('login') + '#register')
+        if not user_id:
+            flash('That username or email is already in use. Please sign in or choose another.', 'danger')
+            return redirect(url_for('login') + '#register')
+
+        return render_template('email_verification.html', state='sent', email=email)
     return redirect(url_for('login') + '#register')
+
+
+def _create_email_account(username, password, email, role):
+    database = JobDatabase()
+    user_id = database.add_user(
+        username,
+        generate_password_hash(password),
+        role,
+        email=email,
+        account_status='pending',
+        onboarding_completed=False,
+    )
+    if not user_id:
+        return None
+    try:
+        _create_email_verification_token(user_id, email)
+    except (OSError, RuntimeError, smtplib.SMTPException, ValueError):
+        conn = connect_database(database.db_path, timeout=10)
+        try:
+            conn.execute(
+                "DELETE FROM email_verification_tokens WHERE user_id = ?",
+                (user_id,),
+            )
+            conn.execute(
+                "DELETE FROM users WHERE id = ? AND account_status = 'pending'",
+                (user_id,),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        raise
+    return user_id
+
+
+def _create_email_verification_token(user_id, email):
+    database = JobDatabase()
+    conn = connect_database(database.db_path, timeout=10)
+    token = secrets.token_urlsafe(32)
+    now = datetime.datetime.utcnow()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE email_verification_tokens SET used_at = ?
+            WHERE user_id = ? AND used_at IS NULL
+        """, (now.isoformat(), user_id))
+        cursor.execute("""
+            INSERT INTO email_verification_tokens (user_id, token_hash, expires_at, created_at)
+            VALUES (?, ?, ?, ?)
+        """, (
+            user_id,
+            hashlib.sha256(token.encode('utf-8')).hexdigest(),
+            (now + datetime.timedelta(hours=24)).isoformat(),
+            now.isoformat(),
+        ))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+    _send_email_verification_email(email, token)
+
+
+def _send_email_verification_email(email, token):
+    mail_server = os.environ.get('MAIL_SERVER')
+    mail_username = os.environ.get('MAIL_USERNAME')
+    mail_password = os.environ.get('MAIL_PASSWORD')
+    smtp_configured = all((mail_server, mail_username, mail_password))
+    if not smtp_configured and not os.path.exists('token.pickle'):
+        raise RuntimeError('Email delivery is not configured.')
+
+    public_url = os.environ.get('PUBLIC_APP_URL', '').strip() or 'https://app.jobsnap.me'
+    parsed_url = urlsplit(public_url)
+    if not parsed_url.netloc or (
+        os.environ.get('FLASK_ENV') == 'production' and parsed_url.scheme != 'https'
+    ):
+        raise RuntimeError('PUBLIC_APP_URL must be an absolute HTTPS URL in production.')
+
+    verify_path = url_for('confirm_email', token=token).lstrip('/')
+    verify_link = urljoin(public_url.rstrip('/') + '/', verify_path)
+    message = MIMEMultipart('alternative')
+    message['Subject'] = 'Confirm your AI JobSnap email'
+    message['To'] = email
+    mail_from = os.environ.get('MAIL_FROM') or mail_username
+    if mail_from:
+        message['From'] = mail_from
+    message.attach(MIMEText(
+        'Confirm your email address by opening this one-time link (expires in 24 hours):\n\n'
+        f'{verify_link}\n',
+        'plain',
+        'utf-8',
+    ))
+    message.attach(MIMEText(
+        f'<p>Confirm your email address to activate your AI JobSnap account.</p>'
+        f'<p><a href="{verify_link}">Confirm email</a></p>'
+        f'<p>This one-time link expires in 24 hours.</p>',
+        'html',
+        'utf-8',
+    ))
+
+    if not smtp_configured:
+        if _send_mime_via_gmail_token(message):
+            return
+        raise RuntimeError('Email delivery is not configured.')
+
+    port = int(os.environ.get('MAIL_PORT', '587'))
+    if port == 465:
+        with smtplib.SMTP_SSL(mail_server, port, timeout=15, context=ssl.create_default_context()) as server:
+            server.login(mail_username, mail_password)
+            server.send_message(message)
+    else:
+        with smtplib.SMTP(mail_server, port, timeout=15) as server:
+            server.ehlo()
+            server.starttls(context=ssl.create_default_context())
+            server.ehlo()
+            server.login(mail_username, mail_password)
+            server.send_message(message)
+
+
+@app.route('/confirm-email/<token>')
+def confirm_email(token):
+    token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
+    database = JobDatabase()
+    conn = connect_database(database.db_path, timeout=10)
+    now = datetime.datetime.utcnow().isoformat()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT t.id, t.user_id, u.email
+            FROM email_verification_tokens t
+            JOIN users u ON u.id = t.user_id
+            WHERE t.token_hash = ? AND t.used_at IS NULL
+              AND t.expires_at > ? AND u.account_status = 'pending'
+        """, (token_hash, now))
+        verification = cursor.fetchone()
+        if not verification:
+            return render_template('email_verification.html', state='invalid')
+
+        cursor.execute("""
+            UPDATE email_verification_tokens SET used_at = ?
+            WHERE id = ? AND used_at IS NULL AND expires_at > ?
+        """, (now, verification[0], now))
+        if cursor.rowcount != 1:
+            conn.rollback()
+            return render_template('email_verification.html', state='invalid')
+        cursor.execute(
+            "UPDATE users SET account_status = 'active' WHERE id = ? AND account_status = 'pending'",
+            (verification[1],),
+        )
+        if cursor.rowcount != 1:
+            conn.rollback()
+            return render_template('email_verification.html', state='invalid')
+        conn.commit()
+        return render_template(
+            'email_verification.html',
+            state='verified',
+            email=verification[2],
+        )
+    finally:
+        conn.close()
+
+
+def _google_oauth_flow(state=None):
+    client_id = os.environ.get('GOOGLE_CLIENT_ID')
+    client_secret = os.environ.get('GOOGLE_CLIENT_SECRET')
+    if not client_id or not client_secret:
+        return None
+
+    callback_uri = os.environ.get('GOOGLE_OAUTH_REDIRECT_URI') or url_for(
+        'google_auth_callback', _external=True
+    )
+    client_config = {
+        'web': {
+            'client_id': client_id,
+            'client_secret': client_secret,
+            'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
+            'token_uri': 'https://oauth2.googleapis.com/token',
+            'redirect_uris': [callback_uri],
+        }
+    }
+    flow = Flow.from_client_config(
+        client_config,
+        scopes=['openid', 'https://www.googleapis.com/auth/userinfo.email'],
+        state=state,
+    )
+    flow.redirect_uri = callback_uri
+    return flow
+
+
+def _auth_redirect_for_user(user):
+    if not getattr(user, 'onboarding_completed', True):
+        return redirect(url_for('onboarding'))
+    if user.role == 'recruiter':
+        return redirect(url_for('recruiter_dashboard'))
+    return redirect(url_for('dashboard'))
+
+
+def _generate_short_username(email: str) -> str:
+    """Generate a compact, human-friendly username (max 10 chars) from an email address."""
+    local_part = (email or '').split('@', 1)[0].lower()
+    alpha_tokens = [tok for tok in re.findall(r'[a-z]+', local_part) if len(tok) >= 3]
+    if alpha_tokens:
+        base = alpha_tokens[0][:8]
+    else:
+        cleaned = re.sub(r'[^a-z0-9]', '', local_part)
+        base = (cleaned or 'user')[:8]
+
+    if User.get_by_username(base) is None:
+        return base
+    for suffix in range(2, 100):
+        candidate = f"{base[:7]}{suffix}"
+        if User.get_by_username(candidate) is None:
+            return candidate
+    return f"{base[:6]}{secrets.token_hex(2)}"
+
+
+def _create_google_password_setup_token(user_id):
+    database = JobDatabase()
+    conn = connect_database(database.db_path, timeout=10)
+    try:
+        now = datetime.datetime.utcnow()
+        token = secrets.token_urlsafe(32)
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE password_setup_tokens SET used_at = ?
+            WHERE user_id = ? AND used_at IS NULL
+        """, (now.isoformat(), user_id))
+        cursor.execute("""
+            INSERT INTO password_setup_tokens (user_id, token_hash, expires_at, created_at)
+            SELECT id, ?, ?, ? FROM users
+            WHERE id = ? AND account_status = 'pending'
+        """, (
+            hashlib.sha256(token.encode('utf-8')).hexdigest(),
+            (now + datetime.timedelta(hours=24)).isoformat(),
+            now.isoformat(),
+            user_id,
+        ))
+        if cursor.rowcount != 1:
+            conn.rollback()
+            return None
+        conn.commit()
+        return token
+    finally:
+        conn.close()
+
+
+@app.route('/auth/google')
+def google_auth_start():
+    if current_user.is_authenticated:
+        return _auth_redirect_for_user(current_user)
+
+    mode = request.args.get('mode', 'login')
+    role = request.args.get('role')
+    if mode not in ('login', 'register'):
+        abort(400)
+    if role is not None and role not in ('seeker', 'recruiter'):
+        abort(400)
+
+    try:
+        state = secrets.token_urlsafe(32)
+        flow = _google_oauth_flow(state=state)
+        if flow is None:
+            flash('Google sign-in is not configured. Please use password sign-in.', 'danger')
+            return redirect(url_for('login') + ('#register' if mode == 'register' else ''))
+        authorization_url, _ = flow.authorization_url(
+            access_type='online',
+            prompt='select_account',
+        )
+    except ValueError:
+        logger.exception('Google OAuth configuration is invalid.')
+        flash('Google sign-in is temporarily unavailable.', 'danger')
+        return redirect(url_for('login') + ('#register' if mode == 'register' else ''))
+
+    session['google_oauth_state'] = state
+    session['google_oauth_mode'] = mode
+    session['google_oauth_role'] = role
+    return redirect(authorization_url)
+
+
+@app.route('/auth/google/callback')
+def google_auth_callback():
+    expected_state = session.pop('google_oauth_state', None)
+    mode = session.pop('google_oauth_mode', 'login')
+    role = session.pop('google_oauth_role', None)
+    returned_state = request.args.get('state', '')
+    if not expected_state or not hmac.compare_digest(expected_state, returned_state):
+        flash('Google sign-in could not be verified. Please try again.', 'danger')
+        return redirect(url_for('login') + ('#register' if mode == 'register' else ''))
+    if request.args.get('error'):
+        flash('Google sign-in was cancelled or denied.', 'info')
+        return redirect(url_for('login') + ('#register' if mode == 'register' else ''))
+
+    try:
+        flow = _google_oauth_flow(state=expected_state)
+        if flow is None:
+            raise ValueError('Google OAuth is not configured.')
+        flow.fetch_token(code=request.args.get('code', ''))
+        claims = id_token.verify_oauth2_token(
+            flow.credentials.id_token,
+            Request(),
+            os.environ['GOOGLE_CLIENT_ID'],
+        )
+    except (
+        GoogleAuthError,
+        OAuth2Error,
+        requests.exceptions.RequestException,
+        ValueError,
+        Warning,
+    ) as error:
+        logger.warning('Google OAuth callback failed: %s', type(error).__name__)
+        flash('Google sign-in failed. Please try again.', 'danger')
+        return redirect(url_for('login') + ('#register' if mode == 'register' else ''))
+
+    email_claim = claims.get('email')
+    if (
+        not isinstance(email_claim, str)
+        or not email_claim.strip()
+        or claims.get('email_verified') is not True
+    ):
+        flash('Google did not provide a verified email address.', 'danger')
+        return redirect(url_for('login') + ('#register' if mode == 'register' else ''))
+    email = email_claim.strip().lower()
+
+    db_user = User.get_by_email(email)
+    database = JobDatabase()
+    if db_user is None:
+        has_explicit_role = role in ('seeker', 'recruiter')
+        user_role = role if has_explicit_role else 'seeker'
+        username = _generate_short_username(email)
+        database.add_user(
+            username,
+            generate_password_hash(secrets.token_urlsafe(32)),
+            role=user_role,
+            email=email,
+            onboarding_completed=has_explicit_role,
+        )
+        db_user = User.get_by_email(email)
+        if db_user is None:
+            flash('Unable to create your account. Please try again.', 'danger')
+            return redirect(url_for('login') + ('#register' if mode == 'register' else ''))
+    elif role in ('seeker', 'recruiter') and db_user.role != role:
+        database.update_user_role(db_user.id, role)
+        db_user.role = role
+        logger.info('Updated role for user %s (%s) to %s via Google auth', db_user.id, email, role)
+
+    if db_user.account_status == 'pending':
+        conn = connect_database(database.db_path, timeout=10)
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id FROM email_verification_tokens
+                WHERE user_id = ? AND used_at IS NULL
+                LIMIT 1
+            """, (db_user.id,))
+            email_verification = cursor.fetchone()
+            if email_verification:
+                now = datetime.datetime.utcnow().isoformat()
+                cursor.execute("""
+                    UPDATE email_verification_tokens SET used_at = ?
+                    WHERE user_id = ? AND used_at IS NULL
+                """, (now, db_user.id))
+                cursor.execute(
+                    "UPDATE users SET account_status = 'active' WHERE id = ? AND account_status = 'pending'",
+                    (db_user.id,),
+                )
+                conn.commit()
+                db_user = User.get_by_email(email)
+        finally:
+            conn.close()
+    if db_user and db_user.account_status == 'pending':
+        setup_token = _create_google_password_setup_token(db_user.id)
+        if setup_token:
+            flash('Google verified your email. Set a password to activate your account.', 'info')
+            return redirect(url_for('set_password', token=setup_token))
+        db_user = User.get_by_email(email)
+
+    if db_user is None or db_user.account_status != 'active':
+        flash('This account is not active. Please contact support.', 'danger')
+        return redirect(url_for('login'))
+
+    login_user(db_user)
+    flash('Signed in with Google successfully!', 'success')
+    return _auth_redirect_for_user(db_user)
+
 
 @app.route('/admin/login')
 def admin_login():
@@ -6351,21 +6986,77 @@ def login():
             return redirect(url_for('login', admin='1'))
         return redirect(url_for('dashboard'))
     if request.method == 'POST':
-        username = request.form['username']
+        username = request.form['username'].strip()
         password = request.form['password']
         db_user = User.get_by_username(username)
-        if db_user and db_user.account_status == 'active' and check_password_hash(db_user.password_hash, password):
-            login_user(db_user)
-            if admin_login_mode and not db_user.is_admin:
-                logout_user()
-                flash('This account is not authorized for administrator access.', 'danger')
-                return redirect(url_for('login', admin='1'))
-            flash('Logged in successfully!', 'success')
-            if admin_login_mode:
-                return redirect(url_for('admin_pro_invites'))
-            if db_user.role == 'recruiter':
-                return redirect(url_for('recruiter_dashboard'))
-            return redirect(url_for('dashboard'))
+        if db_user is None and re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', username):
+            email = username.lower()
+            db_user = User.get_by_email(email)
+            if db_user is None:
+                try:
+                    for _ in range(3):
+                        generated_username = _generate_short_username(email)
+                        new_user_id = _create_email_account(
+                            generated_username,
+                            password,
+                            email,
+                            'seeker',
+                        )
+                        if new_user_id:
+                            return render_template(
+                                'email_verification.html',
+                                state='sent',
+                                email=email,
+                            )
+                        db_user = User.get_by_email(email)
+                        if db_user:
+                            break
+                except (OSError, RuntimeError, smtplib.SMTPException, ValueError) as error:
+                    logger.error('Could not send email verification message: %s', type(error).__name__)
+                    return render_template(
+                        'email_verification.html',
+                        state='delivery_failed',
+                        email=email,
+                    )
+        if db_user and check_password_hash(db_user.password_hash, password):
+            if db_user.account_status == 'pending':
+                conn = connect_database(JobDatabase().db_path, timeout=10)
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT 1 FROM email_verification_tokens
+                        WHERE user_id = ? LIMIT 1
+                    """, (db_user.id,))
+                    has_email_confirmation = cursor.fetchone() is not None
+                finally:
+                    conn.close()
+                if has_email_confirmation:
+                    try:
+                        _create_email_verification_token(db_user.id, db_user.email)
+                    except (OSError, RuntimeError, smtplib.SMTPException, ValueError) as error:
+                        logger.error('Could not resend email verification message: %s', type(error).__name__)
+                        flash('We could not send the confirmation email. Please try again later.', 'danger')
+                        return render_template(
+                            'email_verification.html',
+                            state='delivery_failed',
+                            email=db_user.email,
+                        )
+                    return render_template(
+                        'email_verification.html',
+                        state='sent',
+                        email=db_user.email,
+                    )
+            elif db_user.account_status == 'active':
+                login_user(db_user)
+                if admin_login_mode and not db_user.is_admin:
+                    logout_user()
+                    flash('This account is not authorized for administrator access.', 'danger')
+                    return redirect(url_for('login', admin='1'))
+                flash('Logged in successfully!', 'success')
+                if admin_login_mode:
+                    return redirect(url_for('admin_pro_invites'))
+                return _auth_redirect_for_user(db_user)
+            flash('This account is not active. Please contact support.', 'danger')
         else:
             flash('Login Unsuccessful. Please check username and password', 'danger')
     return render_template(
@@ -6380,6 +7071,97 @@ def logout():
     logout_user()
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
+
+
+@app.route('/onboarding')
+@login_required
+def onboarding():
+    """Render the 4-step first-time onboarding & interactive product demo wizard."""
+    db = JobDatabase()
+    user_details = db.get_user_details(current_user.id) or {}
+    company = db.get_company_by_recruiter(current_user.id) or {}
+    return render_template(
+        'onboarding.html',
+        user_details=user_details,
+        company=company,
+    )
+
+
+@app.route('/api/onboarding/complete', methods=['POST'])
+@login_required
+def complete_onboarding():
+    """Save user role and optional Step 4 quick-setup details, mark onboarding complete, and return redirect URL."""
+    payload = request.get_json(silent=True) or request.form.to_dict() or {}
+    role = str(payload.get('role') or '').strip().lower()
+    if role == 'job_seeker':
+        role = 'seeker'
+    if role not in ('seeker', 'recruiter'):
+        if request.is_json:
+            return jsonify({'success': False, 'error': 'Please choose Job Seeker or Recruiter.'}), 400
+        flash('Please choose Job Seeker or Recruiter.', 'danger')
+        return redirect(url_for('onboarding'))
+
+    db = JobDatabase()
+    if not db.complete_user_onboarding(current_user.id, role):
+        if request.is_json:
+            return jsonify({'success': False, 'error': 'Failed to save onboarding state.'}), 500
+        flash('Failed to save onboarding state.', 'danger')
+        return redirect(url_for('onboarding'))
+
+    current_user.role = role
+    current_user.onboarding_completed = True
+
+    # Optional quick-setup persistence from Step 4
+    if role == 'seeker':
+        full_name = str(payload.get('full_name') or '').strip()
+        target_role = str(payload.get('target_role') or '').strip()
+        preferred_location = str(payload.get('preferred_location') or '').strip()
+        if full_name:
+            existing = db.get_user_details(current_user.id) or {}
+            existing['full_name'] = full_name
+            if not existing.get('email') and getattr(current_user, 'email', None):
+                existing['email'] = current_user.email
+            db.save_user_details(current_user.id, existing)
+        if target_role:
+            db.save_search_profile(
+                current_user.id,
+                profile_name='Primary Target Role',
+                search_terms=target_role,
+                location=preferred_location or 'Remote',
+                experience='all',
+                job_type='Full-time',
+            )
+    elif role == 'recruiter':
+        company_name = str(payload.get('company_name') or '').strip()
+        industry = str(payload.get('industry') or '').strip()
+        website = str(payload.get('website') or '').strip()
+        if company_name:
+            existing_company = db.get_company_by_recruiter(current_user.id) or {}
+            company_data = sanitize_company_data({
+                **existing_company,
+                'company_name': company_name,
+                'industry': industry or existing_company.get('industry') or 'Technology',
+                'website': website or existing_company.get('website') or '',
+            })
+            db.save_company(current_user.id, company_data)
+
+    session['show_spotlight_tour'] = True
+    target_url = url_for('recruiter_dashboard', tour=1) if role == 'recruiter' else url_for('dashboard', tour=1)
+    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': True,
+            'role': role,
+            'redirect_url': target_url,
+        })
+    return redirect(target_url)
+
+
+@app.route('/api/onboarding/tour-dismiss', methods=['POST'])
+@login_required
+def dismiss_onboarding_tour():
+    """Dismiss the post-onboarding interactive spotlight coach-mark tour."""
+    session.pop('show_spotlight_tour', None)
+    return jsonify({'success': True})
 
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
@@ -6567,6 +7349,7 @@ def outreach_studio():
     return render_template('outreach_studio.html', last_scan_time=last_scan_time, stats=stats, contacts=contacts, templates=templates)
 
 @app.route('/learning_path')
+@app.route('/learning')
 @login_required
 def learning_path():
     """Renders the Learning Path page."""
@@ -7134,32 +7917,36 @@ def search_csv_repository_for_contacts(user_id: int, keywords: List[str]) -> int
     return added_count
 
 # --- Celery Tasks for Outreach ---
-@celery.task(bind=True, name='app.scrape_contacts_task')
-def scrape_contacts_task(self, user_id: int, keywords: List[str]):
-    """Celery task to search contacts ONLY in the uploaded repository."""
-    logger.info(f"Celery task {self.request.id} started for user {user_id} to find contacts with keywords: {keywords}.")
+def _scrape_contacts_impl(task_ctx, user_id: int, keywords: List[str]):
+    """Shared contact-search execution body for Celery workers and in-process background threads."""
+    task_id = getattr(getattr(task_ctx, 'request', None), 'id', 'local')
+    logger.info(f"Contact search task {task_id} started for user {user_id} to find contacts with keywords: {keywords}.")
     try:
-
-        
-
-
-
-
-        # 2. Search CSV Repository
-        self.update_state(state='PROGRESS', meta={'status': 'Searching CSV/Excel repository...', 'progress': 50})
+        if task_ctx:
+            task_ctx.update_state(state='PROGRESS', meta={'status': 'Searching CSV/Excel repository...', 'progress': 50})
         csv_count = search_csv_repository_for_contacts(user_id, keywords)
 
         message = f"Search complete. Found {csv_count} matching contacts in your uploaded files."
         logger.info(message)
-        
-        # Final update
-        self.update_state(state='PROGRESS', meta={'status': message, 'progress': 100})
-        
+
+        if task_ctx:
+            task_ctx.update_state(state='PROGRESS', meta={'status': message, 'progress': 100})
+
         return {'status': 'Complete', 'message': message, 'progress': 100, 'added_count': csv_count}
     except Exception as e:
-        logger.error(f"Celery task {self.request.id} failed for user {user_id}: {e}", exc_info=True)
-        self.update_state(state='FAILURE', meta={'status': f'Task failed: {str(e)}', 'error': str(e), 'progress': 100})
+        logger.error(f"Contact search task {task_id} failed for user {user_id}: {e}", exc_info=True)
+        if task_ctx:
+            task_ctx.update_state(state='FAILURE', meta={'status': f'Task failed: {str(e)}', 'error': str(e), 'progress': 100})
         raise
+
+
+@celery.task(bind=True, name='app.scrape_contacts_task')
+def scrape_contacts_task(self, user_id: int, keywords: List[str]):
+    """Celery task to search contacts ONLY in the uploaded repository."""
+    return _scrape_contacts_impl(_SafeCeleryTaskContext(self), user_id, keywords)
+
+
+scrape_contacts_task._local_runner = _scrape_contacts_impl
 
 
 @app.route('/scrape_contacts', methods=['POST'])
@@ -7168,7 +7955,7 @@ def scrape_contacts():
     data = request.get_json()
     keywords_str = data.get('keywords', '') if data else ''
     keywords = [term.strip() for term in keywords_str.split(',') if term.strip()]
-    task = scrape_contacts_task.delay(current_user.id, keywords)
+    task = _dispatch_background_task(scrape_contacts_task, current_user.id, keywords)
     return jsonify({'success': True, 'task_id': task.id})
 
 @app.route('/verify_email', methods=['POST'])
@@ -7495,6 +8282,8 @@ def add_status_colors(job):
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    if not getattr(current_user, 'onboarding_completed', True):
+        return redirect(url_for('onboarding'))
     if current_user.role == 'recruiter':
         return redirect(url_for('recruiter_dashboard'))
     db = JobDatabase()
@@ -7639,10 +8428,10 @@ def search_jobs():
         flash('Please enter at least one search term.', 'warning')
         return redirect(url_for('dashboard'))
 
-    # Trigger the Celery task for job scraping
+    # Trigger the Celery task for job scraping (with automatic thread fallback if Redis is unavailable)
     try:
-        task = run_job_hunt_task.delay(current_user.id, search_terms, location, experience, job_type)
-        logger.info(f"Celery task {task.id} enqueued for user {current_user.id} with terms '{search_terms_str}'.")
+        task = _dispatch_background_task(run_job_hunt_task, current_user.id, search_terms, location, experience, job_type)
+        logger.info(f"Task {task.id} enqueued for user {current_user.id} with terms '{search_terms_str}'.")
         return jsonify({'status': 'success', 'task_id': task.id})
     except Exception as e:
         logger.error(f"Failed to enqueue Celery task for user {current_user.id} with terms '{search_terms_str}': {e}", exc_info=True)
@@ -8277,9 +9066,9 @@ def start_scrape():
         # Convert search terms to list
         search_terms_list = [term.strip() for term in search_terms.split(',') if term.strip()]
         
-        # Start the Celery task
-        task = run_job_hunt_task.delay(
-            current_user.id, search_terms_list, location, experience, job_type, scan_mode
+        # Start the Celery task (with automatic thread fallback if Redis is unavailable)
+        task = _dispatch_background_task(
+            run_job_hunt_task, current_user.id, search_terms_list, location, experience, job_type, scan_mode
         )
         
         return jsonify({
@@ -8296,39 +9085,49 @@ def start_scrape():
 @app.route('/status/<task_id>')
 @login_required
 def status(task_id):
-    """Get status of a Celery task."""
+    """Get status of a Celery or local background task."""
     try:
-        task = run_job_hunt_task.AsyncResult(task_id)
-        
-        if task.state == 'PENDING':
+        local_entry = _get_local_task_result(task_id)
+        if local_entry is not None:
+            state = local_entry.get('state', 'PENDING')
+            info = local_entry.get('info') or {}
+        else:
+            task = run_job_hunt_task.AsyncResult(task_id)
+            state = task.state
+            info = task.info if isinstance(task.info, dict) else {'raw': str(task.info)}
+
+        if state == 'PENDING':
             response = {
                 'status': 'Pending...',
                 'progress': 0,
                 'details': 'Task is waiting to be processed...'
             }
-        elif task.state == 'PROGRESS':
+        elif state == 'PROGRESS':
+            status_text = info.get('status', 'In Progress...') if isinstance(info, dict) else 'In Progress...'
             response = {
-                'status': task.info.get('status', 'In Progress...'),
-                'progress': task.info.get('progress', 0),
-                'details': task.info.get('status', 'Processing...')  # Use status as details for now
+                'status': status_text,
+                'progress': info.get('progress', 0) if isinstance(info, dict) else 0,
+                'details': status_text
             }
-        elif task.state == 'SUCCESS':
+        elif state == 'SUCCESS':
+            msg = (info.get('message') or info.get('status')) if isinstance(info, dict) else 'Search completed'
             response = {
                 'status': 'SUCCESS',
                 'progress': 100,
                 'details': 'Job search completed successfully!',
-                'message': task.info.get('message', 'Search completed')
+                'message': msg or 'Search completed'
             }
         else:  # FAILURE
+            detail_msg = info.get('status') or info.get('raw') if isinstance(info, dict) else str(info)
             response = {
                 'status': 'FAILURE',
                 'progress': 100,
-                'details': f'Task failed: {str(task.info)}',
+                'details': f'Task failed: {detail_msg}',
                 'message': 'Search failed'
             }
-            
+
         return jsonify(response)
-        
+
     except Exception as e:
         logger.error(f"Failed to get task status: {e}")
         return jsonify({
@@ -8386,6 +9185,8 @@ def jobs():
 @login_required
 @require_role('recruiter')
 def recruiter_dashboard():
+    if not getattr(current_user, 'onboarding_completed', True):
+        return redirect(url_for('onboarding'))
     return render_template('recruiter_dashboard.html')
 
 @app.route('/api/recruiters/<int:recruiter_id>/dashboard')
@@ -9539,11 +10340,9 @@ if __name__ == "__main__":
     # Setup signal handlers for graceful shutdown
     signal.signal(signal.SIGINT, lambda s, f: sys.exit(0))
     signal.signal(signal.SIGTERM, lambda s, f: sys.exit(0))
-    
-    logger.info("Starting Flask application...")
-    try:
-        import webbrowser
-        webbrowser.open('https://aijobsnap.vercel.app/')
-    except Exception as e:
-        logger.warning(f"Could not automatically open browser: {e}")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+
+    port = int(os.environ.get('PORT', '5000'))
+    is_prod = os.environ.get('FLASK_ENV') == 'production'
+    debug_mode = (not is_prod) and os.environ.get('FLASK_DEBUG', '0').lower() in ('1', 'true', 'yes')
+    logger.info(f"Starting Flask application on 0.0.0.0:{port} (debug={debug_mode})...")
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)

@@ -3,7 +3,7 @@
 
 <div id="dashboard-content" class="flex-1 flex flex-col h-full w-full"
      x-data="{ 
-         sidebarExpanded: false, 
+         sidebarExpanded: window.innerWidth >= 1024,
          sidebarAnimating: false,
          toggleSidebar(val) {
              this.sidebarExpanded = (val !== undefined) ? val : !this.sidebarExpanded;
@@ -44,7 +44,7 @@
 
                 <!-- 3. Centered Pipeline Stage Selector (Compact Dock) -->
                 <div class="w-full flex justify-center items-center py-0.5 workspace-sync-transition">
-                    <div class="inline-flex items-center gap-1.5 sm:gap-2 overflow-x-auto px-3 py-1.5 rounded-2xl bg-surface border border-outline-variant/80 shadow-2xs custom-scrollbar text-[12px] max-w-full">
+                    <div id="pipeline-stage-dock" class="inline-flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar px-3 py-1.5 rounded-2xl bg-surface border border-outline-variant/80 shadow-2xs text-[12px] max-w-full">
                         <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1 font-semibold">
                             <span class="material-symbols-outlined text-[15px] text-primary">view_timeline</span>
                             Pipeline:
@@ -104,7 +104,7 @@
                 <!-- SECTION D: Job Matches Feed -->
                 <div class="flex flex-col gap-3">
                     <!-- Feed Header -->
-                    <header class="border border-outline-variant rounded-2xl px-4 sm:px-5 py-3 flex justify-between items-center bg-surface shadow-2xs">
+                    <header id="dashboard-feed-header" class="border border-outline-variant rounded-2xl px-3.5 sm:px-5 py-3 flex flex-wrap justify-between items-center gap-2.5 bg-surface shadow-2xs">
                         <div class="flex items-center gap-2 flex-wrap">
                             <h2 id="job-listings-heading" class="font-headline-md text-on-surface text-[15px] font-bold flex items-center gap-2 flex-wrap">
                                 <span>Job Matches</span>
@@ -173,7 +173,7 @@
                                         <div class="min-w-0 flex-1">
                                             <div class="flex items-center gap-2 flex-wrap mb-1">
                                                 <a href="{{ url_for('job_details', job_id=job.id) }}"
-                                                   class="text-[15px] font-bold text-on-surface group-hover:text-primary transition-colors truncate max-w-xl"
+                                                   class="text-[15px] font-bold text-on-surface group-hover:text-primary transition-colors line-clamp-2 sm:truncate max-w-full sm:max-w-xl break-words"
                                                    title="{{ job.title }}">
                                                     {{ job.title }}
                                                 </a>
@@ -268,10 +268,10 @@
                                     </div>
 
                                     <!-- Right: AI Fit Match Pill & Actions -->
-                                    <div class="flex sm:flex-row lg:flex-col items-center lg:items-end justify-between lg:justify-center gap-2.5 shrink-0 w-full lg:w-auto pt-3 lg:pt-0 border-t lg:border-0 border-outline-variant/60">
+                                    <div class="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end justify-between lg:justify-center gap-2.5 shrink-0 w-full lg:w-auto pt-3 lg:pt-0 border-t lg:border-0 border-outline-variant/60">
                                         <!-- AI Match Score Badge with Explanation Tooltip -->
-                                        <div class="relative group/score" title="{{ job.match_explanation }}">
-                                            <div class="font-data-mono text-[11px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5 cursor-help
+                                        <div class="relative group/score self-start sm:self-auto" title="{{ job.match_explanation }}">
+                                            <div class="font-data-mono text-[11px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5 cursor-help w-fit
                                                 {% if job.match_score >= 80 %}bg-primary/15 text-primary border border-primary/30
                                                 {% elif job.match_score >= 65 %}bg-secondary/15 text-secondary border border-secondary/30
                                                 {% else %}bg-surface-container text-on-surface border border-outline-variant{% endif %}">
@@ -280,15 +280,15 @@
                                             </div>
                                             
                                             <!-- Tooltip -->
-                                            <div class="absolute right-0 bottom-full mb-1.5 w-64 p-2.5 bg-surface-container-highest text-on-surface border border-outline-variant rounded-xl shadow-xl text-[11px] opacity-0 pointer-events-none group-hover/score:opacity-100 transition-opacity z-50 font-sans leading-relaxed">
+                                            <div class="absolute left-0 sm:left-auto sm:right-0 bottom-full mb-1.5 w-64 max-w-[calc(100vw-40px)] p-2.5 bg-surface-container-highest text-on-surface border border-outline-variant rounded-xl shadow-xl text-[11px] opacity-0 pointer-events-none group-hover/score:opacity-100 transition-opacity z-50 font-sans leading-relaxed">
                                                 {{ job.match_explanation }}
                                             </div>
                                         </div>
 
                                         <!-- Action Buttons: Status Selector & Details -->
-                                        <div class="flex items-center gap-2">
+                                        <div class="flex flex-wrap sm:flex-nowrap items-center justify-end gap-2">
                                             <button onclick="openStatusModal({{ job.id }}, '{{ job.status }}', '{{ job.notes | default('') | escape }}')"
-                                                class="font-data-mono text-[11px] px-2.5 py-1.5 rounded-xl border border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary transition-colors uppercase font-medium bg-surface-container cursor-pointer shadow-2xs flex items-center gap-1"
+                                                class="font-data-mono text-[11px] px-2.5 py-2 sm:py-1.5 rounded-xl border border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary transition-colors uppercase font-medium bg-surface-container cursor-pointer shadow-2xs flex items-center gap-1"
                                                 title="Update stage (New, Applied, Interview, Offered, Rejected)">
                                                 <span class="material-symbols-outlined text-[13px]">swap_horiz</span>
                                                 <span>{{ job.status }}</span>
@@ -297,7 +297,7 @@
                                             {% if (job.is_jobsnap_native or job.source == 'Recruiter' or job.posted_by_recruiter_id) and not (job.has_applied_via_jobsnap or job.status == 'applied') %}
                                             <button type="button" onclick="openDirectApplyModal({{ job.id }}, '{{ job.title|escape }}', '{{ job.company|escape }}', {{ job.match_score|default(80) }})"
                                                 id="quick-apply-{{ job.id }}"
-                                                class="px-3 py-1.5 rounded-xl bg-primary/15 hover:bg-primary text-primary hover:text-on-primary border border-primary/30 font-semibold text-[11.5px] transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
+                                                class="px-3 py-2 sm:py-1.5 rounded-xl bg-primary/15 hover:bg-primary text-primary hover:text-on-primary border border-primary/30 font-semibold text-[11.5px] transition-all flex items-center justify-center gap-1 shadow-2xs cursor-pointer flex-1 sm:flex-initial"
                                                 title="Apply directly using your JobSnap profile">
                                                 <span class="material-symbols-outlined text-[14px]">bolt</span>
                                                 <span>Quick Apply</span>
@@ -305,7 +305,7 @@
                                             {% endif %}
 
                                             <a href="{{ url_for('job_details', job_id=job.id) }}"
-                                               class="px-3.5 py-1.5 rounded-xl bg-primary text-on-primary hover:bg-emerald-600 font-semibold text-[12px] transition-all flex items-center gap-1 shadow-xs">
+                                               class="px-3.5 py-2 sm:py-1.5 rounded-xl bg-primary text-on-primary hover:bg-emerald-600 font-semibold text-[12px] transition-all flex items-center justify-center gap-1 shadow-xs flex-1 sm:flex-initial whitespace-nowrap">
                                                 <span>View Details</span>
                                                 <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
                                             </a>
@@ -334,13 +334,14 @@
                     </div>
 
                     <!-- Precision Pagination Dock (Centered Small Pill) -->
+                    <div id="pagination-section" class="empty:hidden">
                     {% if total_pages and total_pages > 1 %}
                     <div id="pagination-dock-slot" class="w-full flex justify-center items-center py-4 my-1 min-h-[56px] workspace-sync-transition">
                         <!-- Docked Pill (Sits in the center at the end of the job feed) -->
                         <div id="docked-pagination-pill"
-                             class="inline-flex items-center gap-2 sm:gap-3 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full bg-surface border border-outline-variant shadow-xs transition-all duration-300">
+                             class="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar bg-surface border border-outline-variant shadow-xs transition-all duration-300">
                             <span class="font-data-mono text-[10.5px] sm:text-[11px] text-on-surface-variant font-medium whitespace-nowrap">
-                                Page {{ current_page }} of {{ total_pages }} <span class="text-outline-variant/80 mx-1">·</span> <span class="text-on-surface font-semibold">{{ total_jobs }}</span> Jobs Total
+                                Page {{ current_page }} of {{ total_pages }} <span class="hidden sm:inline"><span class="text-outline-variant/80 mx-1">·</span> <span class="text-on-surface font-semibold">{{ total_jobs }}</span> Jobs Total</span>
                             </span>
                             <span class="w-px h-3.5 bg-outline-variant shrink-0"></span>
                             <nav class="flex items-center gap-1 shrink-0" aria-label="Job listings pagination">
@@ -376,8 +377,8 @@
                     <div id="floating-pagination-wrapper"
                          x-data="floatingPaginationController()"
                          x-init="initController()"
-                         class="pointer-events-none fixed bottom-5 left-0 right-0 z-40 flex justify-center items-center workspace-sync-transition"
-                         :style="(sidebarExpanded && window.innerWidth >= 1024) ? 'padding-left: 320px;' : (window.innerWidth >= 1024 ? 'padding-left: 72px;' : 'padding-left: 0;')"
+                         class="pointer-events-none fixed bottom-3 sm:bottom-5 left-0 right-0 z-40 flex justify-center items-center px-2.5 workspace-sync-transition"
+                         :style="(sidebarExpanded && window.innerWidth >= 1024) ? 'padding-left: 320px;' : (window.innerWidth >= 1024 ? 'padding-left: 72px;' : 'padding-left: 10px; padding-right: 10px;')"
                          :class="{
                              'opacity-100 translate-y-0': isVisible && !isDocked,
                              'opacity-0 translate-y-6 pointer-events-none': !isVisible || isDocked
@@ -385,10 +386,10 @@
                          style="transition: opacity 280ms cubic-bezier(0.16, 1, 0.3, 1), transform 280ms cubic-bezier(0.16, 1, 0.3, 1), padding-left 320ms cubic-bezier(0.2, 0, 0, 1);"
                          aria-hidden="true">
                         
-                        <div class="pointer-events-auto inline-flex items-center gap-2 sm:gap-3 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full bg-surface/92 dark:bg-surface-container-high/92 backdrop-blur-xl border border-primary/35 shadow-[0_12px_36px_rgba(0,0,0,0.18)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.55)] ring-1 ring-primary/20 transition-all duration-200 hover:border-primary hover:shadow-primary/15">
+                        <div class="pointer-events-auto inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full max-w-[calc(100vw-20px)] overflow-x-auto no-scrollbar bg-surface/92 dark:bg-surface-container-high/92 backdrop-blur-xl border border-primary/35 shadow-[0_12px_36px_rgba(0,0,0,0.18)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.55)] ring-1 ring-primary/20 transition-all duration-200 hover:border-primary hover:shadow-primary/15">
                             <span class="font-data-mono text-[10.5px] sm:text-[11px] text-on-surface-variant font-medium whitespace-nowrap flex items-center gap-1.5">
                                 <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-                                Page {{ current_page }} of {{ total_pages }} <span class="text-outline-variant/80 mx-0.5">·</span> <span class="text-on-surface font-semibold">{{ total_jobs }}</span> Jobs Total
+                                Page {{ current_page }} of {{ total_pages }} <span class="hidden sm:inline"><span class="text-outline-variant/80 mx-0.5">·</span> <span class="text-on-surface font-semibold">{{ total_jobs }}</span> Jobs Total</span>
                             </span>
                             <span class="w-px h-3.5 bg-outline-variant shrink-0"></span>
                             <nav class="flex items-center gap-1 shrink-0" aria-label="Floating pagination navigation">
@@ -420,6 +421,7 @@
                         </div>
                     </div>
                     {% endif %}
+                    </div>
                 </div>
 
                 <!-- SECTION E: Secondary Content (Moved Below Main Job Feed) -->
@@ -668,12 +670,27 @@
             if (percent >= 100) m.report.className = 'w-1.5 h-1.5 rounded-full bg-secondary';
         }
 
+        function redirectToFilteredDashboard(terms, loc) {
+            const targetUrl = new URL("{{ url_for('dashboard') }}", window.location.origin);
+            if (terms && terms.trim()) {
+                targetUrl.searchParams.set('search_query', terms.trim());
+            }
+            if (loc && loc.trim()) {
+                targetUrl.searchParams.set('location_filter', loc.trim());
+            }
+            targetUrl.searchParams.set('sort_by', 'found_date');
+            targetUrl.searchParams.set('sort_order', 'DESC');
+            window.location.href = targetUrl.toString();
+        }
+
         if (els.searchForm) {
             els.searchForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 resetProgressBar();
 
                 const formData = new FormData(els.searchForm);
+                window._activeScanSearchTerms = (formData.get('search_terms') || '').toString().trim();
+                window._activeScanLocation = (formData.get('location') || '').toString().trim();
                 const params = new URLSearchParams(formData).toString();
 
                 try {
@@ -696,7 +713,7 @@
                             if (d.state === 'SUCCESS') {
                                 els.progress.status.textContent = 'Complete! Refreshing...';
                                 eventSource.close();
-                                setTimeout(() => window.location.reload(), 1200);
+                                setTimeout(() => redirectToFilteredDashboard(window._activeScanSearchTerms, window._activeScanLocation), 1200);
                             } else if (d.state === 'FAILURE') {
                                 handleSearchError(d.message || 'Error occurred');
                             }
@@ -857,6 +874,24 @@
                     currentFilterForm.innerHTML = newFilterForm.innerHTML;
                 }
 
+                const newPipelineDock = doc.getElementById('pipeline-stage-dock');
+                const currentPipelineDock = document.getElementById('pipeline-stage-dock');
+                if (newPipelineDock && currentPipelineDock) {
+                    currentPipelineDock.innerHTML = newPipelineDock.innerHTML;
+                }
+
+                const newPaginationSection = doc.getElementById('pagination-section');
+                const currentPaginationSection = document.getElementById('pagination-section');
+                if (newPaginationSection && currentPaginationSection) {
+                    currentPaginationSection.innerHTML = newPaginationSection.innerHTML;
+                } else {
+                    const newPaginationDock = doc.getElementById('pagination-dock-slot');
+                    const currentPaginationDock = document.getElementById('pagination-dock-slot');
+                    if (newPaginationDock && currentPaginationDock) {
+                        currentPaginationDock.innerHTML = newPaginationDock.innerHTML;
+                    }
+                }
+
                 if (pushState) {
                     window.history.pushState({}, '', url);
                 }
@@ -908,26 +943,43 @@
         };
 
         window.startScanWithMode = async (mode) => {
+            const filterTerms = document.getElementById('search_query');
+            const filterLoc = document.getElementById('location_filter');
             const heroTerms = document.getElementById('hero_search_terms');
             const heroLoc = document.getElementById('hero_location');
             const sidebarTerms = document.getElementById('search_terms');
             const sidebarLoc = document.getElementById('location');
             const scanModeInput = document.getElementById('scan_mode');
 
-            const searchKeywords = (heroTerms && heroTerms.value.trim()) || (sidebarTerms && sidebarTerms.value.trim()) || '';
+            const searchKeywords =
+                (filterTerms && filterTerms.value.trim()) ||
+                (heroTerms && heroTerms.value.trim()) ||
+                (sidebarTerms && sidebarTerms.value.trim()) ||
+                '';
             if (!searchKeywords) {
-                if (heroTerms) heroTerms.focus();
+                if (filterTerms) filterTerms.focus();
+                else if (heroTerms) heroTerms.focus();
+                else if (sidebarTerms) sidebarTerms.focus();
                 alert('Please enter a role title, tech stack, or skill (e.g. Python, Full Stack) to search.');
                 return;
             }
 
+            const searchLoc =
+                (filterLoc && filterLoc.value.trim()) ||
+                (heroLoc && heroLoc.value.trim()) ||
+                (sidebarLoc && sidebarLoc.value.trim()) ||
+                '';
+
+            if (filterTerms) filterTerms.value = searchKeywords;
             if (sidebarTerms) sidebarTerms.value = searchKeywords;
             if (heroTerms) heroTerms.value = searchKeywords;
-            if (heroLoc && sidebarLoc) {
-                if (heroLoc.value.trim()) sidebarLoc.value = heroLoc.value.trim();
-                else if (sidebarLoc.value.trim()) heroLoc.value = sidebarLoc.value.trim();
-            }
+            if (filterLoc) filterLoc.value = searchLoc;
+            if (heroLoc) heroLoc.value = searchLoc;
+            if (sidebarLoc) sidebarLoc.value = searchLoc;
             if (scanModeInput) scanModeInput.value = mode;
+
+            window._activeScanSearchTerms = searchKeywords;
+            window._activeScanLocation = searchLoc;
 
             // Show real-time progress card in Hero
             const heroProg = document.getElementById('hero-progress-container');
@@ -949,7 +1001,7 @@
 
             const params = new URLSearchParams({
                 search_terms: searchKeywords,
-                location: (heroLoc && heroLoc.value.trim()) || (sidebarLoc && sidebarLoc.value.trim()) || '',
+                location: searchLoc,
                 scan_mode: mode,
                 experience: document.getElementById('experience')?.value || '',
                 job_type: document.getElementById('job_type')?.value || ''
@@ -975,7 +1027,7 @@
                         if (d.state === 'SUCCESS') {
                             if (heroStatus) heroStatus.textContent = 'Scan completed! Refreshing matches...';
                             es.close();
-                            setTimeout(() => window.location.reload(), 1100);
+                            setTimeout(() => redirectToFilteredDashboard(window._activeScanSearchTerms, window._activeScanLocation), 1100);
                         } else if (d.state === 'FAILURE') {
                             if (heroErr) {
                                 heroErr.textContent = d.message || 'Error occurred';

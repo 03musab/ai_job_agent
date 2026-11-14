@@ -49,11 +49,15 @@ class RoadmapFeatureTestCase(unittest.TestCase):
                 pass
 
     def _login_user(self, username="roadmap_user"):
-        self.client.post('/register', data={
-            'username': username,
-            'password': 'password123',
-            'role': 'seeker'
-        }, follow_redirects=True)
+        with patch('app._send_email_verification_email') as send_verification:
+            self.client.post('/register', data={
+                'username': username,
+                'password': 'password123',
+                'email': f'{username}@example.com',
+                'role': 'seeker'
+            }, follow_redirects=True)
+            verification_token = send_verification.call_args.args[1]
+        self.client.get(f'/confirm-email/{verification_token}')
 
         resp = self.client.post('/login', data={
             'username': username,

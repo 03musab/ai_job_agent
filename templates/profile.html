@@ -4,7 +4,7 @@
 <div class="max-w-[760px] mx-auto px-container-padding py-8 flex-1 flex flex-col gap-6 w-full">
     
     <!-- Top Header -->
-    <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex justify-between items-center">
+    <div class="border border-outline-variant rounded-xl p-4 sm:p-5 bg-surface-container flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
             <div class="flex items-center gap-2 mb-1">
                 <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Candidate Credentials</span>
@@ -12,8 +12,8 @@
             </div>
             <h1 class="font-headline-lg text-on-surface text-[20px] font-bold">Profile Settings</h1>
             {% if current_user.is_pro %}
-            <span class="inline-flex items-center gap-1 mt-2 font-data-mono text-[10px] px-2 py-1 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30 uppercase font-bold tracking-wider">
-                <span class="material-symbols-outlined text-[14px]">verified</span> Pro member
+            <span class="inline-flex items-center gap-1.5 mt-2 font-data-mono text-[11px] px-2.5 py-1.5 rounded-full bg-amber-100 dark:bg-amber-400/15 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-400/40 uppercase font-bold tracking-wider shadow-sm">
+                <span class="material-symbols-outlined text-[15px]">verified</span> Pro member
             </span>
             {% endif %}
             <p class="font-body-sm text-[12px] text-on-surface-variant">
@@ -135,12 +135,12 @@
                 </div>
 
                 {% if user_details and user_details.resume_path %}
-                <div class="mt-2 flex items-center justify-between p-2 rounded bg-surface-container-high border border-outline-variant/40">
-                    <div class="flex items-center gap-2 text-body-sm">
-                        <span class="material-symbols-outlined text-[16px] text-secondary">task_alt</span>
-                        <span class="font-data-mono text-[11px] text-on-surface">{{ user_details.resume_path.split('/')[-1].split('\\')[-1] }}</span>
+                <div class="mt-2 flex items-center justify-between gap-2 p-2.5 rounded-lg bg-surface-container-high border border-outline-variant/40">
+                    <div class="flex items-center gap-2 text-body-sm min-w-0 flex-1">
+                        <span class="material-symbols-outlined text-[16px] text-secondary shrink-0">task_alt</span>
+                        <span class="font-data-mono text-[11px] text-on-surface truncate max-w-[190px] sm:max-w-md" title="{{ user_details.resume_path.split('/')[-1].split('\\')[-1] }}">{{ user_details.resume_path.split('/')[-1].split('\\')[-1] }}</span>
                     </div>
-                    <span class="font-data-mono text-[10px] text-secondary uppercase">Active Parse</span>
+                    <span class="font-data-mono text-[10px] text-secondary uppercase shrink-0">Active Parse</span>
                 </div>
                 {% endif %}
 
@@ -198,7 +198,7 @@
 
             <!-- 5. Cover Letter Template -->
             <div class="border-t border-outline-variant pt-5" x-data="{ generatingCL: false }">
-                <div class="flex justify-between items-center mb-2">
+                <div class="flex flex-wrap justify-between items-center gap-2 mb-2">
                     <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block">05 / Default Cover Letter</span>
                     <button type="button" @click="
                         generatingCL = true;
@@ -234,7 +234,7 @@
             <!-- Save Action Button -->
             <div class="border-t border-outline-variant pt-5 flex justify-end gap-3">
                 <button type="submit"
-                    class="px-6 py-2.5 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-emerald-600 transition-colors shadow-sm">
+                    class="w-full sm:w-auto px-6 py-3 sm:py-2.5 min-h-[44px] bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-emerald-600 transition-colors shadow-sm flex items-center justify-center">
                     Save Profile Settings
                 </button>
             </div>

@@ -1,0 +1,1248 @@
+{% if current_user.is_authenticated %}
+<!-- Post-Onboarding Multi-Page Persistent Spotlight Coach-Mark System (_spotlight_tour.html) -->
+<style>
+    #spotlightTourOverlay {
+        position: fixed;
+        inset: 0;
+        z-index: 99990;
+        pointer-events: none;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.26s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.26s;
+    }
+    #spotlightTourOverlay.tour-active {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: none;
+    }
+    #spotlightTourOverlay.tour-active #spotlightTopBanner,
+    #spotlightTourOverlay.tour-active #spotlightCalloutBox {
+        pointer-events: auto;
+    }
+
+    /* Exact-Measured Spotlight Cutout Hole with 9999px Dimmed Backdrop */
+    #spotlightCutout {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 0;
+        border-radius: 12px;
+        box-shadow:
+            0 0 0 9999px rgba(6, 10, 19, 0.80),
+            0 0 0 2px rgba(45, 212, 191, 0.95),
+            0 0 28px rgba(20, 184, 166, 0.40);
+        pointer-events: none;
+        z-index: 99991;
+        will-change: top, left, width, height, border-radius;
+    }
+
+    /* Subtle animated pulse ring around the cutout box */
+    #spotlightCutout::after {
+        content: '';
+        position: absolute;
+        inset: -5px;
+        border-radius: inherit;
+        border: 1.5px solid rgba(45, 212, 191, 0.38);
+        pointer-events: none;
+        animation: spotlightRingPulse 2.2s ease-in-out infinite;
+    }
+
+    @keyframes spotlightRingPulse {
+        0%, 100% { opacity: 0.35; transform: scale(1); }
+        50% { opacity: 0.85; transform: scale(1.012); }
+    }
+
+    /* Top Confirmation Banner */
+    #spotlightTopBanner {
+        position: fixed;
+        top: 56px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(1160px, calc(100vw - 32px));
+        background: rgba(16, 68, 38, 0.90);
+        border: 1px solid rgba(74, 222, 128, 0.45);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-radius: 10px;
+        padding: 9px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        z-index: 99994;
+        pointer-events: none;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Curved Pointer Arrow SVG Layer */
+    #spotlightArrowSvg {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        z-index: 99993;
+        overflow: visible;
+    }
+
+    #spotlightArrowPath,
+    #spotlightArrowHead {
+        fill: none;
+        stroke: #2dd4bf;
+        stroke-width: 2.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.75));
+    }
+
+    /* Consistent, High-Contrast Structured Coach-Mark Card */
+    #spotlightCalloutBox {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 99995;
+        width: min(445px, calc(100vw - 24px));
+        background: rgba(10, 15, 28, 0.96);
+        border: 1px solid rgba(45, 212, 191, 0.44);
+        border-radius: 16px;
+        padding: 18px 20px;
+        pointer-events: none;
+        box-shadow:
+            0 24px 60px rgba(0, 0, 0, 0.85),
+            0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        will-change: top, left;
+        overflow: hidden;
+    }
+
+    /* Top Accent Line on Coach-Mark Card */
+    #spotlightCalloutBox::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2.5px;
+        background: linear-gradient(90deg, #14b8a6 0%, #38bdf8 65%, transparent 100%);
+    }
+
+    .spotlight-card-title {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.38;
+        color: #f8fafc;
+        letter-spacing: -0.01em;
+        margin: 0;
+    }
+
+    .spotlight-card-sub {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 13px;
+        font-weight: 400;
+        color: #cbd5e1;
+        margin-top: 6px;
+        line-height: 1.55;
+    }
+
+    /* End Tour Button (Permanently stops tour even across refreshes) */
+    .spotlight-btn-end {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        height: 34px;
+        padding: 0 11px;
+        border-radius: 8px;
+        border: 1.5px solid rgba(244, 63, 94, 0.55);
+        background: rgba(244, 63, 94, 0.12);
+        color: #fda4af;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.16s ease;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .spotlight-btn-end:hover {
+        background: rgba(244, 63, 94, 0.24);
+        border-color: #fb7185;
+        color: #ffe4e6;
+    }
+
+    .spotlight-btn-prev {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        height: 34px;
+        padding: 0 11px;
+        border-radius: 8px;
+        border: 1px solid rgba(148, 163, 184, 0.32);
+        background: rgba(30, 41, 59, 0.65);
+        color: #e2e8f0;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.16s ease;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .spotlight-btn-prev:hover {
+        border-color: rgba(255, 255, 255, 0.45);
+        background: rgba(51, 65, 85, 0.8);
+        color: #ffffff;
+    }
+
+    .spotlight-btn-next {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        height: 34px;
+        padding: 0 13px;
+        border-radius: 8px;
+        border: 1px solid #14b8a6;
+        background: linear-gradient(135deg, #0d9488 0%, #0ea5e9 100%);
+        color: #ffffff;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.16s ease;
+        box-shadow: 0 6px 16px rgba(13, 148, 136, 0.35);
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .spotlight-btn-next:hover {
+        filter: brightness(1.08);
+        transform: translateY(-1px);
+    }
+
+    .spotlight-dot {
+        width: 5.5px;
+        height: 5.5px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.30);
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .spotlight-dot:hover {
+        background: rgba(148, 163, 184, 0.65);
+    }
+    .spotlight-dot.active {
+        width: 16px;
+        background: #2dd4bf;
+    }
+
+    @media (max-width: 639px) {
+        #spotlightTopBanner {
+            top: 52px;
+            width: calc(100vw - 16px);
+            padding: 7px 10px;
+            gap: 8px;
+        }
+        #spotlightBannerText {
+            font-size: 11px;
+        }
+        #spotlightCalloutBox {
+            width: calc(100vw - 20px);
+            padding: 14px 15px;
+            border-radius: 14px;
+        }
+        .spotlight-card-title {
+            font-size: 14.5px;
+        }
+        .spotlight-card-sub {
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        .spotlight-btn-end,
+        .spotlight-btn-prev,
+        .spotlight-btn-next {
+            height: 36px;
+            font-size: 11.5px;
+            padding: 0 10px;
+        }
+    }
+</style>
+
+<div id="spotlightTourOverlay"
+     data-auto-start="{{ 'true' if (request.args.get('tour') == '1' or session.get('show_spotlight_tour')) else 'false' }}"
+     data-user-id="{{ current_user.id }}"
+     data-user-role="{{ current_user.role or 'seeker' }}"
+     aria-hidden="true">
+
+    <!-- 1. Top Emerald Confirmation Banner -->
+    <div id="spotlightTopBanner">
+        <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-5 h-5 rounded-full bg-emerald-500/25 border border-emerald-400/70 flex items-center justify-center text-emerald-300 text-[11px] font-bold shrink-0">
+                ✓
+            </span>
+            <span id="spotlightBannerText" class="text-[12.5px] font-medium text-emerald-50 truncate">
+                {% if current_user.role == 'recruiter' %}
+                    Guided Tour Active — walks across Dashboard, Post Job, Company Profile & Outreach Studio. Progress auto-saves on refresh.
+                {% else %}
+                    Guided Tour Active — walks across Job Matches, Outreach Studio & Skill Gap Roadmap. Progress auto-saves on refresh.
+                {% endif %}
+            </span>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <button type="button" onclick="window.endSpotlightTour()" class="text-[11px] font-semibold px-2.5 py-1 rounded bg-rose-500/20 border border-rose-400/40 text-rose-200 hover:bg-rose-500/35 hover:text-white transition-colors cursor-pointer">
+                End Tour
+            </button>
+            <button type="button" onclick="window.closeSpotlightBanner()" class="text-emerald-200/75 hover:text-white text-lg leading-none px-1 cursor-pointer" title="Hide banner">
+                ×
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. Exact-Measured Illuminated Cutout Frame Over Live Target UI Element -->
+    <div id="spotlightCutout"></div>
+
+    <!-- 3. 60fps Synchronized Curved SVG Pointer Arrow -->
+    <svg id="spotlightArrowSvg" xmlns="http://www.w3.org/2000/svg">
+        <path id="spotlightArrowPath" d="M 0 0 Q 0 0 0 0" />
+        <path id="spotlightArrowHead" d="M 0 0 L 0 0 L 0 0" />
+    </svg>
+
+    <!-- 4. Structured, High-Contrast Coach-Mark Card -->
+    <div id="spotlightCalloutBox" role="dialog" aria-labelledby="spotlightCalloutText">
+        <!-- Card Header Row -->
+        <div class="mb-2.5 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+                <span id="spotlightStepCounter" class="font-data-mono text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-md bg-teal-500/20 text-teal-300 border border-teal-400/35 font-bold shrink-0">
+                    STEP 1 / 14
+                </span>
+                <span id="spotlightFeatureTag" class="font-data-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-800/90 text-slate-300 border border-slate-700 font-semibold truncate">
+                    DASHBOARD
+                </span>
+            </div>
+            <span id="spotlightPagePill" class="font-data-mono text-[9.5px] text-teal-400/90 bg-teal-500/10 border border-teal-500/25 px-1.5 py-0.5 rounded shrink-0">
+                Page 1/4
+            </span>
+        </div>
+
+        <!-- Readable Title & Description -->
+        <h3 id="spotlightCalloutText" class="spotlight-card-title">
+            Begin to set up your workspace—monitor Active Jobs, Applications, and Hires live.
+        </h3>
+        <p id="spotlightCalloutSub" class="spotlight-card-sub">
+            Click Active Jobs or Applications metric cards to jump straight to those rosters, or click Next to explore your hiring funnel.
+        </p>
+
+        <!-- Progress Dots Row -->
+        <div id="spotlightDotsContainer" class="mt-3.5 flex items-center gap-1.5 flex-wrap"></div>
+
+        <!-- Card Footer Row: End Tour + Back + Next -->
+        <div class="mt-3.5 pt-3 border-t border-slate-800/90 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+            <button type="button" id="spotlightEndTourBtn" onclick="window.endSpotlightTour()" class="spotlight-btn-end" title="Permanently end tour (will not restart on refresh)">
+                <span>✕</span>
+                <span>End Tour</span>
+            </button>
+
+            <div class="flex items-center gap-1.5 flex-nowrap shrink-0">
+                <button type="button" id="spotlightPrevBtn" onclick="window.prevSpotlightStep()" class="spotlight-btn-prev" style="display: none;">
+                    <span>←</span>
+                    <span>Back</span>
+                </button>
+                <button type="button" id="spotlightNextBtn" onclick="window.nextSpotlightStep()" class="spotlight-btn-next">
+                    <span id="spotlightNextBtnLabel">Next</span>
+                    <span>→</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script id="spotlight-tour-script">
+(function () {
+    if (window.__jobsnapSpotlightInitialized) return;
+    window.__jobsnapSpotlightInitialized = true;
+
+    const overlay = document.getElementById('spotlightTourOverlay');
+    if (!overlay) return;
+
+    const cutout = document.getElementById('spotlightCutout');
+    const arrowPath = document.getElementById('spotlightArrowPath');
+    const arrowHead = document.getElementById('spotlightArrowHead');
+    const calloutBox = document.getElementById('spotlightCalloutBox');
+    const calloutText = document.getElementById('spotlightCalloutText');
+    const calloutSub = document.getElementById('spotlightCalloutSub');
+    const stepCounter = document.getElementById('spotlightStepCounter');
+    const featureTag = document.getElementById('spotlightFeatureTag');
+    const pagePill = document.getElementById('spotlightPagePill');
+    const dotsContainer = document.getElementById('spotlightDotsContainer');
+    const prevBtn = document.getElementById('spotlightPrevBtn');
+    const nextBtnLabel = document.getElementById('spotlightNextBtnLabel');
+    const topBanner = document.getElementById('spotlightTopBanner');
+
+    const userId = overlay.dataset.userId || 'anon';
+    const userRole = (overlay.dataset.userRole || 'seeker').toLowerCase();
+    const STORAGE_KEY = `jobsnap_tour_v3_${userId}_${userRole}`;
+
+    // =========================================================================
+    // MULTI-PAGE RECRUITER TOUR:
+    //   1. /recruiter/dashboard (Steps 1–5)
+    //   2. /recruiter/post-job  (Steps 6–8)
+    //   3. /recruiter/company   (Steps 9–11)
+    //   4. /outreach_studio     (Steps 12–14)
+    // =========================================================================
+    const RECRUITER_STEPS = [
+        // --- PAGE 1: Recruiter Dashboard (/recruiter/dashboard) ---
+        {
+            page: '/recruiter/dashboard',
+            pageLabel: 'Dashboard (1/4)',
+            selectors: ['#recruiter-kpi-grid'],
+            tag: 'LIVE TELEMETRY',
+            text: 'Begin to set up your workspace—monitor Active Jobs, Applications, and Hires live.',
+            sub: 'Click Active Jobs or Applications metric cards to jump straight to those rosters, or click Next to explore your hiring funnel.',
+            preferredSide: 'bottom'
+        },
+        {
+            page: '/recruiter/dashboard',
+            pageLabel: 'Dashboard (1/4)',
+            selectors: ['#recruiter-funnel-card'],
+            tag: 'HIRING FUNNEL',
+            text: 'Track conversion from Applied through Shortlisted and Hired.',
+            sub: 'Stage progress bars automatically illuminate as candidates advance through your hiring funnel.',
+            preferredSide: 'bottom'
+        },
+        {
+            page: '/recruiter/dashboard',
+            pageLabel: 'Dashboard (1/4)',
+            selectors: ['#recruiter-velocity-card'],
+            tag: 'APPLICANT VELOCITY',
+            text: 'Analyze daily applicant momentum over a 14-day trajectory.',
+            sub: 'Spot inbound candidate spikes right after publishing or promoting a job opening.',
+            preferredSide: 'bottom'
+        },
+        {
+            page: '/recruiter/dashboard',
+            pageLabel: 'Dashboard (1/4)',
+            selectors: ['#applications-section'],
+            tag: 'CANDIDATE ROSTER',
+            text: 'Filter candidates by stage or role and sort by AI Match %.',
+            sub: 'Advance candidates to Shortlist or Interview in one click, or open their full resume modal.',
+            preferredSide: 'top'
+        },
+        {
+            page: '/recruiter/dashboard',
+            pageLabel: 'Dashboard (1/4)',
+            selectors: ['#recruiter-export-excel-btn', '#recruiter-post-job-cta'],
+            tag: 'EXCEL EXPORT',
+            text: 'Export your candidate roster to Excel—next we will tour Post Job!',
+            sub: 'Click Next to automatically open the Post Job page and explore requisition publishing.',
+            preferredSide: 'top'
+        },
+
+        // --- PAGE 2: Post Job (/recruiter/post-job) ---
+        {
+            page: '/recruiter/post-job',
+            pageLabel: 'Post Job (2/4)',
+            selectors: ['#post-job-metadata-grid', '#post-job-form'],
+            tag: 'ROLE PARAMETERS',
+            text: 'Define Role Title, Location, Contract Format, and Compensation.',
+            sub: 'Set clear role parameters and an application deadline so candidates know exact expectations.',
+            preferredSide: 'bottom'
+        },
+        {
+            page: '/recruiter/post-job',
+            pageLabel: 'Post Job (2/4)',
+            selectors: ['#post-job-skills-section', '#skills'],
+            tag: 'AI TARGET SKILLS',
+            text: 'Enter technical responsibilities and comma-separated Target Skills.',
+            sub: 'Our AI Match engine uses these exact skills to score and rank every incoming applicant.',
+            preferredSide: 'top'
+        },
+        {
+            page: '/recruiter/post-job',
+            pageLabel: 'Post Job (2/4)',
+            selectors: ['#post-job-submit-btn'],
+            tag: 'PUBLISH ROLE',
+            text: 'Click Publish Requisition to broadcast the opening live.',
+            sub: 'Click Next to continue the tour on your Company Profile page.',
+            preferredSide: 'top'
+        },
+
+        // --- PAGE 3: Company Profile (/recruiter/company) ---
+        {
+            page: '/recruiter/company',
+            pageLabel: 'Company Profile (3/4)',
+            selectors: ['#company-logo-section', '#company-form-card', '#company-profile-header'],
+            tag: 'BRAND LOGO',
+            text: 'Upload your official company logo (PNG, JPG, SVG, or WebP).',
+            sub: 'Your logo is displayed alongside every job requisition you publish across the platform.',
+            preferredSide: 'bottom'
+        },
+        {
+            page: '/recruiter/company',
+            pageLabel: 'Company Profile (3/4)',
+            selectors: ['#company-metadata-grid', '#company-form-card'],
+            tag: 'COMPANY DETAILS',
+            text: 'Configure your Company Name, Website, Industry, Size, and Bio.',
+            sub: 'Complete organization metadata builds credibility with high-intent candidates.',
+            preferredSide: 'top'
+        },
+        {
+            page: '/recruiter/company',
+            pageLabel: 'Company Profile (3/4)',
+            selectors: ['#company-save-btn', '#company-form-card'],
+            tag: 'SAVE PROFILE',
+            text: 'Save your Company Profile—next we will tour Outreach Studio!',
+            sub: 'Click Next to open Outreach Studio and explore AI contact discovery and messaging.',
+            preferredSide: 'top'
+        },
+
+        // --- PAGE 4: Outreach Studio (/outreach_studio) ---
+        {
+            page: '/outreach_studio',
+            pageLabel: 'Outreach Studio (4/4)',
+            selectors: ['#outreach-action-bar'],
+            tag: 'AI DISCOVERY & CSV',
+            text: 'Discover talent or hiring contacts with AI, add manually, or import CSV.',
+            sub: 'Use the top action bar to launch AI contact discovery or manage outreach templates.',
+            preferredSide: 'bottom'
+        },
+        {
+            page: '/outreach_studio',
+            pageLabel: 'Outreach Studio (4/4)',
+            selectors: ['#outreach-metrics-strip'],
+            tag: 'DISPATCHER & VAULT',
+            text: 'Monitor verified contacts and access your Message Vault templates.',
+            sub: 'Direct Email Dispatcher lets you send personalized notes directly from your console.',
+            preferredSide: 'bottom'
+        },
+        {
+            page: '/outreach_studio',
+            pageLabel: 'Outreach Studio (4/4)',
+            selectors: ['#contact-filter', '#outreach-contacts-header'],
+            tag: 'CONTACTS DIRECTORY',
+            text: 'Filter contacts instantly and send 1-click personalized outreach.',
+            sub: 'You have explored all 4 Recruiter modules! Click Finish Tour when ready.',
+            preferredSide: 'bottom'
+        }
+    ];
+
+    // =========================================================================
+    // MULTI-PAGE JOB SEEKER TOUR:
+    //   1. /dashboard       (Steps 1–6)
+    //   2. /outreach_studio (Steps 7–9)
+    //   3. /learning_path   (Steps 10–11)
+    // =========================================================================
+    const SEEKER_STEPS = [
+        // --- PAGE 1: Job Matches (/dashboard) ---
+        {
+            page: '/dashboard',
+            pageLabel: 'Job Matches (1/3)',
+            selectors: ['#search_query'],
+            tag: 'KEYWORD SEARCH',
+            text: 'Begin to set up your workspace by searching your target role, skills, or company.',
+            sub: 'Enter keywords like Python, AI Engineer, or Product Designer to filter matched opportunities immediately.',
+            preferredSide: 'bottom'
+        },
+        {
+            page: '/dashboard',
+            pageLabel: 'Job Matches (1/3)',
+            selectors: ['#seeker-filters-btn'],
+            tag: 'CRITERIA FILTERS',
+            text: 'Filter roles by experience level, job format, and compensation.',
+            sub: 'Sort your entire feed by AI Match % so your strongest matches appear first.',
+            preferredSide: 'bottom'
+        },
+        {
+            page: '/dashboard',
+            pageLabel: 'Job Matches (1/3)',
+            selectors: ['#seeker-live-scan-btn'],
+            tag: 'LIVE SCRAPER',
+            text: 'Trigger a real-time Live Scan to fetch fresh openings.',
+            sub: 'Scrapes and deduplicates live postings from job boards straight into your workspace.',
+            preferredSide: 'bottom'
+        },
+        {
+            page: '/dashboard',
+            pageLabel: 'Job Matches (1/3)',
+            selectors: ['#seeker-scraper-card', '#seeker-mini-rail', '#seeker-workspace-sidebar'],
+            tag: 'AUTOMATION RAIL',
+            text: 'Configure automated scraping, Saved Presets, and Email Alerts.',
+            sub: 'Save 1-click search presets, schedule daily job digests, and sync Google Calendar interviews.',
+            preferredSide: 'right'
+        },
+        {
+            page: '/dashboard',
+            pageLabel: 'Job Matches (1/3)',
+            selectors: ['#pipeline-stage-dock'],
+            tag: 'PIPELINE STAGES',
+            text: 'Track every application across New, Applied, Interviews, and Offers.',
+            sub: 'Click any stage pill to filter your feed to that exact stage of your job search.',
+            preferredSide: 'bottom'
+        },
+        {
+            page: '/dashboard',
+            pageLabel: 'Job Matches (1/3)',
+            selectors: ['#dashboard-feed-header', '#job-listings-heading'],
+            tag: 'AI MATCH FEED',
+            text: 'Review matched roles, run AI Resume Match, or Assisted Apply.',
+            sub: 'Click Next to automatically open Outreach Studio and discover recruiters.',
+            preferredSide: 'bottom'
+        },
+
+        // --- PAGE 2: Outreach Studio (/outreach_studio) ---
+        {
+            page: '/outreach_studio',
+            pageLabel: 'Outreach Studio (2/3)',
+            selectors: ['#outreach-action-bar'],
+            tag: 'FIND RECRUITERS',
+            text: 'Discover verified recruiters and hiring managers with AI.',
+            sub: 'Search by company or role to pull recruiter contacts, add manually, or import a CSV.',
+            preferredSide: 'bottom'
+        },
+        {
+            page: '/outreach_studio',
+            pageLabel: 'Outreach Studio (2/3)',
+            selectors: ['#outreach-metrics-strip'],
+            tag: 'MESSAGE VAULT',
+            text: 'Manage reusable cold-outreach templates in your Message Vault.',
+            sub: 'Track your verified recruiter count and active email dispatcher status.',
+            preferredSide: 'bottom'
+        },
+        {
+            page: '/outreach_studio',
+            pageLabel: 'Outreach Studio (2/3)',
+            selectors: ['#contact-filter', '#outreach-contacts-header'],
+            tag: 'CONTACTS DIRECTORY',
+            text: 'Filter recruiters by company or title and send direct messages.',
+            sub: 'Click Next to continue the tour on your Skill Gap & Roadmap page.',
+            preferredSide: 'bottom'
+        },
+
+        // --- PAGE 3: Skill Gap & Roadmap (/learning_path) ---
+        {
+            page: '/learning_path',
+            pageLabel: 'Skill Gap & Roadmap (3/3)',
+            selectors: ['#roadmap-header-card'],
+            tag: 'SKILL GAP ENGINE',
+            text: 'Analyze missing skills and generate a week-by-week learning plan.',
+            sub: 'Compare your resume against target roles and save custom roadmaps to track milestones.',
+            preferredSide: 'bottom'
+        },
+        {
+            page: '/learning_path',
+            pageLabel: 'Skill Gap & Roadmap (3/3)',
+            selectors: ['#profile-dropdown-btn'],
+            tag: 'RESUME & SETTINGS',
+            text: 'Upload your resume in Profile Settings or replay this tour anytime.',
+            sub: 'You have completed the full workspace tour! Click Finish Tour when ready.',
+            preferredSide: 'bottom'
+        }
+    ];
+
+    const steps = userRole === 'recruiter' ? RECRUITER_STEPS : SEEKER_STEPS;
+    let currentIdx = 0;
+    let isActive = false;
+    let animState = null;
+    let animFrameId = null;
+
+    // =========================================================================
+    // PERSISTENT STATE ENGINE (localStorage + Backend Session Sync)
+    // =========================================================================
+    function loadTourState() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return null;
+            return JSON.parse(raw);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function saveTourState(patch) {
+        try {
+            const prev = loadTourState() || { active: false, ended: false, stepIndex: 0, pendingNav: false, bannerClosed: false };
+            const next = { ...prev, ...patch };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+            return next;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // Subtle Web Audio chime for coach-mark steps
+    let audioCtx = null;
+    function playCoachChime(freqA, freqB) {
+        try {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!Ctx) return;
+            if (!audioCtx) audioCtx = new Ctx();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            [freqA, freqB].forEach((f, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(f, now + i * 0.055);
+                gain.gain.setValueAtTime(0.0001, now + i * 0.055);
+                gain.gain.exponentialRampToValueAtTime(0.03, now + i * 0.055 + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.055 + 0.22);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now + i * 0.055);
+                osc.stop(now + i * 0.055 + 0.24);
+            });
+        } catch (e) {}
+    }
+
+    function renderDots() {
+        if (!dotsContainer) return;
+        dotsContainer.innerHTML = '';
+        steps.forEach((s, i) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'spotlight-dot' + (i === currentIdx ? ' active' : '');
+            btn.title = `Step ${i + 1}: ${s.tag}`;
+            btn.onclick = () => window.goToSpotlightStep(i);
+            dotsContainer.appendChild(btn);
+        });
+    }
+
+    function resolveVisibleElement(selectors) {
+        for (const sel of selectors) {
+            const el = document.querySelector(sel);
+            if (!el) continue;
+            if (el.closest('.opacity-0')) continue;
+            const style = window.getComputedStyle(el);
+            if (style.display === 'none' || style.visibility === 'hidden' || parseFloat(style.opacity || '1') < 0.05) {
+                continue;
+            }
+            const rect = el.getBoundingClientRect();
+            if (rect.width > 4 && rect.height > 4) {
+                return el;
+            }
+        }
+        return null;
+    }
+
+    function measureTargetBox(targetEl) {
+        const rect = targetEl.getBoundingClientRect();
+        const style = window.getComputedStyle(targetEl);
+        const rawRadius = parseFloat(style.borderTopLeftRadius) || 10;
+        const pad = 4;
+
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const maxCutHeight = vw < 640 ? Math.min(300, Math.round(vh * 0.42)) : 420;
+
+        const top = Math.max(6, rect.top - pad);
+        const left = Math.max(6, rect.left - pad);
+        const width = Math.min(vw - left - 6, rect.width + pad * 2);
+        const height = Math.min(vh - top - 6, Math.min(maxCutHeight, rect.height + pad * 2));
+        const radius = Math.min(22, Math.max(8, rawRadius + pad));
+
+        return { top, left, width, height, radius };
+    }
+
+    function computeTargetGeometry(step) {
+        const targetEl = resolveVisibleElement(step.selectors) || document.getElementById('top-nav-pill-bar') || document.querySelector('main') || document.body;
+        const cut = measureTargetBox(targetEl);
+
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const isMobile = vw < 640;
+        const cardRect = calloutBox.getBoundingClientRect();
+        const cardW = cardRect.width || Math.min(isMobile ? vw - 20 : 445, vw - 20);
+        const cardH = cardRect.height || (isMobile ? 210 : 225);
+
+        const arrowGap = isMobile ? 38 : 54;
+        const edgeMargin = isMobile ? 10 : 16;
+        const topSafeY = (topBanner && topBanner.style.display !== 'none')
+            ? (isMobile ? 96 : 108)
+            : 58;
+
+        const cutCenterX = cut.left + cut.width / 2;
+        const cutCenterY = cut.top + cut.height / 2;
+
+        const spaceBottom = vh - (cut.top + cut.height) - edgeMargin;
+        const spaceTop = cut.top - topSafeY;
+        const spaceRight = vw - (cut.left + cut.width) - edgeMargin;
+        const spaceLeft = cut.left - edgeMargin;
+
+        let side = step.preferredSide || 'bottom';
+        if (isMobile) {
+            if (side === 'left' || side === 'right') {
+                side = spaceBottom >= spaceTop ? 'bottom' : 'top';
+            }
+            if (side === 'bottom' && spaceBottom < cardH + arrowGap) {
+                if (spaceTop >= cardH + arrowGap) {
+                    side = 'top';
+                } else {
+                    // Dock bottom cleanly and cap cutout height so card never overlaps target header
+                    const dockedCardTop = Math.max(topSafeY + 72, vh - cardH - 12);
+                    const availableCutH = dockedCardTop - cut.top - arrowGap;
+                    if (availableCutH >= 56) {
+                        cut.height = Math.min(cut.height, availableCutH);
+                    }
+                    side = 'bottom';
+                }
+            } else if (side === 'top' && spaceTop < cardH + arrowGap) {
+                if (spaceBottom >= cardH + arrowGap) {
+                    side = 'bottom';
+                } else {
+                    const dockedCardTop = Math.max(topSafeY + 72, vh - cardH - 12);
+                    const availableCutH = dockedCardTop - cut.top - arrowGap;
+                    if (availableCutH >= 56) {
+                        cut.height = Math.min(cut.height, availableCutH);
+                    }
+                    side = 'bottom';
+                }
+            }
+        } else {
+            if (side === 'right' && spaceRight < cardW + arrowGap) {
+                side = spaceBottom >= spaceTop ? 'bottom' : 'top';
+            }
+            if (side === 'bottom' && spaceBottom < cardH + arrowGap) {
+                if (spaceTop >= cardH + arrowGap || spaceTop > spaceBottom + 40) side = 'top';
+                else if (spaceRight >= cardW + arrowGap) side = 'right';
+                else if (spaceLeft >= cardW + arrowGap) side = 'left';
+            }
+            if (side === 'top' && spaceTop < cardH + arrowGap) {
+                if (spaceBottom >= cardH + arrowGap || spaceBottom > spaceTop + 40) side = 'bottom';
+                else if (spaceRight >= cardW + arrowGap) side = 'right';
+            }
+        }
+
+        let cardTop, cardLeft;
+        let sx, sy, cx, cy, ex, ey;
+
+        if (side === 'right') {
+            cardLeft = Math.min(vw - cardW - edgeMargin, cut.left + cut.width + arrowGap);
+            cardTop = Math.max(topSafeY, Math.min(vh - cardH - edgeMargin, cutCenterY - cardH / 2 + 16));
+
+            sx = cardLeft - 4;
+            sy = cardTop + Math.min(64, cardH * 0.38);
+            ex = cut.left + cut.width + 6;
+            ey = Math.max(cut.top + 16, Math.min(cut.top + cut.height - 16, sy - 16));
+            cx = sx - (sx - ex) * 0.22;
+            cy = ey + (sy - ey) * 0.14;
+        } else if (side === 'left') {
+            cardLeft = Math.max(edgeMargin, cut.left - cardW - arrowGap);
+            cardTop = Math.max(topSafeY, Math.min(vh - cardH - edgeMargin, cutCenterY - cardH / 2));
+
+            sx = cardLeft + cardW + 4;
+            sy = cardTop + Math.min(64, cardH * 0.38);
+            ex = cut.left - 6;
+            ey = Math.max(cut.top + 16, Math.min(cut.top + cut.height - 16, sy - 16));
+            cx = sx + (ex - sx) * 0.22;
+            cy = ey + (sy - ey) * 0.14;
+        } else if (side === 'top') {
+            cardTop = Math.max(topSafeY, Math.min(cut.top - cardH - (isMobile ? 28 : 42), cut.top - cardH - arrowGap));
+            const anchorX = Math.max(cut.left + 24, Math.min(cut.left + cut.width - 24, cutCenterX));
+            cardLeft = isMobile ? edgeMargin : Math.max(edgeMargin, Math.min(vw - cardW - edgeMargin, anchorX - cardW / 2 + (anchorX < vw * 0.5 ? 28 : -28)));
+
+            ex = anchorX;
+            ey = cut.top - 6;
+            sx = Math.max(cardLeft + 36, Math.min(cardLeft + cardW - 36, ex + (ex < vw * 0.5 ? 36 : -36)));
+            sy = Math.min(ey - 24, cardTop + cardH + 4);
+            cx = ex + (sx - ex) * 0.18;
+            cy = sy + (ey - sy) * 0.15;
+        } else {
+            cardTop = Math.max(cut.top + cut.height + (isMobile ? 28 : 42), Math.min(vh - cardH - 10, cut.top + cut.height + arrowGap));
+            const anchorX = Math.max(cut.left + 24, Math.min(cut.left + cut.width - 24, cutCenterX));
+            cardLeft = isMobile ? edgeMargin : Math.max(edgeMargin, Math.min(vw - cardW - edgeMargin, anchorX - cardW / 2 + (anchorX < vw * 0.5 ? 36 : -36)));
+
+            ex = anchorX;
+            ey = cut.top + cut.height + 6;
+            sx = Math.max(cardLeft + 36, Math.min(cardLeft + cardW - 36, ex + (ex < vw * 0.5 ? 40 : -40)));
+            sy = Math.max(ey + 24, cardTop - 4);
+            cx = ex + (sx - ex) * 0.18;
+            cy = sy - (sy - ey) * 0.15;
+        }
+
+        return {
+            cutTop: cut.top,
+            cutLeft: cut.left,
+            cutWidth: cut.width,
+            cutHeight: cut.height,
+            cutRadius: cut.radius,
+            cardTop,
+            cardLeft,
+            sx, sy, cx, cy, ex, ey
+        };
+    }
+
+    function applyGeometryToDom(g) {
+        cutout.style.top = g.cutTop.toFixed(1) + 'px';
+        cutout.style.left = g.cutLeft.toFixed(1) + 'px';
+        cutout.style.width = g.cutWidth.toFixed(1) + 'px';
+        cutout.style.height = g.cutHeight.toFixed(1) + 'px';
+        cutout.style.borderRadius = g.cutRadius.toFixed(1) + 'px';
+
+        calloutBox.style.top = g.cardTop.toFixed(1) + 'px';
+        calloutBox.style.left = g.cardLeft.toFixed(1) + 'px';
+
+        const dPath = `M ${g.sx.toFixed(1)} ${g.sy.toFixed(1)} Q ${g.cx.toFixed(1)} ${g.cy.toFixed(1)} ${g.ex.toFixed(1)} ${g.ey.toFixed(1)}`;
+        arrowPath.setAttribute('d', dPath);
+
+        const angle = Math.atan2(g.ey - g.cy, g.ex - g.cx);
+        const headLen = 12.5;
+        const spread = 0.46;
+        const x1 = g.ex - headLen * Math.cos(angle - spread);
+        const y1 = g.ey - headLen * Math.sin(angle - spread);
+        const x2 = g.ex - headLen * Math.cos(angle + spread);
+        const y2 = g.ey - headLen * Math.sin(angle + spread);
+        arrowHead.setAttribute('d', `M ${x1.toFixed(1)} ${y1.toFixed(1)} L ${g.ex.toFixed(1)} ${g.ey.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)}`);
+    }
+
+    function easeOutCubic(t) {
+        return 1 - Math.pow(1 - t, 3);
+    }
+
+    function lerp(a, b, t) {
+        return a + (b - a) * t;
+    }
+
+    function navigateToPage(targetPath) {
+        const normalizedPath = targetPath === '/learning' ? '/learning_path' : targetPath;
+        window.location.assign(normalizedPath);
+    }
+
+    function waitForPageTargetAndRender(step, immediate) {
+        let attempts = 0;
+        const maxAttempts = 30; // up to ~3.0s for async Alpine fetch (e.g. Recruiter Dashboard or Company Profile)
+
+        function check() {
+            if (!isActive) return;
+            const loader = document.getElementById('page-loader');
+            const loaderVisible = loader && loader.style.display !== 'none' && parseFloat(getComputedStyle(loader).opacity || '1') > 0.08;
+            const dashContent = document.getElementById('dashboard-content');
+            const dashHidden = dashContent && dashContent.classList.contains('opacity-0');
+            const targetEl = resolveVisibleElement(step.selectors);
+
+            if ((loaderVisible || dashHidden || !targetEl) && attempts < maxAttempts) {
+                attempts += 1;
+                setTimeout(check, 100);
+                return;
+            }
+            animateToStepOnCurrentPage(currentIdx, immediate);
+        }
+        check();
+    }
+
+    function animateToStepOnCurrentPage(idx, immediate) {
+        if (!isActive) return;
+        const step = steps[idx];
+        if (!step) return;
+
+        stepCounter.textContent = `STEP ${idx + 1} / ${steps.length}`;
+        if (featureTag) featureTag.textContent = step.tag || '';
+        if (pagePill) pagePill.textContent = step.pageLabel || '';
+        calloutText.textContent = step.text;
+        calloutSub.textContent = step.sub || '';
+        if (prevBtn) prevBtn.style.display = idx > 0 ? 'inline-flex' : 'none';
+
+        // Check if the next step transitions to a new page
+        const NEXT_PAGE_LABELS = {
+            '/recruiter/dashboard': 'Dashboard',
+            '/recruiter/post-job': 'Post Job',
+            '/recruiter/company': 'Company',
+            '/outreach_studio': 'Outreach',
+            '/learning_path': 'Roadmap',
+            '/learning': 'Roadmap',
+            '/dashboard': 'Matches'
+        };
+        if (idx === steps.length - 1) {
+            nextBtnLabel.textContent = 'Finish Tour';
+        } else if (steps[idx + 1] && steps[idx + 1].page !== step.page) {
+            const nextPage = steps[idx + 1].page;
+            const nextPageName = NEXT_PAGE_LABELS[nextPage] || (steps[idx + 1].pageLabel || '').split('(')[0].trim();
+            nextBtnLabel.textContent = `Next: ${nextPageName}`;
+        } else {
+            nextBtnLabel.textContent = 'Next';
+        }
+
+        renderDots();
+
+        if (animFrameId) {
+            cancelAnimationFrame(animFrameId);
+            animFrameId = null;
+        }
+
+        const targetEl = resolveVisibleElement(step.selectors);
+        if (targetEl) {
+            const r = targetEl.getBoundingClientRect();
+            const isMobile = window.innerWidth < 640;
+            const topSafe = (topBanner && topBanner.style.display !== 'none') ? (isMobile ? 96 : 115) : 65;
+            const bottomRequired = isMobile ? 220 : ((step.preferredSide === 'bottom' && r.height < 220) ? 300 : 80);
+            if (r.top < topSafe || r.bottom > window.innerHeight - bottomRequired) {
+                const desiredScrollY = Math.max(0, window.scrollY + r.top - (isMobile ? topSafe + 12 : 135));
+                window.scrollTo({ top: desiredScrollY, behavior: 'auto' });
+            }
+        }
+
+        const startGeom = animState ? { ...animState } : computeTargetGeometry(step);
+        if (immediate || !animState) {
+            const finalGeom = computeTargetGeometry(step);
+            animState = finalGeom;
+            applyGeometryToDom(finalGeom);
+            overlay.classList.add('tour-active');
+            overlay.setAttribute('aria-hidden', 'false');
+            setTimeout(() => {
+                if (isActive && !animFrameId) syncInstantPosition();
+            }, 350);
+            return;
+        }
+
+        overlay.classList.add('tour-active');
+        overlay.setAttribute('aria-hidden', 'false');
+
+        const duration = 360;
+        const startTime = performance.now();
+
+        function tick(now) {
+            const elapsed = now - startTime;
+            const progress = Math.min(1, elapsed / duration);
+            const eased = easeOutCubic(progress);
+
+            const liveTarget = computeTargetGeometry(step);
+
+            const current = {
+                cutTop: lerp(startGeom.cutTop, liveTarget.cutTop, eased),
+                cutLeft: lerp(startGeom.cutLeft, liveTarget.cutLeft, eased),
+                cutWidth: lerp(startGeom.cutWidth, liveTarget.cutWidth, eased),
+                cutHeight: lerp(startGeom.cutHeight, liveTarget.cutHeight, eased),
+                cutRadius: lerp(startGeom.cutRadius, liveTarget.cutRadius, eased),
+                cardTop: lerp(startGeom.cardTop, liveTarget.cardTop, eased),
+                cardLeft: lerp(startGeom.cardLeft, liveTarget.cardLeft, eased),
+                sx: lerp(startGeom.sx, liveTarget.sx, eased),
+                sy: lerp(startGeom.sy, liveTarget.sy, eased),
+                cx: lerp(startGeom.cx, liveTarget.cx, eased),
+                cy: lerp(startGeom.cy, liveTarget.cy, eased),
+                ex: lerp(startGeom.ex, liveTarget.ex, eased),
+                ey: lerp(startGeom.ey, liveTarget.ey, eased)
+            };
+
+            animState = current;
+            applyGeometryToDom(current);
+
+            if (progress < 1) {
+                animFrameId = requestAnimationFrame(tick);
+            } else {
+                animState = liveTarget;
+                applyGeometryToDom(liveTarget);
+                animFrameId = null;
+            }
+        }
+
+        animFrameId = requestAnimationFrame(tick);
+    }
+
+    function matchesStepPage(stepPage, currentPath) {
+        const norm = p => (p || '').replace(/\/+$/, '').toLowerCase();
+        const sp = norm(stepPage);
+        const cp = norm(currentPath);
+        if (sp === cp) return true;
+        const learningGroup = ['/learning_path', '/learning', '/skill_gap', '/roadmap'];
+        if (learningGroup.includes(sp) && learningGroup.includes(cp)) return true;
+        const outreachGroup = ['/outreach_studio', '/people_radar', '/outreach'];
+        if (outreachGroup.includes(sp) && outreachGroup.includes(cp)) return true;
+        return false;
+    }
+
+    function activateAndGoToStep(idx, immediate) {
+        if (idx < 0 || idx >= steps.length) idx = 0;
+        currentIdx = idx;
+        isActive = true;
+
+        const saved = saveTourState({ active: true, ended: false, stepIndex: currentIdx });
+        if (topBanner) {
+            topBanner.style.display = (saved && saved.bannerClosed) ? 'none' : 'flex';
+        }
+
+        const targetStep = steps[currentIdx];
+        if (targetStep.page && !matchesStepPage(targetStep.page, window.location.pathname)) {
+            saveTourState({ active: true, ended: false, stepIndex: currentIdx, pendingNav: true });
+            navigateToPage(targetStep.page);
+            return;
+        }
+
+        saveTourState({ pendingNav: false });
+        waitForPageTargetAndRender(targetStep, immediate);
+    }
+
+    function syncInstantPosition() {
+        if (!isActive || !steps[currentIdx]) return;
+        const g = computeTargetGeometry(steps[currentIdx]);
+        animState = g;
+        applyGeometryToDom(g);
+    }
+
+    function dismissBackendTourFlag() {
+        fetch('/api/onboarding/tour-dismiss', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        }).catch(() => {});
+
+        try {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has('tour')) {
+                url.searchParams.delete('tour');
+                window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+            }
+        } catch (e) {}
+    }
+
+    // Explicitly start/replay the full tour from Step 1 (called from Profile menu -> Interactive Tour)
+    window.startSpotlightTour = function () {
+        animState = null;
+        saveTourState({ active: true, ended: false, stepIndex: 0, pendingNav: false, bannerClosed: false });
+        activateAndGoToStep(0, true);
+        playCoachChime(523.25, 659.25);
+    };
+
+    window.goToSpotlightStep = function (idx) {
+        if (!isActive || idx < 0 || idx >= steps.length) return;
+        activateAndGoToStep(idx, false);
+        playCoachChime(554.37, 698.46);
+    };
+
+    window.prevSpotlightStep = function () {
+        if (!isActive || currentIdx <= 0) return;
+        activateAndGoToStep(currentIdx - 1, false);
+        playCoachChime(523.25, 659.25);
+    };
+
+    window.nextSpotlightStep = function () {
+        if (!isActive) return;
+        if (currentIdx < steps.length - 1) {
+            activateAndGoToStep(currentIdx + 1, false);
+            playCoachChime(587.33, 783.99);
+        } else {
+            window.endSpotlightTour();
+            playCoachChime(659.25, 987.77);
+        }
+    };
+
+    // End Tour permanently: will NOT start again on refresh
+    window.endSpotlightTour = function () {
+        isActive = false;
+        if (animFrameId) {
+            cancelAnimationFrame(animFrameId);
+            animFrameId = null;
+        }
+        saveTourState({ active: false, ended: true, pendingNav: false });
+        overlay.classList.remove('tour-active');
+        overlay.setAttribute('aria-hidden', 'true');
+        dismissBackendTourFlag();
+    };
+
+    // Alias for backward compatibility
+    window.skipSpotlightTour = window.endSpotlightTour;
+
+    window.closeSpotlightBanner = function () {
+        if (topBanner) topBanner.style.display = 'none';
+        saveTourState({ bannerClosed: true });
+        syncInstantPosition();
+    };
+
+    window.addEventListener('resize', () => {
+        if (isActive && !animFrameId) syncInstantPosition();
+    });
+
+    window.addEventListener('scroll', () => {
+        if (isActive && !animFrameId) syncInstantPosition();
+    }, { passive: true });
+
+    window.addEventListener('keydown', (e) => {
+        if (!isActive) return;
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            window.endSpotlightTour();
+        } else if (e.key === 'ArrowRight' || e.key === 'Enter') {
+            e.preventDefault();
+            window.nextSpotlightStep();
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            window.prevSpotlightStep();
+        }
+    });
+
+    // Resume or synchronize tour on initial page load AND on SPA page transitions
+    function restoreOrSyncTourOnPage() {
+        let ExplicitUrlTourStart = false;
+        try {
+            const url = new URL(window.location.href);
+            if (url.searchParams.get('tour') === '1') {
+                ExplicitUrlTourStart = true;
+                url.searchParams.delete('tour');
+                window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+            }
+        } catch (e) {}
+
+        // If user just arrived with ?tour=1 from /onboarding, always start a fresh tour at Step 0
+        if (ExplicitUrlTourStart) {
+            saveTourState({ active: true, ended: false, stepIndex: 0, pendingNav: false, bannerClosed: false });
+        }
+
+        const saved = loadTourState();
+        const serverRequestedTour = overlay.dataset.autoStart === 'true';
+
+        // If user already clicked End Tour, never auto-start on refresh unless they click "Interactive Tour" in menu or arrive with ?tour=1
+        if (saved && saved.ended && !ExplicitUrlTourStart) {
+            dismissBackendTourFlag();
+            return;
+        }
+
+        // If tour is active in localStorage OR freshly triggered from /onboarding
+        if ((saved && saved.active) || serverRequestedTour || ExplicitUrlTourStart) {
+            let resumeIdx = (saved && typeof saved.stepIndex === 'number') ? saved.stepIndex : 0;
+            if (resumeIdx < 0 || resumeIdx >= steps.length) resumeIdx = 0;
+
+            const currentPath = window.location.pathname;
+            const expectedStep = steps[resumeIdx];
+
+            // If user navigated via Next/Back/Dots to this page, or refreshed the page they were on:
+            if (expectedStep && matchesStepPage(expectedStep.page, currentPath)) {
+                saveTourState({ active: true, ended: false, stepIndex: resumeIdx, pendingNav: false });
+                isActive = true;
+                currentIdx = resumeIdx;
+                if (topBanner) topBanner.style.display = (saved && saved.bannerClosed) ? 'none' : 'flex';
+                waitForPageTargetAndRender(expectedStep, true);
+                return;
+            }
+
+            // If user navigated to any valid tour page (e.g. Return to Dashboard or top-bar tab), sync tour to this page:
+            const firstStepForCurrentPage = steps.findIndex(s => matchesStepPage(s.page, currentPath));
+            if (firstStepForCurrentPage !== -1) {
+                saveTourState({ active: true, ended: false, stepIndex: firstStepForCurrentPage, pendingNav: false });
+                isActive = true;
+                currentIdx = firstStepForCurrentPage;
+                if (topBanner) topBanner.style.display = (saved && saved.bannerClosed) ? 'none' : 'flex';
+                waitForPageTargetAndRender(steps[firstStepForCurrentPage], true);
+                return;
+            }
+
+            // If on a non-tour page (e.g. Profile Settings or 404), keep overlay hidden so page links work normally
+            isActive = false;
+            overlay.classList.remove('tour-active');
+            overlay.setAttribute('aria-hidden', 'true');
+        }
+    }
+
+    // Handle SPA navigation events from base.html
+    window.addEventListener('page:loaded', () => {
+        setTimeout(() => restoreOrSyncTourOnPage(), 80);
+    });
+
+    if (document.readyState === 'complete') {
+        restoreOrSyncTourOnPage();
+    } else {
+        window.addEventListener('load', restoreOrSyncTourOnPage);
+    }
+})();
+</script>
+{% endif %}

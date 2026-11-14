@@ -108,17 +108,30 @@ class ProInviteTests(unittest.TestCase):
         self.assertIn("/login", forbidden.headers["Location"])
 
     def test_self_registration_is_free_and_cannot_create_admin_role(self):
-        response = self.client.post("/register", data={
-            "username": "ordinary",
-            "password": "ordinary-password",
-            "role": "seeker",
-        })
-        self.assertEqual(response.status_code, 302)
-        user = self._database_row(
-            "SELECT role, is_pro, account_status FROM users WHERE username = ?",
-            ("ordinary",),
+        with patch.object(app_module, "_send_email_verification_email") as send_verification:
+            response = self.client.post("/register", data={
+                "username": "ordinary",
+                "password": "ordinary-password",
+                "email": "ordinary@example.com",
+                "role": "seeker",
+            })
+            self.assertEqual(response.status_code, 200)
+            user = self._database_row(
+                "SELECT role, is_pro, account_status FROM users WHERE username = ?",
+                ("ordinary",),
+            )
+            self.assertEqual(user, ("seeker", 0, "pending"))
+            verification_token = send_verification.call_args.args[1]
+
+        verified = self.client.get(f"/confirm-email/{verification_token}")
+        self.assertEqual(verified.status_code, 200)
+        self.assertEqual(
+            self._database_row(
+                "SELECT account_status FROM users WHERE username = ?",
+                ("ordinary",),
+            ),
+            ("active",),
         )
-        self.assertEqual(user, ("seeker", 0, "active"))
         self._login("ordinary", "ordinary-password")
         self.assertNotIn(b"Pro member", self.client.get("/profile").data)
 
@@ -131,6 +144,31 @@ class ProInviteTests(unittest.TestCase):
         self.assertIsNone(self._database_row(
             "SELECT id FROM users WHERE username = ?", ("intruder",)
         ))
+
+    def test_admin_panel_lists_pro_access_users_and_invitation_status(self):
+        database = self.real_database_class(self.database_path)
+        database.add_user(
+            "early_active",
+            generate_password_hash("active-password"),
+            email="active@example.com",
+            is_pro=True,
+        )
+        database.add_user(
+            "early_pending",
+            generate_password_hash("pending-password"),
+            email="pending@example.com",
+            is_pro=True,
+            account_status="pending",
+        )
+        self._login("admin", "admin-password")
+
+        response = self.client.get("/admin/pro-invites")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Pro access & invitations", response.data)
+        self.assertIn(b"active@example.com", response.data)
+        self.assertIn(b"pending@example.com", response.data)
+        self.assertIn(b"Pending", response.data)
 
     def test_admin_invite_sends_one_time_link_and_activates_password(self):
         self._login("admin", "admin-password")

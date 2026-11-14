@@ -5,14 +5,14 @@
 <div class="max-w-[1100px] mx-auto px-container-padding py-8 flex-1 flex flex-col gap-6 w-full">
     
     <!-- Top Navigation -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-wrap items-center justify-between gap-2.5">
         <a href="{{ url_for('dashboard') }}" id="back-to-dashboard-link"
             class="font-mono text-[11.5px] text-slate-500 hover:text-emerald-600 transition-colors flex items-center gap-1.5 uppercase tracking-wider font-medium">
             <span class="material-symbols-outlined text-[17px]">arrow_back</span>
             Back to Job Matches
         </a>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             <!-- AI Fit Match Badge -->
             <span class="font-mono text-[11px] px-3 py-1 rounded-full uppercase font-bold flex items-center gap-1.5
                 {% if job.match_score >= 80 %}bg-emerald-50 border border-emerald-300 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800
@@ -34,17 +34,17 @@
     <div class="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
         
         <!-- Requisition Header -->
-        <div class="p-6 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-800/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
-            <div class="flex items-start gap-4">
+        <div class="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-800/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-5">
+            <div class="flex items-start gap-3 sm:gap-4 min-w-0">
                 <!-- Company Logo / Avatar -->
-                <div class="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 flex items-center justify-center shrink-0 shadow-xs mt-0.5 overflow-hidden relative">
+                <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 flex items-center justify-center shrink-0 shadow-xs mt-0.5 overflow-hidden relative">
                     <img src="{{ job.company | company_logo_url }}" alt="{{ job.company }}" class="w-7 h-7 object-contain" loading="lazy"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div class="w-full h-full bg-emerald-500/10 text-[#059669] dark:text-[#19D889] font-bold text-[18px] items-center justify-center hidden" style="display: none;">
                         {{ (job.company or 'C')[0] | upper }}
                     </div>
                 </div>
-                <div>
+                <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2 mb-1 flex-wrap">
                         <span class="font-mono text-[11px] text-slate-500 uppercase tracking-widest font-semibold">{{ job.company }}</span>
                         {% if job.is_jobsnap_native or job.source == 'Recruiter' or job.posted_by_recruiter_id %}
@@ -59,46 +59,46 @@
                         </span>
                         {% endif %}
                     </div>
-                    <h1 class="font-['Arvo',serif] text-slate-900 dark:text-slate-100 text-[25px] font-bold leading-tight tracking-tight">{{ job.title }}</h1>
+                    <h1 class="font-['Arvo',serif] text-slate-900 dark:text-slate-100 text-[20px] sm:text-[25px] font-bold leading-tight tracking-tight break-words">{{ job.title }}</h1>
                 </div>
             </div>
             
-            <div class="flex items-center gap-2.5 shrink-0 w-full md:w-auto flex-wrap">
+            <div class="flex items-center gap-2 sm:gap-2.5 shrink-0 w-full md:w-auto flex-wrap">
                 {% if job.has_applied_via_jobsnap or job.status == 'applied' %}
                 <button type="button" disabled id="btn-applied-state"
-                    class="flex-1 md:flex-none px-4 py-2.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-[#19D889] font-semibold text-[13px] rounded-xl flex items-center justify-center gap-2 cursor-default shadow-2xs">
+                    class="w-full sm:w-auto flex-1 md:flex-none px-4 py-2.5 min-h-[42px] bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-[#19D889] font-semibold text-[13px] rounded-xl flex items-center justify-center gap-2 cursor-default shadow-2xs">
                     <span class="material-symbols-outlined text-[18px]">check_circle</span>
                     <span>Applied via JobSnap</span>
                 </button>
                 {% elif job.is_jobsnap_native or job.source == 'Recruiter' or job.posted_by_recruiter_id or not job.link %}
                 <button type="button" onclick="openDirectApplyModal({{ job.id }}, '{{ job.title|escape }}', '{{ job.company|escape }}', {{ job.match_score|default(80) }})"
                     id="btn-direct-apply"
-                    class="flex-1 md:flex-none px-5 py-2.5 bg-[#19D889] hover:bg-[#10b981] text-[#064e3b] hover:text-white font-semibold text-[13px] rounded-xl shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
+                    class="w-full sm:w-auto flex-1 md:flex-none px-5 py-2.5 min-h-[42px] bg-[#19D889] hover:bg-[#10b981] text-[#064e3b] hover:text-white font-semibold text-[13px] rounded-xl shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
                     <span class="material-symbols-outlined text-[18px]">bolt</span>
                     <span>Apply with JobSnap</span>
                 </button>
                 {% else %}
                 <a href="{{ job.link }}" target="_blank"
-                    class="flex-1 md:flex-none px-4 py-2.5 bg-[#19D889] hover:bg-[#10b981] text-[#064e3b] hover:text-white font-semibold text-[13px] rounded-xl shadow-sm transition-all flex items-center justify-center gap-2">
+                    class="w-full sm:w-auto flex-1 md:flex-none px-4 py-2.5 min-h-[42px] bg-[#19D889] hover:bg-[#10b981] text-[#064e3b] hover:text-white font-semibold text-[13px] rounded-xl shadow-sm transition-all flex items-center justify-center gap-2">
                     <span class="material-symbols-outlined text-[17px]">open_in_new</span>
                     <span>Apply on Portal</span>
                 </a>
                 {% endif %}
                 <a href="{{ url_for('outreach_studio') }}?company={{ job.company | urlencode }}"
-                    class="px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-sky-600 hover:border-sky-500 text-[13px] font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                    class="flex-1 sm:flex-none px-3.5 py-2.5 min-h-[42px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-sky-600 hover:border-sky-500 text-[13px] font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"
                     title="Find hiring managers and recruiters at {{ job.company }}">
                     <span class="material-symbols-outlined text-[17px] text-sky-500">person_search</span>
                     Find Recruiter
                 </a>
                 <button type="button" onclick="openStatusModal({{ job.id }}, '{{ job.status }}', '{{ job.notes | default('') | escape }}')"
-                    class="px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[13px] font-semibold rounded-xl hover:border-emerald-500 hover:text-emerald-600 transition-colors">
+                    class="flex-1 sm:flex-none px-3.5 py-2.5 min-h-[42px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[13px] font-semibold rounded-xl hover:border-emerald-500 hover:text-emerald-600 transition-colors whitespace-nowrap">
                     Update Pipeline
                 </button>
             </div>
         </div>
 
         <!-- Telemetry Key Metrics Grid -->
-        <div class="grid grid-cols-2 md:grid-cols-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 divide-x divide-slate-100 dark:divide-slate-800">
+        <div class="grid grid-cols-2 md:grid-cols-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 divide-x divide-y md:divide-y-0 divide-slate-100 dark:divide-slate-800">
             <div class="p-4 sm:p-5">
                 <div class="font-mono text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Location</div>
                 <div class="text-[14px] text-slate-800 dark:text-slate-200 font-bold mt-1">{{ job.location or 'Remote / Bengaluru, India' }}</div>
@@ -118,11 +118,11 @@
         </div>
 
         <!-- Spec Body & AI Matching Section -->
-        <div class="p-6 sm:p-8 space-y-7">
+        <div class="p-4 sm:p-8 space-y-6 sm:space-y-7">
             
             <!-- AI Resume Matching & ATS Scanner Card -->
-            <div class="border border-emerald-500/30 rounded-2xl p-5 bg-emerald-50/20 dark:bg-emerald-950/20 space-y-4">
-                <div class="flex items-center justify-between border-b border-emerald-500/20 pb-3">
+            <div class="border border-emerald-500/30 rounded-2xl p-4 sm:p-5 bg-emerald-50/20 dark:bg-emerald-950/20 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-2.5 border-b border-emerald-500/20 pb-3">
                     <div class="flex items-center gap-2.5">
                         <span class="w-8 h-8 rounded-lg bg-emerald-500/15 text-[#059669] dark:text-[#19D889] flex items-center justify-center">
                             <span class="material-symbols-outlined text-[18px]">verified_user</span>
@@ -235,7 +235,7 @@
                 </div>
 
                 <!-- Default Raw Text View -->
-                <div id="job-description-raw-container" class="rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 p-6 text-slate-800 dark:text-slate-200 leading-relaxed font-sans text-[13.5px] whitespace-pre-wrap">
+                <div id="job-description-raw-container" class="rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 p-4 sm:p-6 text-slate-800 dark:text-slate-200 leading-relaxed font-sans text-[13.5px] whitespace-pre-wrap break-words overflow-x-auto">
                     {{ job.description or 'No full description indexed for this requisition.' }}
                 </div>
 

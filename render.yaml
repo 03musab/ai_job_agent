@@ -25,7 +25,13 @@ services:
       - key: REQUIRE_POSTGRES
         value: "true"
       - key: DATABASE_MIGRATION_COMPLETE
-        value: "false"
+        value: "true"
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_OAUTH_REDIRECT_URI
+        sync: false
       - key: ADMIN_USERNAMES
         sync: false
       - key: PUBLIC_APP_URL

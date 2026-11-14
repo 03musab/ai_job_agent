@@ -106,9 +106,23 @@ broker_url=redis://localhost:6379/0
 result_backend=redis://localhost:6379/0
 ADMIN_ALERT_EMAIL=admin@example.com
 
+# Google web OAuth client for signup/sign-in
+GOOGLE_CLIENT_ID=your-web-client-id
+GOOGLE_CLIENT_SECRET=your-web-client-secret
+GOOGLE_OAUTH_REDIRECT_URI=http://localhost:5000/auth/google/callback
+
+# Email/password signup confirmation
+PUBLIC_APP_URL=http://localhost:5000
+MAIL_SERVER=smtp.example.com
+MAIL_PORT=587
+MAIL_USERNAME=your-mailbox@example.com
+MAIL_PASSWORD=your-mailbox-app-password
+
 # Optional: Path to custom WebDriver executable
 EDGE_DRIVER_PATH="C:\WebDrivers\msedgedriver.exe"
 ```
+
+Configure the mail settings for email/password signup; Google sign-in verifies the user's email through Google.
 
 ### Render PostgreSQL and Pro invitations
 
@@ -131,6 +145,16 @@ To enable the Pro invite page, set `ADMIN_USERNAMES` in Render to the username o
 3. Create an **OAuth 2.0 Client ID** (Application type: *Desktop App*).
 4. Download the JSON credential file and save it as `credentials.json` in the project root.
 5. On the first email or calendar action, a browser consent screen will open. Upon authorization, `token.pickle` is automatically generated and kept fresh.
+
+### Google Signup & Sign In
+
+Google account signup/sign-in uses a separate **Web application** OAuth client (the Desktop client above is only for Gmail and Calendar):
+
+1. In Google Cloud Console, configure the OAuth consent screen and create an OAuth 2.0 Client ID with application type **Web application**.
+2. Add `http://localhost:5000/auth/google/callback` to the client's authorized redirect URIs for local development. For production, add the exact HTTPS callback URL for your deployed domain.
+3. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_OAUTH_REDIRECT_URI` in the app environment. Keep the client secret out of source control.
+
+The callback route is `/auth/google/callback`. A first-time Google sign-in automatically creates a job-seeker account; Google signup uses the selected account role. Google verifies the email address, so no separate confirmation or password setup is needed for new Google accounts. A new email/password login also creates a pending job-seeker account; the user must open a one-time email confirmation link before signing in. The regular signup form also supports choosing a username and recruiter role.
 
 ---
 

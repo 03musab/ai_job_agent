@@ -275,6 +275,18 @@ html:not(.dark) nav {
     border-color: #e5ded3 !important;
 }
 
+.dark nav {
+    background-color: rgba(17, 19, 26, 0.96) !important;
+}
+
+#mobile-menu {
+    background-color: #fcfbf8 !important;
+}
+
+.dark #mobile-menu {
+    background-color: #161822 !important;
+}
+
 html:not(.dark) .bg-slate-50\/60,
 html:not(.dark) .bg-slate-50\/70,
 html:not(.dark) .bg-slate-50\/40,
@@ -563,4 +575,100 @@ html:not(.dark) .text-slate-400 {
 
 .workspace-sync-transition {
     transition: all 300ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* ==========================================================================
+   Global Mobile Responsiveness & Touch Ergonomics
+   ========================================================================== */
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+@media (max-width: 639px) {
+    html,
+    body {
+        max-width: 100vw;
+        overflow-x: hidden;
+        overflow-x: clip;
+    }
+
+    .px-container-padding {
+        padding-left: 14px !important;
+        padding-right: 14px !important;
+    }
+
+    button,
+    a,
+    [role="button"] {
+        touch-action: manipulation;
+    }
+}
+
+@supports (-webkit-touch-callout: none) {
+    @media (max-width: 639px) {
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="search"],
+        input[type="url"],
+        input[type="number"],
+        input[type="tel"],
+        select,
+        textarea {
+            font-size: 16px !important;
+        }
+    }
+}
+
+/* ==========================================================================
+   Radial Circular View Transition for Theme Toggle (Dark <-> Light)
+   ========================================================================== */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+    z-index: 1;
+}
+
+::view-transition-new(root) {
+    z-index: 99999;
+}
+
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+    transition: none !important;
+}
+
+/* Auth Portal Light-Surface Inputs: keep readable regardless of html.dark */
+.auth-panel input[type="text"],
+.auth-panel input[type="password"],
+.auth-panel input[type="email"],
+.auth-panel input[type="text"]:focus,
+.auth-panel input[type="password"]:focus,
+.auth-panel input[type="email"]:focus {
+    border: 0 !important;
+    background-color: transparent !important;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    caret-color: #0f172a !important;
+    box-shadow: none !important;
+}
+
+.auth-panel input::placeholder {
+    color: #94a3b8 !important;
+    -webkit-text-fill-color: #94a3b8 !important;
+    opacity: 1 !important;
 }

@@ -1,0 +1,907 @@
+{% extends "base.html" %}
+{% block title %}Welcome to AI JobSnap — Cinematic Experience{% endblock %}
+{% block navbar %}{% endblock %}
+{% block body_class %}min-h-screen w-full m-0 p-0 bg-[#050814] text-white overflow-x-hidden selection:bg-indigo-500 selection:text-white{% endblock %}
+{% block main_class %}p-0 m-0 min-h-screen w-full{% endblock %}
+
+{% block content %}
+<div class="min-h-screen w-full bg-[#050814] relative overflow-hidden flex flex-col justify-between select-none">
+
+    <!-- Full-Screen Ambient Particle & Aurora Canvas -->
+    <canvas id="ambientSpaceCanvas" class="pointer-events-none fixed inset-0 w-full h-full z-0 opacity-75"></canvas>
+
+    <!-- Dynamic Ambient Color Orbs -->
+    <div class="pointer-events-none fixed inset-0 overflow-hidden z-0">
+        <div id="orbPrimary" class=" vocab-orb absolute -top-36 -left-36 w-[540px] h-[540px] rounded-full bg-indigo-600/20 blur-[140px] transition-all duration-1000"></div>
+        <div id="orbSecondary" class="vocab-orb absolute top-1/4 -right-36 w-[500px] h-[500px] rounded-full bg-emerald-500/15 blur-[140px] transition-all duration-1000"></div>
+        <div id="orbTertiary" class="vocab-orb absolute -bottom-44 left-1/3 w-[580px] h-[580px] rounded-full bg-sky-500/12 blur-[150px] transition-all duration-1000"></div>
+    </div>
+
+    <!-- Top Cinematic HUD Header -->
+    <header class="relative z-20 w-full max-w-6xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 sm:gap-3 border-b border-white/10 backdrop-blur-md">
+        <div class="flex items-center gap-2.5 sm:gap-3 order-1">
+            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white shadow-[0_0_20px_rgba(99,102,241,0.35)] shrink-0">
+                <span class="material-symbols-outlined text-[18px] sm:text-[20px]">layers</span>
+            </div>
+            <div>
+                <span class="font-headline-md text-[15px] sm:text-[16px] font-bold tracking-tight text-white block leading-none">AI JobSnap</span>
+                <span class="font-data-mono text-[9px] sm:text-[10px] text-indigo-300/80 tracking-widest uppercase block mt-1">Cinematic Tour · v2.5</span>
+            </div>
+        </div>
+
+        <!-- 4-Step Story Progress Bar (Step 1 to Step 4) -->
+        <div class="flex items-center justify-center gap-1.5 sm:gap-3 order-3 sm:order-2 w-full sm:w-auto pt-1 sm:pt-0" role="navigation" aria-label="Onboarding steps">
+            <button type="button" onclick="userSelectStep(1)" id="stepPill1"
+                class="step-pill flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer bg-white text-slate-950 shadow-[0_0_20px_rgba(255,255,255,0.4)]">
+                <span class="font-data-mono text-[11px] font-bold">01</span>
+                <span class="hidden sm:inline">Identity</span>
+            </button>
+            <div class="w-4 sm:w-10 h-1 rounded-full bg-white/10 overflow-hidden">
+                <div id="connectorBar1" class="h-full bg-gradient-to-r from-indigo-400 to-emerald-400 w-0 transition-all duration-500"></div>
+            </div>
+            <button type="button" onclick="userSelectStep(2)" id="stepPill2"
+                class="step-pill flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer bg-white/5 text-slate-400 border border-white/10 hover:text-white">
+                <span class="font-data-mono text-[11px] font-bold">02</span>
+                <span class="hidden sm:inline">AI Engine</span>
+            </button>
+            <div class="w-4 sm:w-10 h-1 rounded-full bg-white/10 overflow-hidden">
+                <div id="connectorBar2" class="h-full bg-gradient-to-r from-indigo-400 to-emerald-400 w-0 transition-all duration-500"></div>
+            </div>
+            <button type="button" onclick="userSelectStep(3)" id="stepPill3"
+                class="step-pill flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer bg-white/5 text-slate-400 border border-white/10 hover:text-white">
+                <span class="font-data-mono text-[11px] font-bold">03</span>
+                <span class="hidden sm:inline">Velocity</span>
+            </button>
+            <div class="w-4 sm:w-10 h-1 rounded-full bg-white/10 overflow-hidden">
+                <div id="connectorBar3" class="h-full bg-gradient-to-r from-indigo-400 to-emerald-400 w-0 transition-all duration-500"></div>
+            </div>
+            <button type="button" onclick="userSelectStep(4)" id="stepPill4"
+                class="step-pill flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer bg-white/5 text-slate-400 border border-white/10 hover:text-white">
+                <span class="font-data-mono text-[11px] font-bold">04</span>
+                <span class="hidden sm:inline">Launch</span>
+            </button>
+        </div>
+
+        <!-- Sound FX Studio Toggle + User Tag -->
+        <div class="flex items-center gap-3 order-2 sm:order-3">
+            <button type="button" id="soundToggleBtn" onclick="toggleAudioEngine()"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/8 hover:bg-white/15 border border-white/15 text-[11px] font-data-mono text-emerald-300 transition-all cursor-pointer"
+                title="Toggle Spatial UI Sound Effects">
+                <span id="soundIcon" class="material-symbols-outlined text-[15px]">volume_up</span>
+                <span id="soundLabel" class="hidden sm:inline">SFX ON</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Cinematic Stage -->
+    <main class="relative z-10 flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-col justify-center">
+        <form id="onboardingForm" action="{{ url_for('complete_onboarding') }}" method="POST" onsubmit="return submitOnboarding(event)">
+            <input type="hidden" name="role" id="selectedRoleInput" value="{{ current_user.role if current_user.role in ('seeker', 'recruiter') else 'seeker' }}">
+
+            <!-- ========================================================== -->
+            <!-- STEP 1: CHOOSE YOUR PATH (1-CLICK CINEMATIC IDENTITY)      -->
+            <!-- ========================================================== -->
+            <section id="onboardingStep1" class="onboarding-step stage-enter space-y-5 sm:space-y-7">
+                <div class="text-center max-w-2xl mx-auto space-y-2.5">
+                    <div class="inline-flex items-center gap-2 px-3 sm:px-3.5 py-1 rounded-full bg-indigo-500/15 border border-indigo-400/30 text-indigo-300 font-data-mono text-[10px] sm:text-[11px] uppercase tracking-widest">
+                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping"></span>
+                        <span>Step 1 of 4 · Select Your Experience</span>
+                    </div>
+                    <h1 class="font-headline-lg text-2xl sm:text-5xl font-bold tracking-tight text-white">
+                        How will you use AI JobSnap?
+                    </h1>
+                    <p class="text-slate-300 text-sm sm:text-base">
+                        Tap your role below to unlock a tailored 30-second visual preview of your workspace.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 max-w-4xl mx-auto">
+                    <!-- Job Seeker Portal Card -->
+                    <div id="roleCardSeeker" role="button" tabindex="0" onclick="pickRoleAndPlay('seeker')"
+                        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();pickRoleAndPlay('seeker');}"
+                        class="group relative rounded-2xl sm:rounded-3xl p-5 sm:p-7 bg-gradient-to-b from-[#131c38]/95 to-[#0b1022]/95 border-2 border-indigo-500 shadow-[0_0_50px_rgba(79,70,229,0.28)] transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden">
+                        <div class="absolute -right-12 -top-12 w-40 h-40 rounded-full bg-indigo-500/20 blur-2xl group-hover:bg-indigo-400/30 transition-all"></div>
+                        <div class="relative z-10 flex items-center justify-between mb-6">
+                            <span class="px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 font-data-mono text-[10px] font-bold uppercase tracking-widest">
+                                Candidate Mode
+                            </span>
+                            <div id="checkSeeker" class="w-7 h-7 rounded-full bg-indigo-500 text-white flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.8)]">
+                                <span class="material-symbols-outlined text-[16px]">check</span>
+                            </div>
+                        </div>
+
+                        <div class="relative z-10 flex items-center gap-4 mb-4">
+                            <div class="w-14 h-14 rounded-2xl bg-indigo-500/20 border border-indigo-400/40 text-indigo-300 flex items-center justify-center shadow-inner">
+                                <span class="material-symbols-outlined text-[30px]">rocket_launch</span>
+                            </div>
+                            <div>
+                                <h2 class="text-2xl font-bold text-white">Job Seeker</h2>
+                                <p class="text-xs font-data-mono text-indigo-300">AI Match · Skill Roadmap · Auto Outreach</p>
+                            </div>
+                        </div>
+
+                        <p class="relative z-10 text-slate-300 text-sm leading-relaxed">
+                            Let AI score every job against your resume, build custom learning paths for missing skills, and reach hiring managers directly.
+                        </p>
+                    </div>
+
+                    <!-- Recruiter Portal Card -->
+                    <div id="roleCardRecruiter" role="button" tabindex="0" onclick="pickRoleAndPlay('recruiter')"
+                        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();pickRoleAndPlay('recruiter');}"
+                        class="group relative rounded-2xl sm:rounded-3xl p-5 sm:p-7 bg-gradient-to-b from-[#131c38]/60 to-[#0b1022]/60 border-2 border-white/10 hover:border-sky-400/50 transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden">
+                        <div class="absolute -right-12 -top-12 w-40 h-40 rounded-full bg-sky-500/15 blur-2xl group-hover:bg-sky-400/25 transition-all"></div>
+                        <div class="relative z-10 flex items-center justify-between mb-6">
+                            <span class="px-3 py-1 rounded-full bg-sky-500/20 border border-sky-400/30 text-sky-300 font-data-mono text-[10px] font-bold uppercase tracking-widest">
+                                Recruiter Mode
+                            </span>
+                            <div id="checkRecruiter" class="w-7 h-7 rounded-full bg-white/10 text-transparent flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[16px]">check</span>
+                            </div>
+                        </div>
+
+                        <div class="relative z-10 flex items-center gap-4 mb-4">
+                            <div class="w-14 h-14 rounded-2xl bg-sky-500/20 border border-sky-400/40 text-sky-300 flex items-center justify-center shadow-inner">
+                                <span class="material-symbols-outlined text-[30px]">hub</span>
+                            </div>
+                            <div>
+                                <h2 class="text-2xl font-bold text-white">Recruiter</h2>
+                                <p class="text-xs font-data-mono text-sky-300">Smart Requisitions · AI Ranking · Funnel</p>
+                            </div>
+                        </div>
+
+                        <p class="relative z-10 text-slate-300 text-sm leading-relaxed">
+                            Publish roles, watch incoming applicants get auto-ranked by AI fit telemetry, and manage your hiring funnel in real time.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================== -->
+            <!-- STEP 2: SHORT ANIMATED VIDEO — AI TELEMETRY ENGINE         -->
+            <!-- ========================================================== -->
+            <section id="onboardingStep2" class="onboarding-step hidden space-y-6">
+                <div class="text-center max-w-2xl mx-auto space-y-2">
+                    <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 font-data-mono text-[11px] uppercase tracking-widest">
+                        <span class="material-symbols-outlined text-[14px]">movie</span>
+                        <span id="step2BadgeText">Step 2 of 4 · Neural Match Engine Reel</span>
+                    </div>
+                    <h2 id="step2Title" class="font-headline-lg text-2xl sm:text-4xl font-bold text-white">
+                        Watch AI Benchmark Your Resume in Real Time
+                    </h2>
+                    <p id="step2Subtitle" class="text-slate-300 text-sm">
+                        Our neural parser extracts your core stack and scores live opportunities before you even click.
+                    </p>
+                </div>
+
+                <!-- Cinematic Motion Video Player Frame -->
+                <div class="max-w-3xl mx-auto rounded-2xl sm:rounded-3xl bg-[#0b1124] border border-white/15 shadow-[0_25px_80px_rgba(0,0,0,0.65)] overflow-hidden relative">
+                    <!-- Video Top Chrome Bar -->
+                    <div class="px-3.5 sm:px-5 py-2.5 sm:py-3 bg-white/[0.03] border-b border-white/10 flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80 shrink-0"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400/80 shrink-0"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400/80 shrink-0"></span>
+                            <span id="videoCaptionStep2" class="ml-1.5 sm:ml-2 font-data-mono text-[10px] sm:text-[11px] text-slate-400 truncate">AI_MATCH_TELEMETRY_DEMO.mp4</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 sm:gap-2 font-data-mono text-[9.5px] sm:text-[10px] text-emerald-400 shrink-0">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span class="hidden sm:inline">AUTO-PLAYING MOTION REEL</span>
+                            <span class="sm:hidden">LIVE REEL</span>
+                        </div>
+                    </div>
+
+                    <!-- Animated Motion Scene Container (Seeker) -->
+                    <div id="videoScene2Seeker" class="p-4 sm:p-8 min-h-[260px] sm:min-h-[290px] flex flex-col justify-between relative overflow-hidden">
+                        <!-- Animated Laser Scan Line -->
+                        <div class="laser-scan-beam pointer-events-none"></div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-5 items-center my-auto">
+                            <!-- Left: Animated Resume Node -->
+                            <div class="sm:col-span-5 rounded-2xl bg-white/[0.04] border border-indigo-400/30 p-4 space-y-3 relative overflow-hidden">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-[20px]">description</span>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-white">Resume_Parsed.pdf</div>
+                                        <div class="text-[10px] font-data-mono text-indigo-300">Neural Extraction Active</div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5 pt-1">
+                                    <span class="skill-chip-anim chip-delay-1 px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-data-mono text-[10px]">Python ✓</span>
+                                    <span class="skill-chip-anim chip-delay-2 px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-data-mono text-[10px]">React ✓</span>
+                                    <span class="skill-chip-anim chip-delay-3 px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-data-mono text-[10px]">TypeScript ✓</span>
+                                    <span class="skill-chip-anim chip-delay-4 px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-data-mono text-[10px]">Kubernetes ⚡</span>
+                                </div>
+                            </div>
+
+                            <!-- Center Animated Data Stream -->
+                            <div class="sm:col-span-2 flex flex-col items-center justify-center gap-1">
+                                <div class="w-full h-1 rounded-full bg-white/10 overflow-hidden">
+                                    <div class="stream-pulse-bar h-full bg-gradient-to-r from-indigo-500 via-emerald-400 to-indigo-500"></div>
+                                </div>
+                                <span class="font-data-mono text-[9px] text-slate-400 uppercase tracking-widest">AI Scoring</span>
+                            </div>
+
+                            <!-- Right: Animated Live Score Gauge & Roadmap -->
+                            <div class="sm:col-span-5 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-indigo-500/10 border border-emerald-400/40 p-4 flex flex-col justify-between space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <span class="text-[10px] font-data-mono uppercase text-emerald-300 block">Senior AI Engineer</span>
+                                        <span class="text-sm font-bold text-white">Linear Systems</span>
+                                    </div>
+                                    <div class="text-right">
+                                        <span id="seekerAnimatedScore" class="font-data-mono text-3xl font-extrabold text-emerald-400">94%</span>
+                                        <span class="block text-[9px] font-data-mono text-emerald-200 uppercase">Match Fit</span>
+                                    </div>
+                                </div>
+                                <div class="rounded-xl bg-black/30 p-2.5 border border-white/10 flex items-center justify-between text-[11px]">
+                                    <span class="text-amber-300 font-medium">Gap: Kubernetes</span>
+                                    <span class="text-indigo-300 font-data-mono">→ 4-Wk Roadmap Ready</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Animated Motion Scene Container (Recruiter) -->
+                    <div id="videoScene2Recruiter" class="hidden p-6 sm:p-8 min-h-[290px] flex-col justify-center relative overflow-hidden">
+                        <div class="laser-scan-beam pointer-events-none"></div>
+                        <div class="space-y-3 my-auto">
+                            <div class="flex items-center justify-between text-xs font-data-mono text-sky-300 pb-1">
+                                <span>LIVE AI APPLICANT AUTO-RANKER</span>
+                                <span>REQUISITION: STAFF BACKEND ENGINEER</span>
+                            </div>
+                            <div class="rank-row-anim rank-delay-1 flex items-center justify-between p-3.5 rounded-2xl bg-emerald-500/12 border border-emerald-400/40 shadow-lg">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-7 h-7 rounded-full bg-emerald-500 text-slate-950 font-data-mono font-bold text-xs flex items-center justify-center">#1</span>
+                                    <div>
+                                        <div class="text-sm font-bold text-white">Aarav Mehta</div>
+                                        <div class="text-[11px] text-slate-300">Python · Go · Distributed Systems · 6 yrs</div>
+                                    </div>
+                                </div>
+                                <span class="px-3 py-1 rounded-full bg-emerald-400/20 text-emerald-300 font-data-mono text-sm font-bold">96% AI FIT</span>
+                            </div>
+                            <div class="rank-row-anim rank-delay-2 flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.04] border border-white/12">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-7 h-7 rounded-full bg-sky-500/30 text-sky-300 font-data-mono font-bold text-xs flex items-center justify-center">#2</span>
+                                    <div>
+                                        <div class="text-sm font-bold text-white">Elena Rostova</div>
+                                        <div class="text-[11px] text-slate-400">Python · AWS · Kafka · 5 yrs</div>
+                                    </div>
+                                </div>
+                                <span class="px-3 py-1 rounded-full bg-sky-400/20 text-sky-300 font-data-mono text-sm font-bold">91% AI FIT</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Timeline Scrub Bar -->
+                    <div class="h-1.5 w-full bg-white/10 overflow-hidden">
+                        <div id="reelProgress2" class="h-full bg-gradient-to-r from-indigo-500 via-sky-400 to-emerald-400 w-0"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================== -->
+            <!-- STEP 3: SHORT ANIMATED VIDEO — OUTREACH & FUNNEL VELOCITY  -->
+            <!-- ========================================================== -->
+            <section id="onboardingStep3" class="onboarding-step hidden space-y-6">
+                <div class="text-center max-w-2xl mx-auto space-y-2">
+                    <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-sky-500/15 border border-sky-400/30 text-sky-300 font-data-mono text-[11px] uppercase tracking-widest">
+                        <span class="material-symbols-outlined text-[14px]">bolt</span>
+                        <span id="step3BadgeText">Step 3 of 4 · Autonomous Velocity Reel</span>
+                    </div>
+                    <h2 id="step3Title" class="font-headline-lg text-2xl sm:text-4xl font-bold text-white">
+                        Direct Recruiter Radar & Automated Outreach
+                    </h2>
+                    <p id="step3Subtitle" class="text-slate-300 text-sm">
+                        Skip the queue—discover decision-makers and trigger personalized outreach sequences in one click.
+                    </p>
+                </div>
+
+                <!-- Cinematic Motion Video Player Frame -->
+                <div class="max-w-3xl mx-auto rounded-2xl sm:rounded-3xl bg-[#0b1124] border border-white/15 shadow-[0_25px_80px_rgba(0,0,0,0.65)] overflow-hidden relative">
+                    <div class="px-3.5 sm:px-5 py-2.5 sm:py-3 bg-white/[0.03] border-b border-white/10 flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80 shrink-0"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400/80 shrink-0"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400/80 shrink-0"></span>
+                            <span id="videoCaptionStep3" class="ml-1.5 sm:ml-2 font-data-mono text-[10px] sm:text-[11px] text-slate-400 truncate">OUTREACH_RADAR_REEL.mp4</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 sm:gap-2 font-data-mono text-[9.5px] sm:text-[10px] text-sky-400 shrink-0">
+                            <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
+                            <span class="hidden sm:inline">HD MOTION PREVIEW</span>
+                            <span class="sm:hidden">LIVE REEL</span>
+                        </div>
+                    </div>
+
+                    <!-- Seeker Step 3 Animated Radar & Outreach Scene -->
+                    <div id="videoScene3Seeker" class="p-4 sm:p-8 min-h-[260px] sm:min-h-[290px] flex flex-col justify-center relative overflow-hidden">
+                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center my-auto">
+                            <!-- Left Radar Sweep -->
+                            <div class="sm:col-span-5 flex flex-col items-center justify-center">
+                                <div class="relative w-36 h-36 rounded-full border border-indigo-400/30 bg-indigo-950/30 flex items-center justify-center overflow-hidden">
+                                    <div class="absolute inset-3 rounded-full border border-indigo-400/20"></div>
+                                    <div class="absolute inset-8 rounded-full border border-indigo-400/20"></div>
+                                    <div class="radar-sweep-cone"></div>
+                                    <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_15px_#34d399] relative z-10"></span>
+                                    <span class="w-2 h-2 rounded-full bg-sky-400 absolute top-7 right-9 animate-ping"></span>
+                                    <span class="w-2 h-2 rounded-full bg-indigo-400 absolute bottom-8 left-8 animate-ping"></span>
+                                </div>
+                                <span class="font-data-mono text-[10px] text-indigo-300 uppercase tracking-widest mt-3">People Radar Active</span>
+                            </div>
+
+                            <!-- Right Animated Outreach Sequence -->
+                            <div class="sm:col-span-7 space-y-3">
+                                <div class="rank-row-anim rank-delay-1 rounded-2xl bg-white/[0.05] border border-white/10 p-3.5 flex items-center justify-between">
+                                    <div>
+                                        <div class="text-xs font-bold text-white">Sarah Jenkins · VP Engineering</div>
+                                        <div class="text-[11px] text-slate-400">Verified Direct Email · AI Pitch Attached</div>
+                                    </div>
+                                    <span class="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-data-mono text-[10px] font-bold">SENT ✓</span>
+                                </div>
+                                <div class="rank-row-anim rank-delay-2 rounded-2xl bg-emerald-500/12 border border-emerald-400/35 p-3.5 flex items-center justify-between">
+                                    <div>
+                                        <div class="text-xs font-bold text-white">David Chen · Head of Talent</div>
+                                        <div class="text-[11px] text-emerald-300">“Loved your portfolio—let's chat Thursday!”</div>
+                                    </div>
+                                    <span class="px-2.5 py-1 rounded-full bg-emerald-400 text-slate-950 font-data-mono text-[10px] font-bold">REPLIED ★</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recruiter Step 3 Animated Funnel Velocity Scene -->
+                    <div id="videoScene3Recruiter" class="hidden p-4 sm:p-8 min-h-[260px] sm:min-h-[290px] flex-col justify-center relative overflow-hidden">
+                        <div class="space-y-4 my-auto">
+                            <div class="flex flex-wrap items-center justify-between gap-1.5 text-[10px] sm:text-xs font-data-mono text-sky-300">
+                                <span>LIVE HIRING PIPELINE TELEMETRY</span>
+                                <span class="text-emerald-400">1-CLICK STAGE ADVANCEMENT</span>
+                            </div>
+                            <div class="space-y-3 font-data-mono text-xs">
+                                <div class="flex items-center gap-2 sm:gap-3">
+                                    <span class="w-16 sm:w-24 text-right text-slate-400 text-[10px] sm:text-xs">APPLIED</span>
+                                    <div class="flex-1 h-4 sm:h-5 rounded-full bg-white/5 overflow-hidden">
+                                        <div class="funnel-bar-anim h-full bg-indigo-500 rounded-full" style="--target-w: 100%"></div>
+                                    </div>
+                                    <span class="w-7 sm:w-8 text-right font-bold text-white">32</span>
+                                </div>
+                                <div class="flex items-center gap-2 sm:gap-3">
+                                    <span class="w-16 sm:w-24 text-right text-slate-400 text-[10px] sm:text-xs">SHORTLIST</span>
+                                    <div class="flex-1 h-4 sm:h-5 rounded-full bg-white/5 overflow-hidden">
+                                        <div class="funnel-bar-anim h-full bg-violet-500 rounded-full" style="--target-w: 58%"></div>
+                                    </div>
+                                    <span class="w-7 sm:w-8 text-right font-bold text-white">18</span>
+                                </div>
+                                <div class="flex items-center gap-2 sm:gap-3">
+                                    <span class="w-16 sm:w-24 text-right text-slate-400 text-[10px] sm:text-xs">INTERVIEW</span>
+                                    <div class="flex-1 h-4 sm:h-5 rounded-full bg-white/5 overflow-hidden">
+                                        <div class="funnel-bar-anim h-full bg-sky-400 rounded-full" style="--target-w: 32%"></div>
+                                    </div>
+                                    <span class="w-7 sm:w-8 text-right font-bold text-white">9</span>
+                                </div>
+                                <div class="flex items-center gap-2 sm:gap-3">
+                                    <span class="w-16 sm:w-24 text-right text-slate-400 text-[10px] sm:text-xs">HIRED</span>
+                                    <div class="flex-1 h-4 sm:h-5 rounded-full bg-white/5 overflow-hidden">
+                                        <div class="funnel-bar-anim h-full bg-emerald-400 rounded-full" style="--target-w: 16%"></div>
+                                    </div>
+                                    <span class="w-7 sm:w-8 text-right font-bold text-emerald-400">4</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="h-1.5 w-full bg-white/10 overflow-hidden">
+                        <div id="reelProgress3" class="h-full bg-gradient-to-r from-sky-400 via-indigo-400 to-emerald-400 w-0"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================== -->
+            <!-- STEP 4: ZERO-FRICTION CINEMATIC LAUNCHPAD                  -->
+            <!-- ========================================================== -->
+            <section id="onboardingStep4" class="onboarding-step hidden space-y-6 sm:space-y-7">
+                <div class="text-center max-w-xl mx-auto space-y-4">
+                    <!-- Animated Orbital Readiness Ring -->
+                    <div class="relative w-24 h-24 sm:w-28 sm:h-28 mx-auto flex items-center justify-center">
+                        <div class="absolute inset-0 rounded-full border-2 border-emerald-400/30 animate-ping"></div>
+                        <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-indigo-600/30 to-emerald-400/30 border-2 border-emerald-400 flex items-center justify-center shadow-[0_0_45px_rgba(16,185,129,0.45)]">
+                            <span class="material-symbols-outlined text-[36px] sm:text-[42px] text-emerald-300">bolt</span>
+                        </div>
+                    </div>
+
+                    <div class="inline-flex items-center gap-2 px-3 sm:px-3.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 font-data-mono text-[10px] sm:text-[11px] uppercase tracking-widest">
+                        <span>Step 4 of 4 · System Calibrated</span>
+                    </div>
+
+                    <h2 id="step4Heading" class="font-headline-lg text-2xl sm:text-5xl font-bold text-white">
+                        Your Candidate Console is Ready.
+                    </h2>
+                    <p id="step4Subheading" class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                        All AI telemetry engines, resume parsers, and outreach radars are online and configured for your account.
+                    </p>
+                </div>
+
+                <!-- Auto-Checked System Readiness Telemetry Pills -->
+                <div class="max-w-lg mx-auto rounded-2xl bg-white/[0.04] border border-white/12 p-4 sm:p-5 space-y-2.5 sm:space-y-3 font-data-mono text-[11px] sm:text-xs">
+                    <div class="flex items-center justify-between gap-2 text-emerald-300">
+                        <span class="truncate">[01] NEURAL MATCHING ENGINE</span>
+                        <span class="font-bold shrink-0">ONLINE ✓</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-2 text-emerald-300">
+                        <span id="step4Check2" class="truncate">[02] SKILL GAP & ROADMAP SYNTHESIZER</span>
+                        <span class="font-bold shrink-0">READY ✓</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-2 text-emerald-300">
+                        <span id="step4Check3" class="truncate">[03] PEOPLE RADAR & OUTREACH STUDIO</span>
+                        <span class="font-bold shrink-0">CALIBRATED ✓</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bottom Cinematic Controls -->
+            <div class="max-w-3xl mx-auto mt-6 sm:mt-8 pt-4 sm:pt-5 border-t border-white/10 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+                <button type="button" id="prevStepBtn" onclick="prevStep()"
+                    class="invisible w-full sm:w-auto px-5 py-3 sm:py-2.5 min-h-[44px] rounded-full bg-white/6 hover:bg-white/12 border border-white/12 text-xs font-semibold uppercase tracking-wider text-slate-300 transition-all cursor-pointer flex items-center justify-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                    <span>Back</span>
+                </button>
+
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
+                    <button type="button" id="nextStepBtn" onclick="nextStep()"
+                        class="w-full sm:w-auto px-8 py-3.5 min-h-[44px] rounded-full bg-white hover:bg-indigo-50 text-slate-950 font-bold text-xs uppercase tracking-widest transition-all shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2">
+                        <span>Next Step</span>
+                        <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                    </button>
+
+                    <button type="submit" id="finishOnboardingBtn"
+                        class="hidden w-full sm:w-auto px-8 sm:px-9 py-3.5 sm:py-4 min-h-[44px] rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 text-slate-950 font-extrabold text-xs uppercase tracking-widest transition-all shadow-[0_0_40px_rgba(16,185,129,0.5)] hover:scale-[1.03] active:scale-[0.98] cursor-pointer items-center justify-center gap-2.5">
+                        <span id="finishBtnLabel">Enter Candidate Console</span>
+                        <span class="material-symbols-outlined text-[18px]">rocket_launch</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </main>
+</div>
+
+<style>
+.stage-enter {
+    animation: stageFadeUp 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes stageFadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.laser-scan-beam {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.85), rgba(99, 102, 241, 0.9), transparent);
+    box-shadow: 0 0 18px rgba(52, 211, 153, 0.7);
+    animation: laserSweep 3.4s ease-in-out infinite;
+}
+
+@keyframes laserSweep {
+    0% { top: 8%; opacity: 0.2; }
+    50% { top: 88%; opacity: 0.95; }
+    100% { top: 8%; opacity: 0.2; }
+}
+
+.stream-pulse-bar {
+    width: 100%;
+    animation: streamFlow 1.6s linear infinite;
+}
+
+@keyframes streamFlow {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.skill-chip-anim {
+    opacity: 0;
+    animation: chipPopIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.chip-delay-1 { animation-delay: 0.2s; }
+.chip-delay-2 { animation-delay: 0.45s; }
+.chip-delay-3 { animation-delay: 0.7s; }
+.chip-delay-4 { animation-delay: 0.95s; }
+
+@keyframes chipPopIn {
+    from { opacity: 0; transform: translateY(8px) scale(0.9); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.rank-row-anim {
+    opacity: 0;
+    animation: chipPopIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.rank-delay-1 { animation-delay: 0.25s; }
+.rank-delay-2 { animation-delay: 0.65s; }
+
+.radar-sweep-cone {
+    position: absolute;
+    width: 50%;
+    height: 50%;
+    top: 0;
+    left: 50%;
+    transform-origin: bottom left;
+    background: conic-gradient(from 0deg, rgba(99, 102, 241, 0.55), transparent 90deg);
+    animation: radarSpin 2.6s linear infinite;
+}
+
+@keyframes radarSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.funnel-bar-anim {
+    width: 0;
+    animation: growFunnelBar 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes growFunnelBar {
+    from { width: 0%; }
+    to { width: var(--target-w, 100%); }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentStep = 1;
+let selectedRole = document.getElementById('selectedRoleInput').value || 'seeker';
+let soundEnabled = true;
+let audioCtx = null;
+let reelTimer = null;
+
+// ============================================================================
+// WEB AUDIO API — SYNTHESIZED CINEMATIC UI SOUND ENGINE
+// ============================================================================
+function getAudioContext() {
+    if (!soundEnabled) return null;
+    if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+            audioCtx = new AudioContextClass();
+        }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(function () {});
+    }
+    return audioCtx;
+}
+
+function playTone(freq, type, duration, gainVal, delaySec) {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const start = ctx.currentTime + (delaySec || 0);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(gainVal || 0.08, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + duration + 0.02);
+}
+
+function playSoundRoleSelect(role) {
+    if (role === 'recruiter') {
+        playTone(330, 'triangle', 0.22, 0.09, 0);
+        playTone(493.88, 'sine', 0.32, 0.08, 0.06);
+        playTone(659.25, 'sine', 0.4, 0.06, 0.12);
+    } else {
+        playTone(293.66, 'triangle', 0.22, 0.09, 0);
+        playTone(440, 'sine', 0.32, 0.08, 0.06);
+        playTone(587.33, 'sine', 0.4, 0.06, 0.12);
+    }
+}
+
+function playSoundStepTransition(step) {
+    const baseNotes = [261.63, 329.63, 392.00, 523.25];
+    const root = baseNotes[(step - 1) % baseNotes.length];
+    playTone(root, 'sine', 0.25, 0.07, 0);
+    playTone(root * 1.25, 'sine', 0.32, 0.06, 0.07);
+    playTone(root * 1.5, 'triangle', 0.42, 0.05, 0.14);
+}
+
+function playSoundLaunchChord() {
+    // Lush C Major 9th launch swell
+    [261.63, 329.63, 392.00, 493.88, 587.33, 783.99].forEach(function (freq, idx) {
+        playTone(freq, 'sine', 0.65, 0.06, idx * 0.045);
+    });
+}
+
+function toggleAudioEngine() {
+    soundEnabled = !soundEnabled;
+    const icon = document.getElementById('soundIcon');
+    const label = document.getElementById('soundLabel');
+    const btn = document.getElementById('soundToggleBtn');
+    if (soundEnabled) {
+        icon.textContent = 'volume_up';
+        if (label) label.textContent = 'SFX ON';
+        btn.classList.remove('text-slate-400');
+        btn.classList.add('text-emerald-300');
+        playTone(523.25, 'sine', 0.2, 0.06, 0);
+    } else {
+        icon.textContent = 'volume_off';
+        if (label) label.textContent = 'MUTED';
+        btn.classList.remove('text-emerald-300');
+        btn.classList.add('text-slate-400');
+    }
+}
+
+// ============================================================================
+// ROLE SELECTION & CINEMATIC STEP CHOREOGRAPHY
+// ============================================================================
+function pickRoleAndPlay(role) {
+    playSoundRoleSelect(role);
+    selectOnboardingRole(role);
+}
+
+function selectOnboardingRole(role) {
+    selectedRole = role;
+    const roleInput = document.getElementById('selectedRoleInput');
+    if (roleInput) roleInput.value = role;
+
+    const cardSeeker = document.getElementById('roleCardSeeker');
+    const cardRecruiter = document.getElementById('roleCardRecruiter');
+    const checkSeeker = document.getElementById('checkSeeker');
+    const checkRecruiter = document.getElementById('checkRecruiter');
+
+    if (role === 'recruiter') {
+        cardRecruiter.className = "group relative rounded-3xl p-7 bg-gradient-to-b from-[#131c38]/95 to-[#0b1022]/95 border-2 border-sky-400 shadow-[0_0_50px_rgba(14,165,233,0.3)] transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden";
+        cardSeeker.className = "group relative rounded-3xl p-7 bg-gradient-to-b from-[#131c38]/60 to-[#0b1022]/60 border-2 border-white/10 hover:border-indigo-400/50 transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden";
+        checkRecruiter.className = "w-7 h-7 rounded-full bg-sky-500 text-white flex items-center justify-center shadow-[0_0_15px_rgba(14,165,233,0.8)]";
+        checkSeeker.className = "w-7 h-7 rounded-full bg-white/10 text-transparent flex items-center justify-center";
+    } else {
+        cardSeeker.className = "group relative rounded-3xl p-7 bg-gradient-to-b from-[#131c38]/95 to-[#0b1022]/95 border-2 border-indigo-500 shadow-[0_0_50px_rgba(79,70,229,0.28)] transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden";
+        cardRecruiter.className = "group relative rounded-3xl p-7 bg-gradient-to-b from-[#131c38]/60 to-[#0b1022]/60 border-2 border-white/10 hover:border-sky-400/50 transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden";
+        checkSeeker.className = "w-7 h-7 rounded-full bg-indigo-500 text-white flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.8)]";
+        checkRecruiter.className = "w-7 h-7 rounded-full bg-white/10 text-transparent flex items-center justify-center";
+    }
+
+    syncRoleContent();
+}
+
+function syncRoleContent() {
+    const isRecruiter = selectedRole === 'recruiter';
+
+    // Step 2 Content
+    document.getElementById('videoScene2Seeker').classList.toggle('hidden', isRecruiter);
+    document.getElementById('videoScene2Recruiter').classList.toggle('hidden', !isRecruiter);
+    document.getElementById('videoScene2Recruiter').classList.toggle('flex', isRecruiter);
+    document.getElementById('step2Title').textContent = isRecruiter
+        ? 'Watch AI Auto-Rank Incoming Candidates'
+        : 'Watch AI Benchmark Your Resume in Real Time';
+    document.getElementById('step2Subtitle').textContent = isRecruiter
+        ? 'Every applicant is automatically scored against your requisition’s tech stack and seniority.'
+        : 'Our neural parser extracts your core stack and scores live opportunities before you even click.';
+    document.getElementById('videoCaptionStep2').textContent = isRecruiter
+        ? 'AI_CANDIDATE_RANKING_REEL.mp4'
+        : 'AI_MATCH_TELEMETRY_REEL.mp4';
+
+    // Step 3 Content
+    document.getElementById('videoScene3Seeker').classList.toggle('hidden', isRecruiter);
+    document.getElementById('videoScene3Recruiter').classList.toggle('hidden', !isRecruiter);
+    document.getElementById('videoScene3Recruiter').classList.toggle('flex', isRecruiter);
+    document.getElementById('step3Title').textContent = isRecruiter
+        ? 'Full-Funnel Pipeline Telemetry in Motion'
+        : 'Direct Recruiter Radar & Automated Outreach';
+    document.getElementById('step3Subtitle').textContent = isRecruiter
+        ? 'Track candidate velocity from Applied to Hired with 1-click stage transitions and CSV exports.'
+        : 'Skip the queue—discover decision-makers and trigger personalized outreach sequences in one click.';
+    document.getElementById('videoCaptionStep3').textContent = isRecruiter
+        ? 'HIRING_FUNNEL_VELOCITY_REEL.mp4'
+        : 'OUTREACH_RADAR_REEL.mp4';
+
+    // Step 4 Content
+    document.getElementById('step4Heading').textContent = isRecruiter
+        ? 'Your Recruiter Console is Ready.'
+        : 'Your Candidate Console is Ready.';
+    document.getElementById('step4Subheading').textContent = isRecruiter
+        ? 'Smart requisition publishing, AI applicant scoring, and hiring funnel analytics are online.'
+        : 'All AI telemetry engines, resume parsers, and outreach radars are online and calibrated.';
+    document.getElementById('step4Check2').textContent = isRecruiter
+        ? '[02] AI CANDIDATE RANKING PIPELINE'
+        : '[02] SKILL GAP & ROADMAP SYNTHESIZER';
+    document.getElementById('step4Check3').textContent = isRecruiter
+        ? '[03] HIRING FUNNEL & ROSTER EXPORT'
+        : '[03] PEOPLE RADAR & OUTREACH STUDIO';
+    document.getElementById('finishBtnLabel').textContent = isRecruiter
+        ? 'Enter Recruiter Console'
+        : 'Enter Candidate Console';
+}
+
+function animateVideoReelProgress(stepNumber) {
+    window.clearInterval(reelTimer);
+    if (stepNumber !== 2 && stepNumber !== 3) return;
+    const bar = document.getElementById('reelProgress' + stepNumber);
+    if (!bar) return;
+    bar.style.transition = 'none';
+    bar.style.width = '0%';
+    void bar.offsetWidth;
+    bar.style.transition = 'width 5.5s linear';
+    bar.style.width = '100%';
+
+    // Animated score counter on Step 2
+    if (stepNumber === 2 && selectedRole === 'seeker') {
+        const scoreEl = document.getElementById('seekerAnimatedScore');
+        if (scoreEl) {
+            let val = 68;
+            reelTimer = window.setInterval(function () {
+                val += 2;
+                if (val >= 94) {
+                    val = 94;
+                    window.clearInterval(reelTimer);
+                    playTone(659.25, 'sine', 0.25, 0.05, 0);
+                }
+                scoreEl.textContent = val + '%';
+            }, 90);
+        }
+    }
+}
+
+function userSelectStep(stepNumber) {
+    playSoundStepTransition(stepNumber);
+    goToStep(stepNumber);
+}
+
+function goToStep(stepNumber) {
+    currentStep = Math.max(1, Math.min(4, stepNumber));
+    for (let i = 1; i <= 4; i++) {
+        const sec = document.getElementById('onboardingStep' + i);
+        const pill = document.getElementById('stepPill' + i);
+        if (sec) {
+            if (i === currentStep) {
+                sec.classList.remove('hidden');
+                sec.classList.remove('stage-enter');
+                void sec.offsetWidth;
+                sec.classList.add('stage-enter');
+            } else {
+                sec.classList.add('hidden');
+            }
+        }
+        if (pill) {
+            if (i === currentStep) {
+                pill.className = "step-pill flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer bg-white text-slate-950 shadow-[0_0_20px_rgba(255,255,255,0.4)]";
+            } else if (i < currentStep) {
+                pill.className = "step-pill flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer bg-emerald-500/20 text-emerald-300 border border-emerald-400/30";
+            } else {
+                pill.className = "step-pill flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer bg-white/5 text-slate-400 border border-white/10 hover:text-white";
+            }
+        }
+    }
+
+    for (let c = 1; c <= 3; c++) {
+        const conn = document.getElementById('connectorBar' + c);
+        if (conn) {
+            conn.style.width = currentStep > c ? '100%' : '0%';
+        }
+    }
+
+    const prevBtn = document.getElementById('prevStepBtn');
+    const nextBtn = document.getElementById('nextStepBtn');
+    const finishBtn = document.getElementById('finishOnboardingBtn');
+
+    if (prevBtn) prevBtn.classList.toggle('invisible', currentStep === 1);
+    if (nextBtn) nextBtn.classList.toggle('hidden', currentStep === 4);
+    if (finishBtn) {
+        finishBtn.classList.toggle('hidden', currentStep !== 4);
+        finishBtn.classList.toggle('flex', currentStep === 4);
+    }
+
+    animateVideoReelProgress(currentStep);
+}
+
+function nextStep() {
+    if (currentStep < 4) {
+        const next = currentStep + 1;
+        playSoundStepTransition(next);
+        goToStep(next);
+    }
+}
+
+function prevStep() {
+    if (currentStep > 1) {
+        const prev = currentStep - 1;
+        playSoundStepTransition(prev);
+        goToStep(prev);
+    }
+}
+
+async function submitOnboarding(event) {
+    event.preventDefault();
+    playSoundLaunchChord();
+    const form = document.getElementById('onboardingForm');
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+
+    try {
+        const response = await fetch({{ url_for('complete_onboarding')|tojson }}, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (data && data.redirect_url) {
+            window.setTimeout(function () {
+                window.location.assign(data.redirect_url);
+            }, 320);
+            return false;
+        }
+    } catch (e) {
+        form.submit();
+    }
+    return false;
+}
+
+// ============================================================================
+// AMBIENT PARTICLE CONSTELLATION CANVAS
+// ============================================================================
+function initAmbientCanvas() {
+    const canvas = document.getElementById('ambientSpaceCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    const particles = Array.from({ length: 42 }, function () {
+        return {
+            x: Math.random() * width,
+            y: Math.random() * height,
+            r: Math.random() * 1.8 + 0.6,
+            vx: (Math.random() - 0.5) * 0.35,
+            vy: (Math.random() - 0.5) * 0.35,
+            alpha: Math.random() * 0.55 + 0.15
+        };
+    });
+
+    window.addEventListener('resize', function () {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    });
+
+    function drawFrame() {
+        ctx.clearRect(0, 0, width, height);
+        for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            if (p.x < 0) p.x = width;
+            if (p.x > width) p.x = 0;
+            if (p.y < 0) p.y = height;
+            if (p.y > height) p.y = 0;
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(148, 163, 184, ' + p.alpha + ')';
+            ctx.fill();
+        }
+        window.requestAnimationFrame(drawFrame);
+    }
+    drawFrame();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    selectOnboardingRole(selectedRole);
+    goToStep(1);
+    initAmbientCanvas();
+});
+</script>
+{% endblock %}

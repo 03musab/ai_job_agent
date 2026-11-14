@@ -5,7 +5,7 @@
 <div id="company-page" x-data="companySettings()" x-init="init()" class="max-w-[800px] mx-auto px-container-padding py-8 flex-1 flex flex-col gap-6 w-full">
     
     <!-- Top Header -->
-    <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex justify-between items-center">
+    <div id="company-profile-header" class="border border-outline-variant rounded-xl p-4 sm:p-5 bg-surface-container flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
             <div class="flex items-center gap-2 mb-1">
                 <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Organization Parameters</span>
@@ -17,7 +17,7 @@
             </p>
         </div>
         <a href="{{ url_for('recruiter_dashboard') }}"
-            class="font-data-mono text-[10px] text-on-surface-variant hover:text-primary border border-outline-variant px-3 py-1.5 rounded uppercase tracking-wider transition-colors">
+            class="font-data-mono text-[10px] text-on-surface-variant hover:text-primary border border-outline-variant px-3 py-1.5 rounded uppercase tracking-wider transition-colors shrink-0 whitespace-nowrap">
             Recruiter Console
         </a>
     </div>
@@ -26,22 +26,22 @@
     <div x-show="pageError" class="p-3 rounded-lg bg-error/10 border border-error/30 text-error font-data-mono text-[11px]" x-text="pageError"></div>
 
     <!-- Empty State -->
-    <div x-show="!loading && !pageError && !company && !showForm" class="border border-outline-variant rounded-xl p-12 text-center bg-surface-container">
+    <div x-show="!loading && !pageError && !company && !showForm" class="border border-outline-variant rounded-xl p-8 sm:p-12 text-center bg-surface-container">
         <span class="material-symbols-outlined text-[36px] text-outline mb-2">domain</span>
         <h2 class="font-headline-md text-on-surface text-[15px] font-semibold">No Company Registered</h2>
         <p class="font-body-sm text-[12px] text-on-surface-variant mt-1 mb-4">Initialize your organization entity to publish verified job openings.</p>
-        <button @click="startCreate()" class="px-5 py-2 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-emerald-600 transition-colors">
+        <button @click="startCreate()" class="w-full sm:w-auto px-5 py-2.5 sm:py-2 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-emerald-600 transition-colors">
             Create Company Profile
         </button>
     </div>
 
     <!-- Company Form Container -->
-    <div x-show="showForm" class="border border-outline-variant rounded-xl p-6 bg-surface-container space-y-6">
+    <div id="company-form-card" x-show="showForm" class="border border-outline-variant rounded-xl p-4 sm:p-6 bg-surface-container space-y-6">
         
         <!-- Logo Section -->
-        <div>
+        <div id="company-logo-section">
             <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-3">01 / Brand Asset (Logo)</span>
-            <div class="flex items-center gap-4">
+            <div class="flex flex-wrap sm:flex-nowrap items-center gap-4">
                 <div class="w-16 h-16 rounded-lg border border-outline-variant bg-surface-container-lowest flex items-center justify-center overflow-hidden">
                     <img x-show="logoPreview" :src="logoPreview" class="max-w-[85%] max-h-[85%] object-contain" alt="Logo" />
                     <span x-show="!logoPreview" class="material-symbols-outlined text-[24px] text-outline">image</span>
@@ -67,6 +67,7 @@
 
         <!-- Details Form -->
         <form @submit.prevent="submitCompany()" class="space-y-4 border-t border-outline-variant pt-5">
+            <div id="company-metadata-grid" class="space-y-4">
             <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block">02 / Organization Metadata</span>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -114,10 +115,11 @@
                 <textarea x-model="form.description" rows="4" maxlength="500" placeholder="Summarize your company's mission and engineering culture..."
                     class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded p-3 text-body-sm text-on-surface focus:border-primary focus:outline-none font-mono text-[12px]"></textarea>
             </div>
+            </div>
 
             <div class="flex justify-end pt-3 border-t border-outline-variant">
-                <button type="submit" :disabled="submitting"
-                    class="px-6 py-2.5 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-emerald-600 transition-colors shadow-sm">
+                <button id="company-save-btn" type="submit" :disabled="submitting"
+                    class="w-full sm:w-auto px-6 py-3 sm:py-2.5 min-h-[44px] bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-emerald-600 transition-colors shadow-sm flex items-center justify-center">
                     <span x-text="isEditing ? 'Update Company Profile' : 'Save Profile'"></span>
                 </button>
             </div>
@@ -176,6 +178,8 @@ function companySettings() {
                         if (data.data.logo) {
                             this.logoPreview = this.logoUrl(data.data.logo);
                         }
+                        this.showForm = true;
+                    } else {
                         this.showForm = true;
                     }
                 } else {

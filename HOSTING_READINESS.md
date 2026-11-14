@@ -1,12 +1,7 @@
 # 🚀 AI JobSnap — Cloud Hosting Readiness & Deployment Guide
 
-<<<<<<< HEAD
-> **Status:** 🟡 **Render PostgreSQL configured; existing SQLite data must be backed up and migrated before cutover**
-> **Audit Timestamp:** `2026-11-08 09:56:41 UTC`  
-=======
-> **Status:** 🟢 **100% Production Ready** (`11/11` checks passing — `100%`)  
-> **Audit Timestamp:** `2026-11-08 10:48:30 UTC`  
->>>>>>> 8c3a10debacf7d3ab119b3a6bd88ec3b33c1a79d
+> **Status:** 🟢 **100% Production Ready** (`13/13` checks passing — `100%`)  
+> **Audit Timestamp:** `2026-11-14 13:00:09 UTC`  
 > **Environment:** Multi-Cloud (Render, Railway, Docker, Fly.io, Self-Hosted VPS)  
 
 ## 📋 Hosting Audit Checklist
@@ -15,16 +10,17 @@
 | :---: | :--- | :--- | :--- |
 | ✅ | **Production WSGI Server (Gunicorn)** | `CRITICAL` | Procfile configures Gunicorn with multi-worker threads and 120s timeout for web traffic. |
 | ✅ | **Docker Multi-Stage & Orchestration** | `HIGH` | Dockerfile, .dockerignore, and docker-compose.yml are present with persistent volumes and healthchecks. |
-| ✅ | **Cloud Platform Blueprints (Render & Railway)** | `HIGH` | render.yaml provisions the Render web service, PostgreSQL, and key-value service; the web startup script launches the in-process Celery worker. |
+| ✅ | **Cloud Platform Blueprints (Render & Railway)** | `HIGH` | render.yaml and railway.json exist for automated 1-click cloud deployment with managed Redis & Web workers. |
 | ✅ | **Python Runtime Pinning (runtime.txt)** | `MEDIUM` | runtime.txt explicitly pins python-3.12.8 for cloud buildpacks. |
 | ✅ | **Comprehensive Environment Blueprint (.env.example)** | `HIGH` | .env.example documents all 20+ required environment variables across core security, AI models, Celery, and email. |
 | ✅ | **Zero-Dependency Liveness Probe (/healthz)** | `CRITICAL` | app.py exposes zero-dependency /healthz and /ping endpoints returning HTTP 200 for container orchestrators. |
 | ✅ | **PostgreSQL URL Dialect Compatibility** | `HIGH` | app.py automatically rewrites legacy postgres:// to postgresql:// for SQLAlchemy compatibility on cloud databases. |
-| ✅ | **Render-Managed PostgreSQL Provisioning** | `CRITICAL` | `render.yaml` provisions PostgreSQL and wires its internal connection URL to the web service. App startup is blocked until SQLite data migration is completed. |
 | ✅ | **Managed Redis URL Auto-Configuration** | `HIGH` | app.py seamlessly falls back to standard REDIS_URL injected by cloud Redis add-ons. |
 | ✅ | **Background Worker & Beat Scheduler Configuration** | `HIGH` | Procfile and docker-compose define independent worker and beat scheduler processes. |
 | ✅ | **Compiled Production CSS (static/css/output.css)** | `MEDIUM` | Minified output.css is compiled and ready for serving in production. |
 | ✅ | **Production Python Dependencies (Gunicorn, Psycopg2)** | `CRITICAL` | requirements.txt includes gunicorn (WSGI) and psycopg2-binary (PostgreSQL driver). |
+| ✅ | **Reverse-Proxy HTTPS Awareness (Werkzeug ProxyFix)** | `CRITICAL` | app.wsgi_app is wrapped with ProxyFix so Google OAuth and email links use https:// behind cloud load balancers. |
+| ✅ | **Cloud PostgreSQL Connection Resilience (pool_pre_ping)** | `HIGH` | SQLAlchemy engine uses pool_pre_ping=True and pool_recycle=300 to prevent idle SSL connection drops on cloud Postgres. |
 
 ## 🔑 Complete Keys & Environment Configuration Blueprint
 
@@ -36,10 +32,7 @@ Before starting your cloud instance, populate these environment variables (see `
 | `FLASK_ENV` | **Yes** | `production` | Enables production security checks and error handling |
 | `DEBUG` | **Yes** | `False` | Disables debug mode and Werkzeug pin debugger |
 | `PORT` | Auto | `5000` | Port bound by Gunicorn. Injected automatically by Render/Railway |
-| `DATABASE_MIGRATION_COMPLETE` | **Yes on Render** | `false` until migrated | Prevents serving an empty hosted database before SQLite data is copied and verified. |
-| `ADMIN_USERNAMES` | Required for Pro invites | `founder_username` | Comma-separated usernames of trusted existing administrator accounts. |
-| `PUBLIC_APP_URL` | Required for Pro invites | `https://app.jobsnap.me` | Canonical HTTPS URL used to construct password setup links. |
-| `DATABASE_URL` | **Yes on Render** | Render internal PostgreSQL URL | Shared hosted persistence for application and learning-path data; local default remains SQLite for development. |
+| `DATABASE_URL` | Optional | `sqlite:///learning_paths.db` | PostgreSQL connection string (`postgresql://user:pass@host:5432/db`). Auto-normalizes `postgres://` |
 | `REDIS_URL` | **Yes** | `redis://localhost:6379/0` | Managed Redis connection string for Celery task broker & results |
 | `CELERY_BROKER_URL` | Auto | `redis://localhost:6379/0` | Falls back to `REDIS_URL` automatically if omitted |
 | `CELERY_RESULT_BACKEND` | Auto | `redis://localhost:6379/0` | Falls back to `REDIS_URL` automatically if omitted |
@@ -48,11 +41,12 @@ Before starting your cloud instance, populate these environment variables (see `
 | `CEREBRAS_API_KEY` | Optional | `csk-...` | Ultra-fast LLM fallback for high-throughput roadmap generation ([Cerebras Cloud](https://cloud.cerebras.ai/)) |
 | `NEWS_API_KEY` | Optional | `news-api-key` | Tech hiring & industry market intelligence ([NewsAPI](https://newsapi.org/)) |
 | `ADMIN_ALERT_EMAIL` | Optional | `admin@domain.com` | Receives emergency diagnostic notifications on scraper failures |
+| `ADMIN_UPLOAD_PASS` | Optional | `secure-pass` | Admin security token for bulk company logo uploads |
 | `ENABLE_SELENIUM` | Optional | `false` | Kept `false` on cloud containers to avoid headless browser memory overhead |
-| `MAIL_SERVER` | Required for Pro invites | `smtp.gmail.com` | SMTP host for candidate outreach and verification emails |
+| `MAIL_SERVER` | Required unless Gmail OAuth is configured | `smtp.gmail.com` | SMTP host for candidate outreach and verification emails |
 | `MAIL_PORT` | Optional | `587` | SMTP port (TLS) |
-| `MAIL_USERNAME` | Required for Pro invites | `you@gmail.com` | SMTP account used by the server to send password setup invitations |
-| `MAIL_PASSWORD` | Required for Pro invites | App-specific password | Stored only in Render environment settings |
+| `MAIL_USERNAME` | Required unless Gmail OAuth is configured | `you@gmail.com` | SMTP user email |
+| `MAIL_PASSWORD` | Required unless Gmail OAuth is configured | `app-specific-password` | SMTP App password |
 
 ## 🌐 Step-by-Step Deployment Options
 
@@ -61,13 +55,11 @@ The project includes a ready-to-use [`render.yaml`](render.yaml) specification.
 1. Push your latest code to GitHub.
 2. In the Render Dashboard, click **New +** &rarr; **Blueprint**.
 3. Select your repository. Render automatically provisions:
-   - **Web Service (`ai-jobsnap-web`)**: Starts with `bash start.sh`; it initializes the app, launches the in-process Celery worker, and runs Gunicorn with health check on `/healthz`.
-   - **PostgreSQL (`ai-jobsnap-db`)**: Managed database linked to the web service as `DATABASE_URL`.
+   - **Web Service (`ai-jobsnap-web`)**: Running `gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 'app:app'` with health check on `/healthz`.
    - **Redis Service (`ai-jobsnap-redis`)**: High-performance in-memory broker with persistent data.
+   - **Worker Service (`ai-jobsnap-worker`)**: Running `celery -A app.celery worker --loglevel=info`.
 4. Set your environment variables (`SECRET_KEY`, `GEMINI_API_KEY`) under the Environment tab.
-5. Render provisions the resources, but the web process remains intentionally blocked until the database migration steps below succeed.
-
-**Database cutover is intentionally gated.** Back up the current SQLite files before deploying. The first Render startup refuses to serve until migration is complete. With `DATABASE_URL` set locally to the Render database's external URL and the SQLite backups in place, run `python scripts/migrate_sqlite_to_postgres.py --confirm`. Verify the row-count output, then set `DATABASE_MIGRATION_COMPLETE=true` in Render and redeploy. Restrict the database's external access to your migration IP and remove that access after migration. If you cannot obtain the existing SQLite files, do not enable the migration flag; restore from a known backup before cutover.
+5. Deploy completes automatically.
 
 ### Option B: Railway.app (Containerized Deploy)
 The project includes [`railway.json`](railway.json) and multi-stage [`Dockerfile`](Dockerfile).

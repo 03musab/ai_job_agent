@@ -20,7 +20,7 @@
         </div>
 
         <!-- Action Bar: Fast Actions & Tool Triggers -->
-        <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+        <div id="outreach-action-bar" class="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0 w-full xl:w-auto">
             <!-- 1. AI Recruiter Search Trigger -->
             <button type="button" @click="activePanel = (activePanel === 'scraper' ? null : 'scraper')"
                 :class="activePanel === 'scraper' ? 'bg-primary text-on-primary shadow-xs' : 'bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-on-primary'"
@@ -68,7 +68,7 @@
     </div>
 
     <!-- Quick Metric Strip: Contact Count & Direct Email System Status -->
-    <div class="border border-outline-variant rounded-2xl px-5 py-3 bg-surface shadow-xs flex flex-wrap items-center justify-between gap-3 text-[12.5px]">
+    <div id="outreach-metrics-strip" class="border border-outline-variant rounded-2xl px-5 py-3 bg-surface shadow-xs flex flex-wrap items-center justify-between gap-3 text-[12.5px]">
         <div class="flex items-center gap-3 sm:gap-5 flex-wrap">
             <div class="flex items-center gap-2">
                 <div class="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
@@ -253,13 +253,13 @@
     <div class="border border-outline-variant rounded-2xl bg-surface overflow-hidden flex flex-col shadow-xs">
         
         <!-- Table Control & Search Bar -->
-        <div class="p-4 sm:p-5 border-b border-outline-variant bg-surface flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div id="outreach-contacts-header" class="p-4 sm:p-5 border-b border-outline-variant bg-surface flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2.5 sm:gap-3">
             <div class="flex items-center gap-2.5">
-                <div class="w-9 h-9 rounded-xl bg-primary/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs">
+                <div class="w-9 h-9 rounded-xl bg-primary/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs shrink-0">
                     <span class="material-symbols-outlined text-[19px]">contacts</span>
                 </div>
-                <div>
-                    <div class="flex items-center gap-2">
+                <div class="min-w-0">
+                    <div class="flex items-center flex-wrap gap-2">
                         <h2 class="font-headline-md text-on-surface text-[15.5px] font-bold">Recruiter Contacts</h2>
                         <span class="font-data-mono text-[11px] px-2 py-0.5 rounded-md bg-surface-container border border-outline-variant text-primary font-bold">
                             {{ contacts|length if contacts else 0 }} Contacts
@@ -269,7 +269,7 @@
             </div>
 
             <!-- Instant Search Filter -->
-            <div class="relative w-full sm:w-80">
+            <div class="relative w-full sm:w-56 md:w-72">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[17px] pointer-events-none">search</span>
                 <input type="text" id="contact-filter" placeholder="Search by name, role, or company..."
                     class="w-full bg-surface-container-lowest border border-outline-variant rounded-xl pl-9 pr-3 py-2 text-[12.5px] text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all shadow-2xs">
@@ -277,32 +277,42 @@
         </div>
 
         <!-- Column Headers -->
-        <div class="px-5 py-2.5 border-b border-outline-variant flex text-on-surface-variant font-data-mono text-[10px] uppercase tracking-wider bg-surface-container-low sticky top-0 z-10 font-semibold">
+        <div class="px-3.5 sm:px-5 py-2.5 border-b border-outline-variant flex text-on-surface-variant font-data-mono text-[10px] uppercase tracking-wider bg-surface-container-low sticky top-0 z-10 font-semibold">
             <div class="flex-1 min-w-0 pr-2">Name & Title</div>
             <div class="w-48 hidden sm:block px-3">Company</div>
             <div class="w-64 hidden md:block px-3">Direct Email</div>
             <div class="w-28 hidden lg:block px-3">Status</div>
-            <div class="w-36 text-right pl-3">Actions</div>
+            <div class="w-auto sm:w-36 text-right pl-3">Actions</div>
         </div>
 
         <!-- Contact Rows (Scrollable with custom scrollbar) -->
         <div class="divide-y divide-outline-variant/60 max-h-[580px] overflow-y-auto custom-scrollbar" id="contacts-container">
             {% if contacts and contacts|length > 0 %}
                 {% for contact in contacts %}
-                <div class="contact-row flex items-center px-5 py-3.5 hover:bg-surface-container-low transition-colors"
+                <div class="contact-row flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-0 px-3.5 sm:px-5 py-3.5 hover:bg-surface-container-low transition-colors"
                      data-search-text="{{ (contact.full_name or '') ~ ' ' ~ (contact.title or '') ~ ' ' ~ (contact.company or '') ~ ' ' ~ (contact.email or '') }}">
                     
                     <!-- Candidate Monogram & Name -->
-                    <div class="flex-1 min-w-0 flex items-center gap-3 pr-2">
+                    <div class="flex-1 min-w-0 flex items-center gap-3 sm:pr-2">
                         <div class="w-10 h-10 rounded-xl bg-primary/10 border border-primary/25 flex items-center justify-center font-bold text-[14px] text-primary shrink-0 shadow-2xs">
                             {{ contact.full_name[0] | upper if contact.full_name else '?' }}
                         </div>
-                        <div class="min-w-0">
+                        <div class="min-w-0 flex-1">
                             <div class="font-semibold text-on-surface text-[13.5px] truncate flex items-center gap-1.5">
                                 <span class="truncate">{{ contact.full_name or 'Hiring Contact' }}</span>
                                 <span class="material-symbols-outlined text-[15px] text-primary shrink-0" title="Verified Contact Identity">verified</span>
                             </div>
                             <div class="font-data-mono text-[11px] text-on-surface-variant truncate">{{ contact.title or 'Talent Acquisition' }}</div>
+                            {% if contact.company or contact.email %}
+                            <div class="sm:hidden flex flex-wrap items-center gap-1.5 mt-1 text-[10.5px] font-data-mono text-on-surface-variant/85">
+                                {% if contact.company %}
+                                <span class="px-1.5 py-0.5 rounded bg-surface-container border border-outline-variant text-on-surface font-medium truncate max-w-[140px]">{{ contact.company }}</span>
+                                {% endif %}
+                                {% if contact.email %}
+                                <span class="truncate max-w-[180px]">{{ contact.email }}</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -335,7 +345,7 @@
                     </div>
 
                     <!-- Actions -->
-                    <div class="w-36 flex items-center justify-end gap-1.5 pl-3 shrink-0">
+                    <div class="w-full sm:w-36 flex items-center justify-end gap-1.5 sm:pl-3 pt-1 sm:pt-0 border-t sm:border-t-0 border-outline-variant/40 shrink-0">
                         {% if contact.email %}
                         <button type="button" onclick="openSendMessageModal('{{ contact.full_name|escape }}', '{{ contact.email|escape }}', '{{ (contact.company or '')|escape }}', '{{ (contact.title or '')|escape }}')"
                             class="px-3 py-1.5 rounded-xl bg-primary hover:bg-emerald-600 text-on-primary font-semibold text-[11px] transition-all shadow-xs flex items-center gap-1 cursor-pointer">
@@ -381,17 +391,17 @@
     <div class="relative mx-auto border border-outline-variant w-full max-w-4xl rounded-2xl bg-surface z-10 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-outline-variant/60 flex justify-between items-center bg-surface-container-low shrink-0">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-xl bg-primary/10 border border-primary/25 text-primary flex items-center justify-center shadow-2xs">
+        <div class="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-outline-variant/60 flex justify-between items-center bg-surface-container-low shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-8 h-8 rounded-xl bg-primary/10 border border-primary/25 text-primary flex items-center justify-center shadow-2xs shrink-0">
                     <span class="material-symbols-outlined text-[18px]">forward_to_inbox</span>
                 </div>
-                <div>
-                    <h3 class="font-headline-md text-on-surface text-[15.5px] font-bold">Compose Candidate Outreach</h3>
-                    <p class="text-[12px] text-on-surface-variant">Personalized direct message with live inbox rendering preview</p>
+                <div class="min-w-0">
+                    <h3 class="font-headline-md text-on-surface text-[15px] sm:text-[15.5px] font-bold truncate">Compose Candidate Outreach</h3>
+                    <p class="text-[11.5px] sm:text-[12px] text-on-surface-variant truncate">Personalized direct message with live inbox rendering preview</p>
                 </div>
             </div>
-            <button type="button" onclick="closeSendMessageModal()" class="text-on-surface-variant hover:text-on-surface p-1 rounded-lg">
+            <button type="button" onclick="closeSendMessageModal()" class="text-on-surface-variant hover:text-on-surface p-1 rounded-lg shrink-0">
                 <span class="material-symbols-outlined text-[20px]">close</span>
             </button>
         </div>
@@ -413,11 +423,11 @@
         </div>
 
         <!-- Dual Pane Workspace -->
-        <form id="send-message-form" class="flex-1 flex flex-col md:flex-row overflow-hidden divide-y md:divide-y-0 md:divide-x divide-outline-variant/60">
+        <form id="send-message-form" class="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden divide-y md:divide-y-0 md:divide-x divide-outline-variant/60">
             <input type="hidden" id="modal-recipient-email" name="contact_email">
             
             <!-- Left Pane: Editor -->
-            <div class="w-full md:w-1/2 p-5 sm:p-6 overflow-y-auto custom-scrollbar space-y-4">
+            <div class="w-full md:w-1/2 p-4 sm:p-6 md:overflow-y-auto custom-scrollbar space-y-4 shrink-0">
                 <div>
                     <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1 font-semibold">Recipient Contact</label>
                     <input type="text" id="modal-recipient-display" readonly

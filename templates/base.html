@@ -29,10 +29,76 @@
 </head>
 
 <body class="bg-background text-on-surface antialiased min-h-screen flex flex-col font-body-sm overflow-x-hidden {% block body_class %}{% endblock %}"
-      x-data="{ 
-          toggleTheme() {
-              this.darkMode = !this.darkMode;
-              localStorage.setItem('darkMode', this.darkMode);
+      x-data="{
+          _themeTransitionId: 0,
+          toggleTheme(event) {
+              const nextDark = !this.darkMode;
+              const applyTheme = () => {
+                  this.darkMode = nextDark;
+                  localStorage.setItem('darkMode', nextDark);
+                  document.documentElement.classList.toggle('dark', nextDark);
+              };
+
+              if (!document.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                  applyTheme();
+                  return;
+              }
+
+              const trigger = event?.currentTarget || event?.target?.closest?.('button');
+              let x = window.innerWidth - 56;
+              let y = 24;
+              if (trigger && typeof trigger.getBoundingClientRect === 'function') {
+                  const rect = trigger.getBoundingClientRect();
+                  if (rect.width > 0 && rect.height > 0) {
+                      x = rect.left + rect.width / 2;
+                      y = rect.top + rect.height / 2;
+                  }
+              } else if (event && typeof event.clientX === 'number' && typeof event.clientY === 'number' && (event.clientX > 0 || event.clientY > 0)) {
+                  x = event.clientX;
+                  y = event.clientY;
+              }
+
+              const endRadius = Math.hypot(
+                  Math.max(x, window.innerWidth - x),
+                  Math.max(y, window.innerHeight - y)
+              );
+
+              const tid = ++this._themeTransitionId;
+              document.documentElement.classList.add('theme-transitioning');
+
+              let transition;
+              try {
+                  transition = document.startViewTransition(async () => {
+                      applyTheme();
+                      await this.$nextTick();
+                  });
+              } catch (err) {
+                  document.documentElement.classList.remove('theme-transitioning');
+                  applyTheme();
+                  return;
+              }
+
+              transition.ready.then(() => {
+                  document.documentElement.animate(
+                      {
+                          clipPath: [
+                              `circle(0px at ${x}px ${y}px)`,
+                              `circle(${endRadius}px at ${x}px ${y}px)`
+                          ]
+                      },
+                      {
+                          duration: 520,
+                          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                          pseudoElement: '::view-transition-new(root)'
+                      }
+                  );
+              }).catch(() => {});
+
+              transition.finished.finally(() => {
+                  if (this._themeTransitionId === tid) {
+                      document.documentElement.classList.remove('theme-transitioning');
+                  }
+              });
           }
       }">
 
@@ -42,7 +108,7 @@
 
     <!-- Top Navigation Bar (Frosted Glass Stitch Precision Spec) -->
     {% block navbar %}
-    <nav class="bg-surface/80 backdrop-blur-xl fixed top-0 left-0 right-0 w-full h-[48px] z-[100] border-b border-outline-variant/60 shadow-lg shadow-black/10 transition-colors" aria-label="Main menu" x-data="{ mobileMenuOpen: false }">
+    <nav class="bg-surface/80 backdrop-blur-xl fixed top-0 left-0 right-0 w-full h-[48px] z-[100] border-b border-outline-variant/60 shadow-lg shadow-black/10 transition-colors" aria-label="Main menu" x-data="{ mobileMenuOpen: false }" @page:loaded.window="mobileMenuOpen = false" @keydown.escape.window="mobileMenuOpen = false">
         <div class="flex justify-between items-center px-gutter h-full w-full">
         
         <!-- Left: Logo & Nav Links -->
@@ -53,7 +119,7 @@
             </a>
 
             <!-- Nav Links Container with Elastic Glassmorphic Stretchy Pill -->
-            <div class="hidden md:flex h-full items-center gap-1.5 ml-6 relative"
+            <div id="top-nav-pill-bar" class="hidden md:flex h-full items-center gap-1.5 ml-6 relative"
                  x-data="{
                      activePill: { left: '0px', width: '0px', opacity: 0 },
                      hoverPill: { left: '0px', width: '0px', opacity: 0 },
@@ -130,38 +196,38 @@
 
                 {% if current_user.is_authenticated %}
                     {% if current_user.role == 'recruiter' %}
-                        <a href="{{ url_for('recruiter_dashboard') }}" @mouseenter="onHover($event)"
+                        <a id="nav-recruiter-dashboard" href="{{ url_for('recruiter_dashboard') }}" @mouseenter="onHover($event)"
                            @click="activePill = { left: $el.offsetLeft + 'px', width: $el.offsetWidth + 'px', opacity: 1 }"
                            class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint == 'recruiter_dashboard' else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Dashboard
                         </a>
-                        <a href="{{ url_for('recruiter_post_job') }}" @mouseenter="onHover($event)"
+                        <a id="nav-recruiter-post-job" href="{{ url_for('recruiter_post_job') }}" @mouseenter="onHover($event)"
                            @click="activePill = { left: $el.offsetLeft + 'px', width: $el.offsetWidth + 'px', opacity: 1 }"
                            class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint in ['recruiter_post_job', 'post_job'] else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Post Job
                         </a>
-                        <a href="{{ url_for('recruiter_company') }}" @mouseenter="onHover($event)"
+                        <a id="nav-recruiter-company" href="{{ url_for('recruiter_company') }}" @mouseenter="onHover($event)"
                            @click="activePill = { left: $el.offsetLeft + 'px', width: $el.offsetWidth + 'px', opacity: 1 }"
                            class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint == 'recruiter_company' else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Company Profile
                         </a>
-                        <a href="{{ url_for('outreach_studio') }}" @mouseenter="onHover($event)"
+                        <a id="nav-recruiter-outreach" href="{{ url_for('outreach_studio') }}" @mouseenter="onHover($event)"
                            @click="activePill = { left: $el.offsetLeft + 'px', width: $el.offsetWidth + 'px', opacity: 1 }"
                            class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint in ['outreach_studio', 'people_radar', 'message_vault'] else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Outreach Studio
                         </a>
                     {% else %}
-                        <a href="{{ url_for('dashboard') }}" @mouseenter="onHover($event)"
+                        <a id="nav-seeker-matches" href="{{ url_for('dashboard') }}" @mouseenter="onHover($event)"
                            @click="activePill = { left: $el.offsetLeft + 'px', width: $el.offsetWidth + 'px', opacity: 1 }"
                            class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint == 'dashboard' else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Job Matches
                         </a>
-                        <a href="{{ url_for('outreach_studio') }}" @mouseenter="onHover($event)"
+                        <a id="nav-seeker-outreach" href="{{ url_for('outreach_studio') }}" @mouseenter="onHover($event)"
                            @click="activePill = { left: $el.offsetLeft + 'px', width: $el.offsetWidth + 'px', opacity: 1 }"
                            class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint in ['outreach_studio', 'people_radar', 'message_vault'] else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Outreach Studio
                         </a>
-                        <a href="{{ url_for('learning_path') }}" @mouseenter="onHover($event)"
+                        <a id="nav-seeker-roadmap" href="{{ url_for('learning_path') }}" @mouseenter="onHover($event)"
                            @click="activePill = { left: $el.offsetLeft + 'px', width: $el.offsetWidth + 'px', opacity: 1 }"
                            class="nav-item relative z-10 px-3 py-1 rounded-md font-body-sm text-[13px] transition-colors {{ 'nav-item-active text-primary font-bold' if request.endpoint in ['learning_path', 'skill_gap'] else 'text-on-surface-variant font-medium hover:text-on-surface' }}">
                             Skill Gap & Roadmap
@@ -186,13 +252,13 @@
         <!-- Right: Search, User Info, Theme Toggle, Profile Menu -->
         <div class="flex items-center gap-3.5">
             {% if current_user.is_authenticated %}
-                <span class="font-data-mono text-[10px] text-on-surface-variant tracking-wider hidden sm:inline-block uppercase px-2 py-0.5 rounded bg-surface-container-high/60 border border-outline-variant/40">
+                <span class="font-data-mono text-[10px] text-on-surface-variant tracking-wider hidden sm:inline-block uppercase px-2 py-0.5 rounded bg-surface-container-high/60 border border-outline-variant/40 max-w-[180px] truncate align-middle" title="{{ current_user.username }} ({{ current_user.role }})">
                     {{ current_user.username }} ({{ current_user.role }})
                 </span>
 
                 <!-- Dark Mode Toggle Button -->
-                <button @click="toggleTheme()" type="button" 
-                        class="w-7 h-7 rounded-lg bg-surface-container-high/50 border border-outline-variant/50 text-on-surface-variant hover:text-primary hover:border-primary/40 transition-colors flex items-center justify-center"
+                <button @click="toggleTheme($event)" type="button" 
+                        class="w-7 h-7 rounded-lg bg-surface-container-high/50 border border-outline-variant/50 text-on-surface-variant hover:text-primary hover:border-primary/40 transition-colors flex items-center justify-center cursor-pointer"
                         aria-label="Toggle theme">
                     <span class="material-symbols-outlined text-[16px]" x-show="darkMode">light_mode</span>
                     <span class="material-symbols-outlined text-[16px]" x-show="!darkMode" x-cloak>dark_mode</span>
@@ -200,7 +266,7 @@
 
                 <!-- Profile Dropdown -->
                 <div class="relative" x-data="{ open: false }">
-                    <button @click="open = !open" @keydown.escape="open = false" type="button"
+                    <button id="profile-dropdown-btn" @click="open = !open" @keydown.escape="open = false" type="button"
                             class="w-7 h-7 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center font-data-mono text-[11px] font-bold text-primary hover:border-primary hover:bg-primary/20 transition-all shadow-sm focus:outline-none"
                             aria-haspopup="true" :aria-expanded="open">
                         {{ current_user.username[0] | upper }}
@@ -216,13 +282,13 @@
                         <!-- User Header Tag -->
                         <div class="px-3.5 py-2 border-b border-outline-variant/70 mb-1.5 rounded-t-lg mx-1"
                              style="background-color: var(--bg-surface-container-highest);">
-                            <div class="flex items-center justify-between">
-                                <p class="font-headline-md text-[13px] font-bold text-on-surface">{{ current_user.username }}</p>
-                                <span class="font-data-mono text-[9px] px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/30 uppercase font-bold tracking-wider">{{ current_user.role }}</span>
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="font-headline-md text-[13px] font-bold text-on-surface truncate min-w-0" title="{{ current_user.username }}">{{ current_user.username }}</p>
+                                <span class="font-data-mono text-[9px] px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/30 uppercase font-bold tracking-wider shrink-0">{{ current_user.role }}</span>
                             </div>
                             {% if current_user.is_pro %}
-                            <span class="inline-flex items-center gap-1 mt-1 font-data-mono text-[9px] px-1.5 py-0.5 rounded bg-amber-400/15 text-amber-300 border border-amber-400/30 uppercase font-bold tracking-wider">
-                                <span class="material-symbols-outlined text-[12px]">verified</span> Pro
+                            <span class="inline-flex items-center gap-1 mt-2 font-data-mono text-[10px] px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-400/15 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-400/40 uppercase font-bold tracking-wider">
+                                <span class="material-symbols-outlined text-[13px]">verified</span> Pro Member
                             </span>
                             {% endif %}
                         </div>
@@ -233,6 +299,10 @@
                                 <span class="material-symbols-outlined text-[17px] text-primary">person</span>
                                 <span>Profile Settings</span>
                             </a>
+                            <button type="button" @click="open = false; if (window.startSpotlightTour) window.startSpotlightTour();" class="w-full flex items-center gap-2.5 px-3 py-2 text-on-surface hover:bg-primary/10 hover:text-primary rounded-lg transition-colors font-medium cursor-pointer text-left">
+                                <span class="material-symbols-outlined text-[17px] text-teal-400">explore</span>
+                                <span>Interactive Tour</span>
+                            </button>
                             {% if current_user.role != 'recruiter' %}
                             <a href="{{ url_for('message_vault') }}" class="flex items-center gap-2.5 px-3 py-2 text-on-surface hover:bg-primary/10 hover:text-primary rounded-lg transition-colors font-medium">
                                 <span class="material-symbols-outlined text-[17px] text-secondary">drafts</span>
@@ -262,10 +332,11 @@
                     </div>
                 </div>
             {% else %}
-                <button @click="toggleTheme()" type="button" 
-                        class="text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center p-1"
+                <button @click="toggleTheme($event)" type="button" 
+                        class="text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center p-1 cursor-pointer"
                         aria-label="Toggle theme">
-                    <span class="material-symbols-outlined text-[18px]">dark_mode</span>
+                    <span class="material-symbols-outlined text-[18px]" x-show="darkMode">light_mode</span>
+                    <span class="material-symbols-outlined text-[18px]" x-show="!darkMode" x-cloak>dark_mode</span>
                 </button>
                 <a href="{{ url_for('login') }}" class="font-body-sm text-[13px] text-on-surface-variant hover:text-primary transition-colors">
                     Sign in
@@ -277,36 +348,56 @@
 
             <!-- Mobile Navigation Toggle -->
             <button type="button" @click="mobileMenuOpen = !mobileMenuOpen"
-                    class="md:hidden p-1 text-on-surface-variant hover:text-primary"
+                    class="md:hidden p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high/60 transition-colors"
                     aria-controls="mobile-menu" :aria-expanded="mobileMenuOpen" aria-label="Toggle mobile menu">
-                <span class="material-symbols-outlined text-[20px]">menu</span>
+                <span class="material-symbols-outlined text-[20px]" x-text="mobileMenuOpen ? 'close' : 'menu'">menu</span>
             </button>
         </div>
         </div>
 
         <!-- Mobile Drawer -->
-        <div id="mobile-menu" class="md:hidden fixed top-[48px] left-0 right-0 z-40 bg-surface-container-high border-b border-outline-variant px-4 py-3 space-y-2 text-body-sm"
-             x-show="mobileMenuOpen" x-transition x-cloak>
+        <div id="mobile-menu" class="md:hidden fixed top-[48px] left-0 right-0 z-[120] bg-surface border-b border-outline-variant px-4 py-3 space-y-1.5 text-body-sm max-h-[calc(100vh-48px)] overflow-y-auto shadow-2xl pb-safe"
+             style="background-color: var(--bg-surface);"
+             x-show="mobileMenuOpen" x-transition x-cloak
+             @click.outside="mobileMenuOpen = false"
+             @click="if ($event.target.closest('a, button')) mobileMenuOpen = false">
             {% if current_user.is_authenticated %}
+                <div class="flex items-center justify-between px-2 py-1.5 mb-1.5 rounded-lg bg-surface-container-high border border-outline-variant"
+                     style="background-color: var(--bg-surface-container-high);">
+                    <span class="font-headline-md text-[12.5px] font-bold text-on-surface truncate">{{ current_user.username }}</span>
+                    <span class="font-data-mono text-[9px] px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/30 uppercase font-bold tracking-wider shrink-0">{{ current_user.role }}</span>
+                </div>
                 {% if current_user.role == 'recruiter' %}
-                    <a href="{{ url_for('recruiter_dashboard') }}" class="block py-1 text-on-surface hover:text-primary">Dashboard</a>
-                    <a href="{{ url_for('recruiter_post_job') }}" class="block py-1 text-on-surface hover:text-primary">Post Job</a>
-                    <a href="{{ url_for('recruiter_company') }}" class="block py-1 text-on-surface hover:text-primary">Company Profile</a>
-                    <a href="{{ url_for('outreach_studio') }}" class="block py-1 text-on-surface hover:text-primary">Outreach Studio</a>
+                    <a href="{{ url_for('recruiter_dashboard') }}" class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-on-surface hover:bg-primary/10 hover:text-primary font-medium transition-colors">Dashboard</a>
+                    <a href="{{ url_for('recruiter_post_job') }}" class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-on-surface hover:bg-primary/10 hover:text-primary font-medium transition-colors">Post Job</a>
+                    <a href="{{ url_for('recruiter_company') }}" class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-on-surface hover:bg-primary/10 hover:text-primary font-medium transition-colors">Company Profile</a>
+                    <a href="{{ url_for('outreach_studio') }}" class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-on-surface hover:bg-primary/10 hover:text-primary font-medium transition-colors">Outreach Studio</a>
                 {% else %}
-                    <a href="{{ url_for('dashboard') }}" class="block py-1 text-on-surface hover:text-primary">Job Matches</a>
-                    <a href="{{ url_for('outreach_studio') }}" class="block py-1 text-on-surface hover:text-primary">Outreach Studio</a>
-                    <a href="{{ url_for('learning_path') }}" class="block py-1 text-on-surface hover:text-primary">Skill Gap & Roadmap</a>
+                    <a href="{{ url_for('dashboard') }}" class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-on-surface hover:bg-primary/10 hover:text-primary font-medium transition-colors">Job Matches</a>
+                    <a href="{{ url_for('outreach_studio') }}" class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-on-surface hover:bg-primary/10 hover:text-primary font-medium transition-colors">Outreach Studio</a>
+                    <a href="{{ url_for('learning_path') }}" class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-on-surface hover:bg-primary/10 hover:text-primary font-medium transition-colors">Skill Gap & Roadmap</a>
+                    <a href="{{ url_for('message_vault') }}" class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-on-surface hover:bg-primary/10 hover:text-primary font-medium transition-colors">Message Vault</a>
                 {% endif %}
                 {% if current_user.is_admin %}
-                    <a href="{{ url_for('admin_pro_invites') }}" class="block py-1 text-on-surface hover:text-primary">Admin Panel</a>
+                    <a href="{{ url_for('admin_pro_invites') }}" class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-on-surface hover:bg-primary/10 hover:text-primary font-medium transition-colors">Admin Panel</a>
                 {% endif %}
-                <div class="border-t border-outline-variant my-2"></div>
-                <a href="{{ url_for('profile') }}" class="block py-1 text-on-surface hover:text-primary">Profile Settings</a>
-                <a href="{{ url_for('logout') }}" class="block py-1 text-error">Sign out</a>
+                <div class="border-t border-outline-variant/70 my-1.5"></div>
+                <button type="button" onclick="if (window.startSpotlightTour) window.startSpotlightTour();"
+                        class="w-full text-left flex items-center gap-2 px-2 py-2 rounded-lg text-teal-500 hover:bg-primary/10 hover:text-primary font-medium transition-colors cursor-pointer">
+                    <span class="material-symbols-outlined text-[17px]">explore</span>
+                    <span>Interactive Tour</span>
+                </button>
+                <a href="{{ url_for('profile') }}" class="flex items-center gap-2 px-2 py-2 rounded-lg text-on-surface hover:bg-primary/10 hover:text-primary font-medium transition-colors">
+                    <span class="material-symbols-outlined text-[17px] text-primary">person</span>
+                    <span>Profile Settings</span>
+                </a>
+                <a href="{{ url_for('logout') }}" class="flex items-center gap-2 px-2 py-2 rounded-lg text-error hover:bg-error/10 font-medium transition-colors">
+                    <span class="material-symbols-outlined text-[17px]">logout</span>
+                    <span>Sign out</span>
+                </a>
             {% else %}
-                <a href="{{ url_for('login') }}" class="block py-1 text-on-surface hover:text-primary">Sign in</a>
-                <a href="{{ url_for('register') }}" class="block py-1 text-primary font-semibold">Register</a>
+                <a href="{{ url_for('login') }}" class="block px-2 py-2 rounded-lg text-on-surface hover:bg-primary/10 hover:text-primary font-medium">Sign in</a>
+                <a href="{{ url_for('register') }}" class="block px-2 py-2 rounded-lg text-primary font-semibold hover:bg-primary/10">Register</a>
             {% endif %}
         </div>
     </nav>
@@ -315,7 +406,7 @@
     <!-- Flash Notifications (Floating Toast Stack) -->
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    <div class="fixed top-16 right-6 z-[110] space-y-2 max-w-sm w-full pointer-events-none" role="region" aria-label="Notifications">
+    <div id="flash-toast-container" class="fixed top-[60px] sm:top-16 left-3 right-3 sm:left-auto sm:right-6 z-[110] space-y-2 sm:max-w-sm sm:w-full pointer-events-none" role="region" aria-label="Notifications">
         {% for category, message in messages %}
         <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4500)"
              x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
@@ -440,6 +531,7 @@
                         // Execute all scripts from the fetched page
                         allNewScripts.forEach(oldScript => {
                             if (oldScript.src && oldScript.src.includes('alpinejs')) return;
+                            if (oldScript.id === 'spotlight-tour-script') return;
                             if (oldScript.textContent.includes('spaNavigate')) return;
 
                             const newScript = document.createElement('script');
@@ -509,6 +601,7 @@
             window.spaNavigate = spaNavigate;
         })();
     </script>
+    {% include "partials/_spotlight_tour.html" %}
     {% block scripts %}{% endblock %}
 </body>
 

@@ -54,6 +54,15 @@ def _replace_placeholders(statement: str) -> str:
     return "".join(output)
 
 
+def _translate_like_to_ilike(statement: str) -> str:
+    """Translate SQLite case-insensitive LIKE operators outside quotes to PostgreSQL ILIKE."""
+    parts = re.split(r"('(?:''|[^'])*'|\"(?:\"\"|[^\"])*\")", statement)
+    for idx in range(0, len(parts), 2):
+        parts[idx] = re.sub(r"\bNOT\s+LIKE\b", "NOT ILIKE", parts[idx], flags=re.I)
+        parts[idx] = re.sub(r"\bLIKE\b", "ILIKE", parts[idx], flags=re.I)
+    return "".join(parts)
+
+
 def _translate_statement(statement: str) -> str:
     pragma = re.fullmatch(r"\s*PRAGMA\s+table_info\((\w+)\)\s*;?\s*", statement, re.I)
     if pragma:
@@ -89,6 +98,7 @@ def _translate_statement(statement: str) -> str:
     )
     if ignore_conflicts and not re.search(r"\bON\s+CONFLICT\b", statement, re.I):
         statement = statement.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
+    statement = _translate_like_to_ilike(statement)
     return _replace_placeholders(statement)
 
 
@@ -173,7 +183,14 @@ class _CompatibleRow(list):
 
 class _PostgresConnection:
     def __init__(self, url: str, timeout: int):
-        self._raw = psycopg2.connect(url, connect_timeout=timeout)
+        self._raw = psycopg2.connect(
+            url,
+            connect_timeout=timeout,
+            keepalives=1,
+            keepalives_idle=30,
+            keepalives_interval=10,
+            keepalives_count=5,
+        )
         self._savepoint_counter = 0
         self._row_factory = None
 

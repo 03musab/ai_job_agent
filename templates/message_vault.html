@@ -4,7 +4,7 @@
 <div class="max-w-[1400px] mx-auto px-container-padding py-8 flex-1 flex flex-col gap-6 w-full">
     
     <!-- Header -->
-    <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex justify-between items-center">
+    <div class="border border-outline-variant rounded-xl p-4 sm:p-5 bg-surface-container flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
             <div class="flex items-center gap-2 mb-1">
                 <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Outreach Repository</span>
@@ -16,7 +16,7 @@
             </p>
         </div>
         <a href="{{ url_for('outreach_studio') }}"
-            class="font-data-mono text-[10px] text-on-surface-variant hover:text-primary border border-outline-variant px-3 py-1.5 rounded uppercase tracking-wider transition-colors">
+            class="font-data-mono text-[10px] text-on-surface-variant hover:text-primary border border-outline-variant px-3 py-1.5 rounded uppercase tracking-wider transition-colors shrink-0 whitespace-nowrap">
             Back to Studio
         </a>
     </div>
@@ -68,8 +68,8 @@
         <div class="lg:col-span-8 flex flex-col gap-6">
             
             <!-- Editor Card -->
-            <div class="border border-outline-variant rounded-xl p-5 bg-surface-container">
-                <div class="flex justify-between items-center mb-4 border-b border-outline-variant pb-2">
+            <div class="border border-outline-variant rounded-xl p-4 sm:p-5 bg-surface-container">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5 mb-4 border-b border-outline-variant pb-2.5">
                     <h2 id="editor-title" class="font-headline-md text-on-surface text-[15px] font-semibold">Create Template</h2>
                     <span class="font-data-mono text-[10px] text-on-surface-variant uppercase">Variable support: {firstName}, {jobTitle}, {company}</span>
                 </div>
@@ -91,13 +91,13 @@
                         <textarea name="body" id="body" rows="7" required placeholder="Hi {firstName}, I noticed {company} is scaling..."
                             class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded p-3 text-body-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none font-mono text-[12px]"></textarea>
                     </div>
-                    <div class="flex justify-end gap-2 pt-2 border-t border-outline-variant">
+                    <div class="flex flex-wrap sm:flex-nowrap justify-end gap-2 pt-2 border-t border-outline-variant">
                         <button type="button" id="clear-btn"
-                            class="px-4 py-1.5 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps hover:bg-surface-container-high transition-colors">
+                            class="flex-1 sm:flex-initial px-4 py-2 sm:py-1.5 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps hover:bg-surface-container-high transition-colors">
                             Clear
                         </button>
                         <button type="submit" id="save-btn"
-                            class="px-5 py-1.5 bg-primary text-on-primary rounded font-label-caps text-label-caps hover:bg-emerald-600 transition-colors shadow-sm">
+                            class="flex-1 sm:flex-initial px-5 py-2 sm:py-1.5 bg-primary text-on-primary rounded font-label-caps text-label-caps hover:bg-emerald-600 transition-colors shadow-sm">
                             Save Template
                         </button>
                     </div>

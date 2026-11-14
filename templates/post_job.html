@@ -5,7 +5,7 @@
 <div class="max-w-[800px] mx-auto px-container-padding py-8 flex-1 flex flex-col gap-6 w-full">
     
     <!-- Top Header -->
-    <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex justify-between items-center">
+    <div id="post-job-header" class="border border-outline-variant rounded-xl p-4 sm:p-5 bg-surface-container flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
             <div class="flex items-center gap-2 mb-1">
                 <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Recruiter Portal</span>
@@ -17,16 +17,16 @@
             </p>
         </div>
         <a href="{{ url_for('recruiter_dashboard') }}"
-            class="font-data-mono text-[10px] text-on-surface-variant hover:text-primary border border-outline-variant px-3 py-1.5 rounded uppercase tracking-wider transition-colors">
+            class="font-data-mono text-[10px] text-on-surface-variant hover:text-primary border border-outline-variant px-3 py-1.5 rounded uppercase tracking-wider transition-colors shrink-0 whitespace-nowrap">
             Recruiter Console
         </a>
     </div>
 
     <!-- Main Post Form -->
-    <div class="border border-outline-variant rounded-xl p-6 bg-surface-container">
+    <div class="border border-outline-variant rounded-xl p-4 sm:p-6 bg-surface-container">
         <form id="post-job-form" class="space-y-4">
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div id="post-job-metadata-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label for="title" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Role Title</label>
                     <input type="text" name="title" id="title" required placeholder="e.g. Senior Backend Engineer"
@@ -69,21 +69,23 @@
                 </div>
             </div>
 
-            <div>
-                <label for="description" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Role Description & Responsibilities</label>
-                <textarea id="description" name="description" rows="6" required placeholder="Describe technical scope, required experience, and perks..."
-                    class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded p-3 text-body-sm text-on-surface focus:border-primary focus:outline-none font-mono text-[12px]"></textarea>
-            </div>
+            <div id="post-job-skills-section" class="space-y-4">
+                <div>
+                    <label for="description" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Role Description & Responsibilities</label>
+                    <textarea id="description" name="description" rows="6" required placeholder="Describe technical scope, required experience, and perks..."
+                        class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded p-3 text-body-sm text-on-surface focus:border-primary focus:outline-none font-mono text-[12px]"></textarea>
+                </div>
 
-            <div>
-                <label for="skills" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Target Skills (Comma Separated)</label>
-                <input type="text" name="skills" id="skills" placeholder="e.g. Python, FastAPI, PostgreSQL, AWS, Docker"
-                    class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-2 text-body-sm text-on-surface focus:border-primary focus:outline-none font-mono text-[12px]">
+                <div>
+                    <label for="skills" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Target Skills (Comma Separated)</label>
+                    <input type="text" name="skills" id="skills" placeholder="e.g. Python, FastAPI, PostgreSQL, AWS, Docker"
+                        class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-3 py-2 text-body-sm text-on-surface focus:border-primary focus:outline-none font-mono text-[12px]">
+                </div>
             </div>
 
             <div class="pt-4 flex justify-end border-t border-outline-variant">
-                <button type="submit"
-                    class="px-6 py-2.5 bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-emerald-600 transition-colors shadow-sm">
+                <button id="post-job-submit-btn" type="submit"
+                    class="w-full sm:w-auto px-6 py-3 sm:py-2.5 min-h-[44px] bg-primary text-on-primary font-label-caps text-label-caps rounded-lg hover:bg-emerald-600 transition-colors shadow-sm flex items-center justify-center">
                     Publish Requisition
                 </button>
             </div>

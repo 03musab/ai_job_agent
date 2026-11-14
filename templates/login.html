@@ -11,10 +11,17 @@
     <!-- ============================================================== -->
     <!-- LEFT COLUMN: Crisp Form Surface (White Card with Pill Geometry) -->
     <!-- ============================================================== -->
-    <div class="w-full lg:w-[440px] xl:w-[480px] shrink-0 bg-white text-slate-900 p-6 sm:p-10 xl:p-14 flex flex-col justify-between relative z-20 shadow-2xl lg:shadow-[25px_0_60px_rgba(0,0,0,0.35)] min-h-screen lg:min-h-0 lg:h-full overflow-y-auto">
+    <div class="w-full lg:w-[440px] xl:w-[480px] shrink-0 bg-white text-slate-900 p-5 sm:p-10 xl:p-14 flex flex-col justify-between relative z-20 shadow-2xl lg:shadow-[25px_0_60px_rgba(0,0,0,0.35)] min-h-screen lg:min-h-0 lg:h-full overflow-y-auto">
+        
+        <!-- Toast Notification (Aligned to Left Sidebar) -->
+        <div id="authToast" role="status" aria-live="polite"
+            class="auth-toast fixed top-5 z-[100] hidden items-center gap-2 rounded-2xl sm:rounded-full bg-[#1c2238] px-5 py-3 text-center text-xs sm:text-sm font-semibold text-white shadow-2xl pointer-events-none">
+            <span class="material-symbols-outlined text-[18px] text-amber-400 shrink-0 select-none">info</span>
+            <span id="authToastMsg"></span>
+        </div>
         
         <!-- Brand Mark / Logo Header -->
-        <div class="flex items-center justify-between gap-2 pb-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-4">
             <div class="flex items-center gap-2.5 sm:gap-3">
                 <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-sm shrink-0">
                     <span class="material-symbols-outlined text-[19px] sm:text-[20px]">layers</span>
@@ -26,12 +33,12 @@
             </div>
 
             <!-- Mobile Quick Header: About Link & Segmented Toggle Pill -->
-            <div class="flex items-center gap-2.5 lg:hidden">
+            <div class="flex items-center gap-2 sm:gap-2.5 lg:hidden">
                 <a href="https://jobsnap.me/#home" target="_blank" rel="noopener noreferrer" class="text-[11px] font-semibold text-slate-500 hover:text-slate-900 uppercase tracking-wider px-1">About</a>
                 {% if not admin_login %}
                 <div class="flex bg-slate-100 p-0.5 rounded-full border border-slate-200 text-[11px] font-semibold">
-                    <button type="button" onclick="setAuthMode('login')" id="mobileBtnLogin" class="px-2.5 py-1 rounded-full bg-slate-900 text-white transition-colors duration-200 cursor-pointer">Sign In</button>
-                    <button type="button" onclick="setAuthMode('register')" id="mobileBtnRegister" class="px-2.5 py-1 rounded-full text-slate-600 transition-colors duration-200 cursor-pointer">Register</button>
+                    <button type="button" onclick="setAuthMode('login')" id="mobileBtnLogin" class="px-3 py-1.5 min-h-[32px] rounded-full bg-slate-900 text-white transition-colors duration-200 cursor-pointer">Sign In</button>
+                    <button type="button" onclick="setAuthMode('register')" id="mobileBtnRegister" class="px-3 py-1.5 min-h-[32px] rounded-full text-slate-600 transition-colors duration-200 cursor-pointer">Register</button>
                 </div>
                 {% endif %}
             </div>
@@ -40,12 +47,12 @@
         <!-- Form Content Wrapper -->
         <div class="my-auto py-4 sm:py-6">
             <!-- Circular Avatar Silhouette Badge (Faithful to Mockup) -->
-            <div id="avatarBadge" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#1c2238] text-white flex items-center justify-center mx-auto mb-6 sm:mb-7 shadow-lg ring-4 ring-slate-100">
+            <div id="avatarBadge" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#1c2238] text-white flex items-center justify-center mx-auto mb-5 sm:mb-7 shadow-lg ring-4 ring-slate-100">
                 <span class="material-symbols-outlined text-[32px] sm:text-[40px]">person</span>
             </div>
 
             <!-- Animated Form Container -->
-            <div class="relative w-full max-w-xs mx-auto min-h-[330px]">
+            <div class="relative w-full max-w-sm sm:max-w-xs mx-auto min-h-[330px]">
 
                 <!-- ==================== SIGN IN FORM ==================== -->
                 <div id="signInSection" class="auth-panel auth-panel-active">
@@ -55,14 +62,14 @@
                         <p class="mt-1 text-xs text-slate-600">Use an account authorized for admin access.</p>
                     </div>
                     {% endif %}
-                    <form action="{{ url_for('login', admin='1') if admin_login else url_for('login') }}" method="POST" class="space-y-4">
+                    <form action="{{ url_for('login', admin='1') if admin_login else url_for('login') }}" method="POST" class="space-y-3.5">
                         {% if admin_login %}<input type="hidden" name="admin_login" value="1">{% endif %}
                         <!-- Pill Input: Username (Borderless) -->
                         <div class="relative">
                             <div class="flex items-center rounded-full px-4 py-3 sm:py-2.5 bg-slate-100 focus-within:bg-slate-50 focus-within:ring-2 focus-within:ring-slate-900/15 transition-all">
                                 <span class="material-symbols-outlined text-slate-500 text-[20px] mr-2.5 select-none shrink-0">person_outline</span>
-                                <input name="username" type="text" required autocomplete="username" placeholder="USERNAME"
-                                    class="w-full bg-transparent border-none p-0 text-[16px] sm:text-[13px] font-semibold text-slate-900 placeholder:text-slate-400 placeholder:tracking-wider focus:outline-none tracking-wider">
+                                <input name="username" type="text" required autocomplete="username" placeholder="EMAIL OR USERNAME"
+                                    class="w-full bg-transparent border-none p-0 text-[16px] sm:text-[12px] font-semibold text-slate-900 placeholder:text-slate-400 placeholder:tracking-wider focus:outline-none tracking-wider">
                             </div>
                         </div>
 
@@ -70,27 +77,39 @@
                         <div class="relative">
                             <div class="flex items-center rounded-full px-4 py-3 sm:py-2.5 bg-slate-100 focus-within:bg-slate-50 focus-within:ring-2 focus-within:ring-slate-900/15 transition-all">
                                 <span class="material-symbols-outlined text-slate-500 text-[20px] mr-2.5 select-none shrink-0">lock_outline</span>
-                                <input name="password" type="password" required autocomplete="current-password" placeholder="••••••••••••"
-                                    class="w-full bg-transparent border-none p-0 text-[16px] sm:text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none">
+                                <input name="password" type="password" required autocomplete="current-password" placeholder="PASSWORD"
+                                    class="w-full bg-transparent border-none p-0 text-[16px] sm:text-[12px] font-semibold text-slate-900 placeholder:text-slate-400 placeholder:tracking-wider focus:outline-none">
                             </div>
+                        </div>
+
+                        <!-- Utilities: Remember Me & Forgot Password (Grouped with Password) -->
+                        <div class="flex items-center justify-between text-[11px] text-slate-500 px-2 pt-0.5 font-medium">
+                            <label class="flex items-center gap-1.5 cursor-pointer hover:text-slate-900 select-none transition-colors">
+                                <input type="checkbox" name="remember" class="w-3.5 h-3.5 rounded border-slate-300 text-slate-900 focus:ring-0 cursor-pointer">
+                                <span>Remember me</span>
+                            </label>
+                            <a href="#" onclick="showAuthToast('Password reset instructions will be sent to your registered email.'); return false;" class="hover:text-slate-900 transition-colors">
+                                Forgot password?
+                            </a>
                         </div>
 
                         <!-- Pill Action Button: LOGIN -->
                         <button type="submit" id="submitSignInBtn"
-                            class="w-full bg-[#1c2238] hover:bg-slate-900 text-white font-bold text-[13px] tracking-widest uppercase py-3.5 rounded-full transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 mt-2">
+                            class="w-full min-h-[44px] bg-[#1c2238] hover:bg-slate-900 text-white font-bold text-[13px] tracking-widest uppercase py-3.5 rounded-full transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2">
                             <span>LOGIN</span>
                         </button>
 
-                        <!-- Utilities: Remember Me & Forgot Password -->
-                        <div class="flex items-center justify-between text-[11px] text-slate-600 px-1 pt-1 font-medium">
-                            <label class="flex items-center gap-1.5 cursor-pointer hover:text-slate-900 select-none">
-                                <input type="checkbox" name="remember" class="w-3.5 h-3.5 rounded border-slate-400 text-slate-900 focus:ring-0 cursor-pointer">
-                                <span>Remember me</span>
-                            </label>
-                            <a href="#" onclick="alert('Password reset instructions will be sent to your registered email.'); return false;" class="hover:text-slate-900 transition-colors">
-                                Forgot password?
-                            </a>
+                        {% if not admin_login %}
+                        <div class="flex items-center gap-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider pt-0.5">
+                            <span class="h-px flex-1 bg-slate-200"></span><span>or</span><span class="h-px flex-1 bg-slate-200"></span>
                         </div>
+
+                        <a href="{{ url_for('google_auth_start', mode='login') }}" id="googleLoginLink"
+                            class="w-full min-h-[44px] rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-[12px] py-3 transition-all shadow-2xs hover:shadow-xs flex items-center justify-center gap-2.5">
+                            <svg aria-hidden="true" class="w-4 h-4" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.76 7.18l7.73 6C44.42 37.94 46.98 31.7 46.98 24.55z"/><path fill="#FBBC05" d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.14 1.44-4.89 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                            Continue with Google
+                        </a>
+                        {% endif %}
 
                         {% if admin_login %}
                         <div class="text-center pt-1">
@@ -103,9 +122,6 @@
                                 Don't have an account? Create Account
                             </button>
                         </div>
-                        <div class="text-center pt-1">
-                            <a href="{{ url_for('admin_login') }}" class="text-[11px] text-slate-500 hover:text-slate-900 underline font-medium">Administrator sign in</a>
-                        </div>
                         {% endif %}
                     </form>
                 </div>
@@ -114,41 +130,47 @@
                 {% if not admin_login %}
                 <div id="signUpSection" class="auth-panel auth-panel-hidden">
                     <form action="{{ url_for('register') }}" method="POST" class="space-y-3.5">
-                        <!-- Pill Input: Username (Borderless) -->
+                        <!-- Pill Input: Email -->
                         <div class="relative">
-                            <div class="flex items-center rounded-full px-4 py-2.5 sm:py-2 bg-slate-100 focus-within:bg-slate-50 focus-within:ring-2 focus-within:ring-slate-900/15 transition-all">
-                                <span class="material-symbols-outlined text-slate-500 text-[19px] mr-2.5 select-none shrink-0">badge</span>
-                                <input name="username" type="text" required autocomplete="username" placeholder="NEW USERNAME"
+                            <div class="flex items-center rounded-full px-4 py-3 sm:py-2.5 bg-slate-100 focus-within:bg-slate-50 focus-within:ring-2 focus-within:ring-slate-900/15 transition-all">
+                                <span class="material-symbols-outlined text-slate-500 text-[19px] mr-2.5 select-none shrink-0">mail</span>
+                                <input name="email" type="email" required autocomplete="email" placeholder="EMAIL ADDRESS"
                                     class="w-full bg-transparent border-none p-0 text-[16px] sm:text-[12px] font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none tracking-wider">
                             </div>
                         </div>
 
-                        <!-- Pill Input: Password (Borderless) -->
+                        <!-- Pill Input: Username -->
                         <div class="relative">
-                            <div class="flex items-center rounded-full px-4 py-2.5 sm:py-2 bg-slate-100 focus-within:bg-slate-50 focus-within:ring-2 focus-within:ring-slate-900/15 transition-all">
-                                <span class="material-symbols-outlined text-slate-500 text-[19px] mr-2.5 select-none shrink-0">lock_outline</span>
-                                <input name="password" type="password" required autocomplete="new-password" placeholder="NEW PASSWORD"
-                                    class="w-full bg-transparent border-none p-0 text-[16px] sm:text-[12px] text-slate-900 placeholder:text-slate-400 focus:outline-none">
+                            <div class="flex items-center rounded-full px-4 py-3 sm:py-2.5 bg-slate-100 focus-within:bg-slate-50 focus-within:ring-2 focus-within:ring-slate-900/15 transition-all">
+                                <span class="material-symbols-outlined text-slate-500 text-[19px] mr-2.5 select-none shrink-0">badge</span>
+                                <input name="username" type="text" required autocomplete="off" placeholder="USERNAME"
+                                    class="w-full bg-transparent border-none p-0 text-[16px] sm:text-[12px] font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none tracking-wider">
                             </div>
                         </div>
 
-                        <!-- Pill Input: Account Role (Borderless) -->
+                        <!-- Pill Input: Password -->
                         <div class="relative">
-                            <div class="flex items-center rounded-full px-4 py-2.5 sm:py-2 bg-slate-100 focus-within:bg-slate-50 focus-within:ring-2 focus-within:ring-slate-900/15 transition-all">
-                                <span class="material-symbols-outlined text-slate-500 text-[19px] mr-2.5 select-none shrink-0">manage_accounts</span>
-                                <select name="role" class="w-full bg-transparent border-none p-0 text-[16px] sm:text-[12px] font-semibold text-slate-900 focus:outline-none cursor-pointer pr-2">
-                                    <option value="seeker">Job Seeker (Candidate)</option>
-                                    <option value="recruiter">Recruiter / Enterprise</option>
-                                </select>
-                                <span class="material-symbols-outlined text-slate-500 text-[18px] ml-auto pointer-events-none select-none">expand_more</span>
+                            <div class="flex items-center rounded-full px-4 py-3 sm:py-2.5 bg-slate-100 focus-within:bg-slate-50 focus-within:ring-2 focus-within:ring-slate-900/15 transition-all">
+                                <span class="material-symbols-outlined text-slate-500 text-[19px] mr-2.5 select-none shrink-0">lock_outline</span>
+                                <input name="password" type="password" required autocomplete="new-password" placeholder="PASSWORD"
+                                    class="w-full bg-transparent border-none p-0 text-[16px] sm:text-[12px] font-semibold text-slate-900 placeholder:text-slate-400 placeholder:tracking-wider focus:outline-none">
                             </div>
                         </div>
 
                         <!-- Pill Action Button: REGISTER -->
                         <button type="submit" id="submitSignUpBtn"
-                            class="w-full bg-[#1c2238] hover:bg-slate-900 text-white font-bold text-[13px] tracking-widest uppercase py-3.5 rounded-full transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 mt-2">
+                            class="w-full min-h-[44px] bg-[#1c2238] hover:bg-slate-900 text-white font-bold text-[13px] tracking-widest uppercase py-3.5 rounded-full transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2">
                             <span>CREATE ACCOUNT</span>
                         </button>
+
+                        <div class="flex items-center gap-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider pt-0.5">
+                            <span class="h-px flex-1 bg-slate-200"></span><span>or</span><span class="h-px flex-1 bg-slate-200"></span>
+                        </div>
+                        <a href="{{ url_for('google_auth_start', mode='register') }}" id="googleSignupLink"
+                            class="w-full min-h-[44px] rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-[12px] py-3 transition-all shadow-2xs hover:shadow-xs flex items-center justify-center gap-2.5">
+                            <svg aria-hidden="true" class="w-4 h-4" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.76 7.18l7.73 6C44.42 37.94 46.98 31.7 46.98 24.55z"/><path fill="#FBBC05" d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.14 1.44-4.89 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                            Sign up with Google
+                        </a>
 
                         <div class="text-center pt-1">
                             <button type="button" onclick="setAuthMode('login')" class="text-[11px] text-slate-600 hover:text-slate-900 underline font-medium cursor-pointer">
@@ -317,13 +339,17 @@
     transition: background-color 220ms ease, opacity 220ms ease;
 }
 
-/* Eradicate unwanted white boxes / borders forced by base styles or browser user-agent */
+/* Eradicate unwanted white boxes / borders forced by base styles and dark-mode input text leakage */
 .auth-panel input[type="text"],
 .auth-panel input[type="password"],
+.auth-panel input[type="email"],
 .auth-panel select {
-    border: none !important;
+    border: 0 !important;
     background-color: transparent !important;
     background: transparent !important;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    caret-color: #0f172a !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     outline: none !important;
@@ -332,14 +358,70 @@
     appearance: none !important;
 }
 
+.auth-panel input[type="text"]:focus,
+.auth-panel input[type="password"]:focus,
+.auth-panel input[type="email"]:focus {
+    border: 0 !important;
+    background-color: transparent !important;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    caret-color: #0f172a !important;
+    box-shadow: none !important;
+}
+
+.auth-panel input::placeholder {
+    color: #94a3b8 !important;
+    -webkit-text-fill-color: #94a3b8 !important;
+    opacity: 1 !important;
+}
+
 /* Chrome/Safari/Edge Autofill Background fix */
 .auth-panel input:-webkit-autofill,
 .auth-panel input:-webkit-autofill:hover, 
 .auth-panel input:-webkit-autofill:focus,
 .auth-panel input:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 40px #f1f5f9 inset !important;
+    -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
     -webkit-text-fill-color: #0f172a !important;
+    background-color: transparent !important;
     transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Toast Notification Aligned to Left Sidebar */
+.auth-toast {
+    position: fixed;
+    top: 1.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: calc(100vw - 2rem);
+    z-index: 100;
+    box-shadow: 0 20px 35px -5px rgba(15, 23, 42, 0.4), 0 10px 15px -5px rgba(15, 23, 42, 0.25);
+    animation: toastSlideDown 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes toastSlideDown {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -8px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+@media (min-width: 1024px) {
+    .auth-toast {
+        left: 220px; /* Center of lg:w-[440px] left sidebar */
+        max-width: 400px;
+    }
+}
+
+@media (min-width: 1280px) {
+    .auth-toast {
+        left: 240px; /* Center of xl:w-[480px] left sidebar */
+        max-width: 430px;
+    }
 }
 </style>
 {% endblock %}
@@ -347,6 +429,25 @@
 {% block scripts %}
 <script>
 let currentMode = 'login';
+let authToastTimer;
+
+function showAuthToast(message) {
+    const toast = document.getElementById('authToast');
+    if (!toast) return;
+    const msgEl = document.getElementById('authToastMsg');
+    if (msgEl) {
+        msgEl.textContent = message;
+    } else {
+        toast.textContent = message;
+    }
+    toast.classList.remove('hidden');
+    toast.classList.add('flex');
+    window.clearTimeout(authToastTimer);
+    authToastTimer = window.setTimeout(function () {
+        toast.classList.add('hidden');
+        toast.classList.remove('flex');
+    }, 3500);
+}
 
 function setAuthMode(mode) {
     if (mode === currentMode && document.readyState === 'complete') return;
@@ -376,8 +477,8 @@ function setAuthMode(mode) {
         if (heroPromptBtn) heroPromptBtn.textContent = "Sign in here";
 
         if (mobileBtnLogin && mobileBtnRegister) {
-            mobileBtnRegister.className = "px-3 py-1 rounded-full bg-slate-900 text-white transition-colors duration-200";
-            mobileBtnLogin.className = "px-3 py-1 rounded-full text-slate-600 transition-colors duration-200";
+            mobileBtnRegister.className = "px-3 py-1.5 min-h-[32px] rounded-full bg-slate-900 text-white transition-colors duration-200 cursor-pointer";
+            mobileBtnLogin.className = "px-3 py-1.5 min-h-[32px] rounded-full text-slate-600 transition-colors duration-200 cursor-pointer";
         }
 
         if (history.replaceState) {
@@ -397,8 +498,8 @@ function setAuthMode(mode) {
         if (heroPromptBtn) heroPromptBtn.textContent = "Sign up now";
 
         if (mobileBtnLogin && mobileBtnRegister) {
-            mobileBtnLogin.className = "px-3 py-1 rounded-full bg-slate-900 text-white transition-colors duration-200";
-            mobileBtnRegister.className = "px-3 py-1 rounded-full text-slate-600 transition-colors duration-200";
+            mobileBtnLogin.className = "px-3 py-1.5 min-h-[32px] rounded-full bg-slate-900 text-white transition-colors duration-200 cursor-pointer";
+            mobileBtnRegister.className = "px-3 py-1.5 min-h-[32px] rounded-full text-slate-600 transition-colors duration-200 cursor-pointer";
         }
 
         if (history.replaceState) {

@@ -94,6 +94,8 @@ def audit_workspace():
     app_py_has_healthz = False
     app_py_has_db_norm = False
     app_py_has_redis_fb = False
+    app_py_has_proxyfix = False
+    app_py_has_pool_pre_ping = False
     if os.path.exists("app.py"):
         with open("app.py", "r", encoding="utf-8") as f:
             app_code = f.read()
@@ -103,6 +105,10 @@ def audit_workspace():
             app_py_has_db_norm = True
         if "REDIS_URL" in app_code and "redis_fallback" in app_code:
             app_py_has_redis_fb = True
+        if "ProxyFix" in app_code:
+            app_py_has_proxyfix = True
+        if "pool_pre_ping" in app_code:
+            app_py_has_pool_pre_ping = True
 
     checks.append({
         "id": "HEALTHZ_PROBE",
@@ -173,6 +179,26 @@ def audit_workspace():
         "fix": "Add gunicorn and psycopg2-binary to requirements.txt."
     })
 
+    # 12. Reverse Proxy HTTPS Middleware (ProxyFix)
+    checks.append({
+        "id": "PROXYFIX_HTTPS",
+        "title": "Reverse-Proxy HTTPS Awareness (Werkzeug ProxyFix)",
+        "passed": app_py_has_proxyfix,
+        "impact": "CRITICAL",
+        "details": "app.wsgi_app is wrapped with ProxyFix so Google OAuth and email links use https:// behind cloud load balancers." if app_py_has_proxyfix else "Missing ProxyFix middleware in app.py.",
+        "fix": "Wrap app.wsgi_app with ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)."
+    })
+
+    # 13. Cloud PostgreSQL Connection Pool Pre-Ping
+    checks.append({
+        "id": "DB_POOL_PRE_PING",
+        "title": "Cloud PostgreSQL Connection Resilience (pool_pre_ping)",
+        "passed": app_py_has_pool_pre_ping,
+        "impact": "HIGH",
+        "details": "SQLAlchemy engine uses pool_pre_ping=True and pool_recycle=300 to prevent idle SSL connection drops on cloud Postgres." if app_py_has_pool_pre_ping else "Missing pool_pre_ping in SQLALCHEMY_ENGINE_OPTIONS.",
+        "fix": "Configure SQLALCHEMY_ENGINE_OPTIONS with pool_pre_ping=True."
+    })
+
     return checks
 
 def generate_report():
@@ -229,10 +255,10 @@ def generate_report():
     lines.append("| `ADMIN_ALERT_EMAIL` | Optional | `admin@domain.com` | Receives emergency diagnostic notifications on scraper failures |")
     lines.append("| `ADMIN_UPLOAD_PASS` | Optional | `secure-pass` | Admin security token for bulk company logo uploads |")
     lines.append("| `ENABLE_SELENIUM` | Optional | `false` | Kept `false` on cloud containers to avoid headless browser memory overhead |")
-    lines.append("| `MAIL_SERVER` | Optional | `smtp.gmail.com` | SMTP host for candidate outreach and verification emails |")
+    lines.append("| `MAIL_SERVER` | Required unless Gmail OAuth is configured | `smtp.gmail.com` | SMTP host for candidate outreach and verification emails |")
     lines.append("| `MAIL_PORT` | Optional | `587` | SMTP port (TLS) |")
-    lines.append("| `MAIL_USERNAME` | Optional | `you@gmail.com` | SMTP user email |")
-    lines.append("| `MAIL_PASSWORD` | Optional | `app-specific-password` | SMTP App password |")
+    lines.append("| `MAIL_USERNAME` | Required unless Gmail OAuth is configured | `you@gmail.com` | SMTP user email |")
+    lines.append("| `MAIL_PASSWORD` | Required unless Gmail OAuth is configured | `app-specific-password` | SMTP App password |")
     lines.append("")
 
     lines.append("## 🌐 Step-by-Step Deployment Options")

@@ -26,6 +26,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy application code & compiled CSS from Stage 1
 COPY . .
 COPY --from=frontend-builder /app/static/css/output.css ./static/css/output.css
+RUN chmod +x start.sh
 
 # Environment configuration
 ENV FLASK_ENV=production \

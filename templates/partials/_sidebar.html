@@ -1,5 +1,5 @@
 <!-- Responsive Modern Sidebar: Search Workspace & Automation Engine (_sidebar.html) -->
-<aside class="flex-shrink-0 bg-surface-container-low border-r border-outline-variant flex flex-col sticky top-[48px] h-auto lg:h-[calc(100vh-48px)] sidebar-root-smooth z-30 relative"
+<aside id="seeker-workspace-sidebar" class="flex-shrink-0 bg-surface-container-low border-r border-outline-variant flex flex-col sticky top-[48px] h-auto lg:h-[calc(100vh-48px)] sidebar-root-smooth z-30 relative"
        :class="[
            sidebarExpanded ? 'w-full lg:w-[320px]' : 'w-full lg:w-[72px]',
            (sidebarExpanded || sidebarAnimating) ? 'overflow-hidden' : 'overflow-visible'
@@ -7,7 +7,7 @@
        x-data="{ activeSection: 'search' }">
 
     <!-- Mobile Header Bar (Only visible on small screens < lg when collapsed) -->
-    <div class="lg:hidden flex items-center justify-between p-3 bg-surface border-b border-outline-variant w-full"
+    <div class="lg:hidden flex items-center justify-between p-3 bg-surface border-b border-outline-variant w-full relative z-30"
          x-show="!sidebarExpanded">
         <div class="flex items-center gap-2">
             <div class="w-7 h-7 rounded-lg bg-primary/10 border border-primary/25 text-primary flex items-center justify-center font-bold">
@@ -15,8 +15,8 @@
             </div>
             <span class="text-[13px] font-bold text-on-surface">Search & Automations</span>
         </div>
-        <button type="button" @click="toggleSidebar(true)"
-                class="px-2.5 py-1 bg-surface-container border border-outline-variant rounded-lg text-[11.5px] font-semibold text-on-surface flex items-center gap-1 cursor-pointer">
+        <button type="button" @click.stop="toggleSidebar(true)"
+                class="relative z-30 px-2.5 py-1 bg-surface-container border border-outline-variant rounded-lg text-[11.5px] font-semibold text-on-surface flex items-center gap-1 cursor-pointer">
             <span>Open</span>
             <span class="material-symbols-outlined text-[14px]">expand_more</span>
         </button>
@@ -26,14 +26,15 @@
          LAYER 1: Collapsed State (Mini Icon Rail - Desktop only)
          Fades in/out smoothly with subtle drift; tooltips unclipped when static.
          ========================================================================= -->
-    <div class="hidden lg:flex flex-col w-[72px] h-full absolute inset-y-0 left-0 sidebar-layer-rail z-10"
-         :class="sidebarExpanded ? 'opacity-0 pointer-events-none invisible -translate-x-3' : 'opacity-100 pointer-events-auto visible translate-x-0'">
+    <div class="hidden lg:flex flex-col w-[72px] h-full absolute inset-y-0 left-0 sidebar-layer-rail"
+         :class="sidebarExpanded ? 'z-0 opacity-0 pointer-events-none invisible -translate-x-3' : 'z-30 opacity-100 pointer-events-auto visible translate-x-0'">
 
         <!-- Collapsed Header: Expand Sidebar Button -->
-        <div class="p-3 border-b border-outline-variant flex items-center justify-center min-h-[58px] w-full bg-surface shrink-0">
+        <div class="p-3 border-b border-outline-variant flex items-center justify-center min-h-[58px] w-full bg-surface shrink-0 relative z-30">
             <div class="relative group">
-                <button type="button" @click="toggleSidebar(true)"
-                        class="w-10 h-10 rounded-xl bg-surface border border-outline-variant text-on-surface-variant hover:text-primary hover:border-primary/40 hover:bg-surface-container transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                <button type="button" @click.stop="toggleSidebar(true)"
+                        aria-label="Expand Sidebar"
+                        class="relative z-30 w-10 h-10 rounded-xl bg-surface border border-outline-variant text-on-surface-variant hover:text-primary hover:border-primary/40 hover:bg-surface-container transition-all flex items-center justify-center cursor-pointer shadow-2xs"
                         title="Expand Workspace Sidebar">
                     <span class="material-symbols-outlined text-[20px] group-hover:translate-x-0.5 transition-transform">chevron_right</span>
                 </button>
@@ -46,7 +47,7 @@
         </div>
 
         <!-- Vertical Mini Icon Rail with Quick Tooltips -->
-        <div class="flex flex-col items-center py-3.5 px-2 gap-3 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar w-full">
+        <div id="seeker-mini-rail" class="flex flex-col items-center py-3.5 px-2 gap-3 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar w-full">
             
             <!-- Search Tool -->
             <div class="relative group">
@@ -129,11 +130,11 @@
          LAYER 2: Expanded State (Full Interactive Control Center)
          Fixed 320px width on desktop: perfectly rendered without text reflow.
          ========================================================================= -->
-    <div class="w-full lg:w-[320px] lg:min-w-[320px] h-full flex flex-col sidebar-layer-expanded z-20 lg:absolute lg:inset-y-0 lg:left-0"
-         :class="sidebarExpanded ? 'opacity-100 pointer-events-auto visible translate-x-0' : 'opacity-0 pointer-events-none invisible -translate-x-4'">
+    <div class="w-full lg:w-[320px] lg:min-w-[320px] h-full flex-col sidebar-layer-expanded lg:absolute lg:inset-y-0 lg:left-0"
+         :class="sidebarExpanded ? 'z-30 flex opacity-100 pointer-events-auto visible translate-x-0' : 'z-0 hidden lg:flex opacity-0 pointer-events-none invisible -translate-x-4'">
 
         <!-- Expanded Header: Brand Title & Collapse Button -->
-        <div class="p-3.5 border-b border-outline-variant flex items-center justify-between min-h-[58px] w-full bg-surface shrink-0">
+        <div class="p-3.5 border-b border-outline-variant flex items-center justify-between min-h-[58px] w-full bg-surface shrink-0 relative z-30">
             <div class="flex items-center gap-2.5 min-w-0">
                 <div class="w-8 h-8 rounded-xl bg-primary/10 border border-primary/25 flex items-center justify-center text-primary font-bold shadow-2xs shrink-0">
                     <span class="material-symbols-outlined text-[18px]">manage_search</span>
@@ -145,8 +146,9 @@
                     </div>
                 </div>
             </div>
-            <button type="button" @click="toggleSidebar(false)"
-                    class="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors shrink-0 cursor-pointer"
+            <button type="button" @click.stop="toggleSidebar(false)"
+                    aria-label="Collapse Sidebar"
+                    class="relative z-30 w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors shrink-0 cursor-pointer"
                     title="Collapse Sidebar (Esc)">
                 <span class="material-symbols-outlined text-[18px]">chevron_left</span>
             </button>
@@ -157,7 +159,7 @@
 
             <!-- 1. Search & Scraper Card -->
             {% if current_user.role != 'recruiter' %}
-            <div class="border border-outline-variant rounded-2xl bg-surface p-3.5 shadow-xs space-y-3">
+            <div id="seeker-scraper-card" class="border border-outline-variant rounded-2xl bg-surface p-3.5 shadow-xs space-y-3">
                 <div class="flex items-center justify-between pb-2 border-b border-outline-variant/60">
                     <div class="flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-[16px] text-primary">travel_explore</span>

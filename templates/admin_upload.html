@@ -2,15 +2,8 @@
 {% block title %}Admin Console — AI JobSnap{% endblock %}
 
 {% block content %}
-<div class="max-w-[600px] mx-auto px-container-padding py-8 flex-1 flex flex-col gap-6 w-full">
-    <div class="flex items-center gap-2">
-        <a href="{{ url_for('admin_pro_invites') }}" class="px-3 py-1.5 rounded-lg font-body-sm text-[13px] font-medium bg-surface-container border border-outline-variant text-on-surface-variant hover:text-on-surface transition-colors">
-            Pro Invitations
-        </a>
-        <a href="{{ url_for('admin_upload_contacts') }}" class="px-3 py-1.5 rounded-lg font-body-sm text-[13px] font-semibold bg-primary/15 text-primary border border-primary/35">
-            Directory Uploads
-        </a>
-    </div>
+<div class="max-w-6xl mx-auto px-container-padding py-8 flex-1 flex flex-col gap-6 w-full">
+    {% include "partials/_admin_tabs.html" %}
     <!-- Top Header -->
     <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex justify-between items-center">
         <div>

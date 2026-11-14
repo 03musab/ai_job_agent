@@ -1,0 +1,10 @@
+<nav class="flex items-center gap-2" aria-label="Admin panel sections">
+    <a href="{{ url_for('admin_pro_invites') }}"
+       class="px-3 py-1.5 rounded-lg font-body-sm text-[13px] transition-colors {{ 'font-semibold bg-primary/15 text-primary border border-primary/35' if request.endpoint == 'admin_pro_invites' else 'font-medium bg-surface-container border border-outline-variant text-on-surface-variant hover:text-on-surface' }}">
+        Pro Invitations
+    </a>
+    <a href="{{ url_for('admin_upload_contacts') }}"
+       class="px-3 py-1.5 rounded-lg font-body-sm text-[13px] transition-colors {{ 'font-semibold bg-primary/15 text-primary border border-primary/35' if request.endpoint == 'admin_upload_contacts' else 'font-medium bg-surface-container border border-outline-variant text-on-surface-variant hover:text-on-surface' }}">
+        Directory Uploads
+    </a>
+</nav>

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Confirm Your Email — AI JobSnap{% endblock %}
+{% block content %}
+<main class="max-w-md mx-auto px-container-padding py-12 flex-1 w-full">
+    <section class="border border-outline-variant rounded-xl p-6 bg-surface-container">
+        {% if state == 'sent' %}
+        <p class="font-data-mono text-[10px] text-primary uppercase tracking-widest mb-1">One more step</p>
+        <h1 class="font-headline-lg text-on-surface text-[22px] font-bold">Check your email</h1>
+        <p class="font-body-sm text-[13px] text-on-surface-variant mt-2 mb-5">
+            We sent a confirmation link to <strong>{{ email }}</strong>. Open it to activate your account. The link expires in 24 hours.
+        </p>
+        {% elif state == 'verified' %}
+        <p class="font-data-mono text-[10px] text-primary uppercase tracking-widest mb-1">Email confirmed</p>
+        <h1 class="font-headline-lg text-on-surface text-[22px] font-bold">Your account is ready</h1>
+        <p class="font-body-sm text-[13px] text-on-surface-variant mt-2 mb-5">
+            {{ email }} is confirmed. Sign in with your email address or username and the password you chose.
+        </p>
+        {% elif state == 'delivery_failed' %}
+        <p class="font-data-mono text-[10px] text-error uppercase tracking-widest mb-1">Email not sent</p>
+        <h1 class="font-headline-lg text-on-surface text-[22px] font-bold">We couldn't send the confirmation link</h1>
+        <p class="font-body-sm text-[13px] text-on-surface-variant mt-2 mb-5">
+            Please try again later. You can use the same password; no reset is needed.
+        </p>
+        {% else %}
+        <p class="font-data-mono text-[10px] text-error uppercase tracking-widest mb-1">Link unavailable</p>
+        <h1 class="font-headline-lg text-on-surface text-[22px] font-bold">This link has expired or was already used</h1>
+        <p class="font-body-sm text-[13px] text-on-surface-variant mt-2 mb-5">
+            Sign in with your username and password to get a new confirmation link. You do not need to reset your password.
+        </p>
+        {% endif %}
+        <a href="{{ url_for('login') }}"
+            class="inline-flex w-full justify-center bg-primary text-on-primary font-semibold rounded-lg px-4 py-3 hover:opacity-90">
+            {% if state == 'verified' or state == 'invalid' %}Go to sign in{% elif state == 'sent' %}Return to sign in{% else %}Try again{% endif %}
+        </a>
+    </section>
+</main>
+{% endblock %}
