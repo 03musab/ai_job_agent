@@ -3,7 +3,10 @@ import re
 import json
 import logging
 import time
-import google.generativeai as genai
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", FutureWarning)
+    import google.generativeai as genai
 from cerebras.cloud.sdk import Cerebras
 
 # Get logger (do not configure basicConfig here to avoid overriding app settings)

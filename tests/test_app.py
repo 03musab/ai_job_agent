@@ -594,5 +594,48 @@ class AIJobAgentTestCase(unittest.TestCase):
         self.assertIn("notes NOT ILIKE %s", translated)
         self.assertIn("'like_this'", translated)
 
+    def test_google_oauth_flow_handles_quotes_json_and_localhost_redirect(self):
+        """Google OAuth helper strips quotes, falls back to JSON, and ignores localhost redirect on public hosts."""
+        import json as _json
+        from app import _google_oauth_flow
+
+        # 1. Strips accidental quotes/whitespace and overrides localhost redirect when host is public
+        with patch.dict(os.environ, {
+            'GOOGLE_CLIENT_ID': '  "quoted-client-id"  ',
+            'GOOGLE_CLIENT_SECRET': " 'quoted-client-secret' ",
+            'GOOGLE_OAUTH_REDIRECT_URI': 'http://localhost:5000/auth/google/callback',
+        }, clear=False), app.test_request_context('/auth/google', base_url='https://app.jobsnap.me'):
+            flow = _google_oauth_flow(state='abc')
+            self.assertIsNotNone(flow)
+            self.assertEqual(flow.client_config['client_id'], 'quoted-client-id')
+            self.assertEqual(flow.client_config['client_secret'], 'quoted-client-secret')
+            self.assertEqual(flow.redirect_uri, 'https://app.jobsnap.me/auth/google/callback')
+            self.assertFalse(flow.autogenerate_code_verifier)
+            auth_url, _ = flow.authorization_url(access_type='online', prompt='select_account')
+            self.assertNotIn('code_challenge=', auth_url)
+
+        # 2. Resolves credentials from GOOGLE_CREDENTIALS_JSON when explicit ID/secret are absent
+        creds_json = _json.dumps({
+            'web': {
+                'client_id': 'json-client-id',
+                'client_secret': 'json-client-secret',
+            }
+        })
+        clean_env = {k: v for k, v in os.environ.items()
+                     if k not in ('GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_OAUTH_CLIENT_ID', 'GOOGLE_OAUTH_CLIENT_SECRET')}
+        clean_env['GOOGLE_CREDENTIALS_JSON'] = creds_json
+        with patch.dict(os.environ, clean_env, clear=True), \
+             app.test_request_context('/auth/google', base_url='https://app.jobsnap.me'):
+            flow = _google_oauth_flow(state='xyz')
+            self.assertIsNotNone(flow)
+            self.assertEqual(flow.client_config['client_id'], 'json-client-id')
+            self.assertEqual(flow.client_config['client_secret'], 'json-client-secret')
+
+        # 3. Returns None when nothing is configured
+        empty_env = {k: v for k, v in clean_env.items() if k != 'GOOGLE_CREDENTIALS_JSON'}
+        with patch.dict(os.environ, empty_env, clear=True), \
+             app.test_request_context('/auth/google', base_url='https://app.jobsnap.me'):
+            self.assertIsNone(_google_oauth_flow(state='none'))
+
 if __name__ == '__main__':
     unittest.main()

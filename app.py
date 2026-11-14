@@ -6742,15 +6742,96 @@ def confirm_email(token):
         conn.close()
 
 
-def _google_oauth_flow(state=None):
-    client_id = os.environ.get('GOOGLE_CLIENT_ID')
-    client_secret = os.environ.get('GOOGLE_CLIENT_SECRET')
+def _clean_env_value(value: Optional[str]) -> str:
+    """Strip surrounding whitespace and accidental quotes from environment values."""
+    if not value:
+        return ''
+    return value.strip().strip('"').strip("'").strip()
+
+
+def _extract_google_oauth_pair(payload: Any) -> Tuple[str, str]:
+    """Extract (client_id, client_secret) from a Google OAuth credentials JSON dict."""
+    if not isinstance(payload, dict):
+        return '', ''
+    section = payload.get('web') or payload.get('installed') or payload
+    if not isinstance(section, dict):
+        return '', ''
+    return _clean_env_value(section.get('client_id')), _clean_env_value(section.get('client_secret'))
+
+
+def _get_google_oauth_credentials() -> Tuple[Optional[str], Optional[str]]:
+    """Resolve Google OAuth client_id and client_secret from env vars or credentials JSON."""
+    client_id = (
+        _clean_env_value(os.environ.get('GOOGLE_CLIENT_ID'))
+        or _clean_env_value(os.environ.get('GOOGLE_OAUTH_CLIENT_ID'))
+    )
+    client_secret = (
+        _clean_env_value(os.environ.get('GOOGLE_CLIENT_SECRET'))
+        or _clean_env_value(os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET'))
+    )
+    if client_id and client_secret:
+        return client_id, client_secret
+
+    raw_json = _clean_env_value(os.environ.get('GOOGLE_CREDENTIALS_JSON'))
+    if raw_json:
+        try:
+            parsed_id, parsed_secret = _extract_google_oauth_pair(json.loads(raw_json))
+            client_id = client_id or parsed_id
+            client_secret = client_secret or parsed_secret
+        except Exception as err:
+            logger.warning(f"Failed to parse GOOGLE_CREDENTIALS_JSON: {err}")
+
+    if client_id and client_secret:
+        return client_id, client_secret
+
+    creds_path = _clean_env_value(os.environ.get('GOOGLE_CREDENTIALS_PATH'))
+    if not creds_path and not app.config.get('TESTING'):
+        creds_path = os.path.join(app.root_path, 'credentials.json')
+    if creds_path and os.path.exists(creds_path):
+        try:
+            with open(creds_path, 'r', encoding='utf-8') as f:
+                parsed_id, parsed_secret = _extract_google_oauth_pair(json.load(f))
+            client_id = client_id or parsed_id
+            client_secret = client_secret or parsed_secret
+        except Exception as err:
+            logger.warning(f"Failed to read Google OAuth credentials from {creds_path}: {err}")
+
+    return (client_id or None), (client_secret or None)
+
+
+def _is_local_hostname(hostname: Optional[str]) -> bool:
+    if not hostname:
+        return False
+    return hostname.strip().lower() in ('localhost', '127.0.0.1', '0.0.0.0', '::1')
+
+
+def _google_oauth_flow(state=None, code_verifier=None, autogenerate_code_verifier=False):
+    client_id, client_secret = _get_google_oauth_credentials()
     if not client_id or not client_secret:
         return None
 
-    callback_uri = os.environ.get('GOOGLE_OAUTH_REDIRECT_URI') or url_for(
-        'google_auth_callback', _external=True
-    )
+    from urllib.parse import urlparse
+    callback_uri = _clean_env_value(os.environ.get('GOOGLE_OAUTH_REDIRECT_URI'))
+    req_host = ''
+    try:
+        req_host = (request.host or '').split(':', 1)[0].lower()
+    except RuntimeError:
+        req_host = ''
+
+    if callback_uri and _is_local_hostname(urlparse(callback_uri).hostname) and req_host and not _is_local_hostname(req_host):
+        logger.warning(
+            "Ignoring localhost GOOGLE_OAUTH_REDIRECT_URI (%s) on non-local host (%s); using dynamic callback URL.",
+            callback_uri,
+            req_host,
+        )
+        callback_uri = ''
+
+    if not callback_uri:
+        if req_host and not _is_local_hostname(req_host):
+            callback_uri = url_for('google_auth_callback', _external=True, _scheme='https')
+        else:
+            callback_uri = url_for('google_auth_callback', _external=True)
+
     client_config = {
         'web': {
             'client_id': client_id,
@@ -6764,6 +6845,8 @@ def _google_oauth_flow(state=None):
         client_config,
         scopes=['openid', 'https://www.googleapis.com/auth/userinfo.email'],
         state=state,
+        code_verifier=code_verifier,
+        autogenerate_code_verifier=autogenerate_code_verifier,
     )
     flow.redirect_uri = callback_uri
     return flow
@@ -6856,6 +6939,10 @@ def google_auth_start():
     session['google_oauth_state'] = state
     session['google_oauth_mode'] = mode
     session['google_oauth_role'] = role
+    if getattr(flow, 'code_verifier', None):
+        session['google_oauth_code_verifier'] = flow.code_verifier
+    else:
+        session.pop('google_oauth_code_verifier', None)
     return redirect(authorization_url)
 
 
@@ -6864,6 +6951,7 @@ def google_auth_callback():
     expected_state = session.pop('google_oauth_state', None)
     mode = session.pop('google_oauth_mode', 'login')
     role = session.pop('google_oauth_role', None)
+    code_verifier = session.pop('google_oauth_code_verifier', None)
     returned_state = request.args.get('state', '')
     if not expected_state or not hmac.compare_digest(expected_state, returned_state):
         flash('Google sign-in could not be verified. Please try again.', 'danger')
@@ -6874,13 +6962,16 @@ def google_auth_callback():
 
     try:
         flow = _google_oauth_flow(state=expected_state)
-        if flow is None:
+        client_id, _ = _get_google_oauth_credentials()
+        if flow is None or not client_id:
             raise ValueError('Google OAuth is not configured.')
+        if code_verifier:
+            flow.code_verifier = code_verifier
         flow.fetch_token(code=request.args.get('code', ''))
         claims = id_token.verify_oauth2_token(
             flow.credentials.id_token,
             Request(),
-            os.environ['GOOGLE_CLIENT_ID'],
+            client_id,
         )
     except (
         GoogleAuthError,
@@ -6889,7 +6980,7 @@ def google_auth_callback():
         ValueError,
         Warning,
     ) as error:
-        logger.warning('Google OAuth callback failed: %s', type(error).__name__)
+        logger.warning('Google OAuth callback failed (%s): %s', type(error).__name__, error)
         flash('Google sign-in failed. Please try again.', 'danger')
         return redirect(url_for('login') + ('#register' if mode == 'register' else ''))
 
