@@ -124,5 +124,59 @@ class RoadmapFeatureTestCase(unittest.TestCase):
         self.assertEqual(detail_data['target_role'], "DevOps Engineer")
         self.assertEqual(len(detail_data['modules']), 2)
 
+    def test_certificate_generation_when_topics_completed(self):
+        """Certificate export succeeds when topics/projects in topics_data are 100% completed, and fails when incomplete."""
+        self._login_user("learner_3")
+        incomplete_roadmap = {
+            "target_role": "Backend Python Engineer",
+            "estimated_total_hours": 10,
+            "weekly_breakdown": [
+                {
+                    "week_number": 1,
+                    "focus_topics": [{"title": "FastAPI", "completed": True}],
+                    "mini_project": {"title": "API Service", "completed": False}
+                }
+            ]
+        }
+        save_resp = self.client.post('/learning-path/save', json={
+            "target_role": "Backend Python Engineer",
+            "missing_skills": ["FastAPI"],
+            "roadmap_data": incomplete_roadmap,
+            "path_id": None,
+            "progress": 50
+        })
+        self.assertEqual(save_resp.status_code, 200)
+        path_id = save_resp.get_json()['path_id']
+
+        # Incomplete path returns 400
+        bad_cert = self.client.get(f'/learning-path/{path_id}/export?format=certificate')
+        self.assertEqual(bad_cert.status_code, 400)
+
+        # Complete all topics & mini-projects via save endpoint (matching UI behavior)
+        completed_roadmap = {
+            "target_role": "Backend Python Engineer",
+            "estimated_total_hours": 10,
+            "weekly_breakdown": [
+                {
+                    "week_number": 1,
+                    "focus_topics": [{"title": "FastAPI", "completed": True}],
+                    "mini_project": {"title": "API Service", "completed": True}
+                }
+            ]
+        }
+        update_resp = self.client.post('/learning-path/save', json={
+            "target_role": "Backend Python Engineer",
+            "missing_skills": ["FastAPI"],
+            "roadmap_data": completed_roadmap,
+            "path_id": path_id,
+            "progress": 100
+        })
+        self.assertEqual(update_resp.status_code, 200)
+
+        cert_resp = self.client.get(f'/learning-path/{path_id}/export?format=certificate')
+        self.assertEqual(cert_resp.status_code, 200)
+        self.assertEqual(cert_resp.mimetype, 'application/pdf')
+        self.assertTrue(cert_resp.data.startswith(b'%PDF-'))
+
 if __name__ == '__main__':
     unittest.main()

@@ -85,12 +85,12 @@ class AIJobAgentTestCase(unittest.TestCase):
             self.assertIn(b'Your account is ready', verified.data)
             self.assertEqual(User.get_by_username('tester').account_status, 'active')
 
-        # 2. First login after confirming the email directs to the 4-step onboarding wizard.
+        # 2. First login after confirming the email directs to the 5-step onboarding wizard.
         resp_login = self.client.post('/login', data={
             'username': 'tester',
             'password': 'password123'
         }, follow_redirects=True)
-        self.assertIn(b'Step 1 of 4', resp_login.data)
+        self.assertIn(b'Step 1 of 5', resp_login.data)
         self.assertIn(b'How will you use AI JobSnap?', resp_login.data)
 
         # 3. Complete the 4-step onboarding as a Job Seeker and land on the dashboard.
@@ -133,7 +133,7 @@ class AIJobAgentTestCase(unittest.TestCase):
             'username': 'first.timer@example.com',
             'password': 'password123',
         }, follow_redirects=True)
-        self.assertIn(b'Step 1 of 4', signed_in.data)
+        self.assertIn(b'Step 1 of 5', signed_in.data)
 
     def test_google_auth_creates_verified_user_and_signs_in(self):
         flow = MagicMock()
@@ -405,6 +405,187 @@ class AIJobAgentTestCase(unittest.TestCase):
         self.assertIsNotNone(refreshed_user)
         self.assertEqual(refreshed_user.role, 'recruiter')
 
+    def test_google_signin_remembers_step1_role_and_never_reprompts_onboarding(self):
+        flow = MagicMock()
+        flow.credentials.id_token = 'verified-id-token'
+        with patch.dict(os.environ, {'GOOGLE_CLIENT_ID': 'test-client-id'}), patch(
+            'app._google_oauth_flow', return_value=flow
+        ), patch(
+            'app.id_token.verify_oauth2_token',
+            return_value={'email': 'repeat.google@example.com', 'email_verified': True},
+        ):
+            with self.client.session_transaction() as browser_session:
+                browser_session['google_oauth_state'] = 'expected-state-1'
+                browser_session['google_oauth_mode'] = 'login'
+                browser_session['google_oauth_role'] = None
+
+            first_response = self.client.get(
+                '/auth/google/callback?state=expected-state-1&code=test-code-1'
+            )
+            self.assertEqual(first_response.status_code, 302)
+            self.assertIn('/onboarding', first_response.headers['Location'])
+
+            # User selects Recruiter on Step 1 and leaves before Step 4
+            role_save = self.client.post('/api/onboarding/role', json={'role': 'recruiter'})
+            self.assertEqual(role_save.status_code, 200)
+            self.assertTrue(role_save.get_json()['success'])
+
+            # Re-visiting /onboarding should redirect straight to /recruiter/dashboard
+            revisit = self.client.get('/onboarding')
+            self.assertEqual(revisit.status_code, 302)
+            self.assertIn('/recruiter', revisit.headers['Location'])
+
+            # Logout and sign in with Google a second time without any role param
+            self.client.get('/logout')
+            with self.client.session_transaction() as browser_session:
+                browser_session['google_oauth_state'] = 'expected-state-2'
+                browser_session['google_oauth_mode'] = 'login'
+                browser_session['google_oauth_role'] = None
+
+            second_response = self.client.get(
+                '/auth/google/callback?state=expected-state-2&code=test-code-2'
+            )
+            self.assertEqual(second_response.status_code, 302)
+            self.assertIn('/recruiter', second_response.headers['Location'])
+            self.assertNotIn('/onboarding', second_response.headers['Location'])
+
+    def test_profile_prefills_google_name_and_email_and_onboarding_unique_username_suggestions(self):
+        db = TestJobDatabase()
+        db.add_user('taken_handle', 'hashed_pw', email='taken@example.com')
+
+        flow = MagicMock()
+        flow.credentials.id_token = 'verified-id-token'
+        with patch.dict(os.environ, {'GOOGLE_CLIENT_ID': 'test-client-id'}), patch(
+            'app._google_oauth_flow', return_value=flow
+        ), patch(
+            'app.id_token.verify_oauth2_token',
+            return_value={
+                'email': 'musab.khan@example.com',
+                'email_verified': True,
+                'name': 'Musab Khan',
+            },
+        ):
+            with self.client.session_transaction() as browser_session:
+                browser_session['google_oauth_state'] = 'expected-state-profile'
+                browser_session['google_oauth_mode'] = 'login'
+                browser_session['google_oauth_role'] = None
+
+            resp = self.client.get('/auth/google/callback?state=expected-state-profile&code=code-1')
+            self.assertEqual(resp.status_code, 302)
+            self.assertIn('/onboarding', resp.headers['Location'])
+
+        # Live username check rejects duplicate (case-insensitive) and returns available suggestions
+        dup_check = self.client.get('/api/onboarding/username-check?q=TAKEN_HANDLE')
+        self.assertEqual(dup_check.status_code, 200)
+        dup_data = dup_check.get_json()
+        self.assertFalse(dup_data['available'])
+        self.assertTrue(len(dup_data['suggestions']) >= 1)
+        self.assertNotIn('taken_handle', dup_data['suggestions'])
+
+        # Attempting to save duplicate username via onboarding fails with 409
+        conflict_resp = self.client.post('/api/onboarding/role', json={
+            'role': 'seeker',
+            'username': 'Taken_Handle',
+        })
+        self.assertEqual(conflict_resp.status_code, 409)
+
+        # Saving a unique typed username succeeds
+        ok_resp = self.client.post('/api/onboarding/complete', json={
+            'role': 'seeker',
+            'username': 'musab_khan_dev',
+        })
+        self.assertEqual(ok_resp.status_code, 200)
+        updated = User.get_by_email('musab.khan@example.com')
+        self.assertEqual(updated.username, 'musab_khan_dev')
+
+        # Profile displays extracted name + signed-in email and remains editable
+        profile_get = self.client.get('/profile')
+        self.assertEqual(profile_get.status_code, 200)
+        self.assertIn(b'Musab Khan', profile_get.data)
+        self.assertIn(b'musab.khan@example.com', profile_get.data)
+
+        edit_resp = self.client.post('/profile', data={
+            'full_name': 'Musab K. Edited',
+            'email': 'musab.edited@example.com',
+        }, follow_redirects=True)
+        self.assertEqual(edit_resp.status_code, 200)
+        self.assertIn(b'Musab K. Edited', edit_resp.data)
+        self.assertIn(b'musab.edited@example.com', edit_resp.data)
+
+    def test_onboarding_uploads_seeker_resume_via_multipart(self):
+        from io import BytesIO
+        flow = MagicMock()
+        flow.credentials.id_token = 'verified-id-token'
+        with patch.dict(os.environ, {'GOOGLE_CLIENT_ID': 'test-client-id'}), patch(
+            'app._google_oauth_flow', return_value=flow
+        ), patch(
+            'app.id_token.verify_oauth2_token',
+            return_value={'email': 'resume.onboarding@example.com', 'email_verified': True},
+        ):
+            with self.client.session_transaction() as browser_session:
+                browser_session['google_oauth_state'] = 'expected-state-resume'
+                browser_session['google_oauth_mode'] = 'login'
+                browser_session['google_oauth_role'] = None
+            self.client.get('/auth/google/callback?state=expected-state-resume&code=code-resume')
+
+        onboarding_page = self.client.get('/onboarding')
+        self.assertEqual(onboarding_page.status_code, 200)
+        for marker in (
+            b'Step 1 of 5',
+            b'Step 2 of 5',
+            b'Step 3 of 5',
+            b'Step 4 of 5',
+            b'Step 5 of 5',
+            b'stepPill5',
+            b'overflow: hidden',
+            b'scrollbar-width: none',
+        ):
+            self.assertIn(marker, onboarding_page.data)
+
+        missing_username = self.client.post(
+            '/api/onboarding/complete',
+            data={
+                'role': 'seeker',
+                'username': '',
+                'resume': (BytesIO(b'Python Flask SQL Developer Experience'), 'my_resume.txt'),
+            },
+            content_type='multipart/form-data',
+            headers={'X-Requested-With': 'XMLHttpRequest'},
+        )
+        self.assertEqual(missing_username.status_code, 400)
+        self.assertFalse(missing_username.get_json()['success'])
+
+        missing_resume = self.client.post(
+            '/api/onboarding/complete',
+            data={
+                'role': 'seeker',
+                'username': 'resume_seeker_1',
+            },
+            content_type='multipart/form-data',
+            headers={'X-Requested-With': 'XMLHttpRequest'},
+        )
+        self.assertEqual(missing_resume.status_code, 400)
+        self.assertFalse(missing_resume.get_json()['success'])
+        user_before = User.get_by_email('resume.onboarding@example.com')
+        self.assertFalse(user_before.onboarding_completed)
+
+        resp = self.client.post(
+            '/api/onboarding/complete',
+            data={
+                'role': 'seeker',
+                'username': 'resume_seeker_1',
+                'resume': (BytesIO(b'Python Flask SQL Developer Experience'), 'my_resume.txt'),
+            },
+            content_type='multipart/form-data',
+            headers={'X-Requested-With': 'XMLHttpRequest'},
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.get_json()['success'])
+        user = User.get_by_email('resume.onboarding@example.com')
+        details = TestJobDatabase().get_user_details(user.id)
+        self.assertIsNotNone(details)
+        self.assertIn('my_resume.txt', details.get('resume_path') or '')
+
     def test_job_persistence(self):
         """Test adding a job via code and retrieving it."""
         db = TestJobDatabase()
@@ -636,6 +817,59 @@ class AIJobAgentTestCase(unittest.TestCase):
         with patch.dict(os.environ, empty_env, clear=True), \
              app.test_request_context('/auth/google', base_url='https://app.jobsnap.me'):
             self.assertIsNone(_google_oauth_flow(state='none'))
+
+    def test_snap_chat_endpoint_and_dock_markup(self):
+        """Test Snap assistant endpoint and dock visibility outside /onboarding."""
+        with patch('app._send_email_verification_email') as send_verification:
+            self.client.post('/register', data={
+                'username': 'snaptester',
+                'password': 'password123',
+                'email': 'snaptester@example.com',
+                'confirm_password': 'password123',
+            })
+            token = send_verification.call_args.args[1]
+            self.client.get(f'/confirm-email/{token}')
+
+        login_resp = self.client.post('/login', data={
+            'username': 'snaptester',
+            'password': 'password123',
+        }, follow_redirects=True)
+        self.assertEqual(login_resp.status_code, 200)
+        self.assertNotIn(b'id="snapDockRoot"', login_resp.data)
+
+        complete_resp = self.client.post('/api/onboarding/complete', json={
+            'role': 'seeker',
+            'full_name': 'Snap Tester',
+            'target_role': 'Backend Engineer',
+        })
+        self.assertEqual(complete_resp.status_code, 200)
+
+        dash_resp = self.client.get('/dashboard')
+        self.assertEqual(dash_resp.status_code, 200)
+        self.assertIn(b'id="snapDockRoot"', dash_resp.data)
+        self.assertIn(b'id="snapDockButton"', dash_resp.data)
+        self.assertIn(b'Snapy', dash_resp.data)
+        self.assertIn(b'Ping me up if you have any doubt!', dash_resp.data)
+
+        empty_resp = self.client.post('/api/snapy/chat', json={'message': '   '})
+        self.assertEqual(empty_resp.status_code, 400)
+        self.assertFalse(empty_resp.get_json()['success'])
+
+        clean_env = {
+            k: v for k, v in os.environ.items()
+            if k not in ('GEMINI_API_KEY', 'GOOGLE_API_KEY', 'CEREBRAS_API_KEY')
+        }
+        with patch.dict(os.environ, clean_env, clear=True):
+            chat_resp = self.client.post('/api/snapy/chat', json={
+                'message': 'How does AI Resume Match work?',
+                'current_path': '/dashboard',
+            })
+        self.assertEqual(chat_resp.status_code, 200)
+        payload = chat_resp.get_json()
+        self.assertTrue(payload['success'])
+        self.assertTrue(payload.get('reply', '').strip())
+        self.assertIsInstance(payload.get('actions'), list)
+        self.assertGreaterEqual(len(payload['actions']), 1)
 
 if __name__ == '__main__':
     unittest.main()

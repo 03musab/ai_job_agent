@@ -16,6 +16,12 @@ import secrets
 import signal
 import ssl
 import sqlite3
+try:
+    import psycopg2
+    _DB_INTEGRITY_ERRORS = (sqlite3.IntegrityError, psycopg2.IntegrityError)
+except ImportError:
+    psycopg2 = None
+    _DB_INTEGRITY_ERRORS = (sqlite3.IntegrityError,)
 import sys
 import threading
 import uuid
@@ -986,8 +992,8 @@ class User(UserMixin):
             SELECT id, username, password_hash, role, email_recipients,
                    send_excel_attachment, email, is_pro, account_status,
                    onboarding_completed
-            FROM users WHERE username = ?
-        """, (username,))
+            FROM users WHERE LOWER(username) = LOWER(?)
+        """, (username.strip(),))
         user_data = cursor.fetchone()
         conn.close()
         if user_data:
@@ -1072,6 +1078,17 @@ class JobDatabase:
             ON users (LOWER(email))
             WHERE email IS NOT NULL AND TRIM(email) <> ''
         """)
+        try:
+            cursor.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_normalized
+                ON users (LOWER(username))
+            """)
+            conn.commit()
+        except Exception:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS password_setup_tokens (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1113,6 +1130,7 @@ class JobDatabase:
                 resume_parsed_data TEXT,
                 willing_to_relocate TEXT DEFAULT 'no',
                 authorized_to_work TEXT DEFAULT 'no',
+                google_oauth_token TEXT,
                 FOREIGN KEY(user_id) REFERENCES users(id)
             )
         ''')
@@ -1169,6 +1187,13 @@ class JobDatabase:
                 logger.info("Added profile_picture column to user_details table.")
             except sqlite3.OperationalError as e:
                 logger.warning(f"profile_picture column already exists or error altering user_details table: {e}")
+        if 'google_oauth_token' not in user_details_columns:
+            try:
+                cursor.execute("ALTER TABLE user_details ADD COLUMN google_oauth_token TEXT")
+                conn.commit()
+                logger.info("Added google_oauth_token column to user_details table.")
+            except Exception as e:
+                logger.warning(f"google_oauth_token column already exists or error altering user_details table: {e}")
 
         cursor.execute("PRAGMA table_info(jobs)")
         jobs_existing_columns = [col[1] for col in cursor.fetchall()]
@@ -1345,6 +1370,10 @@ class JobDatabase:
                  email: Optional[str] = None, is_pro: bool = False,
                  account_status: str = 'active',
                  onboarding_completed: bool = True) -> Optional[int]:
+        clean_username = (username or '').strip()
+        if not clean_username or not self.is_username_available(clean_username):
+            logger.warning(f"Username already exists or invalid: {username}")
+            return None
         conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
@@ -1352,18 +1381,88 @@ class JobDatabase:
                 INSERT INTO users
                     (username, password_hash, role, email, is_pro, account_status, onboarding_completed)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (username, password_hash, role, email, bool(is_pro), account_status, bool(onboarding_completed)))
+            """, (clean_username, password_hash, role, email, bool(is_pro), account_status, bool(onboarding_completed)))
             conn.commit()
-            logger.info(f"Created user: {username} with role: {role}")
+            logger.info(f"Created user: {clean_username} with role: {role}")
             return cursor.lastrowid
-        except sqlite3.IntegrityError:
-            logger.warning(f"Username already exists: {username}")
+        except _DB_INTEGRITY_ERRORS:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            logger.warning(f"Username already exists: {clean_username}")
             return None
         except sqlite3.OperationalError as e:
             logger.error(f"Database operational error during user creation: {e}")
             return None
         finally:
             conn.close()
+
+    def is_username_available(self, username: str, exclude_user_id: Optional[int] = None) -> bool:
+        """Return True if username is unused (case-insensitive) across SQLite and PostgreSQL."""
+        clean = (username or '').strip()
+        if not clean:
+            return False
+        conn = connect_database(self.db_path, timeout=10)
+        cursor = conn.cursor()
+        try:
+            if exclude_user_id is not None:
+                cursor.execute(
+                    "SELECT id FROM users WHERE LOWER(username) = LOWER(?) AND id != ? LIMIT 1",
+                    (clean, exclude_user_id),
+                )
+            else:
+                cursor.execute(
+                    "SELECT id FROM users WHERE LOWER(username) = LOWER(?) LIMIT 1",
+                    (clean,),
+                )
+            return cursor.fetchone() is None
+        finally:
+            conn.close()
+
+    def update_username(self, user_id: int, new_username: str) -> Tuple[bool, Optional[str]]:
+        """Validate and persist a unique normalized username for user_id."""
+        normalized = _normalize_username_candidate(new_username)
+        if not normalized or not re.fullmatch(r'[a-z0-9][a-z0-9._-]{2,23}', normalized):
+            return False, 'Username must be 3-24 characters (letters, numbers, ., _, -) and start with a letter or number.'
+        if not self.is_username_available(normalized, exclude_user_id=user_id):
+            return False, 'That username is already taken. Try one of the suggestions below.'
+        conn = connect_database(self.db_path, timeout=10)
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "UPDATE users SET username = ? WHERE id = ?",
+                (normalized, user_id),
+            )
+            conn.commit()
+            return (cursor.rowcount > 0), None
+        except _DB_INTEGRITY_ERRORS:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            return False, 'That username is already taken. Try one of the suggestions below.'
+        except Exception as e:
+            logger.error(f"Error updating username for user {user_id}: {e}")
+            return False, 'Could not update username right now.'
+        finally:
+            conn.close()
+
+    def prefill_user_profile_identity(self, user_id: int, email: Optional[str], full_name: Optional[str]) -> None:
+        """Populate blank profile email/full_name without overwriting user-edited values."""
+        existing = self.get_user_details(user_id) or {}
+        updated = dict(existing)
+        changed = False
+        clean_email = (email or '').strip()
+        clean_name = (full_name or '').strip()
+        if clean_email and not (updated.get('email') or '').strip():
+            updated['email'] = clean_email
+            changed = True
+        if clean_name and not (updated.get('full_name') or '').strip():
+            updated['full_name'] = clean_name
+            changed = True
+        if changed:
+            self.save_user_details(user_id, updated)
 
     def update_user_role(self, user_id: int, role: str) -> bool:
         """Update role for an existing user (e.g. 'seeker' or 'recruiter')."""
@@ -1453,7 +1552,7 @@ class JobDatabase:
                 # Create calendar reminder for deadline if available
                 if job.deadline and job.deadline != 'N/A':
                     try:
-                        calendar_manager = GoogleCalendarManager()
+                        calendar_manager = GoogleCalendarManager(user_id=user_id)
                         job_data = job.to_dict()
                         job_data['id'] = cursor.lastrowid
                         calendar_manager.create_deadline_reminder(job_data, job.deadline)
@@ -1474,6 +1573,42 @@ class JobDatabase:
         except Exception as e:
             logger.error(f"Error adding job to database: {e}")
             return False
+        finally:
+            conn.close()
+
+    def save_user_google_token(self, user_id: int, token_json: str) -> None:
+        """Persist a user's serialized Google OAuth credentials JSON in user_details."""
+        if not user_id or not token_json:
+            return
+        conn = connect_database(self.db_path, timeout=10)
+        try:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE user_details SET google_oauth_token = ? WHERE user_id = ?", (token_json, user_id))
+            if cursor.rowcount == 0:
+                cursor.execute(
+                    "INSERT INTO user_details (user_id, google_oauth_token) VALUES (?, ?)",
+                    (user_id, token_json),
+                )
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            logger.warning(f"Failed to save Google OAuth token for user {user_id}: {e}")
+        finally:
+            conn.close()
+
+    def get_user_google_token(self, user_id: int) -> Optional[str]:
+        """Return serialized Google OAuth credentials JSON for user_id, if stored."""
+        if not user_id:
+            return None
+        conn = connect_database(self.db_path, timeout=10)
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT google_oauth_token FROM user_details WHERE user_id = ?", (user_id,))
+            row = cursor.fetchone()
+            return row[0] if row and row[0] else None
+        except Exception as e:
+            logger.warning(f"Failed to load Google OAuth token for user {user_id}: {e}")
+            return None
         finally:
             conn.close()
 
@@ -4590,25 +4725,51 @@ class ApplicationFiller:
 
 class GoogleCalendarManager:
     """Enhanced Google Calendar integration for job application tracking."""
-    def __init__(self):
+    def __init__(self, user_id: Optional[int] = None):
+        if user_id is None:
+            try:
+                if current_user and current_user.is_authenticated:
+                    user_id = current_user.id
+            except RuntimeError:
+                pass
+        self.user_id = user_id
         self.calendar_service = self.authenticate_calendar()
         self.job_alerts_calendar_id = None
         self.user_name = None
         self._initialize_calendar()
     
     def authenticate_calendar(self):
-        """Authenticate with Google Calendar API using shared credentials."""
-        # Use the same authentication as Gmail since we share the token
-        gmail_service = SmartEmailer().authenticate_gmail()
-        if not gmail_service:
-            return None
-        
-        # Get the credentials from the gmail service
+        """Authenticate with Google Calendar API using per-user OAuth credentials or shared token.pickle."""
         creds = None
-        if os.path.exists('token.pickle'):
-            with open('token.pickle', 'rb') as token:
-                creds = pickle.load(token)
-        
+
+        # 1. Prefer per-user OAuth token captured during Google Sign-In / Sign-Up
+        if self.user_id:
+            try:
+                db_instance = JobDatabase()
+                token_json = db_instance.get_user_google_token(self.user_id)
+                if token_json:
+                    from google.oauth2.credentials import Credentials as OAuthCredentials
+                    creds = OAuthCredentials.from_authorized_user_info(json.loads(token_json))
+                    if creds and creds.expired and creds.refresh_token:
+                        creds.refresh(Request())
+                        db_instance.save_user_google_token(self.user_id, creds.to_json())
+            except Exception as e:
+                logger.warning(f"Could not restore per-user Google Calendar token for user {self.user_id}: {e}")
+                creds = None
+
+        # 2. Fall back to shared local token.pickle (desktop/CLI flow)
+        if not creds or not creds.valid:
+            creds = None
+            if os.path.exists('token.pickle'):
+                try:
+                    with open('token.pickle', 'rb') as token:
+                        creds = pickle.load(token)
+                    if creds and creds.expired and creds.refresh_token:
+                        creds.refresh(Request())
+                except Exception as e:
+                    logger.warning(f"Failed to load/refresh token.pickle for Calendar: {e}")
+                    creds = None
+
         if not creds or not creds.valid:
             logger.error("No valid credentials for Calendar API")
             return None
@@ -6594,6 +6755,7 @@ def _create_email_account(username, password, email, role):
     )
     if not user_id:
         return None
+    database.prefill_user_profile_identity(user_id, email, _extract_display_name(None, email))
     try:
         _create_email_verification_token(user_id, email)
     except (OSError, RuntimeError, smtplib.SMTPException, ValueError):
@@ -6841,9 +7003,16 @@ def _google_oauth_flow(state=None, code_verifier=None, autogenerate_code_verifie
             'redirect_uris': [callback_uri],
         }
     }
+    os.environ.setdefault('OAUTHLIB_RELAX_TOKEN_SCOPE', '1')
+    oauth_scopes = [
+        'openid',
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile',
+        *SCOPES,
+    ]
     flow = Flow.from_client_config(
         client_config,
-        scopes=['openid', 'https://www.googleapis.com/auth/userinfo.email'],
+        scopes=oauth_scopes,
         state=state,
         code_verifier=code_verifier,
         autogenerate_code_verifier=autogenerate_code_verifier,
@@ -6858,6 +7027,87 @@ def _auth_redirect_for_user(user):
     if user.role == 'recruiter':
         return redirect(url_for('recruiter_dashboard'))
     return redirect(url_for('dashboard'))
+
+
+def _extract_display_name(claims: Any, email: Optional[str]) -> str:
+    """Extract a clean full name from Google OAuth claims or fallback to email local-part."""
+    if isinstance(claims, dict):
+        direct_name = str(claims.get('name') or '').strip()
+        if direct_name:
+            return direct_name
+        given = str(claims.get('given_name') or '').strip()
+        family = str(claims.get('family_name') or '').strip()
+        combined = f"{given} {family}".strip()
+        if combined:
+            return combined
+    if email and '@' in email:
+        local = email.split('@', 1)[0]
+        parts = [p for p in re.split(r'[._\-+]+', re.sub(r'\d+$', '', local)) if p]
+        if parts:
+            return ' '.join(part.capitalize() for part in parts[:3])
+    return ''
+
+
+def _normalize_username_candidate(raw: Optional[str]) -> str:
+    """Normalize raw user input into a lowercase handle candidate."""
+    cleaned = (raw or '').strip().lstrip('@').lower()
+    cleaned = re.sub(r'\s+', '_', cleaned)
+    cleaned = re.sub(r'[^a-z0-9._-]', '', cleaned)
+    cleaned = re.sub(r'[._-]{2,}', '_', cleaned)
+    cleaned = cleaned.strip('._-')
+    return cleaned[:24]
+
+
+def _generate_username_suggestions(
+    seed: Optional[str],
+    db: Optional[JobDatabase] = None,
+    exclude_user_id: Optional[int] = None,
+    limit: int = 4,
+) -> List[str]:
+    """Generate unique, available username suggestions based on what the user is typing."""
+    database = db or JobDatabase()
+    raw = (seed or '').strip().lstrip('@')
+    if '@' in raw:
+        raw = raw.split('@', 1)[0]
+
+    words = [re.sub(r'[^a-z0-9]', '', w.lower()) for w in re.split(r'[\s._\-]+', raw) if w]
+    words = [w for w in words if w]
+    base = _normalize_username_candidate(raw)
+    if len(base) < 3:
+        base = ((words[0] if words else '') or 'user')
+        if len(base) < 3:
+            base = f"{base}dev"
+        base = _normalize_username_candidate(base)
+
+    candidates: List[str] = []
+    if len(words) >= 2:
+        joined_dot = _normalize_username_candidate(f"{words[0]}.{words[1]}")
+        joined_under = _normalize_username_candidate(f"{words[0]}_{words[1]}")
+        joined_flat = _normalize_username_candidate(f"{words[0]}{words[1]}")
+        initial = _normalize_username_candidate(f"{words[0]}{words[1][0]}")
+        candidates.extend([joined_dot, joined_under, joined_flat, initial])
+
+    if base:
+        candidates.append(base)
+        for suffix in ('_dev', '.ai', '_hq', '_pro'):
+            candidates.append(_normalize_username_candidate(f"{base[:24 - len(suffix)]}{suffix}"))
+        for n in range(2, 25):
+            suffix = str(n)
+            candidates.append(_normalize_username_candidate(f"{base[:24 - len(suffix)]}{suffix}"))
+
+    suggestions: List[str] = []
+    seen = set()
+    for cand in candidates:
+        if not cand or cand in seen:
+            continue
+        seen.add(cand)
+        if not re.fullmatch(r'[a-z0-9][a-z0-9._-]{2,23}', cand):
+            continue
+        if database.is_username_available(cand, exclude_user_id=exclude_user_id):
+            suggestions.append(cand)
+            if len(suggestions) >= limit:
+                break
+    return suggestions
 
 
 def _generate_short_username(email: str) -> str:
@@ -6928,7 +7178,8 @@ def google_auth_start():
             flash('Google sign-in is not configured. Please use password sign-in.', 'danger')
             return redirect(url_for('login') + ('#register' if mode == 'register' else ''))
         authorization_url, _ = flow.authorization_url(
-            access_type='online',
+            access_type='offline',
+            include_granted_scopes='true',
             prompt='select_account',
         )
     except ValueError:
@@ -7011,10 +7262,30 @@ def google_auth_callback():
         if db_user is None:
             flash('Unable to create your account. Please try again.', 'danger')
             return redirect(url_for('login') + ('#register' if mode == 'register' else ''))
-    elif role in ('seeker', 'recruiter') and db_user.role != role:
-        database.update_user_role(db_user.id, role)
+    elif role in ('seeker', 'recruiter'):
+        database.complete_user_onboarding(db_user.id, role)
         db_user.role = role
-        logger.info('Updated role for user %s (%s) to %s via Google auth', db_user.id, email, role)
+        db_user.onboarding_completed = True
+        logger.info('Saved role %s and onboarding completion for user %s (%s) via Google auth', role, db_user.id, email)
+
+    # Extract and prefill name + signed-in email in user profile (editable later)
+    try:
+        database.prefill_user_profile_identity(
+            db_user.id,
+            email,
+            _extract_display_name(claims, email),
+        )
+    except Exception as identity_err:
+        logger.warning(f"Could not prefill profile identity for user {db_user.id}: {identity_err}")
+
+    # Persist Google OAuth credentials (including Calendar/Gmail scopes) for this user
+    try:
+        creds_obj = getattr(flow, 'credentials', None)
+        creds_json = creds_obj.to_json() if creds_obj and hasattr(creds_obj, 'to_json') else None
+        if isinstance(creds_json, str) and creds_json.strip():
+            database.save_user_google_token(db_user.id, creds_json)
+    except Exception as token_save_err:
+        logger.warning(f"Could not save Google OAuth token for user {db_user.id}: {token_save_err}")
 
     if db_user.account_status == 'pending':
         conn = connect_database(database.db_path, timeout=10)
@@ -7167,34 +7438,159 @@ def logout():
 @app.route('/onboarding')
 @login_required
 def onboarding():
-    """Render the 4-step first-time onboarding & interactive product demo wizard."""
+    """Render the 5-step first-time onboarding & workspace setup wizard."""
+    if getattr(current_user, 'onboarding_completed', False) and request.args.get('replay') != '1':
+        return _auth_redirect_for_user(current_user)
     db = JobDatabase()
     user_details = db.get_user_details(current_user.id) or {}
     company = db.get_company_by_recruiter(current_user.id) or {}
+    seed = (
+        user_details.get('full_name')
+        or getattr(current_user, 'username', None)
+        or getattr(current_user, 'email', None)
+        or ''
+    )
+    username_suggestions = _generate_username_suggestions(
+        seed,
+        db=db,
+        exclude_user_id=current_user.id,
+        limit=4,
+    )
     return render_template(
         'onboarding.html',
         user_details=user_details,
         company=company,
+        username_suggestions=username_suggestions,
     )
+
+
+@app.route('/api/onboarding/username-check', methods=['GET'])
+@login_required
+def onboarding_username_check():
+    """Live-check username availability and generate unique suggestions as the user types."""
+    raw_query = request.args.get('q', '')
+    db = JobDatabase()
+    user_details = db.get_user_details(current_user.id) or {}
+    fallback_seed = (
+        user_details.get('full_name')
+        or getattr(current_user, 'email', None)
+        or getattr(current_user, 'username', None)
+        or 'user'
+    )
+
+    normalized = _normalize_username_candidate(raw_query)
+    valid = bool(normalized and re.fullmatch(r'[a-z0-9][a-z0-9._-]{2,23}', normalized))
+    available = db.is_username_available(normalized, exclude_user_id=current_user.id) if valid else False
+
+    suggestion_seed = raw_query.strip() or fallback_seed
+    suggestions = _generate_username_suggestions(
+        suggestion_seed,
+        db=db,
+        exclude_user_id=current_user.id,
+        limit=5,
+    )
+    if valid and available:
+        suggestions = [s for s in suggestions if s != normalized][:4]
+    else:
+        suggestions = suggestions[:4]
+
+    if not raw_query.strip():
+        message = 'Pick a unique username (3-24 characters).'
+    elif not valid:
+        message = 'Use 3-24 lowercase letters, numbers, dots, underscores, or hyphens.'
+    elif available:
+        message = f'@{normalized} is available'
+    else:
+        message = f'@{normalized} is already taken. Try a suggestion below.'
+
+    return jsonify({
+        'normalized': normalized,
+        'valid': valid,
+        'available': available,
+        'message': message,
+        'suggestions': suggestions,
+    })
+
+
+@app.route('/api/onboarding/role', methods=['POST'])
+@login_required
+def save_onboarding_role():
+    """Persist the user's selected role (and optional username) as soon as they choose it in Step 1."""
+    payload = request.get_json(silent=True) if request.is_json else request.form
+    payload = payload or {}
+    role = str(payload.get('role') or '').strip().lower()
+    if role not in ('seeker', 'recruiter'):
+        return jsonify({'success': False, 'error': 'Please select a valid role.'}), 400
+
+    db = JobDatabase()
+    if 'username' in payload:
+        requested_username = str(payload.get('username') or '').strip()
+        ok, err_msg = db.update_username(current_user.id, requested_username)
+        if not ok:
+            return jsonify({'success': False, 'error': err_msg}), 409
+        current_user.username = _normalize_username_candidate(requested_username)
+
+    if not db.complete_user_onboarding(current_user.id, role):
+        return jsonify({'success': False, 'error': 'Failed to save role selection.'}), 500
+
+    current_user.role = role
+    current_user.onboarding_completed = True
+    return jsonify({'success': True, 'role': role, 'username': current_user.username})
 
 
 @app.route('/api/onboarding/complete', methods=['POST'])
 @login_required
 def complete_onboarding():
-    """Save user role and optional Step 4 quick-setup details, mark onboarding complete, and return redirect URL."""
+    """Save role, mandatory username, and Step 5 setup (mandatory seeker resume), then return redirect URL."""
     payload = request.get_json(silent=True) or request.form.to_dict() or {}
+    is_ajax = request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     role = str(payload.get('role') or '').strip().lower()
     if role == 'job_seeker':
         role = 'seeker'
     if role not in ('seeker', 'recruiter'):
-        if request.is_json:
+        if is_ajax:
             return jsonify({'success': False, 'error': 'Please choose Job Seeker or Recruiter.'}), 400
         flash('Please choose Job Seeker or Recruiter.', 'danger')
         return redirect(url_for('onboarding'))
 
     db = JobDatabase()
+    if 'username' in payload:
+        requested_username = str(payload.get('username') or '').strip()
+        if not requested_username:
+            err_msg = 'A unique username is required.'
+            if is_ajax:
+                return jsonify({'success': False, 'error': err_msg}), 400
+            flash(err_msg, 'danger')
+            return redirect(url_for('onboarding'))
+        ok, err_msg = db.update_username(current_user.id, requested_username)
+        if not ok:
+            status_code = 409 if err_msg and 'already taken' in err_msg.lower() else 400
+            if is_ajax:
+                return jsonify({'success': False, 'error': err_msg}), status_code
+            flash(err_msg or 'Please choose a unique username.', 'danger')
+            return redirect(url_for('onboarding'))
+        current_user.username = _normalize_username_candidate(requested_username)
+    elif not (getattr(current_user, 'username', None) or '').strip():
+        err_msg = 'A unique username is required.'
+        if is_ajax:
+            return jsonify({'success': False, 'error': err_msg}), 400
+        flash(err_msg, 'danger')
+        return redirect(url_for('onboarding'))
+
+    # Validate mandatory resume for seekers on form/multipart submissions before marking onboarding complete
+    existing = db.get_user_details(current_user.id) or {}
+    resume_file = request.files.get('resume') if request.files else None
+    has_resume_upload = bool(resume_file and resume_file.filename and secure_filename(resume_file.filename))
+    has_existing_resume = bool((existing.get('resume_path') or '').strip())
+    if role == 'seeker' and not request.is_json and not has_resume_upload and not has_existing_resume:
+        err_msg = 'Please upload your resume (PDF, DOCX, DOC, or TXT) to complete onboarding.'
+        if is_ajax:
+            return jsonify({'success': False, 'error': err_msg}), 400
+        flash(err_msg, 'danger')
+        return redirect(url_for('onboarding'))
+
     if not db.complete_user_onboarding(current_user.id, role):
-        if request.is_json:
+        if is_ajax:
             return jsonify({'success': False, 'error': 'Failed to save onboarding state.'}), 500
         flash('Failed to save onboarding state.', 'danger')
         return redirect(url_for('onboarding'))
@@ -7202,16 +7598,30 @@ def complete_onboarding():
     current_user.role = role
     current_user.onboarding_completed = True
 
-    # Optional quick-setup persistence from Step 4
+    # Setup persistence from Step 5
     if role == 'seeker':
         full_name = str(payload.get('full_name') or '').strip()
         target_role = str(payload.get('target_role') or '').strip()
         preferred_location = str(payload.get('preferred_location') or '').strip()
-        if full_name:
-            existing = db.get_user_details(current_user.id) or {}
-            existing['full_name'] = full_name
+        if full_name or has_resume_upload:
+            if full_name:
+                existing['full_name'] = full_name
             if not existing.get('email') and getattr(current_user, 'email', None):
                 existing['email'] = current_user.email
+            if has_resume_upload:
+                user_upload_dir = os.path.join(app.config['UPLOAD_FOLDER'], str(current_user.id))
+                os.makedirs(user_upload_dir, exist_ok=True)
+                filename = secure_filename(resume_file.filename)
+                if filename:
+                    file_path = os.path.join(user_upload_dir, filename)
+                    resume_file.save(file_path)
+                    existing['resume_path'] = file_path
+                    try:
+                        parsed_data = ResumeParsingService().parse(file_path)
+                        if parsed_data:
+                            existing['resume_parsed_data'] = json.dumps(parsed_data)
+                    except Exception as parse_err:
+                        logger.warning(f"Onboarding resume parse skipped for user {current_user.id}: {parse_err}")
             db.save_user_details(current_user.id, existing)
         if target_role:
             db.save_search_profile(
@@ -7238,7 +7648,7 @@ def complete_onboarding():
 
     session['show_spotlight_tour'] = True
     target_url = url_for('recruiter_dashboard', tour=1) if role == 'recruiter' else url_for('dashboard', tour=1)
-    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+    if is_ajax:
         return jsonify({
             'success': True,
             'role': role,
@@ -7253,6 +7663,158 @@ def dismiss_onboarding_tour():
     """Dismiss the post-onboarding interactive spotlight coach-mark tour."""
     session.pop('show_spotlight_tour', None)
     return jsonify({'success': True})
+
+
+def _snap_fallback_answer(message: str, role: str) -> dict:
+    """Return a concise, accurate local answer when external LLM keys are unavailable or fail."""
+    q = (message or '').lower()
+    is_recruiter = role == 'recruiter'
+
+    if any(k in q for k in ('tour', 'guide', 'walkthrough')):
+        return {
+            'reply': 'You can replay the guided spotlight tour anytime from your top-right Profile menu under Interactive Tour, or click Replay Tour below.',
+            'actions': [{'label': 'Replay Interactive Tour', 'action': 'tour'}],
+        }
+    if any(k in q for k in ('resume', 'cv', 'match', 'ats', 'score')):
+        if is_recruiter:
+            return {
+                'reply': 'On your Recruiter Dashboard, each candidate is automatically scored against the Target Skills on your requisition. Open any application card to inspect their full parsed resume and match breakdown.',
+                'actions': [{'label': 'Open Dashboard', 'href': url_for('recruiter_dashboard')}],
+            }
+        return {
+            'reply': 'Upload or replace your resume in Profile Settings. Once saved, open Job Matches and click AI Resume Match on any role to inspect your fit percentage and missing skills.',
+            'actions': [
+                {'label': 'Profile Settings', 'href': url_for('profile')},
+                {'label': 'Job Matches', 'href': url_for('dashboard')},
+            ],
+        }
+    if any(k in q for k in ('outreach', 'contact', 'email', 'vault', 'message', 'radar')):
+        return {
+            'reply': 'Use Outreach Studio to find verified hiring contacts with AI Discovery, import CSV lists, store reusable templates in Message Vault, and send personalized outreach messages.',
+            'actions': [{'label': 'Open Outreach Studio', 'href': url_for('outreach_studio')}],
+        }
+    if any(k in q for k in ('post', 'job', 'requisition', 'hiring', 'publish')) and is_recruiter:
+        return {
+            'reply': 'Go to Post Job to enter the Role Title, location, compensation, and comma-separated Target Skills. Those skills power automatic AI candidate ranking.',
+            'actions': [{'label': 'Post a Job', 'href': url_for('recruiter_post_job')}],
+        }
+    if any(k in q for k in ('company', 'logo', 'brand')) and is_recruiter:
+        return {
+            'reply': 'Open Company Profile to upload your organization logo and update your bio, website, and industry shown alongside your job posts.',
+            'actions': [{'label': 'Company Profile', 'href': url_for('recruiter_company')}],
+        }
+    if any(k in q for k in ('scrape', 'scan', 'search', 'live', 'alert', 'preset')):
+        return {
+            'reply': 'Use Live Scan in the Job Matches toolbar or automation rail to scrape fresh roles for your target keywords, save 1-click search presets, or enable scheduled email digests.',
+            'actions': [{'label': 'Open Job Matches', 'href': url_for('dashboard')}],
+        }
+    if any(k in q for k in ('skill', 'gap', 'roadmap', 'learn', 'course')):
+        return {
+            'reply': 'Open Skill Gap & Roadmap to compare your resume against any target role and generate a structured week-by-week learning plan.',
+            'actions': [{'label': 'Skill Gap & Roadmap', 'href': url_for('learning_path')}],
+        }
+
+    if is_recruiter:
+        return {
+            'reply': 'I can help with your Recruiter Dashboard, posting jobs, scoring applicants with AI, configuring your Company Profile, or finding talent in Outreach Studio. What would you like to check?',
+            'actions': [
+                {'label': 'Dashboard', 'href': url_for('recruiter_dashboard')},
+                {'label': 'Post Job', 'href': url_for('recruiter_post_job')},
+            ],
+        }
+    return {
+        'reply': 'I can help you with Job Matches, AI Resume Match, Live Scans, Outreach Studio, Skill Gap & Roadmap, or Profile Settings. Ask me anything about using AI JobSnap!',
+        'actions': [
+            {'label': 'Job Matches', 'href': url_for('dashboard')},
+            {'label': 'Outreach Studio', 'href': url_for('outreach_studio')},
+        ],
+    }
+
+
+@app.route('/api/snapy/chat', methods=['POST'])
+@app.route('/api/snap/chat', methods=['POST'])
+@login_required
+def snap_chat():
+    """Answer user questions as Snapy, the in-app AI JobSnap assistant."""
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        payload = request.form.to_dict() if request.form else {}
+    message = str(payload.get('message') or '').strip()
+    if not message:
+        return jsonify({'success': False, 'error': 'Please enter a question for Snapy.'}), 400
+    message = message[:1000]
+
+    role = (getattr(current_user, 'role', None) or 'seeker').lower()
+    current_path = str(payload.get('current_path') or '').strip()[:120]
+    history = payload.get('history') if isinstance(payload.get('history'), list) else []
+    recent_turns = []
+    for item in history[-6:]:
+        if isinstance(item, dict):
+            speaker = 'User' if item.get('sender') == 'user' else 'Snapy'
+            text = str(item.get('text') or '').strip()[:350]
+            if text:
+                recent_turns.append(f"{speaker}: {text}")
+
+    has_llm_key = bool(os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY') or os.getenv('CEREBRAS_API_KEY'))
+    if has_llm_key:
+        system_prompt = (
+            "You are Snapy, the friendly in-app assistant for AI JobSnap. "
+            "Answer concisely in 2-4 clear sentences using plain text (no markdown headers). "
+            "Workspace modules: "
+            "For seekers: Job Matches (/dashboard) with Live Scraper, AI Resume Match, Saved Presets, Pipeline Stages; "
+            "Outreach Studio (/outreach_studio) for AI contact discovery, Message Vault templates, direct emails; "
+            "Skill Gap & Roadmap (/learning_path) for missing skill analysis and weekly plans; Profile Settings (/profile) for resume upload. "
+            "For recruiters: Dashboard (/recruiter/dashboard) for KPIs, Hiring Funnel, Candidate Roster sorting & Excel Export; "
+            "Post Job (/recruiter/post-job) with Target Skills for AI ranking; Company Profile (/recruiter/company) for logo & bio; Outreach Studio (/outreach_studio). "
+            'Return strict JSON only: {"reply": "...", "actions": [{"label": "...", "href": "/path_or_action"}]}. Keep actions to 0-2 safe internal routes or action="tour".'
+        )
+        history_block = "\n".join(recent_turns)
+        user_prompt = (
+            f"User role: {role}\nCurrent page: {current_path or '/'}\n"
+            + (f"Recent conversation:\n{history_block}\n" if history_block else "")
+            + f"User question: {message}"
+        )
+        try:
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            future = executor.submit(safe_ai_request, system_prompt, user_prompt, retries=0)
+            try:
+                ai_data = future.result(timeout=7.5)
+            finally:
+                executor.shutdown(wait=False, cancel_futures=True)
+            if isinstance(ai_data, dict) and str(ai_data.get('reply') or '').strip():
+                safe_actions = []
+                for act in (ai_data.get('actions') or [])[:2]:
+                    if not isinstance(act, dict):
+                        continue
+                    label = str(act.get('label') or '').strip()[:40]
+                    href = str(act.get('href') or '').strip()
+                    action_name = str(act.get('action') or '').strip()
+                    if label and action_name == 'tour':
+                        safe_actions.append({'label': label, 'action': 'tour'})
+                    elif label and href.startswith('/') and not href.startswith('//'):
+                        safe_actions.append({'label': label, 'href': href})
+                return jsonify({
+                    'success': True,
+                    'reply': str(ai_data['reply']).strip(),
+                    'actions': safe_actions,
+                })
+        except Exception as err:
+            logger.warning(f"Snapy chat AI fallback triggered: {err}")
+
+    try:
+        fallback = _snap_fallback_answer(message, role)
+        return jsonify({
+            'success': True,
+            'reply': fallback['reply'],
+            'actions': fallback.get('actions', []),
+        })
+    except Exception as err:
+        logger.warning(f"Snapy fallback error: {err}")
+        return jsonify({
+            'success': True,
+            'reply': 'I can help you navigate Dashboard, Outreach Studio, Skill Gap & Roadmap, and Profile Settings. What would you like to check?',
+            'actions': [],
+        })
 
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
@@ -7327,7 +7889,15 @@ def profile():
             flash('Failed to update profile.', 'danger')
         return redirect(url_for('profile'))
 
-    user_details = db.get_user_details(current_user.id)
+    user_details = db.get_user_details(current_user.id) or {}
+    signed_in_email = (getattr(current_user, 'email', None) or '').strip()
+    if signed_in_email and not (user_details.get('email') or '').strip():
+        user_details['email'] = signed_in_email
+    if not (user_details.get('full_name') or '').strip() and signed_in_email:
+        extracted = _extract_display_name(None, signed_in_email)
+        if extracted:
+            user_details['full_name'] = extracted
+
     custom_answers = {}
     if user_details and user_details.get('custom_answers'):
         try:
@@ -7340,7 +7910,8 @@ def profile():
     return render_template('profile.html', 
                            user_details=user_details, 
                            custom_answers=custom_answers,
-                           profile_path_is_set=profile_path_is_set)
+                           profile_path_is_set=profile_path_is_set,
+                           signed_in_email=signed_in_email)
 
 @app.route('/api/generate-cover-letter', methods=['POST'])
 @login_required
@@ -9933,6 +10504,7 @@ def save_learning_path():
     try:
         data = request.get_json() or {}
         target_role = data.get('target_role')
+        path_id = data.get('path_id')
         modules_data = data.get('modules', [])
 
         if not modules_data and 'roadmap_data' in data:
@@ -9940,39 +10512,92 @@ def save_learning_path():
             weekly = roadmap.get('weekly_breakdown', []) if isinstance(roadmap, dict) else []
             modules_data = []
             for idx, w in enumerate(weekly):
-                topics_str = ", ".join(t.get('title', '') for t in w.get('focus_topics', []))
+                focus_topics = w.get('focus_topics', []) or []
+                mini_project = w.get('mini_project') if isinstance(w.get('mini_project'), dict) else {}
+                topics_str = ", ".join(t.get('title', '') for t in focus_topics if isinstance(t, dict))
                 m_title = f"Week {w.get('week_number', idx+1)}: {topics_str}".strip(': ')
-                m_desc = w.get('mini_project', {}).get('title', '') if isinstance(w.get('mini_project'), dict) else str(w.get('mini_project') or '')
+                m_desc = mini_project.get('title', '') if mini_project else str(w.get('mini_project') or '')
                 modules_data.append({
                     'title': m_title or f"Week {w.get('week_number', idx+1)}",
                     'description': m_desc,
-                    'topics_data': w.get('focus_topics', [])
+                    'topics_data': {
+                        'focus_topics': focus_topics,
+                        'mini_project': mini_project,
+                        'why_this_matters': w.get('why_this_matters', ''),
+                    },
                 })
 
         if not target_role or not modules_data:
             return jsonify({'error': 'Target role and modules are required'}), 400
 
-        # Create Path
-        new_path = LearningPath(
-            user_id=current_user.id,
-            target_role=target_role,
-            last_accessed=datetime.datetime.utcnow()
-        )
-        db.session.add(new_path)
-        db.session.flush() # Get ID
+        # Update existing LearningPath if path_id belongs to current_user, otherwise create new
+        target_path = None
+        if path_id:
+            target_path = LearningPath.query.filter_by(id=path_id, user_id=current_user.id).first()
 
-        # Create Modules
-        for idx, mod in enumerate(modules_data):
-            new_module = LearningModule(
-                path_id=new_path.id,
-                title=mod.get('title'),
-                description=mod.get('description', ''),
-                order_index=idx
+        if target_path is None:
+            target_path = LearningPath(
+                user_id=current_user.id,
+                target_role=target_role,
+                last_accessed=datetime.datetime.utcnow()
             )
-            db.session.add(new_module)
-        
+            db.session.add(target_path)
+            db.session.flush()
+        else:
+            target_path.target_role = target_role
+            target_path.last_accessed = datetime.datetime.utcnow()
+
+        existing_by_index = {m.order_index: m for m in target_path.modules}
+        saved_modules = []
+        for idx, mod in enumerate(modules_data):
+            mod_obj = existing_by_index.get(idx)
+            if mod_obj is None:
+                mod_obj = LearningModule(
+                    path_id=target_path.id,
+                    title=mod.get('title'),
+                    description=mod.get('description', ''),
+                    order_index=idx,
+                    topics_data=mod.get('topics_data'),
+                )
+                db.session.add(mod_obj)
+            else:
+                mod_obj.title = mod.get('title')
+                mod_obj.description = mod.get('description', '')
+                mod_obj.topics_data = mod.get('topics_data')
+            saved_modules.append((mod_obj, mod.get('topics_data')))
+
+        db.session.flush()
+
+        # Sync UserLearningProgress for each module from its topics_data completion state
+        for mod_obj, t_data in saved_modules:
+            is_done = False
+            if isinstance(t_data, dict):
+                mp = t_data.get('mini_project') or {}
+                focus_topics = t_data.get('focus_topics') or []
+                if isinstance(mp, dict) and mp.get('completed'):
+                    is_done = True
+                elif focus_topics and all(isinstance(t, dict) and t.get('completed') for t in focus_topics):
+                    if not isinstance(mp, dict) or not mp.get('title') or mp.get('completed'):
+                        is_done = True
+
+            prog = UserLearningProgress.query.filter_by(
+                user_id=current_user.id,
+                module_id=mod_obj.id,
+            ).first()
+            if prog is None and is_done:
+                prog = UserLearningProgress(
+                    user_id=current_user.id,
+                    module_id=mod_obj.id,
+                    is_completed=True,
+                    completed_at=datetime.datetime.utcnow(),
+                )
+                db.session.add(prog)
+            elif prog is not None:
+                prog.is_completed = is_done
+                prog.completed_at = datetime.datetime.utcnow() if is_done else None
+
         db.session.commit()
-        return jsonify({'success': True, 'path_id': new_path.id})
+        return jsonify({'success': True, 'path_id': target_path.id})
 
     except Exception as e:
         db.session.rollback()
@@ -10152,6 +10777,10 @@ def _is_module_completed(user_id, module):
             mp = t_data.get('mini_project', {})
             if isinstance(mp, dict) and mp.get('completed'):
                 return True
+            focus_topics = t_data.get('focus_topics') or []
+            if focus_topics and all(isinstance(t, dict) and t.get('completed') for t in focus_topics):
+                if not isinstance(mp, dict) or not mp.get('title') or mp.get('completed'):
+                    return True
     return False
 
 @app.route('/learning-paths', methods=['GET'])
@@ -10307,6 +10936,46 @@ def update_path_progress(path_id):
     db.session.commit()
     return jsonify({'success': True})
 
+def _draw_musab_signature(c, center_x: float, base_y: float) -> None:
+    """Draw a crisp vector calligraphic signature for Musab above the signature rule."""
+    c.saveState()
+    c.setStrokeColorRGB(0.06, 0.11, 0.20)
+    c.setLineWidth(1.85)
+    c.setLineCap(1)   # Round cap
+    c.setLineJoin(1)  # Round join
+
+    # Flowing "M u s a b" calligraphic stroke centered around center_x
+    sx = center_x - 48
+    sy = base_y + 4
+    p = c.beginPath()
+    # Initial upstroke & double-arch M
+    p.moveTo(sx, sy + 2)
+    p.curveTo(sx + 4, sy + 22, sx + 9, sy + 29, sx + 12, sy + 28)
+    p.curveTo(sx + 14, sy + 26, sx + 13, sy + 8, sx + 15, sy + 6)
+    p.curveTo(sx + 18, sy + 18, sx + 23, sy + 27, sx + 26, sy + 26)
+    p.curveTo(sx + 29, sy + 24, sx + 27, sy + 6, sx + 30, sy + 5)
+    # "u" & "s" connecting curve
+    p.curveTo(sx + 34, sy + 5, sx + 36, sy + 13, sx + 39, sy + 12)
+    p.curveTo(sx + 41, sy + 11, sx + 41, sy + 5, sx + 45, sy + 5)
+    p.curveTo(sx + 49, sy + 5, sx + 53, sy + 12, sx + 56, sy + 12)
+    p.curveTo(sx + 59, sy + 12, sx + 57, sy + 5, sx + 62, sy + 5)
+    # "a" & tall loop "b" + trailing flourish
+    p.curveTo(sx + 67, sy + 5, sx + 70, sy + 12, sx + 74, sy + 11)
+    p.curveTo(sx + 78, sy + 10, sx + 77, sy + 25, sx + 81, sy + 28)
+    p.curveTo(sx + 84, sy + 30, sx + 82, sy + 7, sx + 86, sy + 6)
+    p.curveTo(sx + 91, sy + 5, sx + 95, sy + 10, sx + 101, sy + 9)
+    c.drawPath(p, stroke=1, fill=0)
+
+    # Underline flourish
+    c.setLineWidth(1.1)
+    c.setStrokeColorRGB(0.02, 0.59, 0.41)
+    u = c.beginPath()
+    u.moveTo(sx + 4, sy - 2)
+    u.curveTo(sx + 36, sy - 4, sx + 72, sy - 1, sx + 98, sy + 1)
+    c.drawPath(u, stroke=1, fill=0)
+    c.restoreState()
+
+
 @app.route('/learning-path/<int:path_id>/export', methods=['GET'])
 @login_required
 def export_learning_path(path_id):
@@ -10317,16 +10986,12 @@ def export_learning_path(path_id):
         if not HAS_REPORTLAB:
             return jsonify({'error': 'PDF generation library (reportlab) not installed.'}), 501
             
-        # Check completion
+        # Check completion using the same logic as the roadmap API (_is_module_completed)
         total_modules = len(path.modules)
-        completed_progress = UserLearningProgress.query.join(LearningModule).filter(
-            UserLearningProgress.user_id == current_user.id,
-            UserLearningProgress.is_completed == True,
-            LearningModule.path_id == path.id
-        ).count()
-        
-        if total_modules == 0 or completed_progress < total_modules:
-             return jsonify({'error': 'Cannot generate certificate. Learning path is not 100% complete.'}), 400
+        completed_modules = sum(1 for mod in path.modules if _is_module_completed(current_user.id, mod))
+
+        if total_modules == 0 or completed_modules < total_modules:
+            return jsonify({'error': 'Cannot generate certificate. Learning path is not 100% complete.'}), 400
 
         from reportlab.lib.pagesizes import landscape
         from reportlab.lib.units import inch
@@ -10334,23 +10999,57 @@ def export_learning_path(path_id):
         buffer = BytesIO()
         c = canvas.Canvas(buffer, pagesize=landscape(letter))
         width, height = landscape(letter)
-        
-        # Decorative Border
-        c.setStrokeColorRGB(0.25, 0.25, 0.7)
-        c.setLineWidth(4)
-        c.rect(0.5*inch, 0.5*inch, width-1*inch, height-1*inch)
-        c.setStrokeColorRGB(0.8, 0.8, 0.8)
-        c.setLineWidth(1)
-        c.rect(0.6*inch, 0.6*inch, width-1.2*inch, height-1.2*inch)
 
-        # Content
-        c.setFillColorRGB(0.2, 0.2, 0.2)
-        c.setFont("Helvetica-Bold", 42)
-        c.drawCentredString(width/2, height - 2.5*inch, "Certificate of Completion")
-        
-        c.setFont("Helvetica", 20)
-        c.drawCentredString(width/2, height - 3.5*inch, "This is to certify that")
-        
+        # Warm ivory paper background
+        c.setFillColorRGB(0.988, 0.984, 0.973)
+        c.rect(0, 0, width, height, stroke=0, fill=1)
+
+        # Subtle top-right & bottom-left corner accent triangles
+        c.saveState()
+        c.setFillColorRGB(0.024, 0.306, 0.231)
+        for corners in [
+            [(0.42*inch, height - 0.42*inch), (0.95*inch, height - 0.42*inch), (0.42*inch, height - 0.95*inch)],
+            [(width - 0.42*inch, 0.42*inch), (width - 0.95*inch, 0.42*inch), (width - 0.42*inch, 0.95*inch)],
+        ]:
+            tri = c.beginPath()
+            tri.moveTo(*corners[0])
+            tri.lineTo(*corners[1])
+            tri.lineTo(*corners[2])
+            tri.close()
+            c.drawPath(tri, stroke=0, fill=1)
+        c.restoreState()
+
+        # Outer deep emerald border & inner warm gold hairline border
+        c.setStrokeColorRGB(0.024, 0.306, 0.231)
+        c.setLineWidth(3.2)
+        c.rect(0.42*inch, 0.42*inch, width - 0.84*inch, height - 0.84*inch)
+        c.setStrokeColorRGB(0.851, 0.549, 0.141)
+        c.setLineWidth(1.1)
+        c.rect(0.55*inch, 0.55*inch, width - 1.10*inch, height - 1.10*inch)
+
+        # Brand eyebrow
+        c.setFillColorRGB(0.020, 0.588, 0.412)
+        c.setFont("Helvetica-Bold", 9.5)
+        c.drawCentredString(width / 2, height - 1.02*inch, "AI JOBSNAP  •  VERIFIED MASTERY CREDENTIAL")
+
+        # Main Heading
+        c.setFillColorRGB(0.059, 0.090, 0.165)
+        c.setFont("Helvetica-Bold", 34)
+        c.drawCentredString(width / 2, height - 1.55*inch, "CERTIFICATE")
+        c.setFillColorRGB(0.020, 0.588, 0.412)
+        c.setFont("Helvetica-Bold", 13)
+        c.drawCentredString(width / 2, height - 1.84*inch, "OF COMPLETION")
+
+        # Gold rule under title
+        c.setStrokeColorRGB(0.851, 0.549, 0.141)
+        c.setLineWidth(1.5)
+        c.line(width / 2 - 1.1*inch, height - 2.02*inch, width / 2 + 1.1*inch, height - 2.02*inch)
+
+        # Intro copy
+        c.setFillColorRGB(0.392, 0.455, 0.545)
+        c.setFont("Helvetica-Bold", 10)
+        c.drawCentredString(width / 2, height - 2.45*inch, "THIS IS TO CERTIFY THAT")
+
         # User Name
         user_name = current_user.username
         try:
@@ -10358,25 +11057,94 @@ def export_learning_path(path_id):
             user_details = db_instance.get_user_details(current_user.id)
             if user_details and user_details.get('full_name'):
                 user_name = user_details.get('full_name')
-        except: pass
-            
-        c.setFont("Helvetica-Bold", 32)
-        c.setFillColorRGB(0.1, 0.1, 0.6)
-        c.drawCentredString(width/2, height - 4.5*inch, user_name)
-        
-        c.setFillColorRGB(0.2, 0.2, 0.2)
-        c.setFont("Helvetica", 20)
-        c.drawCentredString(width/2, height - 5.5*inch, "has successfully completed the learning path")
-        
-        c.setFont("Helvetica-Bold", 28)
-        c.drawCentredString(width/2, height - 6.5*inch, path.target_role)
-        
-        # Footer
-        c.setFont("Helvetica", 12)
+        except Exception:
+            pass
+
+        name_font_size = 34 if len(user_name) <= 24 else 26
+        c.setFont("Times-BoldItalic", name_font_size)
+        c.setFillColorRGB(0.059, 0.090, 0.165)
+        c.drawCentredString(width / 2, height - 3.05*inch, user_name)
+
+        # Subtle underline beneath recipient name
+        c.setStrokeColorRGB(0.796, 0.835, 0.882)
+        c.setLineWidth(0.9)
+        c.line(width / 2 - 2.3*inch, height - 3.20*inch, width / 2 + 2.3*inch, height - 3.20*inch)
+
+        # Achievement description
+        c.setFillColorRGB(0.278, 0.333, 0.412)
+        c.setFont("Helvetica", 13)
+        c.drawCentredString(width / 2, height - 3.60*inch, "has successfully completed all curriculum modules and hands-on projects for")
+
+        # Target Role
+        role_title = path.target_role or "Career Mastery Track"
+        role_font_size = 24 if len(role_title) <= 34 else 18
+        c.setFillColorRGB(0.024, 0.373, 0.275)
+        c.setFont("Helvetica-Bold", role_font_size)
+        c.drawCentredString(width / 2, height - 4.12*inch, role_title)
+
+        # Module & Mastery summary
+        c.setFillColorRGB(0.392, 0.455, 0.545)
+        c.setFont("Helvetica", 10.5)
+        c.drawCentredString(
+            width / 2,
+            height - 4.48*inch,
+            f"{total_modules} Core Weekly Modules  •  100% Mastery Verified",
+        )
+
+        # Footer Row: Left (Date & ID), Center (Verification Seal), Right (Musab Signature)
+        left_cx = 2.15 * inch
+        right_cx = width - 2.15 * inch
+        line_y = 1.48 * inch
+
+        # Left: Date of Issue + Certificate ID
         date_str = datetime.datetime.now().strftime("%B %d, %Y")
-        c.drawString(1.5*inch, 1.5*inch, f"Date: {date_str}")
-        c.drawRightString(width - 1.5*inch, 1.5*inch, "AI Job Agent Platform")
-        
+        c.setFillColorRGB(0.059, 0.090, 0.165)
+        c.setFont("Helvetica-Bold", 11)
+        c.drawCentredString(left_cx, line_y + 0.12*inch, date_str)
+        c.setStrokeColorRGB(0.580, 0.639, 0.722)
+        c.setLineWidth(0.9)
+        c.line(left_cx - 0.95*inch, line_y, left_cx + 0.95*inch, line_y)
+        c.setFillColorRGB(0.392, 0.455, 0.545)
+        c.setFont("Helvetica-Bold", 8.5)
+        c.drawCentredString(left_cx, line_y - 0.18*inch, "DATE OF ISSUE")
+        c.setFont("Courier", 8)
+        c.setFillColorRGB(0.580, 0.639, 0.722)
+        c.drawCentredString(left_cx, line_y - 0.36*inch, f"Credential ID: JS-{path.id:04d}-{current_user.id:03d}")
+
+        # Center: Gold & Emerald Seal with Ribbon Tails
+        seal_cx = width / 2
+        seal_cy = 1.54 * inch
+        c.saveState()
+        c.setFillColorRGB(0.851, 0.549, 0.141)
+        for dx in (-0.16*inch, 0.04*inch):
+            c.rect(seal_cx + dx, seal_cy - 0.68*inch, 0.12*inch, 0.36*inch, stroke=0, fill=1)
+        c.setFillColorRGB(0.996, 0.953, 0.780)
+        c.setStrokeColorRGB(0.851, 0.549, 0.141)
+        c.setLineWidth(2.2)
+        c.circle(seal_cx, seal_cy, 0.46*inch, stroke=1, fill=1)
+        c.setFillColorRGB(0.024, 0.373, 0.275)
+        c.setStrokeColorRGB(0.020, 0.588, 0.412)
+        c.setLineWidth(1.2)
+        c.circle(seal_cx, seal_cy, 0.35*inch, stroke=1, fill=1)
+        c.setFillColorRGB(1, 1, 1)
+        c.setFont("Helvetica-Bold", 11)
+        c.drawCentredString(seal_cx, seal_cy + 0.03*inch, "100%")
+        c.setFont("Helvetica-Bold", 6.5)
+        c.drawCentredString(seal_cx, seal_cy - 0.13*inch, "VERIFIED")
+        c.restoreState()
+
+        # Right: Musab Vector Signature + Title
+        _draw_musab_signature(c, right_cx, line_y + 0.06*inch)
+        c.setStrokeColorRGB(0.580, 0.639, 0.722)
+        c.setLineWidth(0.9)
+        c.line(right_cx - 0.95*inch, line_y, right_cx + 0.95*inch, line_y)
+        c.setFillColorRGB(0.059, 0.090, 0.165)
+        c.setFont("Helvetica-Bold", 10.5)
+        c.drawCentredString(right_cx, line_y - 0.18*inch, "Musab")
+        c.setFillColorRGB(0.392, 0.455, 0.545)
+        c.setFont("Helvetica", 8.5)
+        c.drawCentredString(right_cx, line_y - 0.35*inch, "Founder & Lead Architect, AI JobSnap")
+
         c.showPage()
         c.save()
         

@@ -1,907 +1,2078 @@
 {% extends "base.html" %}
-{% block title %}Welcome to AI JobSnap — Cinematic Experience{% endblock %}
+{% block title %}Welcome to AI JobSnap{% endblock %}
 {% block navbar %}{% endblock %}
-{% block body_class %}min-h-screen w-full m-0 p-0 bg-[#050814] text-white overflow-x-hidden selection:bg-indigo-500 selection:text-white{% endblock %}
-{% block main_class %}p-0 m-0 min-h-screen w-full{% endblock %}
+{% block body_class %}onboarding-locked overflow-hidden{% endblock %}
+{% block main_class %}p-0 m-0 h-[100dvh] w-full overflow-hidden{% endblock %}
 
 {% block content %}
-<div class="min-h-screen w-full bg-[#050814] relative overflow-hidden flex flex-col justify-between select-none">
-
-    <!-- Full-Screen Ambient Particle & Aurora Canvas -->
-    <canvas id="ambientSpaceCanvas" class="pointer-events-none fixed inset-0 w-full h-full z-0 opacity-75"></canvas>
-
-    <!-- Dynamic Ambient Color Orbs -->
-    <div class="pointer-events-none fixed inset-0 overflow-hidden z-0">
-        <div id="orbPrimary" class=" vocab-orb absolute -top-36 -left-36 w-[540px] h-[540px] rounded-full bg-indigo-600/20 blur-[140px] transition-all duration-1000"></div>
-        <div id="orbSecondary" class="vocab-orb absolute top-1/4 -right-36 w-[500px] h-[500px] rounded-full bg-emerald-500/15 blur-[140px] transition-all duration-1000"></div>
-        <div id="orbTertiary" class="vocab-orb absolute -bottom-44 left-1/3 w-[580px] h-[580px] rounded-full bg-sky-500/12 blur-[150px] transition-all duration-1000"></div>
-    </div>
-
-    <!-- Top Cinematic HUD Header -->
-    <header class="relative z-20 w-full max-w-6xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 sm:gap-3 border-b border-white/10 backdrop-blur-md">
-        <div class="flex items-center gap-2.5 sm:gap-3 order-1">
-            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white shadow-[0_0_20px_rgba(99,102,241,0.35)] shrink-0">
-                <span class="material-symbols-outlined text-[18px] sm:text-[20px]">layers</span>
-            </div>
-            <div>
-                <span class="font-headline-md text-[15px] sm:text-[16px] font-bold tracking-tight text-white block leading-none">AI JobSnap</span>
-                <span class="font-data-mono text-[9px] sm:text-[10px] text-indigo-300/80 tracking-widest uppercase block mt-1">Cinematic Tour · v2.5</span>
-            </div>
-        </div>
-
-        <!-- 4-Step Story Progress Bar (Step 1 to Step 4) -->
-        <div class="flex items-center justify-center gap-1.5 sm:gap-3 order-3 sm:order-2 w-full sm:w-auto pt-1 sm:pt-0" role="navigation" aria-label="Onboarding steps">
-            <button type="button" onclick="userSelectStep(1)" id="stepPill1"
-                class="step-pill flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer bg-white text-slate-950 shadow-[0_0_20px_rgba(255,255,255,0.4)]">
-                <span class="font-data-mono text-[11px] font-bold">01</span>
-                <span class="hidden sm:inline">Identity</span>
-            </button>
-            <div class="w-4 sm:w-10 h-1 rounded-full bg-white/10 overflow-hidden">
-                <div id="connectorBar1" class="h-full bg-gradient-to-r from-indigo-400 to-emerald-400 w-0 transition-all duration-500"></div>
-            </div>
-            <button type="button" onclick="userSelectStep(2)" id="stepPill2"
-                class="step-pill flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer bg-white/5 text-slate-400 border border-white/10 hover:text-white">
-                <span class="font-data-mono text-[11px] font-bold">02</span>
-                <span class="hidden sm:inline">AI Engine</span>
-            </button>
-            <div class="w-4 sm:w-10 h-1 rounded-full bg-white/10 overflow-hidden">
-                <div id="connectorBar2" class="h-full bg-gradient-to-r from-indigo-400 to-emerald-400 w-0 transition-all duration-500"></div>
-            </div>
-            <button type="button" onclick="userSelectStep(3)" id="stepPill3"
-                class="step-pill flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer bg-white/5 text-slate-400 border border-white/10 hover:text-white">
-                <span class="font-data-mono text-[11px] font-bold">03</span>
-                <span class="hidden sm:inline">Velocity</span>
-            </button>
-            <div class="w-4 sm:w-10 h-1 rounded-full bg-white/10 overflow-hidden">
-                <div id="connectorBar3" class="h-full bg-gradient-to-r from-indigo-400 to-emerald-400 w-0 transition-all duration-500"></div>
-            </div>
-            <button type="button" onclick="userSelectStep(4)" id="stepPill4"
-                class="step-pill flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer bg-white/5 text-slate-400 border border-white/10 hover:text-white">
-                <span class="font-data-mono text-[11px] font-bold">04</span>
-                <span class="hidden sm:inline">Launch</span>
-            </button>
-        </div>
-
-        <!-- Sound FX Studio Toggle + User Tag -->
-        <div class="flex items-center gap-3 order-2 sm:order-3">
-            <button type="button" id="soundToggleBtn" onclick="toggleAudioEngine()"
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/8 hover:bg-white/15 border border-white/15 text-[11px] font-data-mono text-emerald-300 transition-all cursor-pointer"
-                title="Toggle Spatial UI Sound Effects">
-                <span id="soundIcon" class="material-symbols-outlined text-[15px]">volume_up</span>
-                <span id="soundLabel" class="hidden sm:inline">SFX ON</span>
-            </button>
-        </div>
-    </header>
-
-    <!-- Main Cinematic Stage -->
-    <main class="relative z-10 flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-col justify-center">
-        <form id="onboardingForm" action="{{ url_for('complete_onboarding') }}" method="POST" onsubmit="return submitOnboarding(event)">
-            <input type="hidden" name="role" id="selectedRoleInput" value="{{ current_user.role if current_user.role in ('seeker', 'recruiter') else 'seeker' }}">
-
-            <!-- ========================================================== -->
-            <!-- STEP 1: CHOOSE YOUR PATH (1-CLICK CINEMATIC IDENTITY)      -->
-            <!-- ========================================================== -->
-            <section id="onboardingStep1" class="onboarding-step stage-enter space-y-5 sm:space-y-7">
-                <div class="text-center max-w-2xl mx-auto space-y-2.5">
-                    <div class="inline-flex items-center gap-2 px-3 sm:px-3.5 py-1 rounded-full bg-indigo-500/15 border border-indigo-400/30 text-indigo-300 font-data-mono text-[10px] sm:text-[11px] uppercase tracking-widest">
-                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping"></span>
-                        <span>Step 1 of 4 · Select Your Experience</span>
-                    </div>
-                    <h1 class="font-headline-lg text-2xl sm:text-5xl font-bold tracking-tight text-white">
-                        How will you use AI JobSnap?
-                    </h1>
-                    <p class="text-slate-300 text-sm sm:text-base">
-                        Tap your role below to unlock a tailored 30-second visual preview of your workspace.
-                    </p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 max-w-4xl mx-auto">
-                    <!-- Job Seeker Portal Card -->
-                    <div id="roleCardSeeker" role="button" tabindex="0" onclick="pickRoleAndPlay('seeker')"
-                        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();pickRoleAndPlay('seeker');}"
-                        class="group relative rounded-2xl sm:rounded-3xl p-5 sm:p-7 bg-gradient-to-b from-[#131c38]/95 to-[#0b1022]/95 border-2 border-indigo-500 shadow-[0_0_50px_rgba(79,70,229,0.28)] transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden">
-                        <div class="absolute -right-12 -top-12 w-40 h-40 rounded-full bg-indigo-500/20 blur-2xl group-hover:bg-indigo-400/30 transition-all"></div>
-                        <div class="relative z-10 flex items-center justify-between mb-6">
-                            <span class="px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 font-data-mono text-[10px] font-bold uppercase tracking-widest">
-                                Candidate Mode
-                            </span>
-                            <div id="checkSeeker" class="w-7 h-7 rounded-full bg-indigo-500 text-white flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.8)]">
-                                <span class="material-symbols-outlined text-[16px]">check</span>
-                            </div>
-                        </div>
-
-                        <div class="relative z-10 flex items-center gap-4 mb-4">
-                            <div class="w-14 h-14 rounded-2xl bg-indigo-500/20 border border-indigo-400/40 text-indigo-300 flex items-center justify-center shadow-inner">
-                                <span class="material-symbols-outlined text-[30px]">rocket_launch</span>
-                            </div>
-                            <div>
-                                <h2 class="text-2xl font-bold text-white">Job Seeker</h2>
-                                <p class="text-xs font-data-mono text-indigo-300">AI Match · Skill Roadmap · Auto Outreach</p>
-                            </div>
-                        </div>
-
-                        <p class="relative z-10 text-slate-300 text-sm leading-relaxed">
-                            Let AI score every job against your resume, build custom learning paths for missing skills, and reach hiring managers directly.
-                        </p>
-                    </div>
-
-                    <!-- Recruiter Portal Card -->
-                    <div id="roleCardRecruiter" role="button" tabindex="0" onclick="pickRoleAndPlay('recruiter')"
-                        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();pickRoleAndPlay('recruiter');}"
-                        class="group relative rounded-2xl sm:rounded-3xl p-5 sm:p-7 bg-gradient-to-b from-[#131c38]/60 to-[#0b1022]/60 border-2 border-white/10 hover:border-sky-400/50 transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden">
-                        <div class="absolute -right-12 -top-12 w-40 h-40 rounded-full bg-sky-500/15 blur-2xl group-hover:bg-sky-400/25 transition-all"></div>
-                        <div class="relative z-10 flex items-center justify-between mb-6">
-                            <span class="px-3 py-1 rounded-full bg-sky-500/20 border border-sky-400/30 text-sky-300 font-data-mono text-[10px] font-bold uppercase tracking-widest">
-                                Recruiter Mode
-                            </span>
-                            <div id="checkRecruiter" class="w-7 h-7 rounded-full bg-white/10 text-transparent flex items-center justify-center">
-                                <span class="material-symbols-outlined text-[16px]">check</span>
-                            </div>
-                        </div>
-
-                        <div class="relative z-10 flex items-center gap-4 mb-4">
-                            <div class="w-14 h-14 rounded-2xl bg-sky-500/20 border border-sky-400/40 text-sky-300 flex items-center justify-center shadow-inner">
-                                <span class="material-symbols-outlined text-[30px]">hub</span>
-                            </div>
-                            <div>
-                                <h2 class="text-2xl font-bold text-white">Recruiter</h2>
-                                <p class="text-xs font-data-mono text-sky-300">Smart Requisitions · AI Ranking · Funnel</p>
-                            </div>
-                        </div>
-
-                        <p class="relative z-10 text-slate-300 text-sm leading-relaxed">
-                            Publish roles, watch incoming applicants get auto-ranked by AI fit telemetry, and manage your hiring funnel in real time.
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ========================================================== -->
-            <!-- STEP 2: SHORT ANIMATED VIDEO — AI TELEMETRY ENGINE         -->
-            <!-- ========================================================== -->
-            <section id="onboardingStep2" class="onboarding-step hidden space-y-6">
-                <div class="text-center max-w-2xl mx-auto space-y-2">
-                    <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 font-data-mono text-[11px] uppercase tracking-widest">
-                        <span class="material-symbols-outlined text-[14px]">movie</span>
-                        <span id="step2BadgeText">Step 2 of 4 · Neural Match Engine Reel</span>
-                    </div>
-                    <h2 id="step2Title" class="font-headline-lg text-2xl sm:text-4xl font-bold text-white">
-                        Watch AI Benchmark Your Resume in Real Time
-                    </h2>
-                    <p id="step2Subtitle" class="text-slate-300 text-sm">
-                        Our neural parser extracts your core stack and scores live opportunities before you even click.
-                    </p>
-                </div>
-
-                <!-- Cinematic Motion Video Player Frame -->
-                <div class="max-w-3xl mx-auto rounded-2xl sm:rounded-3xl bg-[#0b1124] border border-white/15 shadow-[0_25px_80px_rgba(0,0,0,0.65)] overflow-hidden relative">
-                    <!-- Video Top Chrome Bar -->
-                    <div class="px-3.5 sm:px-5 py-2.5 sm:py-3 bg-white/[0.03] border-b border-white/10 flex flex-wrap items-center justify-between gap-2">
-                        <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80 shrink-0"></span>
-                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400/80 shrink-0"></span>
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400/80 shrink-0"></span>
-                            <span id="videoCaptionStep2" class="ml-1.5 sm:ml-2 font-data-mono text-[10px] sm:text-[11px] text-slate-400 truncate">AI_MATCH_TELEMETRY_DEMO.mp4</span>
-                        </div>
-                        <div class="flex items-center gap-1.5 sm:gap-2 font-data-mono text-[9.5px] sm:text-[10px] text-emerald-400 shrink-0">
-                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span class="hidden sm:inline">AUTO-PLAYING MOTION REEL</span>
-                            <span class="sm:hidden">LIVE REEL</span>
-                        </div>
-                    </div>
-
-                    <!-- Animated Motion Scene Container (Seeker) -->
-                    <div id="videoScene2Seeker" class="p-4 sm:p-8 min-h-[260px] sm:min-h-[290px] flex flex-col justify-between relative overflow-hidden">
-                        <!-- Animated Laser Scan Line -->
-                        <div class="laser-scan-beam pointer-events-none"></div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-5 items-center my-auto">
-                            <!-- Left: Animated Resume Node -->
-                            <div class="sm:col-span-5 rounded-2xl bg-white/[0.04] border border-indigo-400/30 p-4 space-y-3 relative overflow-hidden">
-                                <div class="flex items-center gap-2.5">
-                                    <div class="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center">
-                                        <span class="material-symbols-outlined text-[20px]">description</span>
-                                    </div>
-                                    <div>
-                                        <div class="text-xs font-bold text-white">Resume_Parsed.pdf</div>
-                                        <div class="text-[10px] font-data-mono text-indigo-300">Neural Extraction Active</div>
-                                    </div>
-                                </div>
-                                <div class="flex flex-wrap gap-1.5 pt-1">
-                                    <span class="skill-chip-anim chip-delay-1 px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-data-mono text-[10px]">Python ✓</span>
-                                    <span class="skill-chip-anim chip-delay-2 px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-data-mono text-[10px]">React ✓</span>
-                                    <span class="skill-chip-anim chip-delay-3 px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-data-mono text-[10px]">TypeScript ✓</span>
-                                    <span class="skill-chip-anim chip-delay-4 px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-data-mono text-[10px]">Kubernetes ⚡</span>
-                                </div>
-                            </div>
-
-                            <!-- Center Animated Data Stream -->
-                            <div class="sm:col-span-2 flex flex-col items-center justify-center gap-1">
-                                <div class="w-full h-1 rounded-full bg-white/10 overflow-hidden">
-                                    <div class="stream-pulse-bar h-full bg-gradient-to-r from-indigo-500 via-emerald-400 to-indigo-500"></div>
-                                </div>
-                                <span class="font-data-mono text-[9px] text-slate-400 uppercase tracking-widest">AI Scoring</span>
-                            </div>
-
-                            <!-- Right: Animated Live Score Gauge & Roadmap -->
-                            <div class="sm:col-span-5 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-indigo-500/10 border border-emerald-400/40 p-4 flex flex-col justify-between space-y-3">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <span class="text-[10px] font-data-mono uppercase text-emerald-300 block">Senior AI Engineer</span>
-                                        <span class="text-sm font-bold text-white">Linear Systems</span>
-                                    </div>
-                                    <div class="text-right">
-                                        <span id="seekerAnimatedScore" class="font-data-mono text-3xl font-extrabold text-emerald-400">94%</span>
-                                        <span class="block text-[9px] font-data-mono text-emerald-200 uppercase">Match Fit</span>
-                                    </div>
-                                </div>
-                                <div class="rounded-xl bg-black/30 p-2.5 border border-white/10 flex items-center justify-between text-[11px]">
-                                    <span class="text-amber-300 font-medium">Gap: Kubernetes</span>
-                                    <span class="text-indigo-300 font-data-mono">→ 4-Wk Roadmap Ready</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Animated Motion Scene Container (Recruiter) -->
-                    <div id="videoScene2Recruiter" class="hidden p-6 sm:p-8 min-h-[290px] flex-col justify-center relative overflow-hidden">
-                        <div class="laser-scan-beam pointer-events-none"></div>
-                        <div class="space-y-3 my-auto">
-                            <div class="flex items-center justify-between text-xs font-data-mono text-sky-300 pb-1">
-                                <span>LIVE AI APPLICANT AUTO-RANKER</span>
-                                <span>REQUISITION: STAFF BACKEND ENGINEER</span>
-                            </div>
-                            <div class="rank-row-anim rank-delay-1 flex items-center justify-between p-3.5 rounded-2xl bg-emerald-500/12 border border-emerald-400/40 shadow-lg">
-                                <div class="flex items-center gap-3">
-                                    <span class="w-7 h-7 rounded-full bg-emerald-500 text-slate-950 font-data-mono font-bold text-xs flex items-center justify-center">#1</span>
-                                    <div>
-                                        <div class="text-sm font-bold text-white">Aarav Mehta</div>
-                                        <div class="text-[11px] text-slate-300">Python · Go · Distributed Systems · 6 yrs</div>
-                                    </div>
-                                </div>
-                                <span class="px-3 py-1 rounded-full bg-emerald-400/20 text-emerald-300 font-data-mono text-sm font-bold">96% AI FIT</span>
-                            </div>
-                            <div class="rank-row-anim rank-delay-2 flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.04] border border-white/12">
-                                <div class="flex items-center gap-3">
-                                    <span class="w-7 h-7 rounded-full bg-sky-500/30 text-sky-300 font-data-mono font-bold text-xs flex items-center justify-center">#2</span>
-                                    <div>
-                                        <div class="text-sm font-bold text-white">Elena Rostova</div>
-                                        <div class="text-[11px] text-slate-400">Python · AWS · Kafka · 5 yrs</div>
-                                    </div>
-                                </div>
-                                <span class="px-3 py-1 rounded-full bg-sky-400/20 text-sky-300 font-data-mono text-sm font-bold">91% AI FIT</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Video Timeline Scrub Bar -->
-                    <div class="h-1.5 w-full bg-white/10 overflow-hidden">
-                        <div id="reelProgress2" class="h-full bg-gradient-to-r from-indigo-500 via-sky-400 to-emerald-400 w-0"></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ========================================================== -->
-            <!-- STEP 3: SHORT ANIMATED VIDEO — OUTREACH & FUNNEL VELOCITY  -->
-            <!-- ========================================================== -->
-            <section id="onboardingStep3" class="onboarding-step hidden space-y-6">
-                <div class="text-center max-w-2xl mx-auto space-y-2">
-                    <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-sky-500/15 border border-sky-400/30 text-sky-300 font-data-mono text-[11px] uppercase tracking-widest">
-                        <span class="material-symbols-outlined text-[14px]">bolt</span>
-                        <span id="step3BadgeText">Step 3 of 4 · Autonomous Velocity Reel</span>
-                    </div>
-                    <h2 id="step3Title" class="font-headline-lg text-2xl sm:text-4xl font-bold text-white">
-                        Direct Recruiter Radar & Automated Outreach
-                    </h2>
-                    <p id="step3Subtitle" class="text-slate-300 text-sm">
-                        Skip the queue—discover decision-makers and trigger personalized outreach sequences in one click.
-                    </p>
-                </div>
-
-                <!-- Cinematic Motion Video Player Frame -->
-                <div class="max-w-3xl mx-auto rounded-2xl sm:rounded-3xl bg-[#0b1124] border border-white/15 shadow-[0_25px_80px_rgba(0,0,0,0.65)] overflow-hidden relative">
-                    <div class="px-3.5 sm:px-5 py-2.5 sm:py-3 bg-white/[0.03] border-b border-white/10 flex flex-wrap items-center justify-between gap-2">
-                        <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80 shrink-0"></span>
-                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400/80 shrink-0"></span>
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400/80 shrink-0"></span>
-                            <span id="videoCaptionStep3" class="ml-1.5 sm:ml-2 font-data-mono text-[10px] sm:text-[11px] text-slate-400 truncate">OUTREACH_RADAR_REEL.mp4</span>
-                        </div>
-                        <div class="flex items-center gap-1.5 sm:gap-2 font-data-mono text-[9.5px] sm:text-[10px] text-sky-400 shrink-0">
-                            <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
-                            <span class="hidden sm:inline">HD MOTION PREVIEW</span>
-                            <span class="sm:hidden">LIVE REEL</span>
-                        </div>
-                    </div>
-
-                    <!-- Seeker Step 3 Animated Radar & Outreach Scene -->
-                    <div id="videoScene3Seeker" class="p-4 sm:p-8 min-h-[260px] sm:min-h-[290px] flex flex-col justify-center relative overflow-hidden">
-                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center my-auto">
-                            <!-- Left Radar Sweep -->
-                            <div class="sm:col-span-5 flex flex-col items-center justify-center">
-                                <div class="relative w-36 h-36 rounded-full border border-indigo-400/30 bg-indigo-950/30 flex items-center justify-center overflow-hidden">
-                                    <div class="absolute inset-3 rounded-full border border-indigo-400/20"></div>
-                                    <div class="absolute inset-8 rounded-full border border-indigo-400/20"></div>
-                                    <div class="radar-sweep-cone"></div>
-                                    <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_15px_#34d399] relative z-10"></span>
-                                    <span class="w-2 h-2 rounded-full bg-sky-400 absolute top-7 right-9 animate-ping"></span>
-                                    <span class="w-2 h-2 rounded-full bg-indigo-400 absolute bottom-8 left-8 animate-ping"></span>
-                                </div>
-                                <span class="font-data-mono text-[10px] text-indigo-300 uppercase tracking-widest mt-3">People Radar Active</span>
-                            </div>
-
-                            <!-- Right Animated Outreach Sequence -->
-                            <div class="sm:col-span-7 space-y-3">
-                                <div class="rank-row-anim rank-delay-1 rounded-2xl bg-white/[0.05] border border-white/10 p-3.5 flex items-center justify-between">
-                                    <div>
-                                        <div class="text-xs font-bold text-white">Sarah Jenkins · VP Engineering</div>
-                                        <div class="text-[11px] text-slate-400">Verified Direct Email · AI Pitch Attached</div>
-                                    </div>
-                                    <span class="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-data-mono text-[10px] font-bold">SENT ✓</span>
-                                </div>
-                                <div class="rank-row-anim rank-delay-2 rounded-2xl bg-emerald-500/12 border border-emerald-400/35 p-3.5 flex items-center justify-between">
-                                    <div>
-                                        <div class="text-xs font-bold text-white">David Chen · Head of Talent</div>
-                                        <div class="text-[11px] text-emerald-300">“Loved your portfolio—let's chat Thursday!”</div>
-                                    </div>
-                                    <span class="px-2.5 py-1 rounded-full bg-emerald-400 text-slate-950 font-data-mono text-[10px] font-bold">REPLIED ★</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Recruiter Step 3 Animated Funnel Velocity Scene -->
-                    <div id="videoScene3Recruiter" class="hidden p-4 sm:p-8 min-h-[260px] sm:min-h-[290px] flex-col justify-center relative overflow-hidden">
-                        <div class="space-y-4 my-auto">
-                            <div class="flex flex-wrap items-center justify-between gap-1.5 text-[10px] sm:text-xs font-data-mono text-sky-300">
-                                <span>LIVE HIRING PIPELINE TELEMETRY</span>
-                                <span class="text-emerald-400">1-CLICK STAGE ADVANCEMENT</span>
-                            </div>
-                            <div class="space-y-3 font-data-mono text-xs">
-                                <div class="flex items-center gap-2 sm:gap-3">
-                                    <span class="w-16 sm:w-24 text-right text-slate-400 text-[10px] sm:text-xs">APPLIED</span>
-                                    <div class="flex-1 h-4 sm:h-5 rounded-full bg-white/5 overflow-hidden">
-                                        <div class="funnel-bar-anim h-full bg-indigo-500 rounded-full" style="--target-w: 100%"></div>
-                                    </div>
-                                    <span class="w-7 sm:w-8 text-right font-bold text-white">32</span>
-                                </div>
-                                <div class="flex items-center gap-2 sm:gap-3">
-                                    <span class="w-16 sm:w-24 text-right text-slate-400 text-[10px] sm:text-xs">SHORTLIST</span>
-                                    <div class="flex-1 h-4 sm:h-5 rounded-full bg-white/5 overflow-hidden">
-                                        <div class="funnel-bar-anim h-full bg-violet-500 rounded-full" style="--target-w: 58%"></div>
-                                    </div>
-                                    <span class="w-7 sm:w-8 text-right font-bold text-white">18</span>
-                                </div>
-                                <div class="flex items-center gap-2 sm:gap-3">
-                                    <span class="w-16 sm:w-24 text-right text-slate-400 text-[10px] sm:text-xs">INTERVIEW</span>
-                                    <div class="flex-1 h-4 sm:h-5 rounded-full bg-white/5 overflow-hidden">
-                                        <div class="funnel-bar-anim h-full bg-sky-400 rounded-full" style="--target-w: 32%"></div>
-                                    </div>
-                                    <span class="w-7 sm:w-8 text-right font-bold text-white">9</span>
-                                </div>
-                                <div class="flex items-center gap-2 sm:gap-3">
-                                    <span class="w-16 sm:w-24 text-right text-slate-400 text-[10px] sm:text-xs">HIRED</span>
-                                    <div class="flex-1 h-4 sm:h-5 rounded-full bg-white/5 overflow-hidden">
-                                        <div class="funnel-bar-anim h-full bg-emerald-400 rounded-full" style="--target-w: 16%"></div>
-                                    </div>
-                                    <span class="w-7 sm:w-8 text-right font-bold text-emerald-400">4</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="h-1.5 w-full bg-white/10 overflow-hidden">
-                        <div id="reelProgress3" class="h-full bg-gradient-to-r from-sky-400 via-indigo-400 to-emerald-400 w-0"></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ========================================================== -->
-            <!-- STEP 4: ZERO-FRICTION CINEMATIC LAUNCHPAD                  -->
-            <!-- ========================================================== -->
-            <section id="onboardingStep4" class="onboarding-step hidden space-y-6 sm:space-y-7">
-                <div class="text-center max-w-xl mx-auto space-y-4">
-                    <!-- Animated Orbital Readiness Ring -->
-                    <div class="relative w-24 h-24 sm:w-28 sm:h-28 mx-auto flex items-center justify-center">
-                        <div class="absolute inset-0 rounded-full border-2 border-emerald-400/30 animate-ping"></div>
-                        <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-indigo-600/30 to-emerald-400/30 border-2 border-emerald-400 flex items-center justify-center shadow-[0_0_45px_rgba(16,185,129,0.45)]">
-                            <span class="material-symbols-outlined text-[36px] sm:text-[42px] text-emerald-300">bolt</span>
-                        </div>
-                    </div>
-
-                    <div class="inline-flex items-center gap-2 px-3 sm:px-3.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 font-data-mono text-[10px] sm:text-[11px] uppercase tracking-widest">
-                        <span>Step 4 of 4 · System Calibrated</span>
-                    </div>
-
-                    <h2 id="step4Heading" class="font-headline-lg text-2xl sm:text-5xl font-bold text-white">
-                        Your Candidate Console is Ready.
-                    </h2>
-                    <p id="step4Subheading" class="text-slate-300 text-sm sm:text-base leading-relaxed">
-                        All AI telemetry engines, resume parsers, and outreach radars are online and configured for your account.
-                    </p>
-                </div>
-
-                <!-- Auto-Checked System Readiness Telemetry Pills -->
-                <div class="max-w-lg mx-auto rounded-2xl bg-white/[0.04] border border-white/12 p-4 sm:p-5 space-y-2.5 sm:space-y-3 font-data-mono text-[11px] sm:text-xs">
-                    <div class="flex items-center justify-between gap-2 text-emerald-300">
-                        <span class="truncate">[01] NEURAL MATCHING ENGINE</span>
-                        <span class="font-bold shrink-0">ONLINE ✓</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-2 text-emerald-300">
-                        <span id="step4Check2" class="truncate">[02] SKILL GAP & ROADMAP SYNTHESIZER</span>
-                        <span class="font-bold shrink-0">READY ✓</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-2 text-emerald-300">
-                        <span id="step4Check3" class="truncate">[03] PEOPLE RADAR & OUTREACH STUDIO</span>
-                        <span class="font-bold shrink-0">CALIBRATED ✓</span>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Bottom Cinematic Controls -->
-            <div class="max-w-3xl mx-auto mt-6 sm:mt-8 pt-4 sm:pt-5 border-t border-white/10 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
-                <button type="button" id="prevStepBtn" onclick="prevStep()"
-                    class="invisible w-full sm:w-auto px-5 py-3 sm:py-2.5 min-h-[44px] rounded-full bg-white/6 hover:bg-white/12 border border-white/12 text-xs font-semibold uppercase tracking-wider text-slate-300 transition-all cursor-pointer flex items-center justify-center gap-1.5">
-                    <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                    <span>Back</span>
-                </button>
-
-                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
-                    <button type="button" id="nextStepBtn" onclick="nextStep()"
-                        class="w-full sm:w-auto px-8 py-3.5 min-h-[44px] rounded-full bg-white hover:bg-indigo-50 text-slate-950 font-bold text-xs uppercase tracking-widest transition-all shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2">
-                        <span>Next Step</span>
-                        <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-                    </button>
-
-                    <button type="submit" id="finishOnboardingBtn"
-                        class="hidden w-full sm:w-auto px-8 sm:px-9 py-3.5 sm:py-4 min-h-[44px] rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 text-slate-950 font-extrabold text-xs uppercase tracking-widest transition-all shadow-[0_0_40px_rgba(16,185,129,0.5)] hover:scale-[1.03] active:scale-[0.98] cursor-pointer items-center justify-center gap-2.5">
-                        <span id="finishBtnLabel">Enter Candidate Console</span>
-                        <span class="material-symbols-outlined text-[18px]">rocket_launch</span>
-                    </button>
-                </div>
-            </div>
-        </form>
-    </main>
-</div>
-
 <style>
-.stage-enter {
-    animation: stageFadeUp 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
+  html,
+  body,
+  #main-content,
+  .onboarding-shell {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
 
-@keyframes stageFadeUp {
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  #main-content::-webkit-scrollbar,
+  .onboarding-shell::-webkit-scrollbar,
+  .onboarding-shell *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  .onboarding-shell * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .onboarding-shell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-background, #faf8f5);
+    color: var(--text-on-surface, #1c1917);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  .ob-header {
+    height: 64px;
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border-outline-variant, #e0d9cc);
+    background-color: var(--bg-surface, #fcfbf8);
+    z-index: 2;
+  }
+
+  .ob-brand {
+    justify-self: start;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    letter-spacing: -0.02em;
+    color: var(--text-on-surface, #1c1917);
+    white-space: nowrap;
+  }
+
+  .ob-brand-mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-primary, #10b981);
+    color: #ffffff;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .ob-brand:hover .ob-brand-mark {
+    transform: rotate(-8deg) scale(1.06);
+  }
+
+  .ob-stepper {
+    justify-self: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .ob-step-pill {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-on-surface-variant, #78716c);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
+  }
+
+  .ob-step-pill:not(:disabled):hover {
+    background-color: var(--bg-surface-container-low, #f4f1ea);
+    color: var(--text-on-surface, #1c1917);
+    transform: translateY(-1px);
+  }
+
+  .ob-step-pill:disabled,
+  .ob-step-pill.is-locked {
+    opacity: 0.42;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  .ob-step-pill.is-active {
+    background-color: var(--bg-surface-container-low, #f4f1ea);
+    border-color: var(--color-primary, #10b981);
+    color: var(--text-on-surface, #1c1917);
+  }
+
+  .ob-step-pill.is-complete {
+    color: var(--color-primary, #10b981);
+  }
+
+  .ob-step-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    opacity: 0.85;
+  }
+
+  .ob-header-actions {
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ob-icon-btn {
+    height: 36px;
+    min-width: 36px;
+    padding: 0 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border-outline-variant, #e0d9cc);
+    background-color: var(--bg-surface-container-low, #f4f1ea);
+    color: var(--text-on-surface, #1c1917);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.15s ease, color 0.16s ease;
+  }
+
+  .ob-icon-btn:hover {
+    border-color: var(--color-primary, #10b981);
+    transform: translateY(-1px);
+  }
+
+  .ob-icon-btn.is-active-sfx {
+    color: var(--color-primary, #10b981);
+  }
+
+  .ob-stage {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 24px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .ob-panel {
+    display: none;
+    width: 100%;
+    max-width: 860px;
+    max-height: 100%;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .ob-panel.is-active {
+    display: flex;
+  }
+
+  .ob-panel.is-enter-forward .ob-stagger {
+    animation: obSlideForward 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .ob-panel.is-enter-back .ob-stagger {
+    animation: obSlideBackward 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .ob-stagger-1 { animation-delay: 0ms !important; }
+  .ob-stagger-2 { animation-delay: 65ms !important; }
+  .ob-stagger-3 { animation-delay: 130ms !important; }
+
+  @keyframes obSlideForward {
     from {
-        opacity: 0;
-        transform: translateY(14px) scale(0.985);
+      opacity: 0;
+      transform: translateX(18px) translateY(4px);
     }
     to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
+      opacity: 1;
+      transform: translateX(0) translateY(0);
     }
-}
+  }
 
-.laser-scan-beam {
+  @keyframes obSlideBackward {
+    from {
+      opacity: 0;
+      transform: translateX(-18px) translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0) translateY(0);
+    }
+  }
+
+  .ob-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-primary, #10b981);
+  }
+
+  .ob-title {
+    margin: 4px 0 0 0;
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    font-size: clamp(1.5rem, 2.4vw, 2.1rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.14;
+    color: var(--text-on-surface, #1c1917);
+  }
+
+  .ob-subtitle {
+    margin: 5px 0 0 0;
+    font-size: 14px;
+    line-height: 1.48;
+    color: var(--text-on-surface-variant, #78716c);
+    max-width: 60ch;
+  }
+
+  .ob-header-with-mascot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .ob-card {
+    background-color: var(--bg-surface, #fcfbf8);
+    border: 1px solid var(--border-outline-variant, #e0d9cc);
+    border-radius: 16px;
+    padding: 20px;
+  }
+
+  /* Companion Characters & SVG Animations */
+  .ob-char-stage {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .ob-char-float {
+    animation: obCharFloat 3.4s ease-in-out infinite;
+    transform-origin: center bottom;
+  }
+
+  .ob-char-float--delay {
+    animation-delay: -1.5s;
+  }
+
+  .ob-char-blink {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: obCharBlink 4.4s ease-in-out infinite;
+  }
+
+  .ob-char-arm-wave {
+    transform-box: fill-box;
+    transform-origin: 20% 80%;
+    animation: obArmWave 2.6s ease-in-out infinite;
+  }
+
+  .ob-char-prop-bob {
+    animation: obPropBob 2.4s ease-in-out infinite;
+  }
+
+  .ob-dash-flow {
+    stroke-dasharray: 5 5;
+    animation: obDashFlow 1.6s linear infinite;
+  }
+
+  @keyframes obCharFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+  }
+
+  @keyframes obCharBlink {
+    0%, 44%, 48%, 92%, 96%, 100% { transform: scaleY(1); }
+    46%, 94% { transform: scaleY(0.12); }
+  }
+
+  @keyframes obArmWave {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-10deg); }
+    50% { transform: rotate(4deg); }
+    75% { transform: rotate(-6deg); }
+  }
+
+  @keyframes obPropBob {
+    0%, 100% { transform: translateY(0px) rotate(-2deg); }
+    50% { transform: translateY(-4px) rotate(3deg); }
+  }
+
+  @keyframes obDashFlow {
+    to { stroke-dashoffset: -20; }
+  }
+
+  @keyframes obHappyHop {
+    0% { transform: translateY(0) scale(1); }
+    35% { transform: translateY(-9px) scale(1.06); }
+    70% { transform: translateY(2px) scale(0.98); }
+    100% { transform: translateY(0) scale(1); }
+  }
+
+  @keyframes obHeadShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px) rotate(-2deg); }
+    45% { transform: translateX(6px) rotate(2deg); }
+    70% { transform: translateX(-4px); }
+  }
+
+  /* Mascot card beside Step 2 & Step 5 */
+  .ob-companion-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 18px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--border-outline-variant, #e0d9cc);
+    background-color: var(--bg-surface, #fcfbf8);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ob-companion-box[data-mood="valid"] .ob-char-wrap {
+    animation: obHappyHop 0.48s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .ob-companion-box[data-mood="error"] .ob-char-wrap {
+    animation: obHeadShake 0.42s ease-in-out;
+  }
+
+  .ob-companion-box[data-mood="checking"] .ob-scout-eyes {
+    animation: obEyesScan 0.8s ease-in-out infinite alternate;
+  }
+
+  @keyframes obEyesScan {
+    from { transform: translateX(-2px); }
+    to { transform: translateX(2px); }
+  }
+
+  .ob-speech-bubble {
+    font-size: 12px;
+    line-height: 1.4;
+    font-weight: 600;
+    padding: 6px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--border-outline-variant, #e0d9cc);
+    background-color: var(--bg-surface-container-low, #f4f1ea);
+    color: var(--text-on-surface, #1c1917);
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .ob-companion-box[data-mood="valid"] .ob-speech-bubble {
+    border-color: var(--color-primary, #10b981);
+    color: var(--color-primary, #10b981);
+  }
+
+  .ob-companion-box[data-mood="error"] .ob-speech-bubble {
+    border-color: var(--color-error, #ef4444);
+    color: var(--color-error, #ef4444);
+  }
+
+  /* Step 1 Role Cards */
+  .ob-role-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .ob-role-card {
+    text-align: left;
+    background-color: var(--bg-surface, #fcfbf8);
+    border: 1.5px solid var(--border-outline-variant, #e0d9cc);
+    border-radius: 16px;
+    padding: 20px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+  }
+
+  .ob-role-card:hover {
+    border-color: var(--color-primary, #10b981);
+    transform: translateY(-3px);
+  }
+
+  .ob-role-card.is-selected {
+    border-color: var(--color-primary, #10b981);
+    background-color: var(--bg-surface-container-low, #f4f1ea);
+    box-shadow: 0 0 0 1px var(--color-primary, #10b981);
+  }
+
+  .ob-role-card.is-selected .ob-role-char-pop {
+    animation: obHappyHop 0.48s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .ob-role-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .ob-role-badge-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    border: 1px solid var(--border-outline-variant, #e0d9cc);
+    color: var(--text-on-surface-variant, #78716c);
+    transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+  }
+
+  .ob-role-card.is-selected .ob-role-badge-check {
+    background-color: var(--color-primary, #10b981);
+    border-color: var(--color-primary, #10b981);
+    color: #ffffff;
+  }
+
+  .ob-role-name {
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-on-surface, #1c1917);
+  }
+
+  .ob-role-desc {
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--text-on-surface-variant, #78716c);
+  }
+
+  .ob-role-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 2px;
+  }
+
+  .ob-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background-color: var(--bg-surface-container-low, #f4f1ea);
+    border: 1px solid var(--border-outline-variant, #e0d9cc);
+    color: var(--text-on-surface-variant, #78716c);
+  }
+
+  .ob-badge-required {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background-color: rgba(16, 185, 129, 0.12);
+    color: var(--color-primary, #10b981);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    white-space: nowrap;
+  }
+
+  /* Step 2 Handle Grid */
+  .ob-split-card-grid {
+    display: grid;
+    grid-template-columns: 1.65fr 1fr;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .ob-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .ob-input-prefix {
     position: absolute;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.85), rgba(99, 102, 241, 0.9), transparent);
-    box-shadow: 0 0 18px rgba(52, 211, 153, 0.7);
-    animation: laserSweep 3.4s ease-in-out infinite;
-}
+    left: 14px;
+    z-index: 2;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-on-surface-variant, #78716c);
+    pointer-events: none;
+  }
 
-@keyframes laserSweep {
-    0% { top: 8%; opacity: 0.2; }
-    50% { top: 88%; opacity: 0.95; }
-    100% { top: 8%; opacity: 0.2; }
-}
-
-.stream-pulse-bar {
+  .ob-input {
     width: 100%;
-    animation: streamFlow 1.6s linear infinite;
-}
+    height: 46px;
+    border-radius: 10px;
+    padding: 0 14px;
+    font-size: 14.5px;
+    outline: none;
+  }
 
-@keyframes streamFlow {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-}
+  .ob-input--handle {
+    padding-left: 34px !important;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+  }
 
-.skill-chip-anim {
-    opacity: 0;
-    animation: chipPopIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.chip-delay-1 { animation-delay: 0.2s; }
-.chip-delay-2 { animation-delay: 0.45s; }
-.chip-delay-3 { animation-delay: 0.7s; }
-.chip-delay-4 { animation-delay: 0.95s; }
+  .ob-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 24px;
+    margin-top: 10px;
+    font-size: 13px;
+  }
 
-@keyframes chipPopIn {
-    from { opacity: 0; transform: translateY(8px) scale(0.9); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
+  .ob-status-text {
+    color: var(--text-on-surface-variant, #78716c);
+  }
 
-.rank-row-anim {
-    opacity: 0;
-    animation: chipPopIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.rank-delay-1 { animation-delay: 0.25s; }
-.rank-delay-2 { animation-delay: 0.65s; }
+  .ob-status-text.is-ok {
+    color: var(--color-primary, #10b981);
+    font-weight: 600;
+  }
 
-.radar-sweep-cone {
+  .ob-status-text.is-error {
+    color: var(--color-error, #ef4444);
+    font-weight: 600;
+  }
+
+  .ob-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .ob-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-outline-variant, #e0d9cc);
+    background-color: var(--bg-surface-container-low, #f4f1ea);
+    color: var(--text-on-surface, #1c1917);
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .ob-chip:hover {
+    border-color: var(--color-primary, #10b981);
+    transform: translateY(-2px);
+  }
+
+  .ob-two-col {
+    display: grid;
+    grid-template-columns: 1.12fr 1fr;
+    gap: 16px;
+  }
+
+  .ob-kv-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .ob-kv-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background-color: var(--bg-surface-container-low, #f4f1ea);
+    border: 1px solid var(--border-outline-variant, #e0d9cc);
+    font-size: 13px;
+    transition: transform 0.18s ease, border-color 0.18s ease;
+  }
+
+  .ob-kv-item:hover {
+    transform: translateX(3px);
+    border-color: var(--color-primary, #10b981);
+  }
+
+  .ob-bar-track {
+    width: 100%;
+    height: 7px;
+    border-radius: 999px;
+    background-color: var(--bg-surface-container-low, #f4f1ea);
+    border: 1px solid var(--border-outline-variant, #e0d9cc);
+    overflow: hidden;
+    margin-top: 6px;
+  }
+
+  .ob-bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background-color: var(--color-primary, #10b981);
+    transition: width 0.72s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .ob-dropzone {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+    padding: 20px 16px;
+    border-radius: 14px;
+    border: 1.5px dashed var(--border-outline-variant, #e0d9cc);
+    background-color: var(--bg-surface-container-low, #f4f1ea);
+    cursor: pointer;
+    transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+    height: 100%;
+  }
+
+  .ob-dropzone:hover,
+  .ob-dropzone.is-dragover {
+    border-color: var(--color-primary, #10b981);
+    transform: scale(1.01);
+  }
+
+  .ob-dropzone.has-file {
+    border-style: solid;
+    border-color: var(--color-primary, #10b981);
+  }
+
+  /* Confetti burst inside companion box */
+  .ob-confetti-layer {
     position: absolute;
-    width: 50%;
-    height: 50%;
-    top: 0;
-    left: 50%;
-    transform-origin: bottom left;
-    background: conic-gradient(from 0deg, rgba(99, 102, 241, 0.55), transparent 90deg);
-    animation: radarSpin 2.6s linear infinite;
-}
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
 
-@keyframes radarSpin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
+  .ob-confetti-dot {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
+    opacity: 0;
+    animation: obConfettiFly 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
 
-.funnel-bar-anim {
-    width: 0;
-    animation: growFunnelBar 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
+  @keyframes obConfettiFly {
+    0% {
+      opacity: 1;
+      transform: translate(0, 0) scale(0.6) rotate(0deg);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(var(--tx, 20px), var(--ty, -45px)) scale(1) rotate(220deg);
+    }
+  }
 
-@keyframes growFunnelBar {
-    from { width: 0%; }
-    to { width: var(--target-w, 100%); }
-}
+  .ob-summary-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .ob-summary-cell {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border-outline-variant, #e0d9cc);
+    background-color: var(--bg-surface-container-low, #f4f1ea);
+  }
+
+  .ob-summary-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-on-surface-variant, #78716c);
+  }
+
+  .ob-summary-val {
+    margin-top: 2px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-on-surface, #1c1917);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ob-footer {
+    height: 68px;
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    padding: 0 24px;
+    border-top: 1px solid var(--border-outline-variant, #e0d9cc);
+    background-color: var(--bg-surface, #fcfbf8);
+    z-index: 2;
+  }
+
+  .ob-footer > :first-child { justify-self: start; }
+  .ob-footer > :nth-child(2) { justify-self: center; }
+  .ob-footer > :last-child { justify-self: end; }
+
+  .ob-btn {
+    height: 40px;
+    padding: 0 18px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: opacity 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .ob-btn:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+
+  .ob-btn:not(:disabled):active {
+    transform: scale(0.97);
+  }
+
+  .ob-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .ob-btn-ghost {
+    border: 1px solid var(--border-outline-variant, #e0d9cc);
+    background-color: var(--bg-surface-container-low, #f4f1ea);
+    color: var(--text-on-surface, #1c1917);
+  }
+
+  .ob-btn-primary {
+    border: 1px solid var(--color-primary, #10b981);
+    background-color: var(--color-primary, #10b981);
+    color: #ffffff;
+  }
+
+  .ob-error-banner {
+    display: none;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    background-color: rgba(239, 68, 68, 0.08);
+    color: var(--color-error, #ef4444);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .ob-error-banner.is-visible {
+    display: block;
+    animation: obHeadShake 0.35s ease;
+  }
+
+  @media (max-width: 780px) {
+    .ob-header,
+    .ob-footer {
+      padding: 0 14px;
+    }
+    .ob-step-label {
+      display: none;
+    }
+    .ob-role-grid,
+    .ob-two-col,
+    .ob-split-card-grid,
+    .ob-summary-strip {
+      grid-template-columns: 1fr;
+    }
+    .ob-companion-box--hide-sm {
+      display: none;
+    }
+    .ob-stage {
+      padding: 12px 14px;
+    }
+    .ob-card,
+    .ob-role-card {
+      padding: 15px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ob-char-float,
+    .ob-char-blink,
+    .ob-char-arm-wave,
+    .ob-char-prop-bob,
+    .ob-dash-flow,
+    .ob-panel.is-enter-forward .ob-stagger,
+    .ob-panel.is-enter-back .ob-stagger {
+      animation: none !important;
+    }
+    .ob-bar-fill {
+      transition: none !important;
+    }
+  }
 </style>
-{% endblock %}
 
-{% block scripts %}
+<div class="onboarding-shell" id="onboardingShell">
+  <header class="ob-header">
+    <div class="ob-brand">
+      <span class="ob-brand-mark" aria-hidden="true">
+        <span class="material-symbols-outlined" style="font-size: 18px;">bolt</span>
+      </span>
+      <span>AI JobSnap</span>
+    </div>
+
+    <nav class="ob-stepper" aria-label="Onboarding steps">
+      <button type="button" id="stepPill1" class="ob-step-pill is-active" onclick="goToStep(1)">
+        <span class="ob-step-num">01</span>
+        <span class="ob-step-label">Role</span>
+      </button>
+      <button type="button" id="stepPill2" class="ob-step-pill" onclick="goToStep(2)">
+        <span class="ob-step-num">02</span>
+        <span class="ob-step-label">Username</span>
+      </button>
+      <button type="button" id="stepPill3" class="ob-step-pill" onclick="goToStep(3)">
+        <span class="ob-step-num">03</span>
+        <span class="ob-step-label">Engine</span>
+      </button>
+      <button type="button" id="stepPill4" class="ob-step-pill" onclick="goToStep(4)">
+        <span class="ob-step-num">04</span>
+        <span class="ob-step-label">Velocity</span>
+      </button>
+      <button type="button" id="stepPill5" class="ob-step-pill" onclick="goToStep(5)">
+        <span class="ob-step-num">05</span>
+        <span class="ob-step-label">Launch</span>
+      </button>
+    </nav>
+
+    <div class="ob-header-actions">
+      <button type="button" id="obSfxToggle" class="ob-icon-btn is-active-sfx" onclick="toggleSfx()" aria-label="Toggle sound effects" title="Toggle sound effects">
+        <span id="obSfxIcon" class="material-symbols-outlined" style="font-size: 17px;">volume_up</span>
+        <span id="obSfxText">SFX</span>
+      </button>
+      <button type="button" class="ob-icon-btn" @click="toggleTheme($event)" onclick="window.obSfx && window.obSfx.click()" aria-label="Toggle color theme" title="Toggle theme">
+        <span class="material-symbols-outlined" style="font-size: 18px;" x-text="darkMode ? 'light_mode' : 'dark_mode'"></span>
+      </button>
+    </div>
+  </header>
+
+  <main class="ob-stage">
+    <!-- Step 1: Role -->
+    <section id="onboardingStep1" class="ob-panel is-active is-enter-forward" aria-labelledby="step1Heading">
+      <div class="ob-stagger ob-stagger-1">
+        <div class="ob-eyebrow">Step 1 of 5 · Workspace Role</div>
+        <h1 id="step1Heading" class="ob-title">How will you use AI JobSnap?</h1>
+        <p class="ob-subtitle">Pick your workspace mode so Snap can tailor your matching engine, outreach flow, and launch setup.</p>
+      </div>
+
+      <div class="ob-role-grid ob-stagger ob-stagger-2">
+        <button type="button" id="roleCardSeeker" class="ob-role-card" onclick="selectRole('seeker')">
+          <div class="ob-role-top">
+            <div class="ob-role-char-pop">
+              <!-- Snap: Seeker Mode SVG -->
+              <svg width="68" height="68" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+                <g class="ob-char-float">
+                  <ellipse cx="40" cy="72" rx="20" ry="4" fill="currentColor" opacity="0.1"/>
+                  <!-- Briefcase prop -->
+                  <g class="ob-char-prop-bob">
+                    <rect x="54" y="42" width="18" height="14" rx="4" fill="#f59e0b" stroke="#1c1917" stroke-width="2"/>
+                    <path d="M59 42v-3a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v3" stroke="#1c1917" stroke-width="2"/>
+                  </g>
+                  <!-- Body -->
+                  <rect x="20" y="24" width="38" height="40" rx="16" fill="#10b981" stroke="#1c1917" stroke-width="2.2"/>
+                  <!-- Face visor -->
+                  <rect x="26" y="33" width="26" height="15" rx="7.5" fill="#faf8f5" stroke="#1c1917" stroke-width="2"/>
+                  <!-- Eyes -->
+                  <circle class="ob-char-blink" cx="34" cy="40.5" r="2.3" fill="#1c1917"/>
+                  <circle class="ob-char-blink" cx="44" cy="40.5" r="2.3" fill="#1c1917"/>
+                  <!-- Smile -->
+                  <path d="M36.5 44.5c1.5 1.4 3.5 1.4 5 0" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+                  <!-- Antenna / Spark -->
+                  <line x1="39" y1="24" x2="39" y2="15" stroke="#1c1917" stroke-width="2.2" stroke-linecap="round"/>
+                  <circle cx="39" cy="13" r="3.8" fill="#f59e0b" stroke="#1c1917" stroke-width="2"/>
+                  <!-- Waving arm -->
+                  <path class="ob-char-arm-wave" d="M20 45c-6-2-9-7-8-12" stroke="#1c1917" stroke-width="3" stroke-linecap="round"/>
+                </g>
+              </svg>
+            </div>
+            <span class="ob-role-badge-check" id="seekerBadgeCheck">Select</span>
+          </div>
+          <div class="ob-role-name">Job Seeker</div>
+          <div class="ob-role-desc">Parse your resume, measure role-by-role skill fit, uncover hiring teams, and track applications cleanly.</div>
+          <div class="ob-role-meta">
+            <span class="ob-tag">Resume AI</span>
+            <span class="ob-tag">Skill Gap</span>
+            <span class="ob-tag">Direct Outreach</span>
+          </div>
+        </button>
+
+        <button type="button" id="roleCardRecruiter" class="ob-role-card" onclick="selectRole('recruiter')">
+          <div class="ob-role-top">
+            <div class="ob-role-char-pop">
+              <!-- Snap: Recruiter Mode SVG -->
+              <svg width="68" height="68" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+                <g class="ob-char-float ob-char-float--delay">
+                  <ellipse cx="40" cy="72" rx="20" ry="4" fill="currentColor" opacity="0.1"/>
+                  <!-- Body -->
+                  <rect x="20" y="24" width="38" height="40" rx="14" fill="#334155" stroke="#1c1917" stroke-width="2.2"/>
+                  <!-- Tie / Collar accent -->
+                  <path d="M35 52l4 8 4-8z" fill="#10b981"/>
+                  <!-- Face visor -->
+                  <rect x="26" y="33" width="26" height="15" rx="7.5" fill="#faf8f5" stroke="#1c1917" stroke-width="2"/>
+                  <!-- Eyes -->
+                  <circle class="ob-char-blink" cx="34" cy="40.5" r="2.3" fill="#1c1917"/>
+                  <circle class="ob-char-blink" cx="44" cy="40.5" r="2.3" fill="#1c1917"/>
+                  <!-- Glasses rim accent -->
+                  <circle cx="44" cy="40.5" r="5" stroke="#10b981" stroke-width="1.6"/>
+                  <!-- Clipboard prop -->
+                  <g class="ob-char-prop-bob">
+                    <rect x="55" y="37" width="16" height="20" rx="3.5" fill="#faf8f5" stroke="#1c1917" stroke-width="2"/>
+                    <line x1="59" y1="44" x2="67" y2="44" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="59" y1="49" x2="66" y2="49" stroke="#78716c" stroke-width="2" stroke-linecap="round"/>
+                  </g>
+                  <!-- Head crest -->
+                  <rect x="31" y="18" width="16" height="6" rx="3" fill="#10b981" stroke="#1c1917" stroke-width="2"/>
+                </g>
+              </svg>
+            </div>
+            <span class="ob-role-badge-check" id="recruiterBadgeCheck">Select</span>
+          </div>
+          <div class="ob-role-name">Recruiter</div>
+          <div class="ob-role-desc">Rank applicants objectively against role requirements, run structured pipelines, and move talent faster.</div>
+          <div class="ob-role-meta">
+            <span class="ob-tag">Candidate Match</span>
+            <span class="ob-tag">Pipeline</span>
+            <span class="ob-tag">Job Posts</span>
+          </div>
+        </button>
+      </div>
+    </section>
+
+    <!-- Step 2: Username (Mandatory) -->
+    <section id="onboardingStep2" class="ob-panel" aria-labelledby="step2Heading">
+      <div class="ob-stagger ob-stagger-1" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+        <div>
+          <div class="ob-eyebrow">Step 2 of 5 · Account Handle</div>
+          <h1 id="step2Heading" class="ob-title">Claim your unique username</h1>
+          <p class="ob-subtitle">Your handle identifies your profile and workspace URL. A unique username is required before continuing.</p>
+        </div>
+        <span class="ob-badge-required">Required</span>
+      </div>
+
+      <div class="ob-split-card-grid ob-stagger ob-stagger-2">
+        <div class="ob-card">
+          <label for="onboardingUsernameInput" style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px;">
+            Username (3–30 letters, numbers, or underscores)
+          </label>
+          <div class="ob-input-wrap">
+            <span class="ob-input-prefix">@</span>
+            <input
+              id="onboardingUsernameInput"
+              type="text"
+              class="ob-input ob-input--handle"
+              value="{{ current_user.username or '' }}"
+              placeholder="your_handle"
+              autocomplete="username"
+              spellcheck="false"
+              maxlength="30"
+            />
+          </div>
+
+          <div class="ob-status-row">
+            <span id="usernameCheckStatus" class="ob-status-text">Enter a username to verify availability.</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-on-surface-variant, #78716c);">Mandatory</span>
+          </div>
+
+          <div id="usernameSuggestionsRow" class="ob-chips" {% if not username_suggestions %}style="display: none;"{% endif %}>
+            <span style="font-size: 12px; color: var(--text-on-surface-variant, #78716c);">Suggestions:</span>
+            {% for s in username_suggestions %}
+            <button type="button" class="ob-chip" onclick="applyUsernameSuggestion('{{ s }}')">@{{ s }}</button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Snap: Handle Scout Character -->
+        <aside id="usernameCompanion" class="ob-companion-box ob-companion-box--hide-sm" data-mood="idle" aria-hidden="true">
+          <div class="ob-char-wrap ob-char-float">
+            <svg width="96" height="96" viewBox="0 0 100 100" fill="none">
+              <ellipse cx="50" cy="88" rx="26" ry="5" fill="currentColor" opacity="0.1"/>
+              <rect x="26" y="28" width="48" height="48" rx="20" fill="#10b981" stroke="#1c1917" stroke-width="2.4"/>
+              <rect x="33" y="38" width="34" height="19" rx="9" fill="#faf8f5" stroke="#1c1917" stroke-width="2"/>
+              <g class="ob-scout-eyes">
+                <circle class="ob-char-blink" cx="43" cy="47.5" r="2.7" fill="#1c1917"/>
+                <circle class="ob-char-blink" cx="57" cy="47.5" r="2.7" fill="#1c1917"/>
+              </g>
+              <path id="snapHandleMouth" d="M46 52.5c2.2 1.8 5.8 1.8 8 0" stroke="#10b981" stroke-width="2.2" stroke-linecap="round"/>
+              <!-- Floating @ Badge -->
+              <g class="ob-char-prop-bob">
+                <circle cx="78" cy="28" r="12" fill="#f59e0b" stroke="#1c1917" stroke-width="2"/>
+                <text x="78" y="32.5" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800" fill="#1c1917">@</text>
+              </g>
+              <line x1="50" y1="28" x2="50" y2="17" stroke="#1c1917" stroke-width="2.4" stroke-linecap="round"/>
+              <circle id="snapBeacon" cx="50" cy="14" r="4.5" fill="#faf8f5" stroke="#1c1917" stroke-width="2"/>
+            </svg>
+          </div>
+          <div id="usernameSpeechBubble" class="ob-speech-bubble">Snap checks if your handle is yours!</div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Step 3: AI Engine (Shifted from Step 2) -->
+    <section id="onboardingStep3" class="ob-panel" aria-labelledby="step3Heading">
+      <div class="ob-header-with-mascot ob-stagger ob-stagger-1">
+        <div>
+          <div class="ob-eyebrow">Step 3 of 5 · AI Engine</div>
+          <h1 id="step3Heading" class="ob-title" data-seeker-title="Structured resume intelligence" data-recruiter-title="Objective candidate ranking">Structured resume intelligence</h1>
+          <p id="step3Subtitle" class="ob-subtitle">How AI JobSnap evaluates qualifications and surfaces exact skill alignment.</p>
+        </div>
+
+        <!-- Compact Engine Character -->
+        <div class="ob-char-stage" aria-hidden="true">
+          <svg width="74" height="74" viewBox="0 0 84 84" fill="none">
+            <g class="ob-char-float">
+              <rect x="20" y="22" width="44" height="44" rx="16" fill="#10b981" stroke="#1c1917" stroke-width="2.2"/>
+              <rect x="27" y="33" width="30" height="16" rx="8" fill="#faf8f5" stroke="#1c1917" stroke-width="2"/>
+              <circle class="ob-char-blink" cx="36" cy="41" r="2.4" fill="#1c1917"/>
+              <circle class="ob-char-blink" cx="48" cy="41" r="2.4" fill="#1c1917"/>
+              <!-- Gear halo -->
+              <g class="ob-char-prop-bob">
+                <circle cx="67" cy="23" r="9" fill="#faf8f5" stroke="#1c1917" stroke-width="2"/>
+                <circle cx="67" cy="23" r="3.5" fill="#10b981"/>
+              </g>
+              <!-- Signal pulse line -->
+              <path class="ob-dash-flow" d="M8 68c16-8 48-8 68 0" stroke="#10b981" stroke-width="2.2" stroke-linecap="round"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <div id="step3SeekerView" class="ob-two-col ob-stagger ob-stagger-2">
+        <div class="ob-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="font-weight: 700; font-size: 14px;">Extracted Profile Signals</span>
+            <span class="ob-tag">ATS + Semantic</span>
+          </div>
+          <div class="ob-kv-list">
+            <div class="ob-kv-item">
+              <span>Core Stack Extraction</span>
+              <span class="ob-tag">Python · Flask · SQL · React</span>
+            </div>
+            <div class="ob-kv-item">
+              <span>Experience Calibration</span>
+              <span class="ob-tag">Impact & Scope Parsed</span>
+            </div>
+            <div class="ob-kv-item">
+              <span>Role Gap Audit</span>
+              <span class="ob-tag">Actionable Roadmap</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ob-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="font-weight: 700; font-size: 14px;">Sample Role Fit</span>
+            <span id="step3MatchCounter" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--color-primary, #10b981);">92% Match</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                <span>Backend Architecture</span>
+                <span style="font-family: 'JetBrains Mono', monospace;">95%</span>
+              </div>
+              <div class="ob-bar-track"><div class="ob-bar-fill ob-anim-bar" data-target-width="95%"></div></div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                <span>Database & Query Tuning</span>
+                <span style="font-family: 'JetBrains Mono', monospace;">89%</span>
+              </div>
+              <div class="ob-bar-track"><div class="ob-bar-fill ob-anim-bar" data-target-width="89%"></div></div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                <span>Cloud Deployment</span>
+                <span style="font-family: 'JetBrains Mono', monospace;">84%</span>
+              </div>
+              <div class="ob-bar-track"><div class="ob-bar-fill ob-anim-bar" data-target-width="84%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="step3RecruiterView" class="ob-two-col ob-stagger ob-stagger-2" style="display: none;">
+        <div class="ob-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="font-weight: 700; font-size: 14px;">Shortlist Calibration</span>
+            <span class="ob-tag">Ranked by Evidence</span>
+          </div>
+          <div class="ob-kv-list">
+            <div class="ob-kv-item">
+              <span>Candidate #1 · Senior Systems</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--color-primary, #10b981);">94% Fit</span>
+            </div>
+            <div class="ob-kv-item">
+              <span>Candidate #2 · Full-Stack Lead</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--color-primary, #10b981);">88% Fit</span>
+            </div>
+            <div class="ob-kv-item">
+              <span>Candidate #3 · Platform Eng</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700;">81% Fit</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ob-card">
+          <div style="font-weight: 700; font-size: 14px; margin-bottom: 10px;">Why Teams Prefer Structured Scoring</div>
+          <p style="font-size: 13.5px; line-height: 1.55; color: var(--text-on-surface-variant, #78716c); margin: 0;">
+            Every applicant is evaluated against the same weighted skill matrix so recruiters review high-signal evidence instead of skimming hundreds of unformatted PDFs.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 4: Velocity / Outreach / Funnel (Shifted from Step 3) -->
+    <section id="onboardingStep4" class="ob-panel" aria-labelledby="step4Heading">
+      <div class="ob-header-with-mascot ob-stagger ob-stagger-1">
+        <div>
+          <div class="ob-eyebrow">Step 4 of 5 · Velocity</div>
+          <h1 id="step4Heading" class="ob-title">Move from discovery to response faster</h1>
+          <p id="step4Subtitle" class="ob-subtitle">Built-in outreach tracking and structured stages keep momentum predictable.</p>
+        </div>
+
+        <!-- Courier / Conductor Character -->
+        <div class="ob-char-stage" aria-hidden="true">
+          <svg width="78" height="74" viewBox="0 0 90 80" fill="none">
+            <g class="ob-char-float">
+              <path class="ob-dash-flow" d="M8 62Q40 46 78 24" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+              <rect x="20" y="26" width="38" height="38" rx="15" fill="#f59e0b" stroke="#1c1917" stroke-width="2.2"/>
+              <rect x="26" y="36" width="26" height="14" rx="7" fill="#faf8f5" stroke="#1c1917" stroke-width="2"/>
+              <circle class="ob-char-blink" cx="34" cy="43" r="2.2" fill="#1c1917"/>
+              <circle class="ob-char-blink" cx="44" cy="43" r="2.2" fill="#1c1917"/>
+              <!-- Flying Paper Plane -->
+              <g class="ob-char-prop-bob">
+                <path d="M62 18l20-6-9 18-4-7-7-5z" fill="#10b981" stroke="#1c1917" stroke-width="1.8" stroke-linejoin="round"/>
+              </g>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <div id="step4SeekerView" class="ob-two-col ob-stagger ob-stagger-2">
+        <div class="ob-card">
+          <div style="font-weight: 700; font-size: 14px; margin-bottom: 12px;">Direct Hiring Outreach</div>
+          <div class="ob-kv-list">
+            <div class="ob-kv-item">
+              <span>1. Discover Verified Hiring Team</span>
+              <span class="ob-tag">Matched Role</span>
+            </div>
+            <div class="ob-kv-item">
+              <span>2. Draft Tailored Intro Note</span>
+              <span class="ob-tag">Context-Aware</span>
+            </div>
+            <div class="ob-kv-item">
+              <span>3. Track Replies & Follow-ups</span>
+              <span class="ob-tag">Unified Inbox</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ob-card">
+          <div style="font-weight: 700; font-size: 14px; margin-bottom: 12px;">Application Momentum</div>
+          <div class="ob-kv-list">
+            <div class="ob-kv-item">
+              <span>Saved Target Roles</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700;">Weekly Queue</span>
+            </div>
+            <div class="ob-kv-item">
+              <span>Missing Skill Prompts</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700;">Auto-Flagged</span>
+            </div>
+            <div class="ob-kv-item">
+              <span>Interview Readiness</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--color-primary, #10b981);">Guided Prep</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="step4RecruiterView" class="ob-two-col ob-stagger ob-stagger-2" style="display: none;">
+        <div class="ob-card">
+          <div style="font-weight: 700; font-size: 14px; margin-bottom: 12px;">4-Stage Hiring Funnel</div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 12.5px;"><span>Applied</span><span style="font-family: 'JetBrains Mono', monospace;">100%</span></div>
+              <div class="ob-bar-track"><div class="ob-bar-fill ob-anim-bar" data-target-width="100%"></div></div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 12.5px;"><span>AI Screened</span><span style="font-family: 'JetBrains Mono', monospace;">42%</span></div>
+              <div class="ob-bar-track"><div class="ob-bar-fill ob-anim-bar" data-target-width="42%"></div></div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 12.5px;"><span>Interviewing</span><span style="font-family: 'JetBrains Mono', monospace;">16%</span></div>
+              <div class="ob-bar-track"><div class="ob-bar-fill ob-anim-bar" data-target-width="16%"></div></div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 12.5px;"><span>Offer</span><span style="font-family: 'JetBrains Mono', monospace;">5%</span></div>
+              <div class="ob-bar-track"><div class="ob-bar-fill ob-anim-bar" data-target-width="5%"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ob-card">
+          <div style="font-weight: 700; font-size: 14px; margin-bottom: 10px;">Zero Spreadsheet Friction</div>
+          <p style="font-size: 13.5px; line-height: 1.55; color: var(--text-on-surface-variant, #78716c); margin: 0;">
+            Publish requisitions, filter candidates by skill thresholds, and coordinate feedback in one workspace without juggling external trackers.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 5: Final Setup & Launch (Resume Mandatory for Seekers) -->
+    <section id="onboardingStep5" class="ob-panel" aria-labelledby="step5Heading">
+      <div class="ob-stagger ob-stagger-1" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+        <div>
+          <div class="ob-eyebrow">Step 5 of 5 · Launch</div>
+          <h1 id="step5Heading" class="ob-title">Complete your workspace setup</h1>
+          <p id="step5Subtitle" class="ob-subtitle">Upload your resume to unlock job matching and skill-gap diagnostics.</p>
+        </div>
+        <span id="step5RequiredBadge" class="ob-badge-required">Resume Required</span>
+      </div>
+
+      <div class="ob-summary-strip ob-stagger ob-stagger-2">
+        <div class="ob-summary-cell">
+          <div class="ob-summary-label">Role</div>
+          <div id="summaryRoleValue" class="ob-summary-val">Job Seeker</div>
+        </div>
+        <div class="ob-summary-cell">
+          <div class="ob-summary-label">Username</div>
+          <div id="summaryUsernameValue" class="ob-summary-val">@pending</div>
+        </div>
+        <div class="ob-summary-cell">
+          <div class="ob-summary-label" id="summaryThirdLabel">Resume</div>
+          <div id="summaryThirdValue" class="ob-summary-val">Required</div>
+        </div>
+      </div>
+
+      <div class="ob-split-card-grid ob-stagger ob-stagger-3">
+        <div>
+          <!-- Seeker mandatory resume upload -->
+          <div id="step5SeekerForm" class="ob-card" style="height: 100%;">
+            <input
+              id="onboardingResumeInput"
+              type="file"
+              accept=".pdf,.doc,.docx,.txt"
+              style="display: none;"
+            />
+            <div id="resumeDropzone" class="ob-dropzone" role="button" tabindex="0" onclick="document.getElementById('onboardingResumeInput').click()">
+              <span class="material-symbols-outlined" style="font-size: 30px; color: var(--color-primary, #10b981);">upload_file</span>
+              <div id="resumeDropTitle" style="font-size: 14.5px; font-weight: 700;">
+                {% if user_details and user_details.resume_path %}
+                  Current resume on file — click to replace
+                {% else %}
+                  Drop your resume here or click to browse
+                {% endif %}
+              </div>
+              <div id="resumeDropMeta" style="font-size: 12.5px; color: var(--text-on-surface-variant, #78716c);">
+                {% if user_details and user_details.resume_path %}
+                  Uploaded: {{ user_details.resume_path.split('/')[-1].split('\\')[-1] }}
+                {% else %}
+                  Required · Supports PDF, DOC, DOCX, or TXT
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Recruiter company details -->
+          <div id="step5RecruiterForm" class="ob-card" style="display: none; height: 100%;">
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
+              <div>
+                <label for="onboardingCompanyInput" style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">Company Name</label>
+                <input
+                  id="onboardingCompanyInput"
+                  type="text"
+                  class="ob-input"
+                  placeholder="Acme Labs"
+                  value="{{ company.company_name if company and company.company_name else '' }}"
+                />
+              </div>
+              <div>
+                <label for="onboardingIndustryInput" style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">Industry</label>
+                <input
+                  id="onboardingIndustryInput"
+                  type="text"
+                  class="ob-input"
+                  placeholder="Software & AI"
+                  value="{{ company.industry if company and company.industry else '' }}"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Snap: Launch Companion Character -->
+        <aside id="launchCompanion" class="ob-companion-box ob-companion-box--hide-sm" data-mood="idle" aria-hidden="true">
+          <div id="launchConfettiLayer" class="ob-confetti-layer"></div>
+          <div class="ob-char-wrap ob-char-float">
+            <svg width="92" height="92" viewBox="0 0 100 100" fill="none">
+              <ellipse cx="50" cy="88" rx="26" ry="5" fill="currentColor" opacity="0.1"/>
+              <!-- Jet pack flame -->
+              <path class="ob-char-prop-bob" d="M18 58l-7 8 9-1z" fill="#f59e0b"/>
+              <rect x="26" y="28" width="48" height="48" rx="20" fill="#10b981" stroke="#1c1917" stroke-width="2.4"/>
+              <!-- Pilot goggles -->
+              <rect x="33" y="37" width="34" height="19" rx="9" fill="#faf8f5" stroke="#1c1917" stroke-width="2"/>
+              <circle class="ob-char-blink" cx="43" cy="46.5" r="2.7" fill="#1c1917"/>
+              <circle class="ob-char-blink" cx="57" cy="46.5" r="2.7" fill="#1c1917"/>
+              <path d="M45.5 52c2.5 2 6.5 2 9 0" stroke="#10b981" stroke-width="2.2" stroke-linecap="round"/>
+              <!-- Check flag / Star crest -->
+              <g class="ob-char-arm-wave">
+                <circle cx="80" cy="30" r="11" fill="#10b981" stroke="#1c1917" stroke-width="2"/>
+                <path d="M75.5 30l3 3 6-6" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </g>
+            </svg>
+          </div>
+          <div id="launchSpeechBubble" class="ob-speech-bubble">Drop your resume so we can launch!</div>
+        </aside>
+      </div>
+
+      <div id="onboardingSubmitError" class="ob-error-banner" role="alert"></div>
+    </section>
+  </main>
+
+  <footer class="ob-footer">
+    <button type="button" id="onboardingBackBtn" class="ob-btn ob-btn-ghost" onclick="prevStep()" disabled>
+      <span class="material-symbols-outlined" style="font-size: 17px;">arrow_back</span>
+      <span>Back</span>
+    </button>
+
+    <span id="onboardingFooterStatus" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-on-surface-variant, #78716c);">
+      Step 1 of 5
+    </span>
+
+    <button type="button" id="onboardingNextBtn" class="ob-btn ob-btn-primary" onclick="nextStep()">
+      <span id="onboardingNextLabel">Continue</span>
+      <span class="material-symbols-outlined" style="font-size: 17px;">arrow_forward</span>
+    </button>
+  </footer>
+</div>
+
 <script>
-let currentStep = 1;
-let selectedRole = document.getElementById('selectedRoleInput').value || 'seeker';
-let soundEnabled = true;
-let audioCtx = null;
-let reelTimer = null;
+  const TOTAL_STEPS = 5;
+  const CHECK_USERNAME_URL = {{ url_for('onboarding_username_check') | tojson }};
+  const COMPLETE_ONBOARDING_URL = {{ url_for('complete_onboarding') | tojson }};
 
-// ============================================================================
-// WEB AUDIO API — SYNTHESIZED CINEMATIC UI SOUND ENGINE
-// ============================================================================
-function getAudioContext() {
-    if (!soundEnabled) return null;
-    if (!audioCtx) {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (AudioContextClass) {
-            audioCtx = new AudioContextClass();
-        }
+  // Tactile Web Audio synthesizer for subtle onboarding sound effects
+  class OnboardingAudioEngine {
+    constructor() {
+      const saved = localStorage.getItem('onboardingSfxEnabled');
+      this.enabled = saved === null ? true : saved === 'true';
+      this.ctx = null;
     }
-    if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume().catch(function () {});
+
+    ensureContext() {
+      if (!this.enabled) return null;
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return null;
+      if (!this.ctx) {
+        this.ctx = new AudioCtx();
+      }
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
+      return this.ctx;
     }
-    return audioCtx;
-}
 
-function playTone(freq, type, duration, gainVal, delaySec) {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-    const start = ctx.currentTime + (delaySec || 0);
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = type || 'sine';
-    osc.frequency.setValueAtTime(freq, start);
-    gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(gainVal || 0.08, start + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(start);
-    osc.stop(start + duration + 0.02);
-}
-
-function playSoundRoleSelect(role) {
-    if (role === 'recruiter') {
-        playTone(330, 'triangle', 0.22, 0.09, 0);
-        playTone(493.88, 'sine', 0.32, 0.08, 0.06);
-        playTone(659.25, 'sine', 0.4, 0.06, 0.12);
-    } else {
-        playTone(293.66, 'triangle', 0.22, 0.09, 0);
-        playTone(440, 'sine', 0.32, 0.08, 0.06);
-        playTone(587.33, 'sine', 0.4, 0.06, 0.12);
+    playTone({ freq = 520, endFreq = null, duration = 0.08, type = 'sine', gain = 0.055, delay = 0 }) {
+      const ctx = this.ensureContext();
+      if (!ctx) return;
+      const start = ctx.currentTime + delay;
+      const osc = ctx.createOscillator();
+      const vol = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, start);
+      if (endFreq) {
+        osc.frequency.exponentialRampToValueAtTime(Math.max(40, endFreq), start + duration);
+      }
+      vol.gain.setValueAtTime(0.0001, start);
+      vol.gain.linearRampToValueAtTime(gain, start + 0.012);
+      vol.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      osc.connect(vol);
+      vol.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + duration + 0.02);
     }
-}
 
-function playSoundStepTransition(step) {
-    const baseNotes = [261.63, 329.63, 392.00, 523.25];
-    const root = baseNotes[(step - 1) % baseNotes.length];
-    playTone(root, 'sine', 0.25, 0.07, 0);
-    playTone(root * 1.25, 'sine', 0.32, 0.06, 0.07);
-    playTone(root * 1.5, 'triangle', 0.42, 0.05, 0.14);
-}
+    click() {
+      this.playTone({ freq: 540, endFreq: 420, duration: 0.05, type: 'triangle', gain: 0.045 });
+    }
 
-function playSoundLaunchChord() {
-    // Lush C Major 9th launch swell
-    [261.63, 329.63, 392.00, 493.88, 587.33, 783.99].forEach(function (freq, idx) {
-        playTone(freq, 'sine', 0.65, 0.06, idx * 0.045);
+    selectRole(role) {
+      if (role === 'recruiter') {
+        this.playTone({ freq: 440, duration: 0.08, type: 'triangle', gain: 0.05 });
+        this.playTone({ freq: 587.33, duration: 0.12, type: 'sine', gain: 0.055, delay: 0.06 });
+      } else {
+        this.playTone({ freq: 523.25, duration: 0.08, type: 'triangle', gain: 0.05 });
+        this.playTone({ freq: 783.99, duration: 0.12, type: 'sine', gain: 0.055, delay: 0.06 });
+      }
+    }
+
+    stepForward() {
+      this.playTone({ freq: 392, endFreq: 587.33, duration: 0.1, type: 'sine', gain: 0.045 });
+    }
+
+    stepBack() {
+      this.playTone({ freq: 493.88, endFreq: 349.23, duration: 0.09, type: 'sine', gain: 0.04 });
+    }
+
+    usernameOk() {
+      this.playTone({ freq: 523.25, duration: 0.08, type: 'sine', gain: 0.05 });
+      this.playTone({ freq: 783.99, duration: 0.14, type: 'sine', gain: 0.055, delay: 0.065 });
+    }
+
+    usernameErr() {
+      this.playTone({ freq: 240, duration: 0.09, type: 'triangle', gain: 0.05 });
+      this.playTone({ freq: 185, duration: 0.12, type: 'triangle', gain: 0.045, delay: 0.08 });
+    }
+
+    fileDrop() {
+      this.playTone({ freq: 659.25, duration: 0.08, type: 'sine', gain: 0.05 });
+      this.playTone({ freq: 783.99, duration: 0.08, type: 'sine', gain: 0.05, delay: 0.06 });
+      this.playTone({ freq: 987.77, duration: 0.15, type: 'sine', gain: 0.055, delay: 0.12 });
+    }
+
+    launch() {
+      [523.25, 659.25, 783.99, 1046.5].forEach((note, idx) => {
+        this.playTone({ freq: note, duration: 0.16, type: 'sine', gain: 0.055, delay: idx * 0.06 });
+      });
+    }
+
+    error() {
+      this.playTone({ freq: 220, endFreq: 160, duration: 0.14, type: 'sawtooth', gain: 0.03 });
+    }
+  }
+
+  window.obSfx = new OnboardingAudioEngine();
+
+  function syncSfxButtonUI() {
+    const btn = document.getElementById('obSfxToggle');
+    const icon = document.getElementById('obSfxIcon');
+    const text = document.getElementById('obSfxText');
+    const active = Boolean(window.obSfx && window.obSfx.enabled);
+    if (btn) btn.classList.toggle('is-active-sfx', active);
+    if (icon) icon.textContent = active ? 'volume_up' : 'volume_off';
+    if (text) text.textContent = active ? 'SFX' : 'MUTED';
+  }
+
+  function toggleSfx() {
+    if (!window.obSfx) return;
+    window.obSfx.enabled = !window.obSfx.enabled;
+    localStorage.setItem('onboardingSfxEnabled', String(window.obSfx.enabled));
+    syncSfxButtonUI();
+    if (window.obSfx.enabled) {
+      window.obSfx.click();
+    }
+  }
+
+  const obState = {
+    step: 1,
+    prevStep: 1,
+    maxUnlockedStep: 1,
+    role: {{ (current_user.role or 'seeker') | tojson }},
+    username: {{ (current_user.username or '') | tojson }},
+    usernameAvailable: false,
+    usernameValid: false,
+    usernameCheckSeq: 0,
+    lastSpokenHandleState: '',
+    hasExistingResume: {{ 'true' if (user_details and user_details.resume_path) else 'false' }},
+    selectedResumeFile: null,
+    submitting: false,
+  };
+
+  if (obState.role !== 'seeker' && obState.role !== 'recruiter') {
+    obState.role = 'seeker';
+  }
+
+  let usernameDebounce = null;
+
+  function triggerLaunchConfetti() {
+    const layer = document.getElementById('launchConfettiLayer');
+    if (!layer) return;
+    layer.innerHTML = '';
+    const colors = ['#10b981', '#f59e0b', '#3b82f6', '#14b8a6'];
+    for (let i = 0; i < 12; i++) {
+      const dot = document.createElement('span');
+      dot.className = 'ob-confetti-dot';
+      dot.style.left = '50%';
+      dot.style.top = '48%';
+      dot.style.backgroundColor = colors[i % colors.length];
+      const angle = (Math.PI * 2 * i) / 12;
+      const dist = 36 + (i % 3) * 18;
+      dot.style.setProperty('--tx', `${Math.round(Math.cos(angle) * dist)}px`);
+      dot.style.setProperty('--ty', `${Math.round(Math.sin(angle) * dist - 14)}px`);
+      layer.appendChild(dot);
+    }
+  }
+
+  function animateBarsInPanel(panel) {
+    if (!panel) return;
+    const bars = panel.querySelectorAll('.ob-anim-bar');
+    bars.forEach((bar) => {
+      bar.style.width = '0%';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          bar.style.width = bar.dataset.targetWidth || '0%';
+        });
+      });
     });
-}
+  }
 
-function toggleAudioEngine() {
-    soundEnabled = !soundEnabled;
-    const icon = document.getElementById('soundIcon');
-    const label = document.getElementById('soundLabel');
-    const btn = document.getElementById('soundToggleBtn');
-    if (soundEnabled) {
-        icon.textContent = 'volume_up';
-        if (label) label.textContent = 'SFX ON';
-        btn.classList.remove('text-slate-400');
-        btn.classList.add('text-emerald-300');
-        playTone(523.25, 'sine', 0.2, 0.06, 0);
+  function updateUsernameMascot(mood, text) {
+    const box = document.getElementById('usernameCompanion');
+    const bubble = document.getElementById('usernameSpeechBubble');
+    const beacon = document.getElementById('snapBeacon');
+    if (box) box.dataset.mood = mood;
+    if (bubble) bubble.textContent = text;
+    if (beacon) {
+      beacon.setAttribute('fill', mood === 'valid' ? '#10b981' : mood === 'error' ? '#ef4444' : '#faf8f5');
+    }
+  }
+
+  function updateLaunchMascot() {
+    const box = document.getElementById('launchCompanion');
+    const bubble = document.getElementById('launchSpeechBubble');
+    if (!box || !bubble) return;
+    if (obState.role === 'recruiter') {
+      box.dataset.mood = 'valid';
+      bubble.textContent = 'Snap is ready to launch your pipeline!';
+      return;
+    }
+    if (obState.selectedResumeFile) {
+      box.dataset.mood = 'valid';
+      bubble.textContent = 'Snap locked in your resume — ready!';
+    } else if (obState.hasExistingResume) {
+      box.dataset.mood = 'valid';
+      bubble.textContent = 'Snap found your saved resume. Ready!';
     } else {
-        icon.textContent = 'volume_off';
-        if (label) label.textContent = 'MUTED';
-        btn.classList.remove('text-emerald-300');
-        btn.classList.add('text-slate-400');
+      box.dataset.mood = 'idle';
+      bubble.textContent = 'Drop your resume so Snap can launch!';
     }
-}
+  }
 
-// ============================================================================
-// ROLE SELECTION & CINEMATIC STEP CHOREOGRAPHY
-// ============================================================================
-function pickRoleAndPlay(role) {
-    playSoundRoleSelect(role);
-    selectOnboardingRole(role);
-}
+  function selectRole(role) {
+    obState.role = role === 'recruiter' ? 'recruiter' : 'seeker';
+    window.obSfx.selectRole(obState.role);
+    renderRoleSelection();
+    renderStepContent();
+  }
 
-function selectOnboardingRole(role) {
-    selectedRole = role;
-    const roleInput = document.getElementById('selectedRoleInput');
-    if (roleInput) roleInput.value = role;
+  function renderRoleSelection() {
+    const seekerCard = document.getElementById('roleCardSeeker');
+    const recruiterCard = document.getElementById('roleCardRecruiter');
+    const seekerBadge = document.getElementById('seekerBadgeCheck');
+    const recruiterBadge = document.getElementById('recruiterBadgeCheck');
+    const isSeeker = obState.role === 'seeker';
 
-    const cardSeeker = document.getElementById('roleCardSeeker');
-    const cardRecruiter = document.getElementById('roleCardRecruiter');
-    const checkSeeker = document.getElementById('checkSeeker');
-    const checkRecruiter = document.getElementById('checkRecruiter');
+    if (seekerCard) seekerCard.classList.toggle('is-selected', isSeeker);
+    if (recruiterCard) recruiterCard.classList.toggle('is-selected', !isSeeker);
+    if (seekerBadge) seekerBadge.textContent = isSeeker ? 'Selected' : 'Select';
+    if (recruiterBadge) recruiterBadge.textContent = !isSeeker ? 'Selected' : 'Select';
+  }
 
-    if (role === 'recruiter') {
-        cardRecruiter.className = "group relative rounded-3xl p-7 bg-gradient-to-b from-[#131c38]/95 to-[#0b1022]/95 border-2 border-sky-400 shadow-[0_0_50px_rgba(14,165,233,0.3)] transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden";
-        cardSeeker.className = "group relative rounded-3xl p-7 bg-gradient-to-b from-[#131c38]/60 to-[#0b1022]/60 border-2 border-white/10 hover:border-indigo-400/50 transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden";
-        checkRecruiter.className = "w-7 h-7 rounded-full bg-sky-500 text-white flex items-center justify-center shadow-[0_0_15px_rgba(14,165,233,0.8)]";
-        checkSeeker.className = "w-7 h-7 rounded-full bg-white/10 text-transparent flex items-center justify-center";
-    } else {
-        cardSeeker.className = "group relative rounded-3xl p-7 bg-gradient-to-b from-[#131c38]/95 to-[#0b1022]/95 border-2 border-indigo-500 shadow-[0_0_50px_rgba(79,70,229,0.28)] transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden";
-        cardRecruiter.className = "group relative rounded-3xl p-7 bg-gradient-to-b from-[#131c38]/60 to-[#0b1022]/60 border-2 border-white/10 hover:border-sky-400/50 transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden";
-        checkSeeker.className = "w-7 h-7 rounded-full bg-indigo-500 text-white flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.8)]";
-        checkRecruiter.className = "w-7 h-7 rounded-full bg-white/10 text-transparent flex items-center justify-center";
+  function renderStepContent() {
+    const isRecruiter = obState.role === 'recruiter';
+
+    const s3Title = document.getElementById('step3Heading');
+    if (s3Title) {
+      s3Title.textContent = isRecruiter ? s3Title.dataset.recruiterTitle : s3Title.dataset.seekerTitle;
     }
 
-    syncRoleContent();
-}
+    const toggle = (id, show, displayVal = 'grid') => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = show ? displayVal : 'none';
+    };
 
-function syncRoleContent() {
-    const isRecruiter = selectedRole === 'recruiter';
+    toggle('step3SeekerView', !isRecruiter, 'grid');
+    toggle('step3RecruiterView', isRecruiter, 'grid');
+    toggle('step4SeekerView', !isRecruiter, 'grid');
+    toggle('step4RecruiterView', isRecruiter, 'grid');
+    toggle('step5SeekerForm', !isRecruiter, 'block');
+    toggle('step5RecruiterForm', isRecruiter, 'block');
 
-    // Step 2 Content
-    document.getElementById('videoScene2Seeker').classList.toggle('hidden', isRecruiter);
-    document.getElementById('videoScene2Recruiter').classList.toggle('hidden', !isRecruiter);
-    document.getElementById('videoScene2Recruiter').classList.toggle('flex', isRecruiter);
-    document.getElementById('step2Title').textContent = isRecruiter
-        ? 'Watch AI Auto-Rank Incoming Candidates'
-        : 'Watch AI Benchmark Your Resume in Real Time';
-    document.getElementById('step2Subtitle').textContent = isRecruiter
-        ? 'Every applicant is automatically scored against your requisition’s tech stack and seniority.'
-        : 'Our neural parser extracts your core stack and scores live opportunities before you even click.';
-    document.getElementById('videoCaptionStep2').textContent = isRecruiter
-        ? 'AI_CANDIDATE_RANKING_REEL.mp4'
-        : 'AI_MATCH_TELEMETRY_REEL.mp4';
-
-    // Step 3 Content
-    document.getElementById('videoScene3Seeker').classList.toggle('hidden', isRecruiter);
-    document.getElementById('videoScene3Recruiter').classList.toggle('hidden', !isRecruiter);
-    document.getElementById('videoScene3Recruiter').classList.toggle('flex', isRecruiter);
-    document.getElementById('step3Title').textContent = isRecruiter
-        ? 'Full-Funnel Pipeline Telemetry in Motion'
-        : 'Direct Recruiter Radar & Automated Outreach';
-    document.getElementById('step3Subtitle').textContent = isRecruiter
-        ? 'Track candidate velocity from Applied to Hired with 1-click stage transitions and CSV exports.'
-        : 'Skip the queue—discover decision-makers and trigger personalized outreach sequences in one click.';
-    document.getElementById('videoCaptionStep3').textContent = isRecruiter
-        ? 'HIRING_FUNNEL_VELOCITY_REEL.mp4'
-        : 'OUTREACH_RADAR_REEL.mp4';
-
-    // Step 4 Content
-    document.getElementById('step4Heading').textContent = isRecruiter
-        ? 'Your Recruiter Console is Ready.'
-        : 'Your Candidate Console is Ready.';
-    document.getElementById('step4Subheading').textContent = isRecruiter
-        ? 'Smart requisition publishing, AI applicant scoring, and hiring funnel analytics are online.'
-        : 'All AI telemetry engines, resume parsers, and outreach radars are online and calibrated.';
-    document.getElementById('step4Check2').textContent = isRecruiter
-        ? '[02] AI CANDIDATE RANKING PIPELINE'
-        : '[02] SKILL GAP & ROADMAP SYNTHESIZER';
-    document.getElementById('step4Check3').textContent = isRecruiter
-        ? '[03] HIRING FUNNEL & ROSTER EXPORT'
-        : '[03] PEOPLE RADAR & OUTREACH STUDIO';
-    document.getElementById('finishBtnLabel').textContent = isRecruiter
-        ? 'Enter Recruiter Console'
-        : 'Enter Candidate Console';
-}
-
-function animateVideoReelProgress(stepNumber) {
-    window.clearInterval(reelTimer);
-    if (stepNumber !== 2 && stepNumber !== 3) return;
-    const bar = document.getElementById('reelProgress' + stepNumber);
-    if (!bar) return;
-    bar.style.transition = 'none';
-    bar.style.width = '0%';
-    void bar.offsetWidth;
-    bar.style.transition = 'width 5.5s linear';
-    bar.style.width = '100%';
-
-    // Animated score counter on Step 2
-    if (stepNumber === 2 && selectedRole === 'seeker') {
-        const scoreEl = document.getElementById('seekerAnimatedScore');
-        if (scoreEl) {
-            let val = 68;
-            reelTimer = window.setInterval(function () {
-                val += 2;
-                if (val >= 94) {
-                    val = 94;
-                    window.clearInterval(reelTimer);
-                    playTone(659.25, 'sine', 0.25, 0.05, 0);
-                }
-                scoreEl.textContent = val + '%';
-            }, 90);
-        }
-    }
-}
-
-function userSelectStep(stepNumber) {
-    playSoundStepTransition(stepNumber);
-    goToStep(stepNumber);
-}
-
-function goToStep(stepNumber) {
-    currentStep = Math.max(1, Math.min(4, stepNumber));
-    for (let i = 1; i <= 4; i++) {
-        const sec = document.getElementById('onboardingStep' + i);
-        const pill = document.getElementById('stepPill' + i);
-        if (sec) {
-            if (i === currentStep) {
-                sec.classList.remove('hidden');
-                sec.classList.remove('stage-enter');
-                void sec.offsetWidth;
-                sec.classList.add('stage-enter');
-            } else {
-                sec.classList.add('hidden');
-            }
-        }
-        if (pill) {
-            if (i === currentStep) {
-                pill.className = "step-pill flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer bg-white text-slate-950 shadow-[0_0_20px_rgba(255,255,255,0.4)]";
-            } else if (i < currentStep) {
-                pill.className = "step-pill flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer bg-emerald-500/20 text-emerald-300 border border-emerald-400/30";
-            } else {
-                pill.className = "step-pill flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer bg-white/5 text-slate-400 border border-white/10 hover:text-white";
-            }
-        }
+    const badge = document.getElementById('step5RequiredBadge');
+    const s5Sub = document.getElementById('step5Subtitle');
+    const thirdLabel = document.getElementById('summaryThirdLabel');
+    if (badge && s5Sub && thirdLabel) {
+      if (isRecruiter) {
+        badge.textContent = 'Company Profile';
+        s5Sub.textContent = 'Add your organization details before launching your recruiter dashboard.';
+        thirdLabel.textContent = 'Workspace';
+      } else {
+        badge.textContent = 'Resume Required';
+        s5Sub.textContent = 'Upload your resume to unlock job matching and skill-gap diagnostics.';
+        thirdLabel.textContent = 'Resume';
+      }
     }
 
-    for (let c = 1; c <= 3; c++) {
-        const conn = document.getElementById('connectorBar' + c);
-        if (conn) {
-            conn.style.width = currentStep > c ? '100%' : '0%';
-        }
+    updateSummaryStrip();
+    updateLaunchMascot();
+  }
+
+  function updateSummaryStrip() {
+    const roleEl = document.getElementById('summaryRoleValue');
+    const userEl = document.getElementById('summaryUsernameValue');
+    const thirdEl = document.getElementById('summaryThirdValue');
+
+    if (roleEl) roleEl.textContent = obState.role === 'recruiter' ? 'Recruiter' : 'Job Seeker';
+    if (userEl) userEl.textContent = obState.username ? '@' + obState.username : '@required';
+
+    if (thirdEl) {
+      if (obState.role === 'recruiter') {
+        const companyName = (document.getElementById('onboardingCompanyInput')?.value || '').trim();
+        thirdEl.textContent = companyName || 'Recruiter Suite';
+      } else if (obState.selectedResumeFile) {
+        thirdEl.textContent = obState.selectedResumeFile.name;
+      } else if (obState.hasExistingResume) {
+        thirdEl.textContent = 'Saved on profile';
+      } else {
+        thirdEl.textContent = 'Required';
+      }
+    }
+  }
+
+  function clearSubmitError() {
+    const err = document.getElementById('onboardingSubmitError');
+    if (err) {
+      err.textContent = '';
+      err.classList.remove('is-visible');
+    }
+  }
+
+  function showSubmitError(msg) {
+    const err = document.getElementById('onboardingSubmitError');
+    if (err) {
+      err.textContent = msg;
+      err.classList.add('is-visible');
+    }
+    window.obSfx.error();
+  }
+
+  function setUsernameStatus(message, kind) {
+    const el = document.getElementById('usernameCheckStatus');
+    if (!el) return;
+    el.textContent = message;
+    el.classList.remove('is-ok', 'is-error');
+    if (kind === 'ok') el.classList.add('is-ok');
+    if (kind === 'error') el.classList.add('is-error');
+  }
+
+  function renderSuggestions(suggestions) {
+    const row = document.getElementById('usernameSuggestionsRow');
+    if (!row) return;
+    if (!Array.isArray(suggestions) || suggestions.length === 0) {
+      row.style.display = 'none';
+      return;
+    }
+    row.innerHTML = '<span style="font-size: 12px; color: var(--text-on-surface-variant, #78716c);">Suggestions:</span>';
+    suggestions.forEach((s) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ob-chip';
+      btn.textContent = '@' + s;
+      btn.onclick = () => applyUsernameSuggestion(s);
+      row.appendChild(btn);
+    });
+    row.style.display = 'flex';
+  }
+
+  function applyUsernameSuggestion(val) {
+    const input = document.getElementById('onboardingUsernameInput');
+    if (!input) return;
+    window.obSfx.click();
+    input.value = val;
+    checkUsernameAvailability(val, true);
+  }
+
+  async function checkUsernameAvailability(rawValue, playChime = false) {
+    const candidate = (rawValue || '').trim().replace(/^@+/, '');
+    obState.username = candidate;
+    updateSummaryStrip();
+
+    if (!candidate) {
+      obState.usernameValid = false;
+      obState.usernameAvailable = false;
+      setUsernameStatus('Username is required to continue.', 'error');
+      updateUsernameMascot('error', 'We need a handle to save your profile.');
+      updateNavButtons();
+      return false;
     }
 
-    const prevBtn = document.getElementById('prevStepBtn');
-    const nextBtn = document.getElementById('nextStepBtn');
-    const finishBtn = document.getElementById('finishOnboardingBtn');
-
-    if (prevBtn) prevBtn.classList.toggle('invisible', currentStep === 1);
-    if (nextBtn) nextBtn.classList.toggle('hidden', currentStep === 4);
-    if (finishBtn) {
-        finishBtn.classList.toggle('hidden', currentStep !== 4);
-        finishBtn.classList.toggle('flex', currentStep === 4);
-    }
-
-    animateVideoReelProgress(currentStep);
-}
-
-function nextStep() {
-    if (currentStep < 4) {
-        const next = currentStep + 1;
-        playSoundStepTransition(next);
-        goToStep(next);
-    }
-}
-
-function prevStep() {
-    if (currentStep > 1) {
-        const prev = currentStep - 1;
-        playSoundStepTransition(prev);
-        goToStep(prev);
-    }
-}
-
-async function submitOnboarding(event) {
-    event.preventDefault();
-    playSoundLaunchChord();
-    const form = document.getElementById('onboardingForm');
-    const formData = new FormData(form);
-    const payload = Object.fromEntries(formData.entries());
+    const seq = ++obState.usernameCheckSeq;
+    setUsernameStatus('Checking availability...', 'neutral');
+    updateUsernameMascot('checking', 'Scanning handle registry...');
 
     try {
-        const response = await fetch({{ url_for('complete_onboarding')|tojson }}, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify(payload)
-        });
-        const data = await response.json();
-        if (data && data.redirect_url) {
-            window.setTimeout(function () {
-                window.location.assign(data.redirect_url);
-            }, 320);
-            return false;
+      const resp = await fetch(`${CHECK_USERNAME_URL}?q=${encodeURIComponent(candidate)}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      const data = await resp.json();
+      if (seq !== obState.usernameCheckSeq) return false;
+
+      if (data.normalized) {
+        obState.username = data.normalized;
+      }
+      obState.usernameValid = Boolean(data.valid);
+      obState.usernameAvailable = Boolean(data.valid && data.available);
+
+      const handleKey = `${obState.username}:${obState.usernameAvailable}`;
+      if (obState.usernameAvailable) {
+        setUsernameStatus(data.message || '@' + obState.username + ' is available.', 'ok');
+        updateUsernameMascot('valid', `Nice! @${obState.username} is ready!`);
+        if (playChime && obState.lastSpokenHandleState !== handleKey) {
+          window.obSfx.usernameOk();
         }
-    } catch (e) {
-        form.submit();
-    }
-    return false;
-}
-
-// ============================================================================
-// AMBIENT PARTICLE CONSTELLATION CANVAS
-// ============================================================================
-function initAmbientCanvas() {
-    const canvas = document.getElementById('ambientSpaceCanvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let width = canvas.width = window.innerWidth;
-    let height = canvas.height = window.innerHeight;
-
-    const particles = Array.from({ length: 42 }, function () {
-        return {
-            x: Math.random() * width,
-            y: Math.random() * height,
-            r: Math.random() * 1.8 + 0.6,
-            vx: (Math.random() - 0.5) * 0.35,
-            vy: (Math.random() - 0.5) * 0.35,
-            alpha: Math.random() * 0.55 + 0.15
-        };
-    });
-
-    window.addEventListener('resize', function () {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
-    });
-
-    function drawFrame() {
-        ctx.clearRect(0, 0, width, height);
-        for (let i = 0; i < particles.length; i++) {
-            const p = particles[i];
-            p.x += p.vx;
-            p.y += p.vy;
-            if (p.x < 0) p.x = width;
-            if (p.x > width) p.x = 0;
-            if (p.y < 0) p.y = height;
-            if (p.y > height) p.y = 0;
-
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(148, 163, 184, ' + p.alpha + ')';
-            ctx.fill();
+      } else {
+        setUsernameStatus(data.message || 'Please choose a different username.', 'error');
+        updateUsernameMascot('error', 'That handle is unavailable — try another.');
+        if (playChime && obState.lastSpokenHandleState !== handleKey) {
+          window.obSfx.usernameErr();
         }
-        window.requestAnimationFrame(drawFrame);
-    }
-    drawFrame();
-}
+      }
+      obState.lastSpokenHandleState = handleKey;
 
-document.addEventListener('DOMContentLoaded', function () {
-    selectOnboardingRole(selectedRole);
-    goToStep(1);
-    initAmbientCanvas();
-});
+      if (Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+        renderSuggestions(data.suggestions);
+      }
+
+      updateSummaryStrip();
+      updateNavButtons();
+      return obState.usernameAvailable;
+    } catch (_) {
+      if (seq === obState.usernameCheckSeq) {
+        obState.usernameValid = false;
+        obState.usernameAvailable = false;
+        setUsernameStatus('Could not verify username right now. Try again.', 'error');
+        updateUsernameMascot('error', 'Registry check failed — try again.');
+        updateNavButtons();
+      }
+      return false;
+    }
+  }
+
+  function hasValidUsername() {
+    return Boolean(obState.username && obState.usernameValid && obState.usernameAvailable);
+  }
+
+  function hasSeekerResume() {
+    return Boolean(obState.selectedResumeFile || obState.hasExistingResume);
+  }
+
+  function updateNavButtons() {
+    const backBtn = document.getElementById('onboardingBackBtn');
+    const nextBtn = document.getElementById('onboardingNextBtn');
+    const nextLabel = document.getElementById('onboardingNextLabel');
+    const footerStatus = document.getElementById('onboardingFooterStatus');
+
+    if (backBtn) backBtn.disabled = obState.step <= 1 || obState.submitting;
+    if (footerStatus) footerStatus.textContent = `Step ${obState.step} of ${TOTAL_STEPS}`;
+
+    if (nextBtn && nextLabel) {
+      if (obState.submitting) {
+        nextBtn.disabled = true;
+        nextLabel.textContent = 'Completing setup...';
+      } else if (obState.step === 2) {
+        nextBtn.disabled = !hasValidUsername();
+        nextLabel.textContent = 'Continue';
+      } else if (obState.step === TOTAL_STEPS) {
+        const needsResume = obState.role === 'seeker' && !hasSeekerResume();
+        nextBtn.disabled = needsResume || !hasValidUsername();
+        nextLabel.textContent = 'Finish Setup';
+      } else {
+        nextBtn.disabled = false;
+        nextLabel.textContent = 'Continue';
+      }
+    }
+  }
+
+  function updateStepUI(direction = 'forward') {
+    for (let i = 1; i <= TOTAL_STEPS; i++) {
+      const panel = document.getElementById('onboardingStep' + i);
+      const pill = document.getElementById('stepPill' + i);
+      if (panel) {
+        panel.classList.remove('is-enter-forward', 'is-enter-back');
+        panel.classList.toggle('is-active', i === obState.step);
+        if (i === obState.step) {
+          void panel.offsetWidth;
+          panel.classList.add(direction === 'back' ? 'is-enter-back' : 'is-enter-forward');
+          animateBarsInPanel(panel);
+        }
+      }
+      if (pill) {
+        const isLocked = i > obState.maxUnlockedStep;
+        pill.disabled = isLocked;
+        pill.setAttribute('aria-disabled', isLocked ? 'true' : 'false');
+        pill.classList.toggle('is-locked', isLocked);
+        pill.classList.toggle('is-active', i === obState.step);
+        pill.classList.toggle('is-complete', i < obState.step);
+      }
+    }
+    clearSubmitError();
+    renderStepContent();
+    updateNavButtons();
+  }
+
+  async function goToStep(targetStep, options = {}) {
+    if (targetStep < 1 || targetStep > TOTAL_STEPS || obState.submitting) return;
+    if (targetStep === obState.step) return;
+
+    const unlockNext = Boolean(options.unlockNext);
+    if (!unlockNext && targetStep > obState.maxUnlockedStep) {
+      window.obSfx.error();
+      return;
+    }
+
+    if (targetStep > 2 && !hasValidUsername()) {
+      const inputVal = document.getElementById('onboardingUsernameInput')?.value || obState.username;
+      const ok = await checkUsernameAvailability(inputVal, true);
+      if (!ok) {
+        const dir = obState.step > 2 ? 'back' : 'forward';
+        obState.step = 2;
+        updateStepUI(dir);
+        document.getElementById('onboardingUsernameInput')?.focus();
+        return;
+      }
+    }
+
+    if (unlockNext && targetStep > obState.maxUnlockedStep) {
+      obState.maxUnlockedStep = targetStep;
+    }
+
+    const direction = targetStep < obState.step ? 'back' : 'forward';
+    obState.prevStep = obState.step;
+    obState.step = targetStep;
+
+    if (direction === 'back') {
+      window.obSfx.stepBack();
+    } else {
+      window.obSfx.stepForward();
+    }
+
+    updateStepUI(direction);
+
+    if (obState.step === 2 && !hasValidUsername()) {
+      const val = document.getElementById('onboardingUsernameInput')?.value || '';
+      if (val.trim()) {
+        checkUsernameAvailability(val, false);
+      } else {
+        setUsernameStatus('Enter a unique username to unlock the next steps.', 'neutral');
+        updateUsernameMascot('idle', 'Snap checks if your handle is yours!');
+      }
+    }
+  }
+
+  function prevStep() {
+    if (obState.step > 1 && !obState.submitting) {
+      goToStep(obState.step - 1);
+    }
+  }
+
+  async function nextStep() {
+    if (obState.submitting) return;
+
+    if (obState.step === 2) {
+      const inputVal = document.getElementById('onboardingUsernameInput')?.value || '';
+      const ok = await checkUsernameAvailability(inputVal, true);
+      if (!ok) return;
+    }
+
+    if (obState.step < TOTAL_STEPS) {
+      await goToStep(obState.step + 1, { unlockNext: true });
+      return;
+    }
+
+    await submitOnboarding();
+  }
+
+  async function submitOnboarding() {
+    clearSubmitError();
+
+    if (!hasValidUsername()) {
+      const ok = await checkUsernameAvailability(document.getElementById('onboardingUsernameInput')?.value || '', true);
+      if (!ok) {
+        obState.step = 2;
+        updateStepUI('back');
+        return;
+      }
+    }
+
+    if (obState.role === 'seeker' && !hasSeekerResume()) {
+      showSubmitError('Please upload your resume to complete onboarding.');
+      updateNavButtons();
+      return;
+    }
+
+    obState.submitting = true;
+    updateNavButtons();
+
+    try {
+      const formData = new FormData();
+      formData.append('role', obState.role);
+      formData.append('username', obState.username);
+
+      if (obState.role === 'recruiter') {
+        const companyName = (document.getElementById('onboardingCompanyInput')?.value || '').trim();
+        const industry = (document.getElementById('onboardingIndustryInput')?.value || '').trim();
+        formData.append('company_name', companyName);
+        formData.append('industry', industry);
+      } else if (obState.selectedResumeFile) {
+        formData.append('resume', obState.selectedResumeFile);
+      }
+
+      const resp = await fetch(COMPLETE_ONBOARDING_URL, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData,
+      });
+
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        obState.submitting = false;
+        showSubmitError(data.error || 'Could not complete onboarding. Please verify your details.');
+        updateNavButtons();
+        return;
+      }
+
+      window.obSfx.launch();
+      triggerLaunchConfetti();
+      setTimeout(() => {
+        window.location.href = data.redirect_url || '/';
+      }, 260);
+    } catch (_) {
+      obState.submitting = false;
+      showSubmitError('Network error while saving onboarding. Please try again.');
+      updateNavButtons();
+    }
+  }
+
+  function handleSelectedFile(file) {
+    if (!file) return;
+    obState.selectedResumeFile = file;
+    const dropzone = document.getElementById('resumeDropzone');
+    const title = document.getElementById('resumeDropTitle');
+    const meta = document.getElementById('resumeDropMeta');
+    if (dropzone) dropzone.classList.add('has-file');
+    if (title) title.textContent = file.name;
+    if (meta) {
+      const kb = Math.max(1, Math.round(file.size / 1024));
+      meta.textContent = `Ready to upload · ${kb} KB`;
+    }
+    clearSubmitError();
+    window.obSfx.fileDrop();
+    triggerLaunchConfetti();
+    updateSummaryStrip();
+    updateLaunchMascot();
+    updateNavButtons();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    syncSfxButtonUI();
+
+    const usernameInput = document.getElementById('onboardingUsernameInput');
+    if (usernameInput) {
+      usernameInput.addEventListener('input', (e) => {
+        clearTimeout(usernameDebounce);
+        const val = e.target.value;
+        obState.usernameAvailable = false;
+        updateNavButtons();
+        usernameDebounce = setTimeout(() => {
+          checkUsernameAvailability(val, true);
+        }, 250);
+      });
+
+      if (usernameInput.value.trim()) {
+        checkUsernameAvailability(usernameInput.value, false);
+      }
+    }
+
+    const companyInput = document.getElementById('onboardingCompanyInput');
+    if (companyInput) {
+      companyInput.addEventListener('input', updateSummaryStrip);
+    }
+
+    const resumeInput = document.getElementById('onboardingResumeInput');
+    if (resumeInput) {
+      resumeInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          handleSelectedFile(e.target.files[0]);
+        }
+      });
+    }
+
+    const dropzone = document.getElementById('resumeDropzone');
+    if (dropzone) {
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('is-dragover');
+      });
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('is-dragover');
+      });
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('is-dragover');
+        if (e.dataTransfer?.files?.[0]) {
+          handleSelectedFile(e.dataTransfer.files[0]);
+        }
+      });
+      dropzone.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          resumeInput?.click();
+        }
+      });
+    }
+
+    renderRoleSelection();
+    updateStepUI('forward');
+  });
 </script>
 {% endblock %}

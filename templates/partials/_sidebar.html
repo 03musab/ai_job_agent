@@ -380,24 +380,23 @@
                      x-transition:leave-end="opacity-0 -translate-y-1"
                      x-cloak class="pt-3 border-t border-outline-variant/60 mt-2.5 space-y-2">
                     <div class="flex flex-col gap-1.5">
-                        <form action="{{ url_for('sync_calendar') }}" method="POST" onsubmit="return confirm('Sync all pipeline jobs to Google Calendar?');">
-                            <button type="submit" class="w-full py-1.5 px-2.5 text-[11px] font-semibold rounded-xl bg-primary/10 border border-primary/30 text-primary hover:bg-primary hover:text-on-primary transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs">
+                        <form action="{{ url_for('sync_calendar') }}" method="POST" onsubmit="return confirm('Sync all pipeline jobs to Google Calendar?');" class="relative group/sync">
+                            <button type="submit"
+                                title="All your jobs (deadlines, interviews & follow-ups) will be added to Google Calendar."
+                                class="w-full py-1.5 px-2.5 text-[11px] font-semibold rounded-xl bg-primary/10 border border-primary/30 text-primary hover:bg-primary hover:text-on-primary transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs">
                                 <span class="material-symbols-outlined text-[14px]">sync</span>
                                 Sync Jobs to Calendar
                             </button>
+                            <div role="tooltip"
+                                 class="pointer-events-none opacity-0 group-hover/sync:opacity-100 transition-opacity duration-150 mt-1 px-2.5 py-1 rounded-lg bg-surface-container-high border border-outline-variant text-[10px] text-on-surface-variant text-center shadow-xs">
+                                All jobs will be added to Google Calendar
+                            </div>
                         </form>
-                        <div class="grid grid-cols-2 gap-1.5">
-                            <form action="{{ url_for('test_calendar') }}" method="POST">
-                                <button type="submit" class="w-full py-1 px-2 text-[10.5px] font-medium rounded-xl border border-outline-variant bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors cursor-pointer">
-                                    Test G-Calendar
-                                </button>
-                            </form>
-                            <form action="{{ url_for('reauth_google') }}" method="POST">
-                                <button type="submit" class="w-full py-1 px-2 text-[10.5px] font-medium rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/60 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition-colors cursor-pointer">
-                                    Google Sign In
-                                </button>
-                            </form>
-                        </div>
+                        <form action="{{ url_for('test_calendar') }}" method="POST">
+                            <button type="submit" class="w-full py-1.5 px-2 text-[10.5px] font-medium rounded-xl border border-outline-variant bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors cursor-pointer">
+                                Test G-Calendar
+                            </button>
+                        </form>
                     </div>
                     <div class="pt-1 border-t border-outline-variant/50">
                         <div class="grid grid-cols-3 gap-1">

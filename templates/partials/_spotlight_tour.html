@@ -1,4 +1,4 @@
-{% if current_user.is_authenticated %}
+{% if current_user.is_authenticated and request.endpoint != 'onboarding' %}
 <!-- Post-Onboarding Multi-Page Persistent Spotlight Coach-Mark System (_spotlight_tour.html) -->
 <style>
     #spotlightTourOverlay {
@@ -8,7 +8,7 @@
         pointer-events: none;
         visibility: hidden;
         opacity: 0;
-        transition: opacity 0.26s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.26s;
+        transition: opacity 0.24s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.24s;
     }
     #spotlightTourOverlay.tour-active {
         opacity: 1;
@@ -30,8 +30,8 @@
         border-radius: 12px;
         box-shadow:
             0 0 0 9999px rgba(6, 10, 19, 0.80),
-            0 0 0 2px rgba(45, 212, 191, 0.95),
-            0 0 28px rgba(20, 184, 166, 0.40);
+            0 0 0 2px rgba(16, 185, 129, 0.95),
+            0 0 28px rgba(16, 185, 129, 0.38);
         pointer-events: none;
         z-index: 99991;
         will-change: top, left, width, height, border-radius;
@@ -43,7 +43,7 @@
         position: absolute;
         inset: -5px;
         border-radius: inherit;
-        border: 1.5px solid rgba(45, 212, 191, 0.38);
+        border: 1.5px solid rgba(16, 185, 129, 0.42);
         pointer-events: none;
         animation: spotlightRingPulse 2.2s ease-in-out infinite;
     }
@@ -53,26 +53,34 @@
         50% { opacity: 0.85; transform: scale(1.012); }
     }
 
-    /* Top Confirmation Banner */
+    /* Top Confirmation Banner (auto-dismisses cleanly after ~5.5s, stays above callout box) */
     #spotlightTopBanner {
         position: fixed;
         top: 56px;
         left: 50%;
         transform: translateX(-50%);
         width: min(1160px, calc(100vw - 32px));
-        background: rgba(16, 68, 38, 0.90);
-        border: 1px solid rgba(74, 222, 128, 0.45);
+        background: rgba(12, 46, 32, 0.94);
+        border: 1px solid rgba(16, 185, 129, 0.55);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         border-radius: 10px;
-        padding: 9px 16px;
-        display: flex;
+        padding: 9px 14px;
+        display: none;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        z-index: 99994;
-        pointer-events: none;
+        z-index: 99997;
+        pointer-events: auto;
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+        opacity: 1;
+        transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    #spotlightTopBanner.is-fading-out {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-8px);
+        pointer-events: none;
     }
 
     /* Curved Pointer Arrow SVG Layer */
@@ -84,27 +92,64 @@
         pointer-events: none;
         z-index: 99993;
         overflow: visible;
+        opacity: 1;
+        transition: opacity 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    #spotlightTourOverlay.is-page-switching #spotlightArrowSvg {
+        opacity: 0;
+        transition: opacity 0.14s ease;
+    }
+
+    #spotlightTourOverlay.is-page-switching #spotlightCutout {
+        box-shadow:
+            0 0 0 9999px rgba(6, 10, 19, 0.80),
+            0 0 0 1.5px rgba(16, 185, 129, 0.45),
+            0 0 18px rgba(16, 185, 129, 0.18);
+        transition: box-shadow 0.22s ease;
+    }
+
+    #spotlightTourOverlay.is-page-switching #spotlightCalloutBox {
+        border-color: rgba(16, 185, 129, 0.72);
+        box-shadow:
+            0 24px 60px rgba(0, 0, 0, 0.85),
+            0 0 24px rgba(16, 185, 129, 0.2);
+    }
+
+    .spotlight-snap-shell.is-step-swap {
+        animation: spotlightContentSwap 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes spotlightContentSwap {
+        0% {
+            opacity: 0.35;
+            transform: translateY(5px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     #spotlightArrowPath,
     #spotlightArrowHead {
         fill: none;
-        stroke: #2dd4bf;
+        stroke: #10b981;
         stroke-width: 2.5;
         stroke-linecap: round;
         stroke-linejoin: round;
         filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.75));
     }
 
-    /* Consistent, High-Contrast Structured Coach-Mark Card */
+    /* Consistent, High-Contrast Structured Coach-Mark Card with Snap Companion */
     #spotlightCalloutBox {
         position: fixed;
         top: 0;
         left: 0;
         z-index: 99995;
-        width: min(445px, calc(100vw - 24px));
-        background: rgba(10, 15, 28, 0.96);
-        border: 1px solid rgba(45, 212, 191, 0.44);
+        width: min(470px, calc(100vw - 24px));
+        background: rgba(13, 17, 26, 0.96);
+        border: 1px solid rgba(16, 185, 129, 0.45);
         border-radius: 16px;
         padding: 18px 20px;
         pointer-events: none;
@@ -125,12 +170,127 @@
         left: 0;
         right: 0;
         height: 2.5px;
-        background: linear-gradient(90deg, #14b8a6 0%, #38bdf8 65%, transparent 100%);
+        background: linear-gradient(90deg, #10b981 0%, #f59e0b 60%, transparent 100%);
+    }
+
+    .spotlight-snap-shell {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+    }
+
+    .spotlight-snap-avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        background: rgba(16, 185, 129, 0.10);
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        position: relative;
+    }
+
+    .spotlight-snap-float {
+        animation: snapTourFloat 3.2s ease-in-out infinite;
+        transform-origin: center bottom;
+    }
+
+    .spotlight-snap-blink {
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: snapTourBlink 4.2s ease-in-out infinite;
+    }
+
+    .spotlight-snap-arm {
+        transform-box: fill-box;
+        transform-origin: 20% 80%;
+        animation: snapTourWave 2.4s ease-in-out infinite;
+    }
+
+    .spotlight-snap-hop {
+        animation: snapTourHop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes snapTourFloat {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-4px); }
+    }
+
+    @keyframes snapTourBlink {
+        0%, 44%, 48%, 92%, 96%, 100% { transform: scaleY(1); }
+        46%, 94% { transform: scaleY(0.12); }
+    }
+
+    @keyframes snapTourWave {
+        0%, 100% { transform: rotate(0deg); }
+        25% { transform: rotate(-12deg); }
+        50% { transform: rotate(5deg); }
+        75% { transform: rotate(-7deg); }
+    }
+
+    @keyframes snapTourHop {
+        0% { transform: translateY(0) scale(1); }
+        40% { transform: translateY(-7px) scale(1.07); }
+        100% { transform: translateY(0) scale(1); }
+    }
+
+    #spotlightBannerText {
+        color: #ecfdf5 !important;
+    }
+
+    #spotlightBannerEndBtn {
+        background: rgba(244, 63, 94, 0.28);
+        border: 1px solid rgba(251, 113, 133, 0.65);
+        color: #ffe4e6 !important;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    #spotlightBannerEndBtn:hover {
+        background: rgba(244, 63, 94, 0.45);
+        color: #ffffff !important;
+    }
+
+    #spotlightBannerCloseBtn {
+        color: #d1fae5 !important;
+        background: transparent;
+        border: none;
+        font-size: 18px;
+        line-height: 1;
+        padding: 0 4px;
+        cursor: pointer;
+    }
+
+    #spotlightBannerCloseBtn:hover {
+        color: #ffffff !important;
+    }
+
+    #spotlightStepCounter {
+        background: rgba(16, 185, 129, 0.18);
+        color: #6ee7b7 !important;
+        border: 1px solid rgba(52, 211, 153, 0.45);
+    }
+
+    #spotlightFeatureTag {
+        background: rgba(30, 41, 59, 0.94);
+        color: #e2e8f0 !important;
+        border: 1px solid rgba(100, 116, 139, 0.5);
+    }
+
+    #spotlightPagePill {
+        background: rgba(16, 185, 129, 0.16);
+        color: #a7f3d0 !important;
+        border: 1px solid rgba(52, 211, 153, 0.45);
     }
 
     .spotlight-card-title {
         font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 16px;
+        font-size: 15.5px;
         font-weight: 700;
         line-height: 1.38;
         color: #f8fafc;
@@ -140,11 +300,11 @@
 
     .spotlight-card-sub {
         font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 13px;
+        font-size: 12.5px;
         font-weight: 400;
         color: #cbd5e1;
-        margin-top: 6px;
-        line-height: 1.55;
+        margin-top: 5px;
+        line-height: 1.52;
     }
 
     /* End Tour Button (Permanently stops tour even across refreshes) */
@@ -206,15 +366,15 @@
         height: 34px;
         padding: 0 13px;
         border-radius: 8px;
-        border: 1px solid #14b8a6;
-        background: linear-gradient(135deg, #0d9488 0%, #0ea5e9 100%);
+        border: 1px solid #10b981;
+        background: linear-gradient(135deg, #059669 0%, #10b981 100%);
         color: #ffffff;
         font-family: 'Plus Jakarta Sans', sans-serif;
         font-size: 12px;
         font-weight: 700;
         cursor: pointer;
         transition: all 0.16s ease;
-        box-shadow: 0 6px 16px rgba(13, 148, 136, 0.35);
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.32);
         white-space: nowrap;
         flex-shrink: 0;
     }
@@ -238,7 +398,7 @@
     }
     .spotlight-dot.active {
         width: 16px;
-        background: #2dd4bf;
+        background: #10b981;
     }
 
     @media (max-width: 639px) {
@@ -256,8 +416,64 @@
             padding: 14px 15px;
             border-radius: 14px;
         }
-        .spotlight-card-title {
-            font-size: 14.5px;
+        .spotlight-snap-avatar {
+            width: 46px;
+            height: 46px;
+        }
+        #spotlightBannerText {
+        color: #ecfdf5 !important;
+    }
+
+    #spotlightBannerEndBtn {
+        background: rgba(244, 63, 94, 0.28);
+        border: 1px solid rgba(251, 113, 133, 0.65);
+        color: #ffe4e6 !important;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    #spotlightBannerEndBtn:hover {
+        background: rgba(244, 63, 94, 0.45);
+        color: #ffffff !important;
+    }
+
+    #spotlightBannerCloseBtn {
+        color: #d1fae5 !important;
+        background: transparent;
+        border: none;
+        font-size: 18px;
+        line-height: 1;
+        padding: 0 4px;
+        cursor: pointer;
+    }
+
+    #spotlightBannerCloseBtn:hover {
+        color: #ffffff !important;
+    }
+
+    #spotlightStepCounter {
+        background: rgba(16, 185, 129, 0.18);
+        color: #6ee7b7 !important;
+        border: 1px solid rgba(52, 211, 153, 0.45);
+    }
+
+    #spotlightFeatureTag {
+        background: rgba(30, 41, 59, 0.94);
+        color: #e2e8f0 !important;
+        border: 1px solid rgba(100, 116, 139, 0.5);
+    }
+
+    #spotlightPagePill {
+        background: rgba(16, 185, 129, 0.16);
+        color: #a7f3d0 !important;
+        border: 1px solid rgba(52, 211, 153, 0.45);
+    }
+
+    .spotlight-card-title {
+            font-size: 14px;
         }
         .spotlight-card-sub {
             font-size: 12px;
@@ -271,6 +487,531 @@
             padding: 0 10px;
         }
     }
+
+    /* Snap Finale Celebration Overlay (character-only, seamless glide to corner dock) */
+    #snapTourFinaleOverlay {
+        position: fixed;
+        inset: 0;
+        z-index: 99998;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+
+    #snapTourFinaleCard {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        overflow: visible;
+    }
+
+    #snapTourFinaleMover {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transform-origin: center center;
+        will-change: transform, opacity;
+    }
+
+    #snapTourFinaleSvg {
+        width: 104px;
+        height: 104px;
+        overflow: visible;
+        filter: drop-shadow(0 16px 28px rgba(15, 23, 42, 0.28));
+    }
+
+    #snapTourFinaleOverlay.is-entering #snapTourFinaleMover {
+        animation: snapFinaleIn 0.46s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    #snapTourFinaleOverlay.is-smiling #snapTourFinaleSvg {
+        animation: snapFinaleBounce 0.56s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .snap-finale-eyes-neutral,
+    .snap-finale-mouth-neutral {
+        transition: opacity 0.16s ease;
+    }
+
+    .snap-finale-eyes-happy,
+    .snap-finale-mouth-happy,
+    .snap-finale-cheeks {
+        opacity: 0;
+        transition: opacity 0.2s ease, transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transform-origin: center;
+    }
+
+    #snapTourFinaleOverlay.is-smiling .snap-finale-eyes-neutral,
+    #snapTourFinaleOverlay.is-smiling .snap-finale-mouth-neutral {
+        opacity: 0;
+    }
+
+    #snapTourFinaleOverlay.is-smiling .snap-finale-eyes-happy,
+    #snapTourFinaleOverlay.is-smiling .snap-finale-mouth-happy,
+    #snapTourFinaleOverlay.is-smiling .snap-finale-cheeks {
+        opacity: 1;
+    }
+
+    .snap-finale-arm-cheer {
+        transform-box: fill-box;
+        transform-origin: 78% 78%;
+        animation: snapFinaleWave 0.6s ease-in-out infinite;
+    }
+
+    #snapFinaleCaption {
+        padding: 7px 14px;
+        border-radius: 999px;
+        background: rgba(13, 17, 26, 0.92);
+        border: 1px solid rgba(16, 185, 129, 0.52);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        color: #ecfdf5;
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+        opacity: 0;
+        transform: translateY(8px) scale(0.96);
+        transition: opacity 0.26s ease, transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    #snapTourFinaleOverlay.is-entering #snapFinaleCaption,
+    #snapTourFinaleOverlay.is-smiling #snapFinaleCaption {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    #snapTourFinaleOverlay.is-caption-out #snapFinaleCaption {
+        opacity: 0 !important;
+        transform: translateY(-6px) scale(0.95) !important;
+    }
+
+    .snap-finale-sparkles {
+        position: absolute;
+        inset: -16px;
+        pointer-events: none;
+        overflow: visible;
+    }
+
+    .snap-finale-dot {
+        position: absolute;
+        left: 50%;
+        top: 48%;
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        opacity: 0;
+    }
+
+    #snapTourFinaleOverlay.is-smiling .snap-finale-dot {
+        animation: snapFinaleSpark 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes snapFinaleIn {
+        0% {
+            opacity: 0;
+            transform: translateY(28px) scale(0.6);
+        }
+        65% {
+            opacity: 1;
+            transform: translateY(-4px) scale(1.05);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @keyframes snapFinaleBounce {
+        0% { transform: translateY(0) scale(1); }
+        38% { transform: translateY(-10px) scale(1.07); }
+        74% { transform: translateY(2px) scale(0.98); }
+        100% { transform: translateY(0) scale(1); }
+    }
+
+    @keyframes snapFinaleWave {
+        0%, 100% { transform: rotate(0deg); }
+        50% { transform: rotate(-18deg); }
+    }
+
+    @keyframes snapFinaleSpark {
+        0% {
+            opacity: 1;
+            transform: translate(0, 0) scale(0.5);
+        }
+        100% {
+            opacity: 0;
+            transform: translate(var(--sx, 36px), var(--sy, -44px)) scale(1.1);
+        }
+    }
+
+    /* Bottom-Right Persistent Snap Character & Chatbot Dock (no container box) */
+    #snapDockRoot {
+        position: fixed;
+        right: 20px;
+        bottom: 18px;
+        z-index: 99980;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 10px;
+        pointer-events: none;
+    }
+
+    #snapDockRoot > * {
+        pointer-events: auto;
+    }
+
+    .snap-dock-launcher-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    #snapDockGreeting {
+        position: relative;
+        display: none;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 13px;
+        border-radius: 14px;
+        background: rgba(13, 17, 26, 0.95);
+        border: 1px solid rgba(16, 185, 129, 0.52);
+        color: #ecfdf5;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 12.5px;
+        font-weight: 600;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        white-space: nowrap;
+        animation: snapDockGreetIn 0.34s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    #snapDockGreeting::after {
+        content: '';
+        position: absolute;
+        right: -6px;
+        top: 50%;
+        width: 10px;
+        height: 10px;
+        transform: translateY(-50%) rotate(45deg);
+        background: rgba(13, 17, 26, 0.95);
+        border-top: 1px solid rgba(16, 185, 129, 0.52);
+        border-right: 1px solid rgba(16, 185, 129, 0.52);
+    }
+
+    #snapDockGreeting.is-hiding {
+        opacity: 0;
+        transform: translateY(6px) scale(0.95);
+        transition: opacity 0.24s ease, transform 0.24s ease;
+    }
+
+    #snapDockGreetClose {
+        background: transparent;
+        border: none;
+        color: #6ee7b7;
+        font-size: 15px;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0 2px;
+    }
+
+    #snapDockButton {
+        width: 66px;
+        height: 66px;
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        position: relative;
+        overflow: visible;
+        transform-origin: center bottom;
+        transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    #snapDockButton svg {
+        width: 66px;
+        height: 66px;
+        overflow: visible;
+        filter: drop-shadow(0 8px 16px rgba(15, 23, 42, 0.24));
+        transition: filter 0.22s ease;
+    }
+
+    #snapDockButton:hover {
+        transform: translateY(-4px) scale(1.07);
+    }
+
+    #snapDockButton:hover svg {
+        filter: drop-shadow(0 12px 22px rgba(16, 185, 129, 0.34));
+    }
+
+    #snapDockButton:focus-visible {
+        outline: 2px solid #10b981;
+        outline-offset: 4px;
+        border-radius: 999px;
+    }
+
+    #snapDockButton.is-landing {
+        animation: snapDockLand 0.52s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Snap Chatbot Drawer */
+    #snapChatPanel {
+        display: none;
+        width: min(370px, calc(100vw - 24px));
+        height: min(465px, calc(100dvh - 110px));
+        flex-direction: column;
+        border-radius: 18px;
+        overflow: hidden;
+        background: rgba(13, 17, 26, 0.97);
+        border: 1px solid rgba(16, 185, 129, 0.48);
+        box-shadow:
+            0 24px 60px rgba(0, 0, 0, 0.65),
+            0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+        backdrop-filter: blur(22px);
+        -webkit-backdrop-filter: blur(22px);
+        animation: snapDockGreetIn 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    #snapChatPanel.is-open {
+        display: flex;
+    }
+
+    .snap-chat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 12px 14px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        background: rgba(16, 185, 129, 0.09);
+        flex-shrink: 0;
+    }
+
+    .snap-chat-title {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 13.5px;
+        font-weight: 700;
+        color: #f8fafc;
+        line-height: 1.2;
+    }
+
+    .snap-chat-sub {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: #6ee7b7;
+        margin-top: 2px;
+    }
+
+    .snap-chat-close {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: rgba(30, 41, 59, 0.6);
+        color: #cbd5e1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 15px;
+    }
+
+    .snap-chat-close:hover {
+        color: #ffffff;
+        border-color: rgba(16, 185, 129, 0.55);
+    }
+
+    #snapChatMessages {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .snap-msg {
+        max-width: 88%;
+        padding: 9px 12px;
+        border-radius: 12px;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 12.5px;
+        line-height: 1.48;
+        word-wrap: break-word;
+    }
+
+    .snap-msg--bot {
+        align-self: flex-start;
+        background: rgba(30, 41, 59, 0.88);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        color: #f1f5f9;
+        border-bottom-left-radius: 4px;
+    }
+
+    .snap-msg--user {
+        align-self: flex-end;
+        background: #059669;
+        border: 1px solid #10b981;
+        color: #ffffff;
+        border-bottom-right-radius: 4px;
+    }
+
+    .snap-msg-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    .snap-msg-action-btn {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10.5px;
+        font-weight: 700;
+        padding: 4px 9px;
+        border-radius: 7px;
+        background: rgba(16, 185, 129, 0.16);
+        border: 1px solid rgba(52, 211, 153, 0.45);
+        color: #a7f3d0;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+    }
+
+    .snap-msg-action-btn:hover {
+        background: rgba(16, 185, 129, 0.28);
+        color: #ffffff;
+    }
+
+    .snap-chat-starters {
+        padding: 0 14px 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .snap-starter-chip {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 9px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        background: rgba(30, 41, 59, 0.72);
+        color: #cbd5e1;
+        cursor: pointer;
+        transition: border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .snap-starter-chip:hover {
+        border-color: #10b981;
+        color: #ffffff;
+    }
+
+    .snap-chat-form {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border-top: 1px solid rgba(148, 163, 184, 0.16);
+        background: rgba(9, 13, 21, 0.9);
+        flex-shrink: 0;
+    }
+
+    #snapChatInput {
+        flex: 1;
+        min-width: 0;
+        height: 36px;
+        border-radius: 9px !important;
+        padding: 0 11px !important;
+        font-size: 12.5px !important;
+        background-color: rgba(30, 41, 59, 0.9) !important;
+        border: 1px solid rgba(148, 163, 184, 0.3) !important;
+        color: #f8fafc !important;
+        outline: none !important;
+    }
+
+    #snapChatInput::placeholder {
+        color: #94a3b8 !important;
+    }
+
+    #snapChatSendBtn {
+        height: 36px;
+        padding: 0 13px;
+        border-radius: 9px;
+        border: 1px solid #10b981;
+        background: #10b981;
+        color: #06281e;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    #snapChatSendBtn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    @keyframes snapDockGreetIn {
+        0% {
+            opacity: 0;
+            transform: translateY(10px) scale(0.92);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @keyframes snapDockLand {
+        0% { transform: scaleX(1.1) scaleY(0.88) translateY(2px); }
+        42% { transform: scaleX(0.95) scaleY(1.06) translateY(-5px); }
+        74% { transform: scaleX(1.02) scaleY(0.98) translateY(0); }
+        100% { transform: scale(1) translateY(0); }
+    }
+
+    @media (max-width: 639px) {
+        #snapDockRoot {
+            right: 12px;
+            bottom: 12px;
+        }
+        #snapDockButton,
+        #snapDockButton svg {
+            width: 56px;
+            height: 56px;
+        }
+        #snapDockGreeting {
+            max-width: calc(100vw - 92px);
+            white-space: normal;
+            font-size: 11.5px;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .spotlight-snap-float,
+        .spotlight-snap-blink,
+        .spotlight-snap-arm,
+        .snap-finale-arm-cheer {
+            animation: none !important;
+        }
+    }
 </style>
 
 <div id="spotlightTourOverlay"
@@ -279,25 +1020,25 @@
      data-user-role="{{ current_user.role or 'seeker' }}"
      aria-hidden="true">
 
-    <!-- 1. Top Emerald Confirmation Banner -->
+    <!-- 1. Top Emerald Confirmation Banner (vanishes after ~5.5s & stays dismissed until Interactive Tour is clicked again) -->
     <div id="spotlightTopBanner">
         <div class="flex items-center gap-2.5 min-w-0">
-            <span class="w-5 h-5 rounded-full bg-emerald-500/25 border border-emerald-400/70 flex items-center justify-center text-emerald-300 text-[11px] font-bold shrink-0">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0" style="background: rgba(16, 185, 129, 0.25); border: 1px solid rgba(52, 211, 153, 0.7); color: #6ee7b7;">
                 ✓
             </span>
-            <span id="spotlightBannerText" class="text-[12.5px] font-medium text-emerald-50 truncate">
+            <span id="spotlightBannerText" class="text-[12.5px] font-medium truncate">
                 {% if current_user.role == 'recruiter' %}
-                    Guided Tour Active — walks across Dashboard, Post Job, Company Profile & Outreach Studio. Progress auto-saves on refresh.
+                    Guided Tour with Snapy — walks across Dashboard, Post Job, Company Profile & Outreach Studio.
                 {% else %}
-                    Guided Tour Active — walks across Job Matches, Outreach Studio & Skill Gap Roadmap. Progress auto-saves on refresh.
+                    Guided Tour with Snapy — walks across Job Matches, Outreach Studio & Skill Gap Roadmap.
                 {% endif %}
             </span>
         </div>
         <div class="flex items-center gap-2 shrink-0">
-            <button type="button" onclick="window.endSpotlightTour()" class="text-[11px] font-semibold px-2.5 py-1 rounded bg-rose-500/20 border border-rose-400/40 text-rose-200 hover:bg-rose-500/35 hover:text-white transition-colors cursor-pointer">
+            <button type="button" id="spotlightBannerEndBtn">
                 End Tour
             </button>
-            <button type="button" onclick="window.closeSpotlightBanner()" class="text-emerald-200/75 hover:text-white text-lg leading-none px-1 cursor-pointer" title="Hide banner">
+            <button type="button" id="spotlightBannerCloseBtn" title="Hide banner">
                 ×
             </button>
         </div>
@@ -312,37 +1053,56 @@
         <path id="spotlightArrowHead" d="M 0 0 L 0 0 L 0 0" />
     </svg>
 
-    <!-- 4. Structured, High-Contrast Coach-Mark Card -->
+    <!-- 4. Structured, High-Contrast Coach-Mark Card with Snap Character -->
     <div id="spotlightCalloutBox" role="dialog" aria-labelledby="spotlightCalloutText">
         <!-- Card Header Row -->
-        <div class="mb-2.5 flex items-center justify-between gap-2">
+        <div class="mb-3 flex items-center justify-between gap-2">
             <div class="flex items-center gap-2 min-w-0">
-                <span id="spotlightStepCounter" class="font-data-mono text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-md bg-teal-500/20 text-teal-300 border border-teal-400/35 font-bold shrink-0">
-                    STEP 1 / 14
+                <span id="spotlightStepCounter" class="font-data-mono text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-md font-bold shrink-0">
+                    SNAPY · STEP 1 / 14
                 </span>
-                <span id="spotlightFeatureTag" class="font-data-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-800/90 text-slate-300 border border-slate-700 font-semibold truncate">
+                <span id="spotlightFeatureTag" class="font-data-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md font-semibold truncate">
                     DASHBOARD
                 </span>
             </div>
-            <span id="spotlightPagePill" class="font-data-mono text-[9.5px] text-teal-400/90 bg-teal-500/10 border border-teal-500/25 px-1.5 py-0.5 rounded shrink-0">
+            <span id="spotlightPagePill" class="font-data-mono text-[10px] font-semibold px-2 py-0.5 rounded shrink-0">
                 Page 1/4
             </span>
         </div>
 
-        <!-- Readable Title & Description -->
-        <h3 id="spotlightCalloutText" class="spotlight-card-title">
-            Begin to set up your workspace—monitor Active Jobs, Applications, and Hires live.
-        </h3>
-        <p id="spotlightCalloutSub" class="spotlight-card-sub">
-            Click Active Jobs or Applications metric cards to jump straight to those rosters, or click Next to explore your hiring funnel.
-        </p>
+        <!-- Animated Snap Companion + Title/Description -->
+        <div class="spotlight-snap-shell">
+            <div id="spotlightSnapAvatar" class="spotlight-snap-avatar" aria-hidden="true">
+                <svg width="48" height="48" viewBox="0 0 80 80" fill="none">
+                    <g class="spotlight-snap-float">
+                        <ellipse cx="40" cy="72" rx="18" ry="3.5" fill="#10b981" opacity="0.22"/>
+                        <rect x="21" y="24" width="38" height="40" rx="16" fill="#10b981" stroke="#0f172a" stroke-width="2.4"/>
+                        <rect x="27" y="33" width="26" height="15" rx="7.5" fill="#faf8f5" stroke="#0f172a" stroke-width="2"/>
+                        <circle class="spotlight-snap-blink" cx="35" cy="40.5" r="2.3" fill="#0f172a"/>
+                        <circle class="spotlight-snap-blink" cx="45" cy="40.5" r="2.3" fill="#0f172a"/>
+                        <path d="M37 44.5c1.5 1.4 3.5 1.4 5 0" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="40" y1="24" x2="40" y2="15" stroke="#e2e8f0" stroke-width="2.2" stroke-linecap="round"/>
+                        <circle id="tourSnapBeacon" cx="40" cy="13" r="4" fill="#f59e0b" stroke="#0f172a" stroke-width="2"/>
+                        <path class="spotlight-snap-arm" d="M21 45c-6-2-9-7-8-12" stroke="#e2e8f0" stroke-width="3" stroke-linecap="round"/>
+                    </g>
+                </svg>
+            </div>
+            <div class="min-w-0 flex-1">
+                <h3 id="spotlightCalloutText" class="spotlight-card-title">
+                    Begin to set up your workspace—monitor Active Jobs, Applications, and Hires live.
+                </h3>
+                <p id="spotlightCalloutSub" class="spotlight-card-sub">
+                    Click Active Jobs or Applications metric cards to jump straight to those rosters, or click Next to explore your hiring funnel.
+                </p>
+            </div>
+        </div>
 
         <!-- Progress Dots Row -->
         <div id="spotlightDotsContainer" class="mt-3.5 flex items-center gap-1.5 flex-wrap"></div>
 
         <!-- Card Footer Row: End Tour + Back + Next -->
         <div class="mt-3.5 pt-3 border-t border-slate-800/90 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-            <button type="button" id="spotlightEndTourBtn" onclick="window.endSpotlightTour()" class="spotlight-btn-end" title="Permanently end tour (will not restart on refresh)">
+            <button type="button" id="spotlightEndTourBtn" onclick="window.endSpotlightTour()" class="spotlight-btn-end" title="End tour completely">
                 <span>✕</span>
                 <span>End Tour</span>
             </button>
@@ -358,6 +1118,119 @@
                 </button>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Post-Tour Finale Celebration Character (Snap enters, smiles, and glides directly into bottom-right dock) -->
+<div id="snapTourFinaleOverlay" aria-hidden="true">
+    <div id="snapTourFinaleCard">
+        <div id="snapTourFinaleMover">
+            <div id="snapFinaleSparkles" class="snap-finale-sparkles"></div>
+            <svg id="snapTourFinaleSvg" width="104" height="104" viewBox="6 4 78 78" fill="none">
+                <ellipse cx="45" cy="76" rx="20" ry="4" fill="#0f172a" opacity="0.16"/>
+                <rect x="23" y="25" width="44" height="46" rx="18" fill="#10b981" stroke="#0f172a" stroke-width="2.6"/>
+                <rect x="30" y="36" width="30" height="17" rx="8.5" fill="#faf8f5" stroke="#0f172a" stroke-width="2.1"/>
+
+                <!-- Neutral eyes (briefly shown before snapping into a wide smile) -->
+                <g class="snap-finale-eyes-neutral">
+                    <circle cx="39" cy="44" r="2.5" fill="#0f172a"/>
+                    <circle cx="51" cy="44" r="2.5" fill="#0f172a"/>
+                </g>
+                <path class="snap-finale-mouth-neutral" d="M42 48.5c2 1.4 4 1.4 6 0" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+
+                <!-- Happy smiling eyes + rosy cheeks + wide smile -->
+                <g class="snap-finale-eyes-happy">
+                    <path d="M35.5 44.5c1.8-2.6 4.7-2.6 6.5 0" stroke="#0f172a" stroke-width="2.3" stroke-linecap="round"/>
+                    <path d="M48 44.5c1.8-2.6 4.7-2.6 6.5 0" stroke="#0f172a" stroke-width="2.3" stroke-linecap="round"/>
+                </g>
+                <g class="snap-finale-cheeks">
+                    <ellipse cx="34.5" cy="48.5" rx="3" ry="1.6" fill="#f59e0b" opacity="0.5"/>
+                    <ellipse cx="55.5" cy="48.5" rx="3" ry="1.6" fill="#f59e0b" opacity="0.5"/>
+                </g>
+                <path class="snap-finale-mouth-happy" d="M39.5 47.5c2.2 3.4 8.8 3.4 11 0" stroke="#10b981" stroke-width="2.4" stroke-linecap="round"/>
+
+                <!-- Outlined antenna + beacon + waving arms (high contrast on any background) -->
+                <line x1="45" y1="25" x2="45" y2="15" stroke="#0f172a" stroke-width="4.4" stroke-linecap="round"/>
+                <line x1="45" y1="25" x2="45" y2="15" stroke="#f8fafc" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="45" cy="12" r="4.5" fill="#f59e0b" stroke="#0f172a" stroke-width="2.2"/>
+                <g class="snap-finale-arm-cheer">
+                    <path d="M23 48c-7-3-11-9-10-15" stroke="#0f172a" stroke-width="5.4" stroke-linecap="round"/>
+                    <path d="M23 48c-7-3-11-9-10-15" stroke="#e2e8f0" stroke-width="2.8" stroke-linecap="round"/>
+                    <circle cx="13" cy="33" r="2.4" fill="#10b981" stroke="#0f172a" stroke-width="1.6"/>
+                </g>
+                <path d="M67 48c6 3 9 7 9 11" stroke="#0f172a" stroke-width="5.4" stroke-linecap="round"/>
+                <path d="M67 48c6 3 9 7 9 11" stroke="#e2e8f0" stroke-width="2.8" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <div id="snapFinaleCaption">Tour complete — Snapy is ready to help!</div>
+    </div>
+</div>
+
+<!-- Persistent Bottom-Right Snapy Character & AI Chatbot Drawer -->
+<div id="snapDockRoot">
+    <div id="snapChatPanel" role="dialog" aria-label="Snapy Chat">
+        <div class="snap-chat-header">
+            <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                <svg width="32" height="32" viewBox="6 4 78 78" fill="none" aria-hidden="true">
+                    <rect x="23" y="25" width="44" height="46" rx="18" fill="#10b981" stroke="#0f172a" stroke-width="2.6"/>
+                    <rect x="30" y="36" width="30" height="17" rx="8.5" fill="#faf8f5" stroke="#0f172a" stroke-width="2.1"/>
+                    <circle cx="39" cy="44" r="2.5" fill="#0f172a"/>
+                    <circle cx="51" cy="44" r="2.5" fill="#0f172a"/>
+                    <path d="M41.5 48.5c2 1.6 5 1.6 7 0" stroke="#10b981" stroke-width="2.2" stroke-linecap="round"/>
+                    <line x1="45" y1="25" x2="45" y2="15" stroke="#e2e8f0" stroke-width="2.2" stroke-linecap="round"/>
+                    <circle cx="45" cy="12" r="4.5" fill="#f59e0b" stroke="#0f172a" stroke-width="2.1"/>
+                </svg>
+                <div style="min-width: 0;">
+                    <div class="snap-chat-title">Snapy</div>
+                    <div class="snap-chat-sub">Ask me anything about AI JobSnap</div>
+                </div>
+            </div>
+            <button type="button" id="snapChatCloseBtn" class="snap-chat-close" aria-label="Close Snapy chat">×</button>
+        </div>
+
+        <div id="snapChatMessages"></div>
+        <div id="snapChatStarters" class="snap-chat-starters"></div>
+
+        <form id="snapChatForm" class="snap-chat-form">
+            <input
+                id="snapChatInput"
+                type="text"
+                placeholder="Ask Snapy a question..."
+                autocomplete="off"
+                maxlength="500"
+            />
+            <button type="submit" id="snapChatSendBtn">Ask</button>
+        </form>
+    </div>
+
+    <div class="snap-dock-launcher-row">
+        <div id="snapDockGreeting" role="status">
+            <span>Hey, I’m Snapy! Ping me up if you have any doubt!</span>
+            <button type="button" id="snapDockGreetClose" aria-label="Dismiss greeting">×</button>
+        </div>
+
+        <button type="button" id="snapDockButton" aria-label="Open Snapy chat" title="Chat with Snapy">
+            <svg width="66" height="66" viewBox="6 4 78 78" fill="none" aria-hidden="true">
+                <g class="spotlight-snap-float">
+                    <ellipse cx="45" cy="76" rx="18" ry="3.5" fill="#0f172a" opacity="0.16"/>
+                    <rect x="23" y="25" width="44" height="46" rx="18" fill="#10b981" stroke="#0f172a" stroke-width="2.6"/>
+                    <rect x="30" y="36" width="30" height="17" rx="8.5" fill="#faf8f5" stroke="#0f172a" stroke-width="2.1"/>
+                    <circle class="spotlight-snap-blink" cx="39" cy="44" r="2.5" fill="#0f172a"/>
+                    <circle class="spotlight-snap-blink" cx="51" cy="44" r="2.5" fill="#0f172a"/>
+                    <path d="M40.5 48c2 2 7 2 9 0" stroke="#10b981" stroke-width="2.3" stroke-linecap="round"/>
+                    <line x1="45" y1="25" x2="45" y2="15" stroke="#0f172a" stroke-width="4.4" stroke-linecap="round"/>
+                    <line x1="45" y1="25" x2="45" y2="15" stroke="#f8fafc" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="45" cy="12" r="4.5" fill="#10b981" stroke="#0f172a" stroke-width="2.2"/>
+                    <g class="spotlight-snap-arm">
+                        <path d="M23 48c-7-3-11-9-10-15" stroke="#0f172a" stroke-width="5.4" stroke-linecap="round"/>
+                        <path d="M23 48c-7-3-11-9-10-15" stroke="#e2e8f0" stroke-width="2.8" stroke-linecap="round"/>
+                        <circle cx="13" cy="33" r="2.4" fill="#10b981" stroke="#0f172a" stroke-width="1.6"/>
+                    </g>
+                    <path d="M67 48c6 3 9 7 9 11" stroke="#0f172a" stroke-width="5.4" stroke-linecap="round"/>
+                    <path d="M67 48c6 3 9 7 9 11" stroke="#e2e8f0" stroke-width="2.8" stroke-linecap="round"/>
+                </g>
+            </svg>
+        </button>
     </div>
 </div>
 
@@ -382,10 +1255,31 @@
     const prevBtn = document.getElementById('spotlightPrevBtn');
     const nextBtnLabel = document.getElementById('spotlightNextBtnLabel');
     const topBanner = document.getElementById('spotlightTopBanner');
+    const bannerEndBtn = document.getElementById('spotlightBannerEndBtn');
+    const bannerCloseBtn = document.getElementById('spotlightBannerCloseBtn');
+    const snapAvatar = document.getElementById('spotlightSnapAvatar');
+    const tourSnapBeacon = document.getElementById('tourSnapBeacon');
+    const finaleOverlay = document.getElementById('snapTourFinaleOverlay');
+    const finaleCard = document.getElementById('snapTourFinaleCard');
+    const finaleMover = document.getElementById('snapTourFinaleMover');
+    const finaleSvg = document.getElementById('snapTourFinaleSvg');
+    const finaleSparkles = document.getElementById('snapFinaleSparkles');
+    const dockRoot = document.getElementById('snapDockRoot');
+    const dockButton = document.getElementById('snapDockButton');
+    const dockGreeting = document.getElementById('snapDockGreeting');
+    const dockGreetClose = document.getElementById('snapDockGreetClose');
+    const chatPanel = document.getElementById('snapChatPanel');
+    const chatCloseBtn = document.getElementById('snapChatCloseBtn');
+    const chatMessagesEl = document.getElementById('snapChatMessages');
+    const chatStartersEl = document.getElementById('snapChatStarters');
+    const chatForm = document.getElementById('snapChatForm');
+    const chatInput = document.getElementById('snapChatInput');
+    const chatSendBtn = document.getElementById('snapChatSendBtn');
 
     const userId = overlay.dataset.userId || 'anon';
     const userRole = (overlay.dataset.userRole || 'seeker').toLowerCase();
     const STORAGE_KEY = `jobsnap_tour_v3_${userId}_${userRole}`;
+    const BANNER_AUTO_HIDE_MS = 5500;
 
     // =========================================================================
     // MULTI-PAGE RECRUITER TOUR:
@@ -402,7 +1296,7 @@
             selectors: ['#recruiter-kpi-grid'],
             tag: 'LIVE TELEMETRY',
             text: 'Begin to set up your workspace—monitor Active Jobs, Applications, and Hires live.',
-            sub: 'Click Active Jobs or Applications metric cards to jump straight to those rosters, or click Next to explore your hiring funnel.',
+            sub: 'Snapy says: click Active Jobs or Applications metric cards to jump straight to those rosters, or click Next to explore your funnel.',
             preferredSide: 'bottom'
         },
         {
@@ -437,7 +1331,7 @@
             pageLabel: 'Dashboard (1/4)',
             selectors: ['#recruiter-export-excel-btn', '#recruiter-post-job-cta'],
             tag: 'EXCEL EXPORT',
-            text: 'Export your candidate roster to Excel—next we will tour Post Job!',
+            text: 'Export your candidate roster to Excel—next Snapy will take you to Post Job!',
             sub: 'Click Next to automatically open the Post Job page and explore requisition publishing.',
             preferredSide: 'top'
         },
@@ -458,7 +1352,7 @@
             selectors: ['#post-job-skills-section', '#skills'],
             tag: 'AI TARGET SKILLS',
             text: 'Enter technical responsibilities and comma-separated Target Skills.',
-            sub: 'Our AI Match engine uses these exact skills to score and rank every incoming applicant.',
+            sub: 'Snapy’s AI Match engine uses these exact skills to score and rank every incoming applicant.',
             preferredSide: 'top'
         },
         {
@@ -467,7 +1361,7 @@
             selectors: ['#post-job-submit-btn'],
             tag: 'PUBLISH ROLE',
             text: 'Click Publish Requisition to broadcast the opening live.',
-            sub: 'Click Next to continue the tour on your Company Profile page.',
+            sub: 'Click Next to continue with Snapy on your Company Profile page.',
             preferredSide: 'top'
         },
 
@@ -495,7 +1389,7 @@
             pageLabel: 'Company Profile (3/4)',
             selectors: ['#company-save-btn', '#company-form-card'],
             tag: 'SAVE PROFILE',
-            text: 'Save your Company Profile—next we will tour Outreach Studio!',
+            text: 'Save your Company Profile—next Snapy opens Outreach Studio!',
             sub: 'Click Next to open Outreach Studio and explore AI contact discovery and messaging.',
             preferredSide: 'top'
         },
@@ -525,7 +1419,7 @@
             selectors: ['#contact-filter', '#outreach-contacts-header'],
             tag: 'CONTACTS DIRECTORY',
             text: 'Filter contacts instantly and send 1-click personalized outreach.',
-            sub: 'You have explored all 4 Recruiter modules! Click Finish Tour when ready.',
+            sub: 'Snapy says: you have explored all 4 Recruiter modules! Click Finish Tour when ready.',
             preferredSide: 'bottom'
         }
     ];
@@ -543,8 +1437,8 @@
             pageLabel: 'Job Matches (1/3)',
             selectors: ['#search_query'],
             tag: 'KEYWORD SEARCH',
-            text: 'Begin to set up your workspace by searching your target role, skills, or company.',
-            sub: 'Enter keywords like Python, AI Engineer, or Product Designer to filter matched opportunities immediately.',
+            text: 'Begin by searching your target role, skills, or company.',
+            sub: 'Snapy tip: enter keywords like Python, AI Engineer, or Product Designer to filter matched opportunities immediately.',
             preferredSide: 'bottom'
         },
         {
@@ -589,7 +1483,7 @@
             selectors: ['#dashboard-feed-header', '#job-listings-heading'],
             tag: 'AI MATCH FEED',
             text: 'Review matched roles, run AI Resume Match, or Assisted Apply.',
-            sub: 'Click Next to automatically open Outreach Studio and discover recruiters.',
+            sub: 'Click Next and Snapy will walk you over to Outreach Studio.',
             preferredSide: 'bottom'
         },
 
@@ -618,7 +1512,7 @@
             selectors: ['#contact-filter', '#outreach-contacts-header'],
             tag: 'CONTACTS DIRECTORY',
             text: 'Filter recruiters by company or title and send direct messages.',
-            sub: 'Click Next to continue the tour on your Skill Gap & Roadmap page.',
+            sub: 'Click Next so Snapy can show you the Skill Gap & Roadmap page.',
             preferredSide: 'bottom'
         },
 
@@ -637,8 +1531,8 @@
             pageLabel: 'Skill Gap & Roadmap (3/3)',
             selectors: ['#profile-dropdown-btn'],
             tag: 'RESUME & SETTINGS',
-            text: 'Upload your resume in Profile Settings or replay this tour anytime.',
-            sub: 'You have completed the full workspace tour! Click Finish Tour when ready.',
+            text: 'Update your resume in Profile Settings or replay this tour anytime.',
+            sub: 'Snapy says: you completed the full tour! Click Finish Tour whenever you are ready.',
             preferredSide: 'bottom'
         }
     ];
@@ -646,8 +1540,266 @@
     const steps = userRole === 'recruiter' ? RECRUITER_STEPS : SEEKER_STEPS;
     let currentIdx = 0;
     let isActive = false;
+    let isPageSwitching = false;
     let animState = null;
     let animFrameId = null;
+    let waitFrameId = null;
+    let waitTimerId = null;
+    let syncTimerId = null;
+    let bannerTimerId = null;
+    let bannerFadeTimerId = null;
+    let finaleSmileTimerId = null;
+    let finaleCaptionTimerId = null;
+    let finaleExitTimerId = null;
+    let finaleHideTimerId = null;
+    let finaleGlideAnim = null;
+    let dockGreetTimerId = null;
+    const snapChatHistory = [];
+    let snapChatInitialized = false;
+    let snapChatBusy = false;
+
+    function clearFinaleTimers() {
+        if (finaleSmileTimerId) {
+            clearTimeout(finaleSmileTimerId);
+            finaleSmileTimerId = null;
+        }
+        if (finaleCaptionTimerId) {
+            clearTimeout(finaleCaptionTimerId);
+            finaleCaptionTimerId = null;
+        }
+        if (finaleExitTimerId) {
+            clearTimeout(finaleExitTimerId);
+            finaleExitTimerId = null;
+        }
+        if (finaleHideTimerId) {
+            clearTimeout(finaleHideTimerId);
+            finaleHideTimerId = null;
+        }
+        if (finaleGlideAnim) {
+            try {
+                finaleGlideAnim.onfinish = null;
+                finaleGlideAnim.cancel();
+            } catch (_) {}
+            finaleGlideAnim = null;
+        }
+    }
+
+    function hideDockGreeting(immediate = false) {
+        if (dockGreetTimerId) {
+            clearTimeout(dockGreetTimerId);
+            dockGreetTimerId = null;
+        }
+        if (!dockGreeting) return;
+        if (immediate) {
+            dockGreeting.classList.remove('is-hiding');
+            dockGreeting.style.display = 'none';
+            return;
+        }
+        dockGreeting.classList.add('is-hiding');
+        setTimeout(() => {
+            dockGreeting.classList.remove('is-hiding');
+            dockGreeting.style.display = 'none';
+        }, 250);
+    }
+
+    function showDockGreeting() {
+        if (!dockGreeting || (chatPanel && chatPanel.classList.contains('is-open'))) return;
+        if (dockGreetTimerId) {
+            clearTimeout(dockGreetTimerId);
+            dockGreetTimerId = null;
+        }
+        dockGreeting.classList.remove('is-hiding');
+        dockGreeting.style.display = 'inline-flex';
+        dockGreetTimerId = setTimeout(() => {
+            hideDockGreeting(false);
+        }, 6500);
+    }
+
+    function setSnapDockVisible(show, withLanding = false) {
+        if (!dockRoot) return;
+        if (window.location.pathname === '/onboarding') {
+            dockRoot.style.display = 'none';
+            dockRoot.style.visibility = '';
+            return;
+        }
+        if (!show) {
+            dockRoot.style.display = 'none';
+            dockRoot.style.visibility = '';
+            hideDockGreeting(true);
+            if (chatPanel) chatPanel.classList.remove('is-open');
+            return;
+        }
+        dockRoot.style.visibility = 'visible';
+        dockRoot.style.display = 'flex';
+        if (dockButton && withLanding) {
+            dockButton.classList.remove('is-landing');
+            void dockButton.offsetWidth;
+            dockButton.classList.add('is-landing');
+            showDockGreeting();
+        }
+    }
+
+    function hideSnapFinaleNow() {
+        clearFinaleTimers();
+        if (finaleMover) {
+            finaleMover.style.transform = '';
+            finaleMover.style.opacity = '';
+        }
+        if (finaleCard) {
+            finaleCard.style.transform = '';
+            finaleCard.style.opacity = '';
+        }
+        if (finaleOverlay) {
+            finaleOverlay.classList.remove('is-entering', 'is-smiling', 'is-caption-out');
+            finaleOverlay.style.display = 'none';
+            finaleOverlay.setAttribute('aria-hidden', 'true');
+        }
+    }
+
+    function showSnapFinaleCelebration() {
+        if (!finaleOverlay || !finaleCard || !finaleMover) {
+            setSnapDockVisible(true, true);
+            return;
+        }
+        hideSnapFinaleNow();
+        setSnapDockVisible(false);
+
+        if (finaleSparkles) {
+            finaleSparkles.innerHTML = '';
+            const palette = ['#10b981', '#f59e0b', '#34d399', '#fbbf24'];
+            for (let i = 0; i < 10; i++) {
+                const dot = document.createElement('span');
+                dot.className = 'snap-finale-dot';
+                dot.style.backgroundColor = palette[i % palette.length];
+                const angle = (Math.PI * 2 * i) / 10;
+                const radius = 64 + (i % 3) * 14;
+                dot.style.setProperty('--sx', `${Math.round(Math.cos(angle) * radius)}px`);
+                dot.style.setProperty('--sy', `${Math.round(Math.sin(angle) * radius - 8)}px`);
+                finaleSparkles.appendChild(dot);
+            }
+        }
+
+        finaleOverlay.style.display = 'flex';
+        finaleOverlay.setAttribute('aria-hidden', 'false');
+        void finaleOverlay.offsetWidth;
+        finaleOverlay.classList.add('is-entering');
+
+        const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        finaleSmileTimerId = setTimeout(() => {
+            finaleOverlay.classList.add('is-smiling');
+            playCoachChime(659.25, 987.77);
+        }, 240);
+
+        if (prefersReduced) {
+            finaleHideTimerId = setTimeout(() => {
+                hideSnapFinaleNow();
+                setSnapDockVisible(true, true);
+            }, 950);
+            return;
+        }
+
+        finaleCaptionTimerId = setTimeout(() => {
+            finaleOverlay.classList.add('is-caption-out');
+        }, 1260);
+
+        const completeLandingHandoff = () => {
+            hideSnapFinaleNow();
+            setSnapDockVisible(true, true);
+            playCoachChime(783.99, 1046.5);
+        };
+
+        finaleExitTimerId = setTimeout(() => {
+            // Prepare invisible dock to measure exact character SVG target rect
+            if (dockRoot) {
+                dockRoot.style.visibility = 'hidden';
+                dockRoot.style.display = 'flex';
+            }
+            const dockTarget = (dockButton && (dockButton.querySelector('svg') || dockButton)) || null;
+            const startRect = finaleMover.getBoundingClientRect();
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const isMobile = vw < 640;
+            const fallbackSize = isMobile ? 56 : 66;
+            const fallbackRight = isMobile ? 12 : 20;
+            const fallbackBottom = isMobile ? 12 : 18;
+            const targetRect = dockTarget
+                ? dockTarget.getBoundingClientRect()
+                : {
+                    left: vw - fallbackRight - fallbackSize,
+                    top: vh - fallbackBottom - fallbackSize,
+                    width: fallbackSize,
+                    height: fallbackSize
+                };
+
+            const dx = (targetRect.left + targetRect.width / 2) - (startRect.left + startRect.width / 2);
+            const dy = (targetRect.top + targetRect.height / 2) - (startRect.top + startRect.height / 2);
+            const targetScale = startRect.width > 0 ? (targetRect.width / startRect.width) : 0.635;
+            const midScale = 1 - (1 - targetScale) * 0.34;
+
+            finaleOverlay.classList.remove('is-entering');
+            finaleMover.style.opacity = '1';
+            finaleMover.style.transform = 'none';
+
+            if (typeof finaleMover.animate === 'function') {
+                finaleGlideAnim = finaleMover.animate(
+                    [
+                        { transform: 'translate(0px, 0px) scale(1) rotate(0deg)', offset: 0 },
+                        {
+                            transform: `translate(${(dx * 0.34).toFixed(1)}px, ${(dy * 0.24 - 28).toFixed(1)}px) scale(${midScale.toFixed(3)}) rotate(-8deg)`,
+                            offset: 0.38
+                        },
+                        {
+                            transform: `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${targetScale.toFixed(3)}) rotate(0deg)`,
+                            offset: 1
+                        }
+                    ],
+                    {
+                        duration: 680,
+                        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                        fill: 'forwards'
+                    }
+                );
+                finaleGlideAnim.onfinish = () => {
+                    finaleGlideAnim = null;
+                    completeLandingHandoff();
+                };
+                // Safety fallback if background tab pauses WAAPI finish callback
+                finaleHideTimerId = setTimeout(completeLandingHandoff, 800);
+            } else {
+                finaleMover.style.transition = 'transform 0.62s cubic-bezier(0.22, 1, 0.36, 1)';
+                finaleMover.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${targetScale.toFixed(3)})`;
+                finaleHideTimerId = setTimeout(completeLandingHandoff, 640);
+            }
+        }, 1460);
+    }
+
+    function clearPendingTimers() {
+        if (animFrameId) {
+            cancelAnimationFrame(animFrameId);
+            animFrameId = null;
+        }
+        if (waitFrameId) {
+            cancelAnimationFrame(waitFrameId);
+            waitFrameId = null;
+        }
+        if (waitTimerId) {
+            clearTimeout(waitTimerId);
+            waitTimerId = null;
+        }
+        if (syncTimerId) {
+            clearTimeout(syncTimerId);
+            syncTimerId = null;
+        }
+        if (bannerTimerId) {
+            clearTimeout(bannerTimerId);
+            bannerTimerId = null;
+        }
+        if (bannerFadeTimerId) {
+            clearTimeout(bannerFadeTimerId);
+            bannerFadeTimerId = null;
+        }
+    }
 
     // =========================================================================
     // PERSISTENT STATE ENGINE (localStorage + Backend Session Sync)
@@ -664,7 +1816,14 @@
 
     function saveTourState(patch) {
         try {
-            const prev = loadTourState() || { active: false, ended: false, stepIndex: 0, pendingNav: false, bannerClosed: false };
+            const prev = loadTourState() || {
+                active: false,
+                ended: false,
+                stepIndex: 0,
+                pendingNav: false,
+                bannerDismissed: false,
+                bannerExpiresAt: 0
+            };
             const next = { ...prev, ...patch };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
             return next;
@@ -673,10 +1832,79 @@
         }
     }
 
-    // Subtle Web Audio chime for coach-mark steps
+    function hideBannerNow(persist = true) {
+        if (bannerTimerId) {
+            clearTimeout(bannerTimerId);
+            bannerTimerId = null;
+        }
+        if (bannerFadeTimerId) {
+            clearTimeout(bannerFadeTimerId);
+            bannerFadeTimerId = null;
+        }
+        if (topBanner) {
+            topBanner.classList.remove('is-fading-out');
+            topBanner.style.display = 'none';
+        }
+        if (persist) {
+            saveTourState({ bannerDismissed: true, bannerExpiresAt: 0 });
+        }
+    }
+
+    function showBannerWithAutoDismiss() {
+        if (!topBanner) return;
+        const saved = loadTourState();
+        if (saved && saved.bannerDismissed) {
+            topBanner.style.display = 'none';
+            return;
+        }
+
+        const now = Date.now();
+        let expiresAt = (saved && saved.bannerExpiresAt) ? Number(saved.bannerExpiresAt) : 0;
+        if (!expiresAt) {
+            expiresAt = now + BANNER_AUTO_HIDE_MS;
+            saveTourState({ bannerDismissed: false, bannerExpiresAt: expiresAt });
+        }
+
+        const remainingMs = expiresAt - now;
+        if (remainingMs <= 0) {
+            hideBannerNow(true);
+            return;
+        }
+
+        topBanner.classList.remove('is-fading-out');
+        topBanner.style.display = 'flex';
+
+        if (bannerTimerId) clearTimeout(bannerTimerId);
+        if (bannerFadeTimerId) clearTimeout(bannerFadeTimerId);
+
+        bannerTimerId = setTimeout(() => {
+            saveTourState({ bannerDismissed: true, bannerExpiresAt: 0 });
+            if (topBanner) {
+                topBanner.classList.add('is-fading-out');
+                bannerFadeTimerId = setTimeout(() => {
+                    hideBannerNow(true);
+                    if (isActive) syncInstantPosition();
+                }, 260);
+            }
+        }, remainingMs);
+    }
+
+    function hopSnap() {
+        if (snapAvatar) {
+            snapAvatar.classList.remove('spotlight-snap-hop');
+            void snapAvatar.offsetWidth;
+            snapAvatar.classList.add('spotlight-snap-hop');
+        }
+        if (tourSnapBeacon) {
+            tourSnapBeacon.setAttribute('fill', currentIdx === steps.length - 1 ? '#10b981' : '#f59e0b');
+        }
+    }
+
+    // Subtle Web Audio chime for coach-mark steps (respects user SFX setting)
     let audioCtx = null;
     function playCoachChime(freqA, freqB) {
         try {
+            if (localStorage.getItem('onboardingSfxEnabled') === 'false') return;
             const Ctx = window.AudioContext || window.webkitAudioContext;
             if (!Ctx) return;
             if (!audioCtx) audioCtx = new Ctx();
@@ -688,7 +1916,7 @@
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(f, now + i * 0.055);
                 gain.gain.setValueAtTime(0.0001, now + i * 0.055);
-                gain.gain.exponentialRampToValueAtTime(0.03, now + i * 0.055 + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.032, now + i * 0.055 + 0.02);
                 gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.055 + 0.22);
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
@@ -755,14 +1983,13 @@
         const vh = window.innerHeight;
         const isMobile = vw < 640;
         const cardRect = calloutBox.getBoundingClientRect();
-        const cardW = cardRect.width || Math.min(isMobile ? vw - 20 : 445, vw - 20);
-        const cardH = cardRect.height || (isMobile ? 210 : 225);
+        const cardW = cardRect.width || Math.min(isMobile ? vw - 20 : 470, vw - 20);
+        const cardH = cardRect.height || (isMobile ? 215 : 230);
 
         const arrowGap = isMobile ? 38 : 54;
         const edgeMargin = isMobile ? 10 : 16;
-        const topSafeY = (topBanner && topBanner.style.display !== 'none')
-            ? (isMobile ? 96 : 108)
-            : 58;
+        const bannerVisible = topBanner && topBanner.style.display !== 'none';
+        const topSafeY = bannerVisible ? (isMobile ? 98 : 110) : 58;
 
         const cutCenterX = cut.left + cut.width / 2;
         const cutCenterY = cut.top + cut.height / 2;
@@ -781,7 +2008,6 @@
                 if (spaceTop >= cardH + arrowGap) {
                     side = 'top';
                 } else {
-                    // Dock bottom cleanly and cap cutout height so card never overlaps target header
                     const dockedCardTop = Math.max(topSafeY + 72, vh - cardH - 12);
                     const availableCutH = dockedCardTop - cut.top - arrowGap;
                     if (availableCutH >= 56) {
@@ -898,54 +2124,110 @@
         arrowHead.setAttribute('d', `M ${x1.toFixed(1)} ${y1.toFixed(1)} L ${g.ex.toFixed(1)} ${g.ey.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)}`);
     }
 
-    function easeOutCubic(t) {
-        return 1 - Math.pow(1 - t, 3);
+    function easeOutQuart(t) {
+        return 1 - Math.pow(1 - t, 4);
     }
 
     function lerp(a, b, t) {
         return a + (b - a) * t;
     }
 
-    function navigateToPage(targetPath) {
+    function triggerStepContentSwap() {
+        const shell = calloutBox ? calloutBox.querySelector('.spotlight-snap-shell') : null;
+        if (!shell) return;
+        shell.classList.remove('is-step-swap');
+        void shell.offsetWidth;
+        shell.classList.add('is-step-swap');
+    }
+
+    function navigateToPage(targetPath, targetStep) {
         const normalizedPath = targetPath === '/learning' ? '/learning_path' : targetPath;
+        if (typeof window.spaNavigate === 'function') {
+            if (animFrameId) {
+                cancelAnimationFrame(animFrameId);
+                animFrameId = null;
+            }
+            if (waitFrameId) {
+                cancelAnimationFrame(waitFrameId);
+                waitFrameId = null;
+            }
+            if (waitTimerId) {
+                clearTimeout(waitTimerId);
+                waitTimerId = null;
+            }
+            if (syncTimerId) {
+                clearTimeout(syncTimerId);
+                syncTimerId = null;
+            }
+            isPageSwitching = true;
+            overlay.classList.add('is-page-switching');
+            if (targetStep) {
+                const targetPageName = (targetStep.pageLabel || '').split('(')[0].trim() || 'next module';
+                if (stepCounter) stepCounter.textContent = 'SNAPY · OPENING PAGE...';
+                if (calloutSub) calloutSub.textContent = `Gliding cleanly to ${targetPageName}...`;
+                hopSnap();
+            }
+            window.spaNavigate(normalizedPath, true).catch(() => {
+                window.location.assign(normalizedPath);
+            });
+            return;
+        }
         window.location.assign(normalizedPath);
     }
 
-    function waitForPageTargetAndRender(step, immediate) {
+    function waitForPageTargetAndRender(step, immediate, isCrossPage = false) {
         let attempts = 0;
-        const maxAttempts = 30; // up to ~3.0s for async Alpine fetch (e.g. Recruiter Dashboard or Company Profile)
+        const maxAttempts = 45;
+        if (waitFrameId) {
+            cancelAnimationFrame(waitFrameId);
+            waitFrameId = null;
+        }
+        if (waitTimerId) {
+            clearTimeout(waitTimerId);
+            waitTimerId = null;
+        }
 
         function check() {
             if (!isActive) return;
+            const mainEl = document.getElementById('main-content');
+            const mainFading = mainEl && parseFloat(getComputedStyle(mainEl).opacity || '1') < 0.7;
             const loader = document.getElementById('page-loader');
             const loaderVisible = loader && loader.style.display !== 'none' && parseFloat(getComputedStyle(loader).opacity || '1') > 0.08;
             const dashContent = document.getElementById('dashboard-content');
             const dashHidden = dashContent && dashContent.classList.contains('opacity-0');
             const targetEl = resolveVisibleElement(step.selectors);
+            const targetReady = Boolean(targetEl && targetEl.getBoundingClientRect().height > 0);
 
-            if ((loaderVisible || dashHidden || !targetEl) && attempts < maxAttempts) {
+            if ((mainFading || loaderVisible || dashHidden || !targetReady) && attempts < maxAttempts) {
                 attempts += 1;
-                setTimeout(check, 100);
+                if (attempts <= 12) {
+                    waitFrameId = requestAnimationFrame(check);
+                } else {
+                    waitTimerId = setTimeout(check, 45);
+                }
                 return;
             }
-            animateToStepOnCurrentPage(currentIdx, immediate);
+            isPageSwitching = false;
+            animateToStepOnCurrentPage(currentIdx, immediate, isCrossPage);
         }
         check();
     }
 
-    function animateToStepOnCurrentPage(idx, immediate) {
+    function animateToStepOnCurrentPage(idx, immediate, isCrossPage = false) {
         if (!isActive) return;
         const step = steps[idx];
         if (!step) return;
 
-        stepCounter.textContent = `STEP ${idx + 1} / ${steps.length}`;
+        overlay.classList.remove('is-page-switching');
+        stepCounter.textContent = `SNAPY · STEP ${idx + 1} / ${steps.length}`;
         if (featureTag) featureTag.textContent = step.tag || '';
         if (pagePill) pagePill.textContent = step.pageLabel || '';
         calloutText.textContent = step.text;
         calloutSub.textContent = step.sub || '';
         if (prevBtn) prevBtn.style.display = idx > 0 ? 'inline-flex' : 'none';
+        triggerStepContentSwap();
+        hopSnap();
 
-        // Check if the next step transitions to a new page
         const NEXT_PAGE_LABELS = {
             '/recruiter/dashboard': 'Dashboard',
             '/recruiter/post-job': 'Post Job',
@@ -971,27 +2253,37 @@
             cancelAnimationFrame(animFrameId);
             animFrameId = null;
         }
+        if (syncTimerId) {
+            clearTimeout(syncTimerId);
+            syncTimerId = null;
+        }
 
+        const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const targetEl = resolveVisibleElement(step.selectors);
         if (targetEl) {
             const r = targetEl.getBoundingClientRect();
             const isMobile = window.innerWidth < 640;
-            const topSafe = (topBanner && topBanner.style.display !== 'none') ? (isMobile ? 96 : 115) : 65;
+            const bannerVisible = topBanner && topBanner.style.display !== 'none';
+            const topSafe = bannerVisible ? (isMobile ? 98 : 115) : 65;
             const bottomRequired = isMobile ? 220 : ((step.preferredSide === 'bottom' && r.height < 220) ? 300 : 80);
             if (r.top < topSafe || r.bottom > window.innerHeight - bottomRequired) {
                 const desiredScrollY = Math.max(0, window.scrollY + r.top - (isMobile ? topSafe + 12 : 135));
-                window.scrollTo({ top: desiredScrollY, behavior: 'auto' });
+                window.scrollTo({
+                    top: desiredScrollY,
+                    behavior: (immediate || prefersReduced) ? 'auto' : 'smooth'
+                });
             }
         }
 
+        overlay.style.display = '';
         const startGeom = animState ? { ...animState } : computeTargetGeometry(step);
-        if (immediate || !animState) {
+        if (immediate || prefersReduced || !animState) {
             const finalGeom = computeTargetGeometry(step);
             animState = finalGeom;
             applyGeometryToDom(finalGeom);
             overlay.classList.add('tour-active');
             overlay.setAttribute('aria-hidden', 'false');
-            setTimeout(() => {
+            syncTimerId = setTimeout(() => {
                 if (isActive && !animFrameId) syncInstantPosition();
             }, 350);
             return;
@@ -1000,13 +2292,14 @@
         overlay.classList.add('tour-active');
         overlay.setAttribute('aria-hidden', 'false');
 
-        const duration = 360;
+        const duration = isCrossPage ? 480 : 380;
         const startTime = performance.now();
 
         function tick(now) {
+            if (!isActive) return;
             const elapsed = now - startTime;
             const progress = Math.min(1, elapsed / duration);
-            const eased = easeOutCubic(progress);
+            const eased = easeOutQuart(progress);
 
             const liveTarget = computeTargetGeometry(step);
 
@@ -1035,6 +2328,9 @@
                 animState = liveTarget;
                 applyGeometryToDom(liveTarget);
                 animFrameId = null;
+                syncTimerId = setTimeout(() => {
+                    if (isActive && !animFrameId) syncInstantPosition();
+                }, 120);
             }
         }
 
@@ -1057,21 +2353,21 @@
         if (idx < 0 || idx >= steps.length) idx = 0;
         currentIdx = idx;
         isActive = true;
+        setSnapDockVisible(false);
+        overlay.style.display = '';
 
-        const saved = saveTourState({ active: true, ended: false, stepIndex: currentIdx });
-        if (topBanner) {
-            topBanner.style.display = (saved && saved.bannerClosed) ? 'none' : 'flex';
-        }
+        saveTourState({ active: true, ended: false, stepIndex: currentIdx });
+        showBannerWithAutoDismiss();
 
         const targetStep = steps[currentIdx];
         if (targetStep.page && !matchesStepPage(targetStep.page, window.location.pathname)) {
             saveTourState({ active: true, ended: false, stepIndex: currentIdx, pendingNav: true });
-            navigateToPage(targetStep.page);
+            navigateToPage(targetStep.page, targetStep);
             return;
         }
 
         saveTourState({ pendingNav: false });
-        waitForPageTargetAndRender(targetStep, immediate);
+        waitForPageTargetAndRender(targetStep, immediate, false);
     }
 
     function syncInstantPosition() {
@@ -1082,8 +2378,10 @@
     }
 
     function dismissBackendTourFlag() {
+        overlay.dataset.autoStart = 'false';
         fetch('/api/onboarding/tour-dismiss', {
             method: 'POST',
+            keepalive: true,
             headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         }).catch(() => {});
 
@@ -1098,67 +2396,376 @@
 
     // Explicitly start/replay the full tour from Step 1 (called from Profile menu -> Interactive Tour)
     window.startSpotlightTour = function () {
+        hideSnapFinaleNow();
+        clearPendingTimers();
+        isPageSwitching = false;
+        overlay.classList.remove('is-page-switching');
         animState = null;
-        saveTourState({ active: true, ended: false, stepIndex: 0, pendingNav: false, bannerClosed: false });
+        setSnapDockVisible(false);
+        overlay.style.display = '';
+        saveTourState({
+            active: true,
+            ended: false,
+            stepIndex: 0,
+            pendingNav: false,
+            bannerDismissed: false,
+            bannerExpiresAt: Date.now() + BANNER_AUTO_HIDE_MS
+        });
         activateAndGoToStep(0, true);
         playCoachChime(523.25, 659.25);
     };
 
     window.goToSpotlightStep = function (idx) {
-        if (!isActive || idx < 0 || idx >= steps.length) return;
+        if (!isActive || isPageSwitching || idx < 0 || idx >= steps.length) return;
         activateAndGoToStep(idx, false);
         playCoachChime(554.37, 698.46);
     };
 
     window.prevSpotlightStep = function () {
-        if (!isActive || currentIdx <= 0) return;
+        if (!isActive || isPageSwitching || currentIdx <= 0) return;
         activateAndGoToStep(currentIdx - 1, false);
         playCoachChime(523.25, 659.25);
     };
 
     window.nextSpotlightStep = function () {
-        if (!isActive) return;
+        if (!isActive || isPageSwitching) return;
         if (currentIdx < steps.length - 1) {
             activateAndGoToStep(currentIdx + 1, false);
             playCoachChime(587.33, 783.99);
         } else {
-            window.endSpotlightTour();
-            playCoachChime(659.25, 987.77);
+            window.endSpotlightTour({ showFinale: true });
+            showSnapFinaleCelebration();
         }
     };
 
-    // End Tour permanently: will NOT start again on refresh
-    window.endSpotlightTour = function () {
-        isActive = false;
-        if (animFrameId) {
-            cancelAnimationFrame(animFrameId);
-            animFrameId = null;
+    // End Tour permanently: immediately dismisses overlay + banner and will NOT restart on refresh
+    window.endSpotlightTour = function (e) {
+        const showFinale = Boolean(e && typeof e === 'object' && e.showFinale);
+        if (e && typeof e.stopPropagation === 'function') {
+            e.stopPropagation();
         }
-        saveTourState({ active: false, ended: true, pendingNav: false });
+        isActive = false;
+        isPageSwitching = false;
+        overlay.classList.remove('is-page-switching');
+        animState = null;
+        clearPendingTimers();
+        hideBannerNow(true);
+        saveTourState({
+            active: false,
+            ended: true,
+            pendingNav: false,
+            bannerDismissed: true,
+            bannerExpiresAt: 0
+        });
         overlay.classList.remove('tour-active');
         overlay.setAttribute('aria-hidden', 'true');
+        overlay.style.display = 'none';
+        if (cutout) {
+            cutout.style.width = '0px';
+            cutout.style.height = '0px';
+        }
         dismissBackendTourFlag();
+        if (!showFinale) {
+            setSnapDockVisible(true, false);
+        }
     };
 
     // Alias for backward compatibility
     window.skipSpotlightTour = window.endSpotlightTour;
 
-    window.closeSpotlightBanner = function () {
-        if (topBanner) topBanner.style.display = 'none';
-        saveTourState({ bannerClosed: true });
-        syncInstantPosition();
+    window.closeSpotlightBanner = function (e) {
+        if (e && typeof e.stopPropagation === 'function') {
+            e.stopPropagation();
+        }
+        hideBannerNow(true);
+        if (isActive) syncInstantPosition();
     };
 
+    if (bannerEndBtn) {
+        bannerEndBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.endSpotlightTour(e);
+        });
+    }
+    if (bannerCloseBtn) {
+        bannerCloseBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.closeSpotlightBanner(e);
+        });
+    }
+
+    // =========================================================================
+    // SNAP BOTTOM-RIGHT ASSISTANT CHATBOT
+    // =========================================================================
+    function appendSnapMessage(sender, text, actions = []) {
+        if (!chatMessagesEl) return null;
+        const msg = document.createElement('div');
+        msg.className = `snap-msg ${sender === 'user' ? 'snap-msg--user' : 'snap-msg--bot'}`;
+
+        const textSpan = document.createElement('div');
+        textSpan.textContent = text;
+        msg.appendChild(textSpan);
+
+        if (Array.isArray(actions) && actions.length > 0 && sender === 'bot') {
+            const actWrap = document.createElement('div');
+            actWrap.className = 'snap-msg-actions';
+            actions.forEach((act) => {
+                if (!act || !act.label) return;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'snap-msg-action-btn';
+                btn.textContent = act.label;
+                btn.onclick = () => {
+                    if (act.action === 'tour') {
+                        toggleSnapChat(false);
+                        window.startSpotlightTour();
+                    } else if (act.href) {
+                        toggleSnapChat(false);
+                        if (typeof window.spaNavigate === 'function') {
+                            window.spaNavigate(act.href, true);
+                        } else {
+                            window.location.assign(act.href);
+                        }
+                    }
+                };
+                actWrap.appendChild(btn);
+            });
+            if (actWrap.children.length > 0) {
+                msg.appendChild(actWrap);
+            }
+        }
+
+        chatMessagesEl.appendChild(msg);
+        chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+        return msg;
+    }
+
+    function getLocalSnapyFallback(rawMessage) {
+        const q = (rawMessage || '').toLowerCase();
+        const isRecruiter = userRole === 'recruiter';
+        if (q.includes('tour') || q.includes('guide') || q.includes('walkthrough')) {
+            return {
+                reply: 'You can replay the guided interactive tour anytime from your Profile menu or with the button below.',
+                actions: [{ label: 'Replay Interactive Tour', action: 'tour' }]
+            };
+        }
+        if (q.includes('resume') || q.includes('cv') || q.includes('match') || q.includes('score')) {
+            return isRecruiter
+                ? {
+                    reply: 'Applicants are scored automatically against your Target Skills. Open Candidate Roster on the Dashboard to inspect match breakdowns and resumes.',
+                    actions: [{ label: 'Open Dashboard', href: '/recruiter/dashboard' }]
+                }
+                : {
+                    reply: 'Upload your resume in Profile Settings, then click AI Resume Match on any role in Job Matches to inspect your fit percentage and missing skills.',
+                    actions: [
+                        { label: 'Profile Settings', href: '/profile' },
+                        { label: 'Job Matches', href: '/dashboard' }
+                    ]
+                };
+        }
+        if (q.includes('outreach') || q.includes('contact') || q.includes('email') || q.includes('vault')) {
+            return {
+                reply: 'Outreach Studio lets you discover verified hiring contacts, store reusable templates in Message Vault, and send personalized outreach.',
+                actions: [{ label: 'Open Outreach Studio', href: '/outreach_studio' }]
+            };
+        }
+        if (isRecruiter && (q.includes('post') || q.includes('job'))) {
+            return {
+                reply: 'Open Post Job to configure role details, compensation, and comma-separated Target Skills for AI ranking.',
+                actions: [{ label: 'Post a Job', href: '/recruiter/post-job' }]
+            };
+        }
+        if (!isRecruiter && (q.includes('scan') || q.includes('scrape') || q.includes('search'))) {
+            return {
+                reply: 'Click Live Scan in the Job Matches toolbar to scrape fresh postings for your target keywords, or save 1-click search presets.',
+                actions: [{ label: 'Open Job Matches', href: '/dashboard' }]
+            };
+        }
+        if (q.includes('skill') || q.includes('gap') || q.includes('roadmap')) {
+            return {
+                reply: 'Skill Gap & Roadmap compares your resume against your target role to build a weekly learning plan.',
+                actions: [{ label: 'Skill Gap & Roadmap', href: '/learning_path' }]
+            };
+        }
+        return isRecruiter
+            ? {
+                reply: 'I’m Snapy! Ask me about Candidate Roster scoring, Post Job, Company Profile, or Outreach Studio.',
+                actions: [
+                    { label: 'Dashboard', href: '/recruiter/dashboard' },
+                    { label: 'Post Job', href: '/recruiter/post-job' }
+                ]
+            }
+            : {
+                reply: 'I’m Snapy! Ask me about Job Matches, AI Resume Match, Live Scan, Outreach Studio, or Skill Gap & Roadmap.',
+                actions: [
+                    { label: 'Job Matches', href: '/dashboard' },
+                    { label: 'Outreach Studio', href: '/outreach_studio' }
+                ]
+            };
+    }
+
+    function initSnapChatUI() {
+        if (snapChatInitialized) return;
+        snapChatInitialized = true;
+
+        appendSnapMessage(
+            'bot',
+            userRole === 'recruiter'
+                ? 'Hey! I’m Snapy. Ping me up if you have any doubt about candidate matching, posting jobs, or Outreach Studio.'
+                : 'Hey! I’m Snapy. Ping me up if you have any doubt about Job Matches, AI Resume Match, Roadmaps, or Outreach Studio.'
+        );
+
+        if (chatStartersEl) {
+            const starters = userRole === 'recruiter'
+                ? ['How is AI match scored?', 'How do I post a job?', 'Replay interactive tour']
+                : ['How does AI Resume Match work?', 'How does Live Scan work?', 'Replay interactive tour'];
+            chatStartersEl.innerHTML = '';
+            starters.forEach((q) => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'snap-starter-chip';
+                chip.textContent = q;
+                chip.onclick = () => sendSnapMessage(q);
+                chatStartersEl.appendChild(chip);
+            });
+        }
+    }
+
+    function toggleSnapChat(forceState) {
+        if (!chatPanel) return;
+        const willOpen = typeof forceState === 'boolean' ? forceState : !chatPanel.classList.contains('is-open');
+        hideDockGreeting(true);
+        if (willOpen) {
+            initSnapChatUI();
+            chatPanel.classList.add('is-open');
+            playCoachChime(587.33, 783.99);
+            setTimeout(() => chatInput?.focus(), 60);
+        } else {
+            chatPanel.classList.remove('is-open');
+        }
+    }
+
+    async function sendSnapMessage(rawText) {
+        const message = (rawText || '').trim();
+        if (!message || snapChatBusy) return;
+        initSnapChatUI();
+
+        appendSnapMessage('user', message);
+        snapChatHistory.push({ sender: 'user', text: message });
+        if (chatStartersEl) chatStartersEl.style.display = 'none';
+        if (chatInput) chatInput.value = '';
+
+        snapChatBusy = true;
+        if (chatSendBtn) chatSendBtn.disabled = true;
+        const typingEl = appendSnapMessage('bot', 'Snapy is thinking...');
+
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timeoutId = controller ? setTimeout(() => controller.abort(), 14000) : null;
+
+        try {
+            const resp = await fetch('/api/snapy/chat', {
+                method: 'POST',
+                credentials: 'same-origin',
+                signal: controller ? controller.signal : undefined,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    message,
+                    current_path: window.location.pathname,
+                    history: snapChatHistory.slice(-6)
+                })
+            });
+
+            if (resp.redirected || resp.status === 401) {
+                if (typingEl) typingEl.remove();
+                appendSnapMessage('bot', 'Your session expired — please refresh and sign in again to chat with Snapy.');
+                return;
+            }
+
+            const rawBody = await resp.text();
+            let data = null;
+            const trimmed = (rawBody || '').trim();
+            if (trimmed.startsWith('{')) {
+                try {
+                    data = JSON.parse(trimmed);
+                } catch (_) {
+                    data = null;
+                }
+            }
+
+            if (typingEl) typingEl.remove();
+
+            if (!data) {
+                // Server returned non-JSON (e.g., server needs restart for /api/snapy/chat or proxy HTML page)
+                const local = getLocalSnapyFallback(message);
+                snapChatHistory.push({ sender: 'bot', text: local.reply });
+                appendSnapMessage('bot', local.reply, local.actions);
+                playCoachChime(659.25, 880);
+                return;
+            }
+
+            if (!resp.ok || !data.success) {
+                appendSnapMessage('bot', data.error || 'Could not reach Snapy right now. Try asking again.');
+            } else {
+                const reply = data.reply || 'Here is what I found for you.';
+                snapChatHistory.push({ sender: 'bot', text: reply });
+                appendSnapMessage('bot', reply, data.actions || []);
+                playCoachChime(659.25, 880);
+            }
+        } catch (_) {
+            if (typingEl) typingEl.remove();
+            const local = getLocalSnapyFallback(message);
+            snapChatHistory.push({ sender: 'bot', text: local.reply });
+            appendSnapMessage('bot', local.reply, local.actions);
+            playCoachChime(659.25, 880);
+        } finally {
+            if (timeoutId) clearTimeout(timeoutId);
+            snapChatBusy = false;
+            if (chatSendBtn) chatSendBtn.disabled = false;
+            chatInput?.focus();
+        }
+    }
+
+    if (dockButton) {
+        dockButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleSnapChat();
+        });
+    }
+    if (dockGreetClose) {
+        dockGreetClose.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideDockGreeting(false);
+        });
+    }
+    if (chatCloseBtn) {
+        chatCloseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleSnapChat(false);
+        });
+    }
+    if (chatForm) {
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            sendSnapMessage(chatInput?.value || '');
+        });
+    }
+
     window.addEventListener('resize', () => {
-        if (isActive && !animFrameId) syncInstantPosition();
+        if (isActive && !isPageSwitching && !animFrameId) syncInstantPosition();
     });
 
     window.addEventListener('scroll', () => {
-        if (isActive && !animFrameId) syncInstantPosition();
+        if (isActive && !isPageSwitching && !animFrameId) syncInstantPosition();
     }, { passive: true });
 
     window.addEventListener('keydown', (e) => {
-        if (!isActive) return;
+        if (!isActive || isPageSwitching) return;
         if (e.key === 'Escape') {
             e.preventDefault();
             window.endSpotlightTour();
@@ -1172,7 +2779,7 @@
     });
 
     // Resume or synchronize tour on initial page load AND on SPA page transitions
-    function restoreOrSyncTourOnPage() {
+    function restoreOrSyncTourOnPage(overrideUrl = null) {
         let ExplicitUrlTourStart = false;
         try {
             const url = new URL(window.location.href);
@@ -1185,7 +2792,14 @@
 
         // If user just arrived with ?tour=1 from /onboarding, always start a fresh tour at Step 0
         if (ExplicitUrlTourStart) {
-            saveTourState({ active: true, ended: false, stepIndex: 0, pendingNav: false, bannerClosed: false });
+            saveTourState({
+                active: true,
+                ended: false,
+                stepIndex: 0,
+                pendingNav: false,
+                bannerDismissed: false,
+                bannerExpiresAt: Date.now() + BANNER_AUTO_HIDE_MS
+            });
         }
 
         const saved = loadTourState();
@@ -1193,55 +2807,87 @@
 
         // If user already clicked End Tour, never auto-start on refresh unless they click "Interactive Tour" in menu or arrive with ?tour=1
         if (saved && saved.ended && !ExplicitUrlTourStart) {
+            isPageSwitching = false;
+            overlay.classList.remove('is-page-switching');
+            hideBannerNow(false);
             dismissBackendTourFlag();
+            setSnapDockVisible(true, false);
             return;
         }
 
         // If tour is active in localStorage OR freshly triggered from /onboarding
         if ((saved && saved.active) || serverRequestedTour || ExplicitUrlTourStart) {
+            if (!saved && serverRequestedTour) {
+                saveTourState({
+                    active: true,
+                    ended: false,
+                    stepIndex: 0,
+                    pendingNav: false,
+                    bannerDismissed: false,
+                    bannerExpiresAt: Date.now() + BANNER_AUTO_HIDE_MS
+                });
+            }
+
             let resumeIdx = (saved && typeof saved.stepIndex === 'number') ? saved.stepIndex : 0;
             if (resumeIdx < 0 || resumeIdx >= steps.length) resumeIdx = 0;
 
-            const currentPath = window.location.pathname;
+            let currentPath = window.location.pathname;
+            if (overrideUrl) {
+                try {
+                    currentPath = new URL(overrideUrl, window.location.origin).pathname;
+                } catch (_) {}
+            }
             const expectedStep = steps[resumeIdx];
+            const canGlideFromPrev = Boolean(animState && overlay.classList.contains('tour-active'));
 
-            // If user navigated via Next/Back/Dots to this page, or refreshed the page they were on:
             if (expectedStep && matchesStepPage(expectedStep.page, currentPath)) {
                 saveTourState({ active: true, ended: false, stepIndex: resumeIdx, pendingNav: false });
                 isActive = true;
                 currentIdx = resumeIdx;
-                if (topBanner) topBanner.style.display = (saved && saved.bannerClosed) ? 'none' : 'flex';
-                waitForPageTargetAndRender(expectedStep, true);
+                setSnapDockVisible(false);
+                showBannerWithAutoDismiss();
+                waitForPageTargetAndRender(expectedStep, !canGlideFromPrev, canGlideFromPrev);
                 return;
             }
 
-            // If user navigated to any valid tour page (e.g. Return to Dashboard or top-bar tab), sync tour to this page:
             const firstStepForCurrentPage = steps.findIndex(s => matchesStepPage(s.page, currentPath));
             if (firstStepForCurrentPage !== -1) {
                 saveTourState({ active: true, ended: false, stepIndex: firstStepForCurrentPage, pendingNav: false });
                 isActive = true;
                 currentIdx = firstStepForCurrentPage;
-                if (topBanner) topBanner.style.display = (saved && saved.bannerClosed) ? 'none' : 'flex';
-                waitForPageTargetAndRender(steps[firstStepForCurrentPage], true);
+                setSnapDockVisible(false);
+                showBannerWithAutoDismiss();
+                waitForPageTargetAndRender(steps[firstStepForCurrentPage], !canGlideFromPrev, canGlideFromPrev);
                 return;
             }
 
             // If on a non-tour page (e.g. Profile Settings or 404), keep overlay hidden so page links work normally
             isActive = false;
+            isPageSwitching = false;
+            overlay.classList.remove('is-page-switching');
+            clearPendingTimers();
+            hideBannerNow(false);
             overlay.classList.remove('tour-active');
             overlay.setAttribute('aria-hidden', 'true');
+            setSnapDockVisible(true, false);
+            return;
         }
+
+        isPageSwitching = false;
+        overlay.classList.remove('is-page-switching');
+        setSnapDockVisible(true, false);
     }
 
-    // Handle SPA navigation events from base.html
-    window.addEventListener('page:loaded', () => {
-        setTimeout(() => restoreOrSyncTourOnPage(), 80);
+    // Handle SPA navigation events from base.html cleanly on next paint frame
+    window.addEventListener('page:loaded', (ev) => {
+        const loadedUrl = ev && ev.detail ? ev.detail.url : null;
+        requestAnimationFrame(() => restoreOrSyncTourOnPage(loadedUrl));
     });
 
     if (document.readyState === 'complete') {
         restoreOrSyncTourOnPage();
     } else {
-        window.addEventListener('load', restoreOrSyncTourOnPage);
+        window.addEventListener('load', () => restoreOrSyncTourOnPage());
     }
 })();
 </script>
