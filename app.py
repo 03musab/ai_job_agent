@@ -45,6 +45,7 @@ import docx
 import gevent.monkey
 import pandas as pd
 import requests
+from requests.adapters import HTTPAdapter
 import schedule
 from sqlalchemy import inspect
 from bs4 import BeautifulSoup
@@ -145,8 +146,60 @@ RELEVANCE_WEIGHTS = {
 }
 RECENCY_MULTIPLIERS = {'week': 1.2, 'month': 1.05}
 RELEVANCE_MIN_THRESHOLD = float(os.environ.get('RELEVANCE_MIN_THRESHOLD', '10'))
-SCRAPE_MAX_WORKERS = int(os.environ.get('SCRAPE_MAX_WORKERS', '5'))
-LINKEDIN_DETAIL_MAX_WORKERS = int(os.environ.get('LINKEDIN_DETAIL_MAX_WORKERS', '2'))
+SCRAPE_MAX_WORKERS = int(os.environ.get('SCRAPE_MAX_WORKERS', '8'))
+LINKEDIN_DETAIL_MAX_WORKERS = int(os.environ.get('LINKEDIN_DETAIL_MAX_WORKERS', '4'))
+INTERNSHALA_DETAIL_MAX_WORKERS = int(os.environ.get('INTERNSHALA_DETAIL_MAX_WORKERS', '8'))
+SCRAPE_CACHE_TTL_SECONDS = int(os.environ.get('SCRAPE_CACHE_TTL_SECONDS', '300'))
+SCRAPE_CACHE_MAX_ENTRIES = 50
+_SCRAPE_CACHE: Dict[Tuple[str, str, str, str], Tuple[float, List[Dict[str, Any]]]] = {}
+_SCRAPE_CACHE_LOCK = threading.Lock()
+
+
+def _get_cached_scrape_results(
+    source: str, term: str, location: Optional[str], scan_mode: str
+) -> Optional[List[Dict[str, Any]]]:
+    """Return shallow-copied raw job dicts from the short-TTL scrape cache if fresh."""
+    if SCRAPE_CACHE_TTL_SECONDS <= 0:
+        return None
+    key = (
+        (source or '').strip().lower(),
+        (term or '').strip().lower(),
+        (location or '').strip().lower(),
+        (scan_mode or 'fast').strip().lower(),
+    )
+    now = time.monotonic()
+    with _SCRAPE_CACHE_LOCK:
+        entry = _SCRAPE_CACHE.get(key)
+        if not entry:
+            return None
+        cached_at, items = entry
+        if now - cached_at > SCRAPE_CACHE_TTL_SECONDS:
+            _SCRAPE_CACHE.pop(key, None)
+            return None
+        return [dict(item) for item in items]
+
+
+def _set_cached_scrape_results(
+    source: str, term: str, location: Optional[str], scan_mode: str, items: List[Dict[str, Any]]
+) -> None:
+    """Store raw job dicts in the bounded short-TTL scrape cache."""
+    if SCRAPE_CACHE_TTL_SECONDS <= 0 or not items:
+        return
+    key = (
+        (source or '').strip().lower(),
+        (term or '').strip().lower(),
+        (location or '').strip().lower(),
+        (scan_mode or 'fast').strip().lower(),
+    )
+    now = time.monotonic()
+    with _SCRAPE_CACHE_LOCK:
+        expired = [k for k, (ts, _) in _SCRAPE_CACHE.items() if now - ts > SCRAPE_CACHE_TTL_SECONDS]
+        for k in expired:
+            _SCRAPE_CACHE.pop(k, None)
+        if len(_SCRAPE_CACHE) >= SCRAPE_CACHE_MAX_ENTRIES and key not in _SCRAPE_CACHE:
+            oldest_key = min(_SCRAPE_CACHE.items(), key=lambda kv: kv[1][0])[0]
+            _SCRAPE_CACHE.pop(oldest_key, None)
+        _SCRAPE_CACHE[key] = (now, [dict(item) for item in items])
 
 # --- Helpers ---
 
@@ -605,7 +658,7 @@ def task_progress_stream(task_id):
             if state in ('SUCCESS', 'FAILURE') or ready:
                 break
 
-            time.sleep(0.7)
+            time.sleep(0.25)
 
     headers = {
         'Content-Type': 'text/event-stream',
@@ -945,7 +998,7 @@ class Company:
 class User(UserMixin):
     def __init__(self, id, username, password_hash, role='seeker', email_recipients='',
                  send_excel_attachment=True, email=None, is_pro=False, account_status='active',
-                 onboarding_completed=True):
+                 onboarding_completed=True, avatar_url=None, google_sub=None):
         self.id = id
         self.username = username
         self.password_hash = password_hash
@@ -956,6 +1009,8 @@ class User(UserMixin):
         self.is_pro = bool(is_pro)
         self.account_status = account_status
         self.onboarding_completed = bool(onboarding_completed)
+        self.avatar_url = avatar_url
+        self.google_sub = google_sub
 
     @property
     def is_admin(self):
@@ -974,7 +1029,7 @@ class User(UserMixin):
         cursor.execute("""
             SELECT id, username, password_hash, role, email_recipients,
                    send_excel_attachment, email, is_pro, account_status,
-                   onboarding_completed
+                   onboarding_completed, avatar_url, google_sub
             FROM users WHERE id = ?
         """, (user_id,))
         user_data = cursor.fetchone()
@@ -991,7 +1046,7 @@ class User(UserMixin):
         cursor.execute("""
             SELECT id, username, password_hash, role, email_recipients,
                    send_excel_attachment, email, is_pro, account_status,
-                   onboarding_completed
+                   onboarding_completed, avatar_url, google_sub
             FROM users WHERE LOWER(username) = LOWER(?)
         """, (username.strip(),))
         user_data = cursor.fetchone()
@@ -1012,7 +1067,7 @@ class User(UserMixin):
             cursor.execute("""
                 SELECT id, username, password_hash, role, email_recipients,
                        send_excel_attachment, email, is_pro, account_status,
-                       onboarding_completed
+                       onboarding_completed, avatar_url, google_sub
                 FROM users WHERE LOWER(TRIM(email)) = LOWER(?)
                 LIMIT 1
             """, (clean_email,))
@@ -1021,7 +1076,7 @@ class User(UserMixin):
                 cursor.execute("""
                     SELECT u.id, u.username, u.password_hash, u.role, u.email_recipients,
                            u.send_excel_attachment, u.email, u.is_pro, u.account_status,
-                           u.onboarding_completed
+                           u.onboarding_completed, u.avatar_url, u.google_sub
                     FROM users u
                     JOIN user_details d ON d.user_id = u.id
                     WHERE (u.email IS NULL OR TRIM(u.email) = '')
@@ -1049,7 +1104,7 @@ class User(UserMixin):
             cursor.execute("""
                 SELECT id, username, password_hash, role, email_recipients,
                        send_excel_attachment, email, is_pro, account_status,
-                       onboarding_completed
+                       onboarding_completed, avatar_url, google_sub
                 FROM users WHERE google_sub = ?
                 LIMIT 1
             """, (clean_sub,))
@@ -1090,7 +1145,8 @@ class JobDatabase:
                 is_pro BOOLEAN NOT NULL DEFAULT FALSE,
                 account_status TEXT NOT NULL DEFAULT 'active',
                 onboarding_completed BOOLEAN NOT NULL DEFAULT TRUE,
-                google_sub TEXT
+                google_sub TEXT,
+                avatar_url TEXT
             )
         ''')
         # Perform ALTER TABLE for new user columns if they don't exist
@@ -1119,6 +1175,9 @@ class JobDatabase:
             conn.commit()
         if 'google_sub' not in user_columns:
             cursor.execute("ALTER TABLE users ADD COLUMN google_sub TEXT")
+            conn.commit()
+        if 'avatar_url' not in user_columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN avatar_url TEXT")
             conn.commit()
         cursor.execute("""
             CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_normalized
@@ -1429,10 +1488,12 @@ class JobDatabase:
                  email: Optional[str] = None, is_pro: bool = False,
                  account_status: str = 'active',
                  onboarding_completed: bool = True,
-                 google_sub: Optional[str] = None) -> Optional[int]:
+                 google_sub: Optional[str] = None,
+                 avatar_url: Optional[str] = None) -> Optional[int]:
         clean_username = (username or '').strip()
         clean_email = (email or '').strip().lower() or None
         clean_google_sub = (google_sub or '').strip() or None
+        clean_avatar_url = (avatar_url or '').strip()[:512] or None
         if not clean_username or not self.is_username_available(clean_username):
             logger.warning(f"Username already exists or invalid: {username}")
             return None
@@ -1441,9 +1502,9 @@ class JobDatabase:
         try:
             cursor.execute("""
                 INSERT INTO users
-                    (username, password_hash, role, email, is_pro, account_status, onboarding_completed, google_sub)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (clean_username, password_hash, role, clean_email, bool(is_pro), account_status, bool(onboarding_completed), clean_google_sub))
+                    (username, password_hash, role, email, is_pro, account_status, onboarding_completed, google_sub, avatar_url)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (clean_username, password_hash, role, clean_email, bool(is_pro), account_status, bool(onboarding_completed), clean_google_sub, clean_avatar_url))
             conn.commit()
             logger.info(f"Created user: {clean_username} with role: {role}")
             return cursor.lastrowid
@@ -1563,20 +1624,22 @@ class JobDatabase:
         finally:
             conn.close()
 
-    def link_google_account(self, user_id: int, google_sub: Optional[str], email: Optional[str]) -> None:
-        """Bind google_sub and backfill blank users.email for an existing user."""
+    def link_google_account(self, user_id: int, google_sub: Optional[str], email: Optional[str],
+                            avatar_url: Optional[str] = None) -> None:
+        """Bind google_sub, backfill blank users.email, and refresh Google avatar_url."""
         clean_sub = (google_sub or '').strip() or None
         clean_email = (email or '').strip().lower() or None
-        if not user_id or (not clean_sub and not clean_email):
+        clean_avatar = (avatar_url or '').strip()[:512] or None
+        if not user_id or (not clean_sub and not clean_email and not clean_avatar):
             return
         conn = connect_database(self.db_path, timeout=10)
         try:
             cursor = conn.cursor()
-            cursor.execute("SELECT email, google_sub FROM users WHERE id = ?", (user_id,))
+            cursor.execute("SELECT email, google_sub, avatar_url FROM users WHERE id = ?", (user_id,))
             row = cursor.fetchone()
             if not row:
                 return
-            current_email, current_sub = row[0], row[1]
+            current_email, current_sub, current_avatar = row[0], row[1], row[2]
             if clean_email and not (current_email or '').strip():
                 try:
                     cursor.execute("UPDATE users SET email = ? WHERE id = ?", (clean_email, user_id))
@@ -1591,6 +1654,15 @@ class JobDatabase:
                     cursor.execute("UPDATE users SET google_sub = ? WHERE id = ?", (clean_sub, user_id))
                     conn.commit()
                 except _DB_INTEGRITY_ERRORS:
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
+            if clean_avatar and clean_avatar != (current_avatar or '').strip():
+                try:
+                    cursor.execute("UPDATE users SET avatar_url = ? WHERE id = ?", (clean_avatar, user_id))
+                    conn.commit()
+                except Exception:
                     try:
                         conn.rollback()
                     except Exception:
@@ -1629,7 +1701,8 @@ class JobDatabase:
         finally:
             conn.close()
 
-    def add_job(self, job: Job, user_id: Optional[int] = None, posted_by_recruiter_id: Optional[int] = None):
+    def add_job(self, job: Job, user_id: Optional[int] = None, posted_by_recruiter_id: Optional[int] = None,
+                sync_calendar: bool = True):
         """Adds a job to the database with deduplication and user association."""
         # The hash must be unique per user for the same job to allow multiple users to track it.
         norm = f"{normalize_for_hash(job.title)}|{normalize_for_hash(job.company)}|{normalize_for_hash(job.location)}|{user_id}"
@@ -1678,7 +1751,7 @@ class JobDatabase:
                 logger.debug(f"Added new job to DB: {job.title} at {job.company} for user {user_id}")
                 
                 # Create calendar reminder for deadline if available
-                if job.deadline and job.deadline != 'N/A':
+                if sync_calendar and job.deadline and job.deadline != 'N/A':
                     try:
                         calendar_manager = GoogleCalendarManager(user_id=user_id)
                         job_data = job.to_dict()
@@ -1701,6 +1774,88 @@ class JobDatabase:
         except Exception as e:
             logger.error(f"Error adding job to database: {e}")
             return False
+        finally:
+            conn.close()
+
+    def get_existing_job_hashes(self, user_id: int) -> set:
+        """Return all job_hash values already stored for user_id in a single query."""
+        if not user_id:
+            return set()
+        conn = connect_database(self.db_path, timeout=10)
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT job_hash FROM jobs WHERE user_id = ?", (user_id,))
+            return {row[0] for row in cursor.fetchall() if row and row[0]}
+        except Exception as e:
+            logger.warning(f"Could not load existing job hashes for user {user_id}: {e}")
+            return set()
+        finally:
+            conn.close()
+
+    def add_jobs_batch(self, jobs: List[Job], user_id: Optional[int] = None,
+                       posted_by_recruiter_id: Optional[int] = None) -> Tuple[int, List[Dict[str, Any]]]:
+        """Insert a batch of jobs in one transaction without blocking on external Calendar APIs."""
+        if not jobs:
+            return 0, []
+        conn = connect_database(self.db_path, timeout=10)
+        cursor = conn.cursor()
+        inserted_count = 0
+        deadline_jobs: List[Dict[str, Any]] = []
+        now_iso = datetime.datetime.now().isoformat()
+        try:
+            for job in jobs:
+                norm = f"{normalize_for_hash(job.title)}|{normalize_for_hash(job.company)}|{normalize_for_hash(job.location)}|{user_id}"
+                job_hash = hashlib.md5(norm.encode('utf-8')).hexdigest()
+                cursor.execute('''
+                    INSERT OR IGNORE INTO jobs
+                    (job_hash, title, company, location, salary, link, description,
+                     keywords, skills, experience, job_type, posted_date, source,
+                     relevance_score, found_date, user_id, status, notes, deadline,
+                     posted_by_recruiter_id,
+                     min_experience_years, max_experience_years, extracted_tools, extracted_soft_skills, user_feedback)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    job_hash,
+                    job.title,
+                    job.company,
+                    job.location,
+                    job.salary,
+                    job.link,
+                    job.description,
+                    ', '.join(job.keywords),
+                    ', '.join(job.skills),
+                    job.experience,
+                    job.job_type,
+                    job.posted_date,
+                    job.source,
+                    job.relevance_score,
+                    now_iso,
+                    user_id,
+                    'new',
+                    '',
+                    job.deadline,
+                    posted_by_recruiter_id,
+                    job.min_experience_years,
+                    job.max_experience_years,
+                    ', '.join(job.extracted_tools),
+                    ', '.join(job.extracted_soft_skills),
+                    job.user_feedback if job.user_feedback else '',
+                ))
+                if cursor.rowcount > 0:
+                    inserted_count += 1
+                    if job.deadline and job.deadline != 'N/A':
+                        job_data = job.to_dict()
+                        job_data['id'] = cursor.lastrowid
+                        deadline_jobs.append(job_data)
+            conn.commit()
+            return inserted_count, deadline_jobs
+        except Exception as e:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            logger.error(f"Error batch-adding jobs to database: {e}")
+            return inserted_count, deadline_jobs
         finally:
             conn.close()
 
@@ -3556,20 +3711,30 @@ class EnhancedJobScraper:
         self.db = JobDatabase()
         self.custom_scores = self.db.get_custom_scores(self.user_id)
         self.session = None  # Avoid shared Session across threads
+        self._thread_local = threading.local()
+        self.existing_hashes: set = set()
         
         # Scan mode configuration
         if self.scan_mode == 'deep':
-            self.linkedin_max_pages = 5
-            self.internshala_max_pages = 8
-            self.request_delay = (2, 5)       # seconds range
+            self.linkedin_max_pages = 3
+            self.internshala_max_pages = 5
+            self.request_delay = (0.4, 0.9)           # list page jitter
+            self.linkedin_detail_delay = (0.4, 0.9)   # detail page jitter
+            self.internshala_detail_delay = (0.25, 0.6)
+            self.http_timeout = (5, 10)
+            self.max_detail_fetches_per_source = 45
             self.max_results = 75
-            logger.info(f"[ScanMode] Deep scan enabled: more pages, thorough scraping")
+            logger.info("[ScanMode] Deep scan enabled: thorough scraping with connection pooling")
         else:
             self.linkedin_max_pages = 1
             self.internshala_max_pages = 1
-            self.request_delay = (0.5, 1.5)   # seconds range
+            self.request_delay = (0.1, 0.3)           # list page jitter
+            self.linkedin_detail_delay = (0.15, 0.45) # detail page jitter
+            self.internshala_detail_delay = (0.1, 0.3)
+            self.http_timeout = (4, 8)
+            self.max_detail_fetches_per_source = 15
             self.max_results = 25
-            logger.info(f"[ScanMode] Fast scan enabled: quick results")
+            logger.info("[ScanMode] Fast scan enabled: high-speed scraping with connection pooling")
         
         # Placeholder for common skills/tools/soft skills (can be expanded)
         self.common_skills = ['python', 'java', 'javascript', 'react', 'angular', 'vue', 'nodejs', 'express', 'django', 'flask', 'sql', 'nosql', 'mongodb', 'postgresql', 'mysql', 'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'git', 'github', 'gitlab', 'jenkins', 'ci/cd', 'agile', 'scrum', 'rest api', 'graphql', 'html', 'css', 'redux', 'typescript', 'webpack', 'babel', 'selenium', 'jira', 'confluence', 'tableau', 'power bi', 'excel', 'gcp', 'azure', 'terraform', 'ansible', 'puppet', 'chef', 'splunk', 'elk stack', 'grafana', 'prometheus']
@@ -3790,19 +3955,89 @@ class EnhancedJobScraper:
         return round(min(score, 100.0), 1)
 
 
+    def _get_http_session(self) -> requests.Session:
+        """Return a thread-local keep-alive Session with connection pooling."""
+        sess = getattr(self._thread_local, 'http_session', None)
+        if sess is None:
+            sess = requests.Session()
+            adapter = HTTPAdapter(pool_connections=16, pool_maxsize=16)
+            sess.mount('https://', adapter)
+            sess.mount('http://', adapter)
+            sess.headers.update({
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Connection': 'keep-alive',
+            })
+            self._thread_local.http_session = sess
+        return sess
+
+    def _card_job_hash(self, title: str, company: str, location: str) -> str:
+        norm = f"{normalize_for_hash(title)}|{normalize_for_hash(company)}|{normalize_for_hash(location)}|{self.user_id}"
+        return hashlib.md5(norm.encode('utf-8')).hexdigest()
+
+    def _filter_and_prioritize_cards(self, cards: List[Dict[str, Any]], term: str) -> List[Dict[str, Any]]:
+        """Drop cards already in the user's DB, prioritize by title/location match, and cap detail fetches."""
+        if not cards:
+            return []
+        fresh_cards = []
+        for card in cards:
+            if self.existing_hashes:
+                card_hash = self._card_job_hash(
+                    card.get('title', ''), card.get('company', ''), card.get('location', '')
+                )
+                if card_hash in self.existing_hashes:
+                    continue
+            fresh_cards.append(card)
+
+        skipped = len(cards) - len(fresh_cards)
+        if skipped:
+            logger.info(f"[Scraper] Pre-skipped {skipped} already-saved jobs before fetching detail pages.")
+
+        terms_lower = [t.strip().lower() for t in (self.search_terms or [term]) if t and t.strip()]
+        loc_lower = (self.location or '').strip().lower()
+
+        def _quick_rank(card: Dict[str, Any]) -> Tuple[int, int]:
+            title_low = (card.get('title') or '').lower()
+            loc_val = (card.get('location') or '').lower()
+            title_hits = sum(1 for t in terms_lower if t in title_low)
+            loc_hit = 1 if (loc_lower and loc_lower in loc_val) else 0
+            return (title_hits, loc_hit)
+
+        fresh_cards.sort(key=_quick_rank, reverse=True)
+        return fresh_cards[:self.max_detail_fetches_per_source]
+
+    @staticmethod
+    def _extract_linkedin_job_id(link: str, entity_urn: Optional[str] = None) -> Optional[str]:
+        if entity_urn:
+            m = re.search(r'(\d{6,})$', str(entity_urn).strip())
+            if m:
+                return m.group(1)
+        if link:
+            m = re.search(r'(?:currentJobId=|/view/[^/?#]*-|/view/)(\d{6,})(?:[/?#]|$)', link)
+            if m:
+                return m.group(1)
+        return None
+
     def scrape_linkedin_jobs(self, term: str) -> List[Job]:
         """
-        Updated LinkedIn scraper: robust, stealthy, paginated, and handles anti-bot measures.
+        High-speed LinkedIn scraper using connection pooling, pre-deduplication,
+        lightweight guest posting fragments, and a 429/403 circuit breaker.
         """
+        cached = _get_cached_scrape_results('linkedin', term, self.location, self.scan_mode)
+        if cached is not None:
+            logger.info(f"[LinkedIn] Cache hit for '{term}' ({len(cached)} jobs).")
+            return [self._create_job_object_from_raw_data(item) for item in cached]
+
         logger.info(f"[LinkedIn] Scraping for term '{term}' in {self.location or 'All Locations'}...")
         jobs = []
         seen_links = set()
+        raw_cards: List[Dict[str, Any]] = []
         max_pages = self.linkedin_max_pages
         base_url = "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
-        proxies = None  # Add proxy support if needed
+        session = self._get_http_session()
 
         for page in range(max_pages):
-            logger.info(f"[LinkedIn] --- Starting scrape for page {page + 1} of {max_pages} for term '{term}' ---")
+            logger.info(f"[LinkedIn] Fetching job list page {page + 1}/{max_pages} for '{term}'...")
             params = {
                 'keywords': term,
                 'location': self.location,
@@ -3811,9 +4046,9 @@ class EnhancedJobScraper:
             }
             headers = {'User-Agent': random.choice(USER_AGENTS)}
             try:
-                logger.info(f"[LinkedIn] Sending request to LinkedIn for job list (page {page + 1})...")
-                time.sleep(random.uniform(*self.request_delay))  # Dynamic delay based on scan mode
-                response = requests.get(base_url, params=params, headers=headers, timeout=15, proxies=proxies)
+                if page > 0:
+                    time.sleep(random.uniform(*self.request_delay))
+                response = session.get(base_url, params=params, headers=headers, timeout=self.http_timeout)
 
                 if response.status_code != 200:
                     logger.warning(f"[LinkedIn] LinkedIn returned status {response.status_code} on page {page + 1}. Stopping further requests.")
@@ -3828,18 +4063,14 @@ class EnhancedJobScraper:
                 except Exception:
                     soup = BeautifulSoup(response.content, 'html.parser')
 
-                # More robust selector for job cards
                 job_cards = soup.select('div.job-card-container, div.base-card, li.job-result-card')
                 if not job_cards:
                     logger.info(f"[LinkedIn] No job cards found on page {page + 1}. Stopping for this term.")
                     break
 
                 logger.info(f"[LinkedIn] Found {len(job_cards)} job cards on page {page + 1}.")
-                job_details = []
-
                 for card in job_cards:
                     try:
-                        # More robust selectors with fallbacks
                         title_elem = card.select_one('h3.base-search-card__title, h3.job-card-list__title')
                         title = title_elem.text.strip() if title_elem else 'N/A'
 
@@ -3851,7 +4082,6 @@ class EnhancedJobScraper:
 
                         link_elem = card.select_one('a.base-card__full-link, a.job-card-container__link')
                         link = link_elem.get('href') if link_elem and link_elem.get('href') else 'N/A'
-                        # Add a fallback for the link
                         if link == 'N/A':
                             link_elem = card.find('a', href=True)
                             if link_elem:
@@ -3863,88 +4093,125 @@ class EnhancedJobScraper:
 
                         posted_date_elem = card.find('time')
                         posted_date = posted_date_elem.text.strip() if posted_date_elem else 'N/A'
+                        entity_urn = card.get('data-entity-urn') or ''
+                        job_id = self._extract_linkedin_job_id(link, entity_urn=entity_urn)
 
-                        job_details.append({
+                        raw_cards.append({
                             'title': title,
                             'company': company,
                             'location': location,
                             'link': link,
-                            'posted_date': posted_date
+                            'posted_date': posted_date,
+                            'linkedin_job_id': job_id,
                         })
                     except Exception as e:
                         logger.warning(f"[LinkedIn] Error extracting job card: {e}", exc_info=True)
                         continue
 
-                logger.info(f"[LinkedIn] Now fetching full job descriptions for {len(job_details)} jobs on page {page + 1}...")
-
-                def fetch_description(job):
-                    try:
-                        logger.info(f"[LinkedIn] Fetching job detail page: {job['link']}")
-                        detail_headers = {'User-Agent': random.choice(USER_AGENTS)}
-                        time.sleep(random.uniform(2.5, 5.5)) # Increased delay to avoid 429 errors
-                        resp = requests.get(job['link'], headers=detail_headers, timeout=15)
-
-                        if resp.status_code == 200:
-                            detail_soup = BeautifulSoup(resp.content, 'lxml')
-                            desc_elem = detail_soup.find('div', class_=lambda x: x and 'description' in x)
-                            description = desc_elem.get_text(separator=' ', strip=True) if desc_elem else 'N/A'
-                            logger.info(f"[LinkedIn] Successfully fetched description for job: {job['title']} at {job['company']}")
-                        else:
-                            description = 'N/A'
-                            logger.warning(f"[LinkedIn] Failed to fetch job detail page (status {resp.status_code}) for {job['link']}")
-                    except Exception as e:
-                        logger.warning(f"[LinkedIn] Error fetching job detail page: {e}")
-                        description = 'N/A'
-
-                    job['description'] = description
-                    job['source'] = 'LinkedIn'
-                    return job
-
-                with concurrent.futures.ThreadPoolExecutor(max_workers=LINKEDIN_DETAIL_MAX_WORKERS) as executor:
-                    enriched_jobs = list(executor.map(fetch_description, job_details))
-
-                logger.info(f"[LinkedIn] Finished fetching all job descriptions for page {page + 1}.")
-                for job in enriched_jobs:
-                    jobs.append(self._create_job_object_from_raw_data(job))
-
                 if len(job_cards) < 10:
                     logger.info(f"[LinkedIn] Less than 10 jobs found on page {page + 1}, assuming last page.")
                     break
             except requests.exceptions.RequestException as e:
-                logger.error(f"[LinkedIn] Network error on page {page + 1} for '{term}': {e}", exc_info=True)
-                continue
+                logger.error(f"[LinkedIn] Network error on page {page + 1} for '{term}': {e}")
+                break
             except Exception as e:
                 logger.error(f"[LinkedIn] Unexpected error on page {page + 1} for '{term}': {e}", exc_info=True)
-                continue
+                break
+
+        had_pre_skipped = bool(
+            self.existing_hashes and any(
+                self._card_job_hash(c.get('title', ''), c.get('company', ''), c.get('location', '')) in self.existing_hashes
+                for c in raw_cards
+            )
+        )
+        candidates = self._filter_and_prioritize_cards(raw_cards, term)
+        if not candidates:
+            logger.info(f"[LinkedIn] No new jobs to enrich for '{term}'.")
+            return []
+
+        logger.info(f"[LinkedIn] Fetching descriptions for {len(candidates)} prioritized jobs (from {len(raw_cards)} cards)...")
+        breaker = {'lock': threading.Lock(), 'consecutive': 0, 'tripped': False}
+
+        def fetch_description(job: Dict[str, Any]) -> Dict[str, Any]:
+            with breaker['lock']:
+                if breaker['tripped']:
+                    job['description'] = 'N/A'
+                    job['source'] = 'LinkedIn'
+                    return job
+
+            description = 'N/A'
+            try:
+                job_id = job.get('linkedin_job_id')
+                detail_url = (
+                    f"https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{job_id}"
+                    if job_id else job['link']
+                )
+                detail_headers = {'User-Agent': random.choice(USER_AGENTS)}
+                time.sleep(random.uniform(*self.linkedin_detail_delay))
+                resp = self._get_http_session().get(detail_url, headers=detail_headers, timeout=self.http_timeout)
+
+                if resp.status_code == 200:
+                    with breaker['lock']:
+                        breaker['consecutive'] = 0
+                    try:
+                        detail_soup = BeautifulSoup(resp.content, 'lxml')
+                    except Exception:
+                        detail_soup = BeautifulSoup(resp.content, 'html.parser')
+                    desc_elem = (
+                        detail_soup.select_one('div.show-more-less-html__markup')
+                        or detail_soup.find('div', class_=lambda x: x and 'description' in x)
+                    )
+                    description = desc_elem.get_text(separator=' ', strip=True) if desc_elem else 'N/A'
+                elif resp.status_code in (429, 403):
+                    with breaker['lock']:
+                        breaker['consecutive'] += 1
+                        if breaker['consecutive'] >= 2 and not breaker['tripped']:
+                            breaker['tripped'] = True
+                            logger.warning(f"[LinkedIn] Rate limited ({resp.status_code}); tripping detail circuit breaker and keeping card metadata.")
+                else:
+                    logger.debug(f"[LinkedIn] Detail page returned status {resp.status_code} for {detail_url}")
+            except Exception as e:
+                logger.debug(f"[LinkedIn] Error fetching job detail page: {e}")
+
+            job['description'] = description
+            job['source'] = 'LinkedIn'
+            return job
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=LINKEDIN_DETAIL_MAX_WORKERS) as executor:
+            enriched_jobs = list(executor.map(fetch_description, candidates))
+
+        if not had_pre_skipped:
+            _set_cached_scrape_results('linkedin', term, self.location, self.scan_mode, enriched_jobs)
+        for job in enriched_jobs:
+            jobs.append(self._create_job_object_from_raw_data(job))
 
         logger.info(f"[LinkedIn] ✅ Finished scraping. Total jobs scraped for '{term}': {len(jobs)}.")
         return jobs
     
     def scrape_internshala_jobs(self, term: str) -> List[Job]:
         """
-        Enhanced Internshala scraper with improved resilience, better error handling,
-        and support for the latest website structure (2025).
+        High-speed Internshala scraper with connection pooling, pre-deduplication,
+        capped concurrent detail fetching, and 403/429 circuit breaking.
         """
+        cached = _get_cached_scrape_results('internshala', term, self.location, self.scan_mode)
+        if cached is not None:
+            logger.info(f"[Internshala] Cache hit for '{term}' ({len(cached)} jobs).")
+            return [self._create_job_object_from_raw_data(item) for item in cached]
+
         logger.info(f"[Internshala] Starting enhanced scrape for term '{term}' in {self.location or 'All Locations'}...")
         jobs = []
         seen_links = set()
         max_pages = self.internshala_max_pages
         
-        # Enhanced URL generation with better slug handling
         term_slug = self._create_url_slug(term)
         base_url = "https://internshala.com/jobs/"
         
-        # Determine URL format based on location
-        url_params = self._build_url_params(term_slug)
-        
         if self.location:
             is_remote = self.location.lower() in ['remote', 'work from home', 'wfh', 'online']
-            
             if is_remote:
                 base_url += f"work-from-home/{term_slug}/"
                 logger.info(f"[Internshala] Using remote job URL: {base_url}")
             else:
-                # Handle location-specific searches
                 primary_location = self.location.split(',')[0].strip()
                 location_slug = self._create_url_slug(primary_location)
                 base_url += f"{term_slug}-in-{location_slug}/"
@@ -3954,101 +4221,93 @@ class EnhancedJobScraper:
             logger.info(f"[Internshala] Using general job URL: {base_url}")
         
         job_details_from_list = []
+        session = self._get_http_session()
+        referer = 'https://internshala.com/'
         
-        # Enhanced session with better configuration
-        with requests.Session() as session:
-            session.headers.update({
-                'User-Agent': random.choice(USER_AGENTS),
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Cache-Control': 'no-cache',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'same-origin'
-            })
-            
-            # Set initial referer
-            referer = 'https://internshala.com/'
-            
-            for page in range(1, max_pages + 1):
-                url = f"{base_url}?page={page}" if page > 1 else base_url
+        for page in range(1, max_pages + 1):
+            url = f"{base_url}?page={page}" if page > 1 else base_url
+            try:
+                logger.info(f"[Internshala] Scraping page {page}/{max_pages}: {url}")
+                headers = {
+                    'User-Agent': random.choice(USER_AGENTS),
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Referer': referer,
+                }
+                if page > 1:
+                    time.sleep(random.uniform(*self.request_delay))
+                
+                response = session.get(url, headers=headers, timeout=self.http_timeout)
+                referer = url
+                
+                if response.status_code in (404, 403, 429):
+                    logger.warning(f"[Internshala] HTTP {response.status_code} on page {page}; stopping list pagination.")
+                    break
+                elif response.status_code != 200:
+                    logger.warning(f"[Internshala] HTTP {response.status_code} on page {page}")
+                    break
                 
                 try:
-                    logger.info(f"[Internshala] Scraping page {page}: {url}")
-                    session.headers['Referer'] = referer
-                    
-                    # Randomized delay to avoid detection
-                    time.sleep(random.uniform(*self.request_delay))
-                    
-                    response = session.get(url, timeout=20)
-                    referer = url
-                    
-                    if response.status_code == 404:
-                        logger.warning(f"[Internshala] Page not found (404): {url}")
-                        break
-                    elif response.status_code == 403:
-                        logger.warning(f"[Internshala] Access forbidden (403). Possible rate limiting.")
-                        time.sleep(10)  # Wait longer if blocked
-                        continue
-                    elif response.status_code != 200:
-                        logger.warning(f"[Internshala] HTTP {response.status_code} on page {page}")
-                        break
-                    
                     soup = BeautifulSoup(response.content, 'lxml')
-                    
-                    # Enhanced page validation
-                    if self._is_no_results_page(soup):
-                        logger.info(f"[Internshala] No results found on page {page}")
-                        break
-                    
-                    # Multiple selectors for job cards (fallback approach)
-                    job_cards = self._extract_job_cards(soup)
-                    
-                    if not job_cards:
-                        logger.info(f"[Internshala] No job cards found on page {page}")
-                        break
-                    
-                    logger.info(f"[Internshala] Found {len(job_cards)} job cards on page {page}")
-                    
-                    # Process each job card
-                    for card in job_cards:
-                        job_data = self._parse_job_card(card, seen_links)
-                        if job_data:
-                            job_details_from_list.append(job_data)
-                    
-                except requests.exceptions.Timeout:
-                    logger.error(f"[Internshala] Timeout on page {page}")
+                except Exception:
+                    soup = BeautifulSoup(response.content, 'html.parser')
+                
+                if self._is_no_results_page(soup):
+                    logger.info(f"[Internshala] No results found on page {page}")
                     break
-                except requests.exceptions.RequestException as e:
-                    logger.error(f"[Internshala] Network error on page {page}: {e}")
+                
+                job_cards = self._extract_job_cards(soup)
+                if not job_cards:
+                    logger.info(f"[Internshala] No job cards found on page {page}")
                     break
-                except Exception as e:
-                    logger.error(f"[Internshala] Unexpected error while scraping list page {page}: {e}", exc_info=True)
-                    break
+                
+                logger.info(f"[Internshala] Found {len(job_cards)} job cards on page {page}")
+                for card in job_cards:
+                    job_data = self._parse_job_card(card, seen_links)
+                    if job_data:
+                        job_details_from_list.append(job_data)
+                
+            except requests.exceptions.Timeout:
+                logger.warning(f"[Internshala] Timeout on page {page}")
+                break
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"[Internshala] Network error on page {page}: {e}")
+                break
+            except Exception as e:
+                logger.error(f"[Internshala] Unexpected error while scraping list page {page}: {e}", exc_info=True)
+                break
     
-        if not job_details_from_list:
-            logger.info(f"[Internshala] No jobs found for term '{term}'")
+        had_pre_skipped = bool(
+            self.existing_hashes and any(
+                self._card_job_hash(c.get('title', ''), c.get('company', ''), c.get('location', '')) in self.existing_hashes
+                for c in job_details_from_list
+            )
+        )
+        candidates = self._filter_and_prioritize_cards(job_details_from_list, term)
+        if not candidates:
+            logger.info(f"[Internshala] No new jobs found for term '{term}'")
             return []
     
-        logger.info(f"[Internshala] Found {len(job_details_from_list)} unique jobs. Fetching details...")
+        logger.info(f"[Internshala] Fetching details for {len(candidates)} prioritized jobs (from {len(job_details_from_list)} cards)...")
+        breaker = {'lock': threading.Lock(), 'consecutive': 0, 'tripped': False}
+        enriched_raw: List[Dict[str, Any]] = []
     
-        # Fetch job details with enhanced concurrency
-        with concurrent.futures.ThreadPoolExecutor(max_workers=SCRAPE_MAX_WORKERS) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=INTERNSHALA_DETAIL_MAX_WORKERS) as executor:
             future_to_job = {
-                executor.submit(self._fetch_job_details, job_data): job_data 
-                for job_data in job_details_from_list
+                executor.submit(self._fetch_job_details, job_data, breaker): job_data
+                for job_data in candidates
             }
             
             for future in concurrent.futures.as_completed(future_to_job):
                 try:
                     enriched_job = future.result()
                     if enriched_job:
+                        enriched_raw.append(enriched_job)
                         jobs.append(self._create_job_object_from_raw_data(enriched_job))
                 except Exception as e:
                     logger.error(f"[Internshala] Error processing job detail: {e}")
-    
+
+        if not had_pre_skipped:
+            _set_cached_scrape_results('internshala', term, self.location, self.scan_mode, enriched_raw)
         logger.info(f"[Internshala] ✅ Enhanced scrape completed. Total jobs: {len(jobs)}")
         return jobs
 
@@ -4172,54 +4431,70 @@ class EnhancedJobScraper:
                     return text
         return None
 
-    def _fetch_job_details(self, job_data: Dict) -> Optional[Dict]:
-        """Fetch detailed job information."""
+    def _fetch_job_details(self, job_data: Dict, breaker: Optional[Dict[str, Any]] = None) -> Optional[Dict]:
+        """Fetch detailed job information using keep-alive pooling and circuit breaking."""
         link = job_data['link']
-        
+        if breaker is not None:
+            with breaker['lock']:
+                if breaker['tripped']:
+                    job_data.setdefault('description', 'N/A')
+                    job_data.setdefault('posted_date', 'N/A')
+                    job_data.setdefault('skills', [])
+                    job_data.setdefault('experience', 'N/A')
+                    job_data.setdefault('job_type', 'Full-time')
+                    job_data.setdefault('deadline', 'N/A')
+                    job_data['source'] = 'Internshala'
+                    return job_data
+
         try:
             logger.debug(f"[Internshala] Fetching details: {link}")
-            
-            # Randomized delay
-            time.sleep(random.uniform(1.5, 3.5))
-            
+            time.sleep(random.uniform(*self.internshala_detail_delay))
+
             headers = {
                 'User-Agent': random.choice(USER_AGENTS),
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Referer': 'https://internshala.com/jobs/'
+                'Referer': 'https://internshala.com/jobs/',
             }
-            
-            response = requests.get(link, headers=headers, timeout=20)
-            
+
+            response = self._get_http_session().get(link, headers=headers, timeout=self.http_timeout)
+
+            if response.status_code in (403, 429):
+                if breaker is not None:
+                    with breaker['lock']:
+                        breaker['consecutive'] += 1
+                        if breaker['consecutive'] >= 2 and not breaker['tripped']:
+                            breaker['tripped'] = True
+                            logger.warning(f"[Internshala] Rate limited ({response.status_code}); tripping detail circuit breaker.")
+                job_data.setdefault('description', 'N/A')
+                job_data['source'] = 'Internshala'
+                return job_data
+
             if response.status_code != 200:
                 logger.warning(f"[Internshala] Failed to fetch {link} (status: {response.status_code})")
-                return None
-            
-            soup = BeautifulSoup(response.content, 'lxml')
-            
-            # Enhanced description extraction
+                job_data.setdefault('description', 'N/A')
+                job_data['source'] = 'Internshala'
+                return job_data
+
+            if breaker is not None:
+                with breaker['lock']:
+                    breaker['consecutive'] = 0
+
+            try:
+                soup = BeautifulSoup(response.content, 'lxml')
+            except Exception:
+                soup = BeautifulSoup(response.content, 'html.parser')
+
             description = self._extract_description(soup)
-            
-            # Enhanced salary extraction (if not already found)
             if job_data.get('salary', 'N/A') == 'N/A':
                 salary_selectors = ['.stipend', '.salary_container', '.ctc', '.package_container']
                 job_data['salary'] = self._extract_text_by_selectors(soup, salary_selectors) or 'N/A'
-            
-            # Extract posted date
+
             posted_date = self._extract_posted_date(soup)
-            
-            # Extract skills/requirements
             skills = self._extract_skills(soup)
-            
-            # Extract experience
             experience = self._extract_experience(soup)
-            
-            # Extract job type
             job_type = self._extract_job_type(soup)
-            
-            # Extract application deadline
             deadline = self._extract_deadline(soup)
-            
+
             job_data.update({
                 'description': description,
                 'posted_date': posted_date,
@@ -4229,12 +4504,14 @@ class EnhancedJobScraper:
                 'deadline': deadline,
                 'source': 'Internshala'
             })
-            
+
             return job_data
-            
+
         except Exception as e:
-            logger.error(f"[Internshala] Error fetching details for {link}: {e}")
-            return None
+            logger.debug(f"[Internshala] Error fetching details for {link}: {e}")
+            job_data.setdefault('description', 'N/A')
+            job_data['source'] = 'Internshala'
+            return job_data
 
     def _create_job_object_from_raw_data(self, raw_data: Dict) -> Job:
         """Helper to create a Job object and calculate its relevance score."""
@@ -4404,6 +4681,7 @@ class EnhancedJobScraper:
     def scrape_all_sources(self) -> List[Job]:
         """Scrapes jobs from all configured sources concurrently."""
         all_jobs = []
+        self.existing_hashes = self.db.get_existing_job_hashes(self.user_id)
         scraper_methods = {
             'LinkedIn': self.scrape_linkedin_jobs,
             'Internshala': self.scrape_internshala_jobs
@@ -6000,9 +6278,61 @@ class JobHunter:
         self.job_type = job_type
         self.task = task
         self.scan_mode = scan_mode
-        self.db = JobDatabase() # This is fine, DB can be initialized here.
+        self.db = JobDatabase()
         self.scraper = EnhancedJobScraper(search_terms=self.search_terms, location=self.location, experience=self.experience, job_type=self.job_type, user_id=self.user_id, task=self.task, scan_mode=self.scan_mode)
-        self.emailer = SmartEmailer()
+        self.emailer = None  # Lazy-initialized only when email dispatch is actually configured
+
+    def _dispatch_post_scrape_notifications(
+        self,
+        jobs: List[Job],
+        deadline_jobs: List[Dict[str, Any]],
+        email_recipients: str,
+        send_excel_attachment: bool,
+    ) -> None:
+        """Run optional email digest and Google Calendar deadline sync asynchronously."""
+        clean_recipients = [r.strip() for r in (email_recipients or '').split(',') if r.strip()]
+        has_google_creds = bool(self.db.get_user_google_token(self.user_id) or os.path.exists('token.pickle'))
+        should_sync_calendar = bool(deadline_jobs and has_google_creds)
+        should_send_email = bool(clean_recipients and jobs)
+
+        if not should_sync_calendar and not should_send_email:
+            return
+        if app.config.get('TESTING'):
+            return
+
+        def _worker():
+            if should_sync_calendar:
+                try:
+                    calendar_manager = GoogleCalendarManager(user_id=self.user_id)
+                    if calendar_manager.calendar_service:
+                        for job_data in deadline_jobs:
+                            try:
+                                calendar_manager.create_deadline_reminder(job_data, job_data.get('deadline', ''))
+                            except Exception as cal_err:
+                                logger.warning(f"Background deadline reminder failed: {cal_err}")
+                except Exception as cal_init_err:
+                    logger.warning(f"Background calendar sync skipped: {cal_init_err}")
+
+            if should_send_email:
+                excel_file = ""
+                try:
+                    emailer = self.emailer or SmartEmailer()
+                    if emailer.gmail_service:
+                        html_body = emailer.build_smart_html_email(jobs)
+                        if send_excel_attachment:
+                            excel_file = emailer.create_excel_report(jobs)
+                        subject = f"🧠 {len(jobs)} New Job Matches – {datetime.date.today().strftime('%b %d, %Y')}"
+                        emailer.send_email(subject, html_body, attachment_path=excel_file, recipients=clean_recipients)
+                except Exception as email_err:
+                    logger.warning(f"Background email dispatch skipped: {email_err}")
+                finally:
+                    if excel_file and os.path.exists(excel_file):
+                        try:
+                            os.remove(excel_file)
+                        except Exception:
+                            pass
+
+        threading.Thread(target=_worker, daemon=True).start()
         
     def run(self):
         """Orchestrates the entire job search and alert process."""
@@ -6011,61 +6341,29 @@ class JobHunter:
             self.task.update_state(state='PROGRESS', meta={'status': 'Initializing job hunt...', 'progress': 5, 'milestone': 'Initializing'})
 
         logger.info("Calling scraper.scrape_all_sources()...")
-        jobs = self.scraper.scrape_all_sources() # This method now handles progress from 15% to 88%
+        jobs = self.scraper.scrape_all_sources() # Handles progress from 15% to 88%
         logger.info(f"Scraper returned {len(jobs)} jobs.")
         
         if self.task:
-            self.task.update_state(state='PROGRESS', meta={'status': f'Scraping complete. Found {len(jobs)} potential jobs. Saving to database...', 'progress': 90})
+            self.task.update_state(state='PROGRESS', meta={'status': f'Scraping complete. Saving {len(jobs)} matches...', 'progress': 90})
         
-        # Store new jobs in the database for the specific user
-        new_jobs_count = 0
-        for job in jobs:
-            if self.db.add_job(job, self.user_id):
-                new_jobs_count += 1
+        # Batch-insert all jobs in one DB transaction (no per-job Calendar API stalls)
+        new_jobs_count, deadline_jobs = self.db.add_jobs_batch(jobs, self.user_id)
         if self.task:
-            self.task.update_state(state='PROGRESS', meta={'status': f'Saved {new_jobs_count} new jobs to your dashboard.', 'progress': 92, 'milestone': 'Saving'})
-        logger.info(f"💾 Added {new_jobs_count} new jobs to the database for user {self.user_id}.")
+            self.task.update_state(state='PROGRESS', meta={'status': f'Saved {new_jobs_count} new jobs to your dashboard.', 'progress': 96, 'milestone': 'Saving'})
+        logger.info(f"💾 Batch-added {new_jobs_count} new jobs to the database for user {self.user_id}.")
 
-        # Retrieve user settings for email
+        if not jobs:
+            logger.info(f"📊 Found 0 new jobs matching criteria for user {self.user_id} today.")
+            if self.task:
+                self.task.update_state(state='SUCCESS', meta={'status': 'Search complete. No new jobs found.', 'progress': 100})
+            return
+
+        # Dispatch optional email digest & calendar deadline sync asynchronously so the UI updates immediately
         user_settings = self.db.get_user_settings(self.user_id)
         email_recipients = user_settings.get('email_recipients') if user_settings else ADMIN_ALERT_EMAIL
         send_excel_attachment = user_settings.get('send_excel_attachment') if user_settings else True
-
-        if not jobs:
-            logger.info(f"📊 Found 0 new jobs matching criteria for user {self.user_id} today. No email will be sent.")
-            if self.task:
-                self.task.update_state(state='SUCCESS', meta={'status': 'Search complete. No new jobs found.', 'progress': 100})
-            # Optionally send a "no jobs found" email
-            # html = self.emailer.build_smart_html_email([])
-            # self.emailer.send_email(f"No New Job Matches - {datetime.date.today().strftime('%b %d, %Y')}", html)
-            return
-            
-        if self.task:
-            self.task.update_state(state='PROGRESS', meta={'status': 'Generating your personalized email report...', 'progress': 95, 'milestone': 'Reporting'})
-
-        html = self.emailer.build_smart_html_email(jobs)
-        excel_file = ""
-        if send_excel_attachment:
-            excel_file = self.emailer.create_excel_report(jobs)
-        
-        subject = f"🧠 {len(jobs)} New Job Matches – {datetime.date.today().strftime('%b %d, %Y')}"
-        
-        if self.task:
-            self.task.update_state(state='PROGRESS', meta={'status': f'Preparing email summary...', 'progress': 98})
-
-        try:
-            # Pass the recipients list directly if email is configured
-            if email_recipients:
-                self.emailer.send_email(subject, html, attachment_path=excel_file, recipients=email_recipients.split(','))
-        except Exception as email_err:
-            logger.warning(f"Email dispatch skipped or unconfigured: {email_err}")
-
-        if excel_file and os.path.exists(excel_file):
-            try:
-                os.remove(excel_file)
-                logger.info(f"Cleaned up Excel report: {excel_file}.")
-            except Exception:
-                pass
+        self._dispatch_post_scrape_notifications(jobs, deadline_jobs, email_recipients, send_excel_attachment)
 
         logger.info(f"🤖 Super Job Agent finished its run for user {self.user_id}.")
 
@@ -7174,6 +7472,16 @@ def _extract_display_name(claims: Any, email: Optional[str]) -> str:
     return ''
 
 
+def _extract_google_picture(claims: Any) -> Optional[str]:
+    """Return a validated https profile picture URL from Google OAuth claims."""
+    if not isinstance(claims, dict):
+        return None
+    pic = str(claims.get('picture') or '').strip()
+    if pic.startswith('https://') and len(pic) <= 512:
+        return pic
+    return None
+
+
 def _normalize_username_candidate(raw: Optional[str]) -> str:
     """Normalize raw user input into a lowercase handle candidate."""
     cleaned = (raw or '').strip().lstrip('@').lower()
@@ -7373,6 +7681,7 @@ def google_auth_callback():
         return redirect(url_for('login') + ('#register' if mode == 'register' else ''))
     email = email_claim.strip().lower()
     google_sub = str(claims.get('sub') or '').strip() or None
+    picture_url = _extract_google_picture(claims)
 
     database = JobDatabase()
     db_user = User.get_by_google_sub(google_sub) if google_sub else None
@@ -7390,6 +7699,7 @@ def google_auth_callback():
             email=email,
             onboarding_completed=has_explicit_role,
             google_sub=google_sub,
+            avatar_url=picture_url,
         )
         db_user = User.get_by_google_sub(google_sub) if google_sub else None
         if db_user is None:
@@ -7398,9 +7708,13 @@ def google_auth_callback():
             flash('Unable to create your account. Please try again.', 'danger')
             return redirect(url_for('login') + ('#register' if mode == 'register' else ''))
     else:
-        database.link_google_account(db_user.id, google_sub, email)
+        database.link_google_account(db_user.id, google_sub, email, avatar_url=picture_url)
         if not (db_user.email or '').strip():
             db_user.email = email
+        if picture_url:
+            db_user.avatar_url = picture_url
+        if google_sub and not getattr(db_user, 'google_sub', None):
+            db_user.google_sub = google_sub
         if role in ('seeker', 'recruiter'):
             database.complete_user_onboarding(db_user.id, role)
             db_user.role = role
@@ -7466,6 +7780,11 @@ def google_auth_callback():
     if db_user is None or db_user.account_status != 'active':
         flash('This account is not active. Please contact support.', 'danger')
         return redirect(url_for('login'))
+
+    if picture_url:
+        session['google_avatar_url'] = picture_url
+    else:
+        session.pop('google_avatar_url', None)
 
     login_user(db_user, remember=True)
     if not getattr(db_user, 'onboarding_completed', True):
@@ -7579,7 +7898,21 @@ def login():
 @login_required
 def logout():
     logout_user()
+    session.pop('google_avatar_url', None)
     flash('You have been logged out.', 'info')
+    return redirect(url_for('login'))
+
+
+@app.route('/switch-account')
+@login_required
+def switch_account():
+    """Sign out of the current account and jump straight to the account chooser."""
+    logout_user()
+    for key in ('google_avatar_url', 'google_oauth_state', 'google_oauth_mode', 'google_oauth_role', 'google_oauth_code_verifier'):
+        session.pop(key, None)
+    client_id, client_secret = _get_google_oauth_credentials()
+    if request.args.get('to') != 'login' and client_id and client_secret:
+        return redirect(url_for('google_auth_start', mode='login'))
     return redirect(url_for('login'))
 
 
@@ -7604,11 +7937,39 @@ def onboarding():
         exclude_user_id=current_user.id,
         limit=4,
     )
+    account_avatar_url = (
+        getattr(current_user, 'avatar_url', None)
+        or session.get('google_avatar_url')
+        or ''
+    )
+    account_email = (
+        getattr(current_user, 'email', None)
+        or user_details.get('email')
+        or ''
+    )
+    account_display_name = (
+        user_details.get('full_name')
+        or (account_email.split('@', 1)[0] if '@' in account_email else '')
+        or getattr(current_user, 'username', None)
+        or 'Account'
+    )
+    is_google_account = bool(
+        getattr(current_user, 'google_sub', None)
+        or account_avatar_url
+        or db.get_user_google_token(current_user.id)
+    )
+    client_id, client_secret = _get_google_oauth_credentials()
+    google_oauth_enabled = bool(client_id and client_secret)
     return render_template(
         'onboarding.html',
         user_details=user_details,
         company=company,
         username_suggestions=username_suggestions,
+        account_avatar_url=account_avatar_url,
+        account_email=account_email,
+        account_display_name=account_display_name,
+        is_google_account=is_google_account,
+        google_oauth_enabled=google_oauth_enabled,
     )
 
 
@@ -7856,7 +8217,7 @@ def _snap_fallback_answer(message: str, role: str) -> dict:
         }
     if any(k in q for k in ('scrape', 'scan', 'search', 'live', 'alert', 'preset')):
         return {
-            'reply': 'Use Live Scan in the Job Matches toolbar or automation rail to scrape fresh roles for your target keywords, save 1-click search presets, or enable scheduled email digests.',
+            'reply': 'Use the Automated Job Scraper in the Job Matches sidebar to scrape fresh roles for your target keywords, save 1-click search presets, or enable scheduled email digests.',
             'actions': [{'label': 'Open Job Matches', 'href': url_for('dashboard')}],
         }
     if any(k in q for k in ('skill', 'gap', 'roadmap', 'learn', 'course')):
@@ -9226,6 +9587,234 @@ def job_details(job_id):
     job = enrich_job_data(jobs[0], user_skills=user_skills)
     
     return render_template('job_details.html', job=job, now=datetime.datetime.now())
+
+
+_JD_FORMAT_CACHE: Dict[str, Dict[str, Any]] = {}
+_JD_FORMAT_CACHE_LOCK = threading.Lock()
+_JD_FORMAT_CACHE_MAX = 100
+
+_JD_SECTION_STYLES = [
+    (('responsib', 'what you', 'duties', 'day-to-day', 'deliver', 'role'), 'amber', 'task_alt'),
+    (('requir', 'qualif', 'skill', 'must have', 'looking for', 'experience'), 'sky', 'verified'),
+    (('nice', 'prefer', 'bonus', 'plus', 'good to have'), 'purple', 'stars'),
+    (('benefit', 'perk', 'salary', 'comp', 'offer', 'why join'), 'rose', 'payments'),
+    (('about', 'company', 'who we are', 'mission', 'team', 'overview'), 'emerald', 'corporate_fare'),
+]
+
+
+def _pick_jd_section_style(title: str) -> Tuple[str, str]:
+    low = (title or '').lower()
+    for keywords, theme, icon in _JD_SECTION_STYLES:
+        if any(k in low for k in keywords):
+            return theme, icon
+    return 'indigo', 'article'
+
+
+def _format_job_description_fast(raw_text: str, title: str = '', company: str = '') -> Dict[str, Any]:
+    """Instant, zero-latency deterministic job description formatter."""
+    text = (raw_text or '').strip()
+    if not text:
+        return {'summary': '', 'sections': []}
+
+    # Normalize unicode punctuation and strip LinkedIn trailing chrome
+    text = (
+        text.replace('\r\n', '\n')
+        .replace('\u2018', "'").replace('\u2019', "'")
+        .replace('\u201c', '"').replace('\u201d', '"')
+        .replace('\u2013', '-').replace('\u2014', ' - ')
+    )
+    text = re.sub(r'\bShow more\s*Show less\s*$', '', text, flags=re.I).strip()
+
+    heading_re = re.compile(
+        r'(?:^|\n)\s*(?:#{1,4}\s*)?'
+        r'(About(?:\s+the\s+Company|\s+Us|\s+the\s+Role)?|'
+        r'(?:The\s+)?Role(?:\s+Overview)?|Job\s+Summary|Overview|'
+        r'(?:Key\s+|Core\s+)?Responsibilities|What\s+You(?:\'ll|\s+Will)\s+Do|'
+        r'(?:Minimum\s+|Basic\s+)?Qualifications|Requirements|What\s+We(?:\'re|\s+Are)\s+Looking\s+For|Required\s+Skills|'
+        r'Preferred\s+Qualifications|Nice\s+to\s+Have|Good\s+to\s+Have|Bonus\s+Points|'
+        r'Benefits(?:\s*(?:&|and)\s*Perks)?|What\s+We\s+Offer|Compensation(?:\s*(?:&|and)\s*Benefits)?|Why\s+Join(?:\s+Us)?)'
+        r'\s*:?\s*(?:\n|$)',
+        re.I,
+    )
+
+    def _split_items(chunk: str) -> List[str]:
+        chunk = chunk.strip()
+        if not chunk:
+            return []
+        raw_lines = [l.strip() for l in chunk.split('\n') if l.strip()]
+        bullet_lines = [re.sub(r'^[\-\u2022*·\d]+[\.\)]?\s+', '', l).strip() for l in raw_lines]
+        if len(bullet_lines) >= 2:
+            return [b for b in bullet_lines if len(b) > 2][:12]
+        # Single dense paragraph -> split cleanly into readable sentences
+        sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+(?=[A-Z0-9])', chunk) if s.strip()]
+        if len(sentences) >= 2:
+            return sentences[:10]
+        return [chunk]
+
+    matches = list(heading_re.finditer(text))
+    sections: List[Dict[str, Any]] = []
+
+    if matches:
+        pre = text[:matches[0].start()].strip()
+        if len(pre) > 25:
+            theme, icon = _pick_jd_section_style('Overview')
+            sections.append({
+                'title': 'Role Overview',
+                'theme': theme,
+                'icon': icon,
+                'items': _split_items(pre),
+            })
+        for idx, match in enumerate(matches):
+            sec_title = re.sub(r'[:#\s]+$', '', match.group(1)).strip()
+            body_start = match.end()
+            body_end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
+            body = text[body_start:body_end].strip()
+            items = _split_items(body)
+            if items:
+                theme, icon = _pick_jd_section_style(sec_title)
+                sections.append({
+                    'title': sec_title,
+                    'theme': theme,
+                    'icon': icon,
+                    'items': items,
+                })
+    else:
+        paragraphs = [p.strip() for p in re.split(r'\n\s*\n', text) if p.strip()]
+        if len(paragraphs) >= 2:
+            labels = ['Role Overview', 'Key Details & Responsibilities', 'Requirements & Scope', 'Additional Information']
+            for idx, para in enumerate(paragraphs[:4]):
+                lbl = labels[min(idx, len(labels) - 1)]
+                theme, icon = _pick_jd_section_style(lbl)
+                sections.append({
+                    'title': lbl,
+                    'theme': theme,
+                    'icon': icon,
+                    'items': _split_items(para),
+                })
+        else:
+            items = _split_items(text)
+            sections.append({
+                'title': 'Role Overview',
+                'theme': 'indigo',
+                'icon': 'badge',
+                'items': items[:3],
+            })
+            if len(items) > 3:
+                sections.append({
+                    'title': 'Key Responsibilities & Requirements',
+                    'theme': 'amber',
+                    'icon': 'task_alt',
+                    'items': items[3:12],
+                })
+
+    first_sentence = ''
+    for sec in sections:
+        if sec.get('items'):
+            first_sentence = sec['items'][0]
+            break
+    summary = first_sentence[:220] + ('...' if len(first_sentence) > 220 else '')
+    if not summary and title:
+        summary = f"{title} at {company}" if company else title
+
+    return {'summary': summary, 'sections': sections}
+
+
+def _normalize_ai_formatted_jd(ai_data: Any) -> Optional[Dict[str, Any]]:
+    """Validate and normalize LLM-formatted job description JSON."""
+    if not isinstance(ai_data, dict):
+        return None
+    raw_sections = ai_data.get('sections')
+    if not isinstance(raw_sections, list):
+        return None
+
+    clean_sections = []
+    for sec in raw_sections[:6]:
+        if not isinstance(sec, dict):
+            continue
+        sec_title = str(sec.get('title') or '').strip()[:80]
+        raw_items = sec.get('items')
+        if not sec_title or not isinstance(raw_items, list):
+            continue
+        items = [str(it).strip() for it in raw_items if str(it or '').strip()][:10]
+        if not items:
+            continue
+        theme, icon = _pick_jd_section_style(sec_title)
+        clean_sections.append({
+            'title': sec_title,
+            'theme': theme,
+            'icon': icon,
+            'items': items,
+        })
+
+    if not clean_sections:
+        return None
+
+    summary = str(ai_data.get('summary') or '').strip()[:300]
+    return {'summary': summary, 'sections': clean_sections}
+
+
+@app.route('/api/jobs/<int:job_id>/format-description', methods=['POST'])
+@login_required
+def format_job_description_api(job_id):
+    """Fast, cached AI job description formatter with instant structured fallback."""
+    db = JobDatabase()
+    jobs, _ = db.get_jobs_for_user(current_user.id, limit=1, search_query=f"id:{job_id}")
+    if not jobs:
+        return jsonify({'success': False, 'error': 'Job not found.'}), 404
+
+    job = jobs[0]
+    raw_description = (job.get('description') or '').strip()
+    if not raw_description or raw_description == 'N/A':
+        return jsonify({
+            'success': True,
+            'mode': 'fast',
+            'formatted': {'summary': 'No detailed description available for this job.', 'sections': []},
+        })
+
+    cache_key = hashlib.md5(raw_description.encode('utf-8')).hexdigest()
+    with _JD_FORMAT_CACHE_LOCK:
+        cached = _JD_FORMAT_CACHE.get(cache_key)
+    if cached is not None:
+        return jsonify({'success': True, 'mode': cached.get('mode', 'ai'), 'cached': True, 'formatted': cached['formatted']})
+
+    has_llm_key = bool(os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY') or os.getenv('CEREBRAS_API_KEY'))
+    if has_llm_key and len(raw_description) >= 40:
+        system_prompt = (
+            "You format messy job descriptions into a clean, scannable brief. "
+            "Keep it concise and factual — never invent requirements or salary. "
+            'Return strict JSON only: {"summary": "1-2 sentence overview", '
+            '"sections": [{"title": "Short Section Title", "items": ["concise bullet 1", "concise bullet 2"]}]}. '
+            "Use 2 to 5 sections (e.g. Responsibilities, Requirements, Nice to Have, Benefits) and max 8 short bullets per section."
+        )
+        user_prompt = (
+            f"Role: {job.get('title') or 'N/A'}\n"
+            f"Company: {job.get('company') or 'N/A'}\n"
+            f"Raw Description:\n{raw_description[:4500]}"
+        )
+        try:
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            future = executor.submit(safe_ai_request, system_prompt, user_prompt, retries=0, timeout=5.5)
+            try:
+                ai_raw = future.result(timeout=6.0)
+            finally:
+                executor.shutdown(wait=False, cancel_futures=True)
+
+            normalized = _normalize_ai_formatted_jd(ai_raw)
+            if normalized:
+                with _JD_FORMAT_CACHE_LOCK:
+                    if len(_JD_FORMAT_CACHE) >= _JD_FORMAT_CACHE_MAX:
+                        _JD_FORMAT_CACHE.pop(next(iter(_JD_FORMAT_CACHE)), None)
+                    _JD_FORMAT_CACHE[cache_key] = {'mode': 'ai', 'formatted': normalized}
+                return jsonify({'success': True, 'mode': 'ai', 'cached': False, 'formatted': normalized})
+        except Exception as e:
+            logger.info(f"Fast-fallback for job {job_id} description format: {e}")
+
+    formatted = _format_job_description_fast(
+        raw_description,
+        title=job.get('title') or '',
+        company=job.get('company') or '',
+    )
+    return jsonify({'success': True, 'mode': 'fast', 'cached': False, 'formatted': formatted})
 
 @app.route('/search_jobs', methods=['POST'])
 @login_required

@@ -2,37 +2,85 @@
 {% block title %}Privacy Policy — AI JobSnap{% endblock %}
 
 {% block content %}
-<div class="max-w-[800px] mx-auto px-container-padding py-8 flex-1 flex flex-col gap-6 w-full">
-    <div class="border border-outline-variant rounded-xl p-5 bg-surface-container">
-        <div class="flex items-center gap-2 mb-1">
-            <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Data Sovereignty</span>
-            <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<div class="max-w-[820px] mx-auto px-container-padding py-8 flex-1 flex flex-col gap-6 w-full">
+    <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex flex-wrap items-start justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Legal & Data Protection</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+            </div>
+            <h1 class="font-headline-lg text-on-surface text-[22px] font-bold">Privacy Policy</h1>
+            <p class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-wider mt-1">
+                Last Updated: November 2026 · AI JobSnap (jobsnap.me)
+            </p>
         </div>
-        <h1 class="font-headline-lg text-on-surface text-[22px] font-bold">Privacy Architecture</h1>
-        <p class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-wider mt-1">
-            Last Updated: August 2026 · AI JobSnap Local-First Edition
-        </p>
+        <div class="flex items-center gap-3 text-[12px] font-semibold">
+            <a href="{{ url_for('terms') }}" class="text-on-surface-variant hover:text-primary transition-colors">Terms of Service</a>
+            <span class="text-outline-variant">·</span>
+            <a href="{{ url_for('login') }}" class="text-primary hover:underline">Back to Sign In</a>
+        </div>
     </div>
 
     <div class="border border-outline-variant rounded-xl p-6 bg-surface-container space-y-6 text-body-sm text-on-surface-variant leading-relaxed">
-        <section class="space-y-1.5">
-            <h2 class="font-headline-md text-on-surface text-[15px] font-bold">1. Local-First Data Sovereignty</h2>
+        <section class="space-y-2">
+            <h2 class="font-headline-md text-on-surface text-[15px] font-bold">1. Overview</h2>
             <p>
-                All resume datasets, application pipelines, contacts, and user preferences reside exclusively inside your local SQLite instances.
+                AI JobSnap (<a href="https://jobsnap.me" class="text-primary hover:underline">jobsnap.me</a> and <a href="https://app.jobsnap.me" class="text-primary hover:underline">app.jobsnap.me</a>) is a career intelligence, job search, and recruiting platform. This Privacy Policy explains what information we collect, how we use it, how we handle Google user data, and how you can control or delete your data.
             </p>
         </section>
 
-        <section class="space-y-1.5 border-t border-outline-variant pt-4">
-            <h2 class="font-headline-md text-on-surface text-[15px] font-bold">2. Local Resume Parsing</h2>
+        <section class="space-y-2 border-t border-outline-variant pt-4">
+            <h2 class="font-headline-md text-on-surface text-[15px] font-bold">2. Information We Collect</h2>
+            <ul class="list-disc pl-5 space-y-1.5">
+                <li><strong>Account Information:</strong> Name, verified email address, chosen username, workspace role (Job Seeker or Recruiter), and profile photo provided when you sign up with email or Google Sign-In.</li>
+                <li><strong>Career & Workspace Data:</strong> Resumes you upload, extracted skills, target job search filters, saved job listings, application statuses, notes, and (for recruiters) company profiles and job postings.</li>
+                <li><strong>Technical & Session Data:</strong> Essential authentication cookies required to keep you signed in securely. We do not use third-party advertising trackers or sell personal information.</li>
+            </ul>
+        </section>
+
+        <section class="space-y-2 border-t border-outline-variant pt-4">
+            <h2 class="font-headline-md text-on-surface text-[15px] font-bold">3. Google User Data &amp; API Scopes</h2>
             <p>
-                Resume artifacts uploaded to your instance are analyzed on-device using local NLP heuristics. Zero data is shared with external model trainers.
+                When you choose to sign in or connect your Google account, AI JobSnap accesses only the minimum Google data required for the features you use:
+            </p>
+            <ul class="list-disc pl-5 space-y-1.5">
+                <li><strong>Google Sign-In (<code>openid</code>, <code>userinfo.email</code>, <code>userinfo.profile</code>):</strong> Used to authenticate your account, verify your email address, and display your name and profile picture inside your workspace.</li>
+                <li><strong>Google Calendar (optional):</strong> Used solely to create application deadline and interview reminders that you configure or request.</li>
+                <li><strong>Gmail API (optional):</strong> Used solely to send job-alert digests or user-approved outreach emails that you explicitly configure or trigger. We never read unrelated personal emails or sell mailbox contents.</li>
+            </ul>
+            <p class="p-3.5 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface text-[13px]">
+                <strong>Google API Limited Use Disclosure:</strong> AI JobSnap's use and transfer to any other app of information received from Google APIs adheres strictly to the
+                <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" class="text-primary underline">Google API Services User Data Policy</a>,
+                including the Limited Use requirements. AI JobSnap does <strong>not</strong> use Google Workspace API data to develop, improve, or train generalized AI or machine learning models, and does not share Google user data with third-party data brokers or advertisers.
             </p>
         </section>
 
-        <section class="space-y-1.5 border-t border-outline-variant pt-4">
-            <h2 class="font-headline-md text-on-surface text-[15px] font-bold">3. Zero Telemetry Tracking</h2>
+        <section class="space-y-2 border-t border-outline-variant pt-4">
+            <h2 class="font-headline-md text-on-surface text-[15px] font-bold">4. AI-Assisted Features</h2>
             <p>
-                This application contains zero tracking pixels, ad networks, or telemetry loggers. You maintain 100% control over your career data.
+                When you invoke on-demand AI features—such as resume-to-job compatibility scoring, skill-gap roadmaps, or job description formatting—only the relevant resume or job text needed to generate that response is processed. We do not permit advertising use of your career data.
+            </p>
+        </section>
+
+        <section class="space-y-2 border-t border-outline-variant pt-4">
+            <h2 class="font-headline-md text-on-surface text-[15px] font-bold">5. Data Security, Retention &amp; Deletion</h2>
+            <p>
+                All traffic to <code>app.jobsnap.me</code> is encrypted in transit via HTTPS/TLS, and account passwords are stored using strong one-way cryptographic hashes. OAuth tokens are stored securely solely to perform actions you authorize.
+            </p>
+            <p>
+                You may revoke AI JobSnap's Google permissions at any time from your
+                <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer" class="text-primary underline">Google Account Permissions</a>
+                page. To request deletion of your AI JobSnap account and all associated records, email
+                <a href="mailto:support@jobsnap.me" class="text-primary underline">support@jobsnap.me</a>
+                from your registered address and we will permanently delete your data within 7 days.
+            </p>
+        </section>
+
+        <section class="space-y-2 border-t border-outline-variant pt-4">
+            <h2 class="font-headline-md text-on-surface text-[15px] font-bold">6. Contact</h2>
+            <p>
+                Questions about this Privacy Policy or your data rights? Contact us at
+                <a href="mailto:support@jobsnap.me" class="text-primary underline">support@jobsnap.me</a>.
             </p>
         </section>
     </div>

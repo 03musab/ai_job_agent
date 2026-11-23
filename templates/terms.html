@@ -2,37 +2,61 @@
 {% block title %}Terms of Service — AI JobSnap{% endblock %}
 
 {% block content %}
-<div class="max-w-[800px] mx-auto px-container-padding py-8 flex-1 flex flex-col gap-6 w-full">
-    <div class="border border-outline-variant rounded-xl p-5 bg-surface-container">
-        <div class="flex items-center gap-2 mb-1">
-            <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Compliance</span>
-            <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<div class="max-w-[820px] mx-auto px-container-padding py-8 flex-1 flex flex-col gap-6 w-full">
+    <div class="border border-outline-variant rounded-xl p-5 bg-surface-container flex flex-wrap items-start justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Compliance</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+            </div>
+            <h1 class="font-headline-lg text-on-surface text-[22px] font-bold">Terms of Service</h1>
+            <p class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-wider mt-1">
+                Last Updated: November 2026 · AI JobSnap (jobsnap.me)
+            </p>
         </div>
-        <h1 class="font-headline-lg text-on-surface text-[22px] font-bold">Terms of Service</h1>
-        <p class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-wider mt-1">
-            Last Updated: August 2026 · AI JobSnap Self-Hosted Edition
-        </p>
+        <div class="flex items-center gap-3 text-[12px] font-semibold">
+            <a href="{{ url_for('privacy') }}" class="text-on-surface-variant hover:text-primary transition-colors">Privacy Policy</a>
+            <span class="text-outline-variant">·</span>
+            <a href="{{ url_for('login') }}" class="text-primary hover:underline">Back to Sign In</a>
+        </div>
     </div>
 
     <div class="border border-outline-variant rounded-xl p-6 bg-surface-container space-y-6 text-body-sm text-on-surface-variant leading-relaxed">
-        <section class="space-y-1.5">
-            <h2 class="font-headline-md text-on-surface text-[15px] font-bold">1. Self-Hosted Software License</h2>
+        <section class="space-y-2">
+            <h2 class="font-headline-md text-on-surface text-[15px] font-bold">1. Acceptance of Terms</h2>
             <p>
-                AI JobSnap is provided under permissive enterprise software terms. You are licensed to deploy, modify, and manage this application on personal workstations or private clusters.
+                By accessing or using AI JobSnap (<a href="https://jobsnap.me" class="text-primary hover:underline">jobsnap.me</a> and <a href="https://app.jobsnap.me" class="text-primary hover:underline">app.jobsnap.me</a>), you agree to these Terms of Service and our
+                <a href="{{ url_for('privacy') }}" class="text-primary underline">Privacy Policy</a>.
+                If you do not agree, please discontinue use of the service.
             </p>
         </section>
 
-        <section class="space-y-1.5 border-t border-outline-variant pt-4">
-            <h2 class="font-headline-md text-on-surface text-[15px] font-bold">2. Automation & Scraping Responsibilities</h2>
+        <section class="space-y-2 border-t border-outline-variant pt-4">
+            <h2 class="font-headline-md text-on-surface text-[15px] font-bold">2. Accounts &amp; Google Sign-In</h2>
             <p>
-                When utilizing background crawler modules, operators are solely responsible for adhering to third-party network policies and rate limitations.
+                You are responsible for maintaining the security of your account credentials and all activity under your workspace. When signing in with Google, you authorize AI JobSnap to authenticate your verified email address and optionally interact with Google services you explicitly enable.
             </p>
         </section>
 
-        <section class="space-y-1.5 border-t border-outline-variant pt-4">
-            <h2 class="font-headline-md text-on-surface text-[15px] font-bold">3. Assisted Apply & Messaging Governance</h2>
+        <section class="space-y-2 border-t border-outline-variant pt-4">
+            <h2 class="font-headline-md text-on-surface text-[15px] font-bold">3. Job Listings &amp; Third-Party Platforms</h2>
             <p>
-                Automated outreach sequences and browser assistive agents operate with human-in-the-loop oversight. Ensure all outgoing submissions are pre-approved.
+                AI JobSnap aggregates publicly accessible job listings and recruiter-posted roles for convenience. We do not guarantee the accuracy, availability, or hiring outcome of third-party postings. Users must comply with applicable third-party platform policies when applying or reaching out to employers.
+            </p>
+        </section>
+
+        <section class="space-y-2 border-t border-outline-variant pt-4">
+            <h2 class="font-headline-md text-on-surface text-[15px] font-bold">4. Outreach &amp; Acceptable Use</h2>
+            <p>
+                Outreach tools, email digests, and application assistance features must be used responsibly with human review. You agree not to send unsolicited bulk spam, misrepresent your identity or qualifications, or attempt to disrupt or abuse the service.
+            </p>
+        </section>
+
+        <section class="space-y-2 border-t border-outline-variant pt-4">
+            <h2 class="font-headline-md text-on-surface text-[15px] font-bold">5. Disclaimer &amp; Contact</h2>
+            <p>
+                AI JobSnap is provided on an "as-is" and "as-available" basis without warranties of employment or uninterrupted availability. For questions or support, contact
+                <a href="mailto:support@jobsnap.me" class="text-primary underline">support@jobsnap.me</a>.
             </p>
         </section>
     </div>

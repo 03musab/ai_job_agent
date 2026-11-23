@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="AI JobSnap Logo">
+  <defs>
+    <linearGradient id="jsBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <radialGradient id="jsGlow" cx="25%" cy="20%" r="70%">
+      <stop offset="0%" stop-color="#6ee7b7" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#047857" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="120" height="120" rx="26" fill="url(#jsBg)" />
+  <rect width="120" height="120" rx="26" fill="url(#jsGlow)" />
+  <polygon points="68.4,22.2 34.8,67.8 58.8,67.8 51.6,103.8 85.2,58.2 61.2,58.2" fill="#022c22" opacity="0.18" />
+  <polygon points="68.4,19.2 34.8,64.8 58.8,64.8 51.6,100.8 85.2,55.2 61.2,55.2" fill="#ffffff" />
+</svg>

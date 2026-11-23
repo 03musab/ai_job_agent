@@ -713,7 +713,7 @@
                             if (d.state === 'SUCCESS') {
                                 els.progress.status.textContent = 'Complete! Refreshing...';
                                 eventSource.close();
-                                setTimeout(() => redirectToFilteredDashboard(window._activeScanSearchTerms, window._activeScanLocation), 1200);
+                                setTimeout(() => redirectToFilteredDashboard(window._activeScanSearchTerms, window._activeScanLocation), 300);
                             } else if (d.state === 'FAILURE') {
                                 handleSearchError(d.message || 'Error occurred');
                             }
@@ -1140,9 +1140,7 @@
         <!-- Header -->
         <div class="flex justify-between items-start border-b border-outline-variant/60 pb-3">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center text-primary shadow-xs">
-                    <span class="material-symbols-outlined text-[20px]">bolt</span>
-                </div>
+                <img src="{{ url_for('static', filename='assets/jobsnap-logo.svg') }}" alt="AI JobSnap" class="w-10 h-10 rounded-xl shadow-xs shrink-0">
                 <div>
                     <h3 class="font-headline-md text-on-surface text-[17px] font-bold">Apply with JobSnap</h3>
                     <p class="text-[12px] text-on-surface-variant">Published requisition · Direct recruiter delivery</p>

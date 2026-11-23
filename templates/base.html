@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title | default('AI JobSnap — Enterprise Console') }}</title>
     <meta name="description" content="Automate your job search with multi-source scraping, resume-aware relevance scoring, outreach generation, and scheduled application reports.">
-    <meta name="theme-color" content="#12131a">
+    <meta name="theme-color" content="#10b981">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='assets/jobsnap-logo.svg') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='assets/jobsnap-logo-120.png') }}">
     <link rel="canonical" href="{{ request.url }}">
     
     <!-- Open Graph / Social Media -->
@@ -14,6 +16,7 @@
     <meta property="og:url" content="{{ request.url }}">
     <meta property="og:title" content="{{ title | default('AI JobSnap — Enterprise Console') }}">
     <meta property="og:description" content="Automate your job search with multi-source scraping, resume-aware relevance scoring, outreach generation, and scheduled application reports.">
+    <meta property="og:image" content="{{ url_for('static', filename='assets/jobsnap-logo-120.png', _external=True) }}">
 
     <!-- Fonts from Stitch Design Spec -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -114,7 +117,7 @@
         <!-- Left: Logo & Nav Links -->
         <div class="flex items-center gap-gutter h-full">
             <a href="{{ url_for('index') }}" class="flex items-center gap-2 focus:outline-none group">
-                <span class="w-6 h-6 rounded bg-primary/10 border border-primary/30 flex items-center justify-center text-primary font-headline-md text-[13px] font-bold shadow-inner group-hover:border-primary transition-colors">JS</span>
+                <img src="{{ url_for('static', filename='assets/jobsnap-logo.svg') }}" alt="AI JobSnap" class="w-6 h-6 rounded-md shadow-xs shrink-0 group-hover:scale-105 transition-transform">
                 <span class="font-headline-md text-[15px] text-on-surface tracking-tight font-bold group-hover:text-primary transition-colors">AI JobSnap</span>
             </a>
 

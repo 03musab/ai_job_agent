@@ -23,9 +23,7 @@
         <!-- Brand Mark / Logo Header -->
         <div class="flex flex-wrap items-center justify-between gap-2 pb-4">
             <div class="flex items-center gap-2.5 sm:gap-3">
-                <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-sm shrink-0">
-                    <span class="material-symbols-outlined text-[19px] sm:text-[20px]">layers</span>
-                </div>
+                <img src="{{ url_for('static', filename='assets/jobsnap-logo.svg') }}" alt="AI JobSnap" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl shadow-sm shrink-0">
                 <div class="leading-tight">
                     <span class="font-headline-md text-[16px] sm:text-[17px] font-bold tracking-tight text-slate-900 block">AI JobSnap</span>
                     <span class="font-data-mono text-[9px] sm:text-[10px] text-slate-500 tracking-wider uppercase block">Console Access</span>
@@ -183,13 +181,20 @@
             </div>
         </div>
 
-        <!-- Bottom Pagination Dots (Sign In & Register States) -->
-        {% if not admin_login %}
-        <div class="flex items-center justify-center gap-2 pt-2">
-            <button type="button" onclick="setAuthMode('login')" id="dotLogin" class="dot-indicator w-2.5 h-2.5 rounded-full bg-slate-900 cursor-pointer" title="Sign In"></button>
-            <button type="button" onclick="setAuthMode('register')" id="dotRegister" class="dot-indicator w-2.5 h-2.5 rounded-full bg-slate-300 hover:bg-slate-500 cursor-pointer" title="Create Account"></button>
+        <!-- Bottom Pagination Dots & Legal Links -->
+        <div class="pt-2 space-y-2.5">
+            {% if not admin_login %}
+            <div class="flex items-center justify-center gap-2">
+                <button type="button" onclick="setAuthMode('login')" id="dotLogin" class="dot-indicator w-2.5 h-2.5 rounded-full bg-slate-900 cursor-pointer" title="Sign In"></button>
+                <button type="button" onclick="setAuthMode('register')" id="dotRegister" class="dot-indicator w-2.5 h-2.5 rounded-full bg-slate-300 hover:bg-slate-500 cursor-pointer" title="Create Account"></button>
+            </div>
+            {% endif %}
+            <div class="flex items-center justify-center gap-2.5 text-[11px] text-slate-400 font-medium">
+                <a href="{{ url_for('privacy') }}" class="hover:text-slate-700 transition-colors">Privacy Policy</a>
+                <span>·</span>
+                <a href="{{ url_for('terms') }}" class="hover:text-slate-700 transition-colors">Terms of Service</a>
+            </div>
         </div>
-        {% endif %}
 
     </div>
 
@@ -304,7 +309,11 @@
         <!-- Footer Micro-Telemetry -->
         <div class="relative z-10 flex items-center justify-between text-[11px] text-white/50 border-t border-white/10 pt-3.5 font-data-mono">
             <span>Enterprise v2.4 · Zero-Trust SSL</span>
-            <span>AI JobSnap Telemetry</span>
+            <div class="flex items-center gap-3">
+                <a href="{{ url_for('privacy') }}" class="hover:text-white/90 transition-colors">Privacy</a>
+                <span>·</span>
+                <a href="{{ url_for('terms') }}" class="hover:text-white/90 transition-colors">Terms</a>
+            </div>
         </div>
 
     </div>

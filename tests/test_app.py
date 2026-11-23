@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Import app standardly - assume dependencies are present in venv
 from app import app, JobDatabase, Job, User
 from extensions import db as extension_db
+from werkzeug.security import generate_password_hash
 
 class TestJobDatabase(JobDatabase):
     """Subclass to force using test DB."""
@@ -1023,6 +1024,478 @@ class AIJobAgentTestCase(unittest.TestCase):
         short_handle = _generate_short_username('ab@example.com')
         self.assertGreaterEqual(len(short_handle), 3)
         self.assertRegex(short_handle, r'^[a-z0-9][a-z0-9._-]{2,23}$')
+
+    def test_scraper_pre_deduplicates_existing_db_jobs_before_detail_fetch(self):
+        from app import EnhancedJobScraper
+        database = TestJobDatabase()
+        user_id = database.add_user(
+            'dedupe_user',
+            'hashed-pw',
+            role='seeker',
+            email='dedupe@example.com',
+            account_status='active',
+        )
+        existing_job = Job(
+            title='Python Developer',
+            company='Acme Corp',
+            location='Mumbai',
+            salary='N/A',
+            link='https://example.com/jobs/1',
+            description='Existing job description',
+            keywords=['Python'],
+            skills=['python'],
+            experience='1-3 years',
+            job_type='Full-time',
+            posted_date='2 days ago',
+            source='LinkedIn',
+            deadline='N/A',
+        )
+        self.assertTrue(database.add_job(existing_job, user_id=user_id, sync_calendar=False))
+
+        scraper = EnhancedJobScraper(
+            search_terms=['Python'],
+            location='Mumbai',
+            experience='',
+            job_type='',
+            user_id=user_id,
+            scan_mode='fast',
+        )
+        scraper.existing_hashes = database.get_existing_job_hashes(user_id)
+        cards = [
+            {'title': 'Python Developer', 'company': 'Acme Corp', 'location': 'Mumbai', 'link': 'https://example.com/jobs/1'},
+            {'title': 'Operations Coordinator', 'company': 'Beta Inc', 'location': 'Delhi', 'link': 'https://example.com/jobs/2'},
+            {'title': 'Senior Python Engineer', 'company': 'Gamma Labs', 'location': 'Mumbai', 'link': 'https://example.com/jobs/3'},
+        ]
+
+        filtered = scraper._filter_and_prioritize_cards(cards, 'Python')
+        self.assertEqual(len(filtered), 2)
+        self.assertNotIn('Acme Corp', [c['company'] for c in filtered])
+        self.assertEqual(filtered[0]['company'], 'Gamma Labs')
+
+    def test_linkedin_scraper_uses_guest_fragment_and_trips_429_circuit_breaker(self):
+        from app import EnhancedJobScraper, _SCRAPE_CACHE
+        database = TestJobDatabase()
+        user_id = database.add_user(
+            'breaker_user',
+            'hashed-pw',
+            role='seeker',
+            email='breaker@example.com',
+            account_status='active',
+        )
+        cards_html = ''.join(
+            f'''
+            <div class="base-card" data-entity-urn="urn:li:jobPosting:100000{i}">
+                <h3 class="base-search-card__title">Python Engineer {i}</h3>
+                <h4 class="base-search-card__subtitle">TechCo {i}</h4>
+                <span class="job-search-card__location">Mumbai</span>
+                <a class="base-card__full-link" href="https://www.linkedin.com/jobs/view/python-engineer-{i}-100000{i}">Apply</a>
+                <time>1 day ago</time>
+            </div>
+            '''
+            for i in range(1, 5)
+        )
+        list_resp = MagicMock(status_code=200, content=cards_html.encode('utf-8'))
+        rate_limit_resp = MagicMock(status_code=429, content=b'Too Many Requests')
+
+        detail_urls = []
+        mock_session = MagicMock()
+
+        def fake_get(url, **kwargs):
+            if 'seeMoreJobPostings' in url:
+                return list_resp
+            detail_urls.append(url)
+            return rate_limit_resp
+
+        mock_session.get.side_effect = fake_get
+        scraper = EnhancedJobScraper(
+            search_terms=['Python'],
+            location='Mumbai',
+            experience='',
+            job_type='',
+            user_id=user_id,
+            scan_mode='fast',
+        )
+
+        _SCRAPE_CACHE.clear()
+        try:
+            with patch('app.LINKEDIN_DETAIL_MAX_WORKERS', 1), patch('app.time.sleep'), patch.object(
+                scraper, '_get_http_session', return_value=mock_session
+            ):
+                jobs = scraper.scrape_linkedin_jobs('Python')
+        finally:
+            _SCRAPE_CACHE.clear()
+
+        self.assertEqual(len(jobs), 4)
+        self.assertEqual(len(detail_urls), 2)
+        for url in detail_urls:
+            self.assertTrue(url.startswith('https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/100000'))
+        for job in jobs:
+            self.assertEqual(job.source, 'LinkedIn')
+            self.assertEqual(job.description, 'N/A')
+
+    def test_add_jobs_batch_inserts_in_single_transaction_and_deduplicates(self):
+        database = TestJobDatabase()
+        user_id = database.add_user(
+            'batch_user',
+            'hashed-pw',
+            role='seeker',
+            email='batch@example.com',
+            account_status='active',
+        )
+        job1 = Job(
+            title='Backend Developer',
+            company='Nova Systems',
+            location='Remote',
+            salary='12-16 LPA',
+            link='https://example.com/j/1',
+            description='Python backend role',
+            keywords=['Python'],
+            skills=['python', 'sql'],
+            experience='2-4 years',
+            job_type='Full-time',
+            posted_date='1 day ago',
+            source='LinkedIn',
+            deadline='N/A',
+        )
+        job1_dup = Job(
+            title='Backend Developer',
+            company='Nova Systems',
+            location='Remote',
+            salary='12-16 LPA',
+            link='https://example.com/j/1-dup',
+            description='Duplicate listing',
+            keywords=['Python'],
+            skills=['python'],
+            experience='2-4 years',
+            job_type='Full-time',
+            posted_date='1 day ago',
+            source='LinkedIn',
+            deadline='N/A',
+        )
+        job2 = Job(
+            title='ML Engineer',
+            company='Orbit AI',
+            location='Bengaluru',
+            salary='18-24 LPA',
+            link='https://example.com/j/2',
+            description='Build ML pipelines',
+            keywords=['AI'],
+            skills=['python'],
+            experience='1-3 years',
+            job_type='Full-time',
+            posted_date='Today',
+            source='Internshala',
+            deadline='2026-12-31',
+        )
+
+        with patch('app.GoogleCalendarManager') as mock_cal:
+            inserted_count, deadline_jobs = database.add_jobs_batch([job1, job1_dup, job2], user_id=user_id)
+
+        mock_cal.assert_not_called()
+        self.assertEqual(inserted_count, 2)
+        self.assertEqual(len(deadline_jobs), 1)
+        self.assertEqual(deadline_jobs[0]['title'], 'ML Engineer')
+        self.assertEqual(len(database.get_existing_job_hashes(user_id)), 2)
+
+    def test_job_hunter_skips_eager_emailer_and_completes_without_gmail_credentials(self):
+        from app import EnhancedJobScraper, JobHunter
+        database = TestJobDatabase()
+        user_id = database.add_user(
+            'hunter_user',
+            'hashed-pw',
+            role='seeker',
+            email='hunter@example.com',
+            account_status='active',
+        )
+        sample_job = Job(
+            title='Full Stack Engineer',
+            company='Vertex Labs',
+            location='Mumbai',
+            salary='15 LPA',
+            link='https://example.com/j/99',
+            description='React and Flask engineering role',
+            keywords=['Flask'],
+            skills=['python', 'react'],
+            experience='1-3 years',
+            job_type='Full-time',
+            posted_date='1 day ago',
+            source='LinkedIn',
+            deadline='N/A',
+        )
+
+        with patch('app.SmartEmailer') as mock_emailer, patch.object(
+            EnhancedJobScraper, 'scrape_all_sources', return_value=[sample_job]
+        ):
+            hunter = JobHunter(
+                user_id=user_id,
+                search_terms=['Flask'],
+                location='Mumbai',
+                scan_mode='fast',
+            )
+            self.assertIsNone(hunter.emailer)
+            mock_emailer.assert_not_called()
+            hunter.run()
+            mock_emailer.assert_not_called()
+
+        self.assertEqual(len(database.get_existing_job_hashes(user_id)), 1)
+
+    def test_scrape_cache_returns_cached_results_within_ttl(self):
+        from app import EnhancedJobScraper, _SCRAPE_CACHE
+        database = TestJobDatabase()
+        user_id = database.add_user(
+            'cache_user',
+            'hashed-pw',
+            role='seeker',
+            email='cache@example.com',
+            account_status='active',
+        )
+        list_html = '''
+        <div class="base-card" data-entity-urn="urn:li:jobPosting:9998887">
+            <h3 class="base-search-card__title">Flask Backend Engineer</h3>
+            <h4 class="base-search-card__subtitle">CloudScale</h4>
+            <span class="job-search-card__location">Pune</span>
+            <a class="base-card__full-link" href="https://www.linkedin.com/jobs/view/flask-backend-9998887">View</a>
+            <time>2 days ago</time>
+        </div>
+        '''
+        detail_html = '<div class="show-more-less-html__markup">Build Python APIs with Flask and SQL.</div>'
+        list_resp = MagicMock(status_code=200, content=list_html.encode('utf-8'))
+        detail_resp = MagicMock(status_code=200, content=detail_html.encode('utf-8'))
+
+        mock_session = MagicMock()
+        mock_session.get.side_effect = lambda url, **kwargs: list_resp if 'seeMoreJobPostings' in url else detail_resp
+
+        scraper = EnhancedJobScraper(
+            search_terms=['Flask'],
+            location='Pune',
+            experience='',
+            job_type='',
+            user_id=user_id,
+            scan_mode='fast',
+        )
+
+        _SCRAPE_CACHE.clear()
+        try:
+            with patch('app.time.sleep'), patch.object(scraper, '_get_http_session', return_value=mock_session):
+                first_jobs = scraper.scrape_linkedin_jobs('Flask')
+                second_jobs = scraper.scrape_linkedin_jobs('Flask')
+        finally:
+            _SCRAPE_CACHE.clear()
+
+        self.assertEqual(len(first_jobs), 1)
+        self.assertEqual(len(second_jobs), 1)
+        self.assertEqual(second_jobs[0].title, 'Flask Backend Engineer')
+        self.assertIn('Build Python APIs', second_jobs[0].description)
+        self.assertEqual(mock_session.get.call_count, 2)
+
+    def test_format_job_description_api_uses_ai_and_caches_result(self):
+        from app import _JD_FORMAT_CACHE
+        database = TestJobDatabase()
+        user_id = database.add_user(
+            'jd_ai_user',
+            generate_password_hash('password123'),
+            role='seeker',
+            email='jd_ai@example.com',
+            account_status='active',
+            onboarding_completed=True,
+        )
+        job = Job(
+            title='Backend Engineer',
+            company='FastCorp',
+            location='Mumbai',
+            salary='15 LPA',
+            link='https://example.com/j/fmt-1',
+            description='Responsibilities:\n- Build Flask APIs\n- Optimize SQL queries\nRequirements:\n- 2+ years Python',
+            keywords=['Python'],
+            skills=['python', 'flask'],
+            experience='2+ years',
+            job_type='Full-time',
+            posted_date='Today',
+            source='LinkedIn',
+            deadline='N/A',
+        )
+        database.add_job(job, user_id=user_id, sync_calendar=False)
+        jobs, _ = database.get_jobs_for_user(user_id, limit=1)
+        job_id = jobs[0]['id']
+
+        self.client.post('/login', data={'username': 'jd_ai_user', 'password': 'password123'})
+        ai_payload = {
+            'summary': 'Backend Python role building Flask APIs at FastCorp.',
+            'sections': [
+                {'title': 'Responsibilities', 'items': ['Build Flask APIs', 'Optimize SQL queries']},
+                {'title': 'Requirements', 'items': ['2+ years Python']},
+            ],
+        }
+
+        _JD_FORMAT_CACHE.clear()
+        try:
+            with patch.dict(os.environ, {'GEMINI_API_KEY': 'test-key'}), patch(
+                'app.safe_ai_request', return_value=ai_payload
+            ) as mock_ai:
+                first_resp = self.client.post(f'/api/jobs/{job_id}/format-description')
+                second_resp = self.client.post(f'/api/jobs/{job_id}/format-description')
+        finally:
+            _JD_FORMAT_CACHE.clear()
+
+        self.assertEqual(first_resp.status_code, 200)
+        first_json = first_resp.get_json()
+        self.assertTrue(first_json['success'])
+        self.assertEqual(first_json['mode'], 'ai')
+        self.assertFalse(first_json['cached'])
+        self.assertEqual(len(first_json['formatted']['sections']), 2)
+
+        self.assertEqual(second_resp.status_code, 200)
+        second_json = second_resp.get_json()
+        self.assertTrue(second_json['cached'])
+        self.assertEqual(mock_ai.call_count, 1)
+
+    def test_format_job_description_api_falls_back_fast_when_ai_fails(self):
+        from app import _JD_FORMAT_CACHE
+        database = TestJobDatabase()
+        user_id = database.add_user(
+            'jd_fast_user',
+            generate_password_hash('password123'),
+            role='seeker',
+            email='jd_fast@example.com',
+            account_status='active',
+            onboarding_completed=True,
+        )
+        job = Job(
+            title='Data Analyst',
+            company='MetricCo',
+            location='Remote',
+            salary='12 LPA',
+            link='https://example.com/j/fmt-2',
+            description='Responsibilities:\n- Build dashboards\n- Clean SQL tables\nRequirements:\n- Strong SQL and Python',
+            keywords=['SQL'],
+            skills=['sql', 'python'],
+            experience='1-2 years',
+            job_type='Full-time',
+            posted_date='Today',
+            source='LinkedIn',
+            deadline='N/A',
+        )
+        database.add_job(job, user_id=user_id, sync_calendar=False)
+        jobs, _ = database.get_jobs_for_user(user_id, limit=1)
+        job_id = jobs[0]['id']
+
+        self.client.post('/login', data={'username': 'jd_fast_user', 'password': 'password123'})
+
+        _JD_FORMAT_CACHE.clear()
+        try:
+            with patch.dict(os.environ, {'GEMINI_API_KEY': 'test-key'}), patch(
+                'app.safe_ai_request', side_effect=RuntimeError('Upstream timeout')
+            ):
+                resp = self.client.post(f'/api/jobs/{job_id}/format-description')
+        finally:
+            _JD_FORMAT_CACHE.clear()
+
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['mode'], 'fast')
+        self.assertGreaterEqual(len(data['formatted']['sections']), 2)
+
+    def test_job_details_page_has_valid_ai_format_wiring_without_fake_delay(self):
+        database = TestJobDatabase()
+        user_id = database.add_user(
+            'jd_ui_user',
+            generate_password_hash('password123'),
+            role='seeker',
+            email='jd_ui@example.com',
+            account_status='active',
+            onboarding_completed=True,
+        )
+        job = Job(
+            title='Frontend Developer',
+            company='PixelWorks',
+            location='Bengaluru',
+            salary='14 LPA',
+            link='https://example.com/j/fmt-3',
+            description='Build fast React interfaces and design systems.',
+            keywords=['React'],
+            skills=['react'],
+            experience='1-3 years',
+            job_type='Full-time',
+            posted_date='Today',
+            source='LinkedIn',
+            deadline='N/A',
+        )
+        database.add_job(job, user_id=user_id, sync_calendar=False)
+        jobs, _ = database.get_jobs_for_user(user_id, limit=1)
+        job_id = jobs[0]['id']
+
+        self.client.post('/login', data={'username': 'jd_ui_user', 'password': 'password123'})
+        page = self.client.get(f'/job/{job_id}')
+        self.assertEqual(page.status_code, 200)
+        self.assertIn(b'Format with AI', page.data)
+        self.assertIn(b'/api/jobs/', page.data)
+        self.assertNotIn(b'const duration = 5000', page.data)
+        self.assertNotIn(b'bulletSplitRegex', page.data)
+
+    def test_google_signin_saves_avatar_and_onboarding_shows_account_and_switch_option(self):
+        flow = MagicMock()
+        flow.credentials.id_token = 'verified-id-token'
+        pfp_url = 'https://lh3.googleusercontent.com/a/test-user-avatar'
+        with patch.dict(os.environ, {
+            'GOOGLE_CLIENT_ID': 'test-client-id',
+            'GOOGLE_CLIENT_SECRET': 'test-client-secret',
+        }), patch('app._google_oauth_flow', return_value=flow), patch(
+            'app.id_token.verify_oauth2_token',
+            return_value={
+                'sub': 'google-sub-pfp-1',
+                'email': 'pfp.user@example.com',
+                'email_verified': True,
+                'name': 'Alex Rivera',
+                'picture': pfp_url,
+            },
+        ):
+            with self.client.session_transaction() as browser_session:
+                browser_session['google_oauth_state'] = 'state-pfp'
+                browser_session['google_oauth_mode'] = 'login'
+                browser_session['google_oauth_role'] = None
+
+            resp = self.client.get('/auth/google/callback?state=state-pfp&code=c-pfp')
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn('/onboarding', resp.headers['Location'])
+
+        saved_user = User.get_by_email('pfp.user@example.com')
+        self.assertIsNotNone(saved_user)
+        self.assertEqual(saved_user.avatar_url, pfp_url)
+
+        page = self.client.get('/onboarding')
+        self.assertEqual(page.status_code, 200)
+        self.assertIn(pfp_url.encode('utf-8'), page.data)
+        self.assertIn(b'pfp.user@example.com', page.data)
+        self.assertIn(b'Google Account', page.data)
+        self.assertIn(b'/switch-account', page.data)
+        self.assertIn(b'Switch account', page.data)
+
+    def test_switch_account_logs_out_and_redirects_to_google_account_picker(self):
+        database = TestJobDatabase()
+        database.add_user(
+            'switch_user',
+            generate_password_hash('password123'),
+            role='seeker',
+            email='switch@example.com',
+            account_status='active',
+            onboarding_completed=False,
+        )
+        self.client.post('/login', data={'username': 'switch_user', 'password': 'password123'})
+
+        with patch.dict(os.environ, {
+            'GOOGLE_CLIENT_ID': 'test-client-id',
+            'GOOGLE_CLIENT_SECRET': 'test-client-secret',
+        }):
+            resp = self.client.get('/switch-account')
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn('/auth/google?mode=login', resp.headers['Location'])
+
+        after_logout = self.client.get('/onboarding')
+        self.assertEqual(after_logout.status_code, 302)
+        self.assertIn('/login', after_logout.headers['Location'])
 
 if __name__ == '__main__':
     unittest.main()
