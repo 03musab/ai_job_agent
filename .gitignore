@@ -33,3 +33,6 @@ ngrok.zip
 # Security Scanner Temp Artifacts
 bandit_results.json
 pip_audit_results.json
+
+# Large media recordings
+*.mp4

@@ -1002,20 +1002,63 @@ class User(UserMixin):
 
     @staticmethod
     def get_by_email(email):
+        clean_email = (email or '').strip().lower()
+        if not clean_email:
+            return None
         db = JobDatabase()
         conn = connect_database(db.db_path, timeout=10)
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT id, username, password_hash, role, email_recipients,
-                   send_excel_attachment, email, is_pro, account_status,
-                   onboarding_completed
-            FROM users WHERE LOWER(email) = LOWER(?)
-        """, (email,))
-        user_data = cursor.fetchone()
-        conn.close()
-        if user_data:
-            return User(*user_data)
-        return None
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, username, password_hash, role, email_recipients,
+                       send_excel_attachment, email, is_pro, account_status,
+                       onboarding_completed
+                FROM users WHERE LOWER(TRIM(email)) = LOWER(?)
+                LIMIT 1
+            """, (clean_email,))
+            user_data = cursor.fetchone()
+            if not user_data:
+                cursor.execute("""
+                    SELECT u.id, u.username, u.password_hash, u.role, u.email_recipients,
+                           u.send_excel_attachment, u.email, u.is_pro, u.account_status,
+                           u.onboarding_completed
+                    FROM users u
+                    JOIN user_details d ON d.user_id = u.id
+                    WHERE (u.email IS NULL OR TRIM(u.email) = '')
+                      AND LOWER(TRIM(d.email)) = LOWER(?)
+                    LIMIT 2
+                """, (clean_email,))
+                fallback_rows = cursor.fetchall()
+                if len(fallback_rows) == 1:
+                    user_data = fallback_rows[0]
+            if user_data:
+                return User(*user_data)
+            return None
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_by_google_sub(google_sub):
+        clean_sub = (google_sub or '').strip()
+        if not clean_sub:
+            return None
+        db = JobDatabase()
+        conn = connect_database(db.db_path, timeout=10)
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, username, password_hash, role, email_recipients,
+                       send_excel_attachment, email, is_pro, account_status,
+                       onboarding_completed
+                FROM users WHERE google_sub = ?
+                LIMIT 1
+            """, (clean_sub,))
+            user_data = cursor.fetchone()
+            if user_data:
+                return User(*user_data)
+            return None
+        finally:
+            conn.close()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -1046,7 +1089,8 @@ class JobDatabase:
                 email TEXT,
                 is_pro BOOLEAN NOT NULL DEFAULT FALSE,
                 account_status TEXT NOT NULL DEFAULT 'active',
-                onboarding_completed BOOLEAN NOT NULL DEFAULT TRUE
+                onboarding_completed BOOLEAN NOT NULL DEFAULT TRUE,
+                google_sub TEXT
             )
         ''')
         # Perform ALTER TABLE for new user columns if they don't exist
@@ -1073,11 +1117,26 @@ class JobDatabase:
         if 'onboarding_completed' not in user_columns:
             cursor.execute("ALTER TABLE users ADD COLUMN onboarding_completed BOOLEAN NOT NULL DEFAULT TRUE")
             conn.commit()
+        if 'google_sub' not in user_columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN google_sub TEXT")
+            conn.commit()
         cursor.execute("""
             CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_normalized
             ON users (LOWER(email))
             WHERE email IS NOT NULL AND TRIM(email) <> ''
         """)
+        try:
+            cursor.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub
+                ON users (google_sub)
+                WHERE google_sub IS NOT NULL AND TRIM(google_sub) <> ''
+            """)
+            conn.commit()
+        except Exception:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
         try:
             cursor.execute("""
                 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_normalized
@@ -1369,8 +1428,11 @@ class JobDatabase:
     def add_user(self, username: str, password_hash: str, role: str = 'seeker',
                  email: Optional[str] = None, is_pro: bool = False,
                  account_status: str = 'active',
-                 onboarding_completed: bool = True) -> Optional[int]:
+                 onboarding_completed: bool = True,
+                 google_sub: Optional[str] = None) -> Optional[int]:
         clean_username = (username or '').strip()
+        clean_email = (email or '').strip().lower() or None
+        clean_google_sub = (google_sub or '').strip() or None
         if not clean_username or not self.is_username_available(clean_username):
             logger.warning(f"Username already exists or invalid: {username}")
             return None
@@ -1379,9 +1441,9 @@ class JobDatabase:
         try:
             cursor.execute("""
                 INSERT INTO users
-                    (username, password_hash, role, email, is_pro, account_status, onboarding_completed)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (clean_username, password_hash, role, email, bool(is_pro), account_status, bool(onboarding_completed)))
+                    (username, password_hash, role, email, is_pro, account_status, onboarding_completed, google_sub)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (clean_username, password_hash, role, clean_email, bool(is_pro), account_status, bool(onboarding_completed), clean_google_sub))
             conn.commit()
             logger.info(f"Created user: {clean_username} with role: {role}")
             return cursor.lastrowid
@@ -1482,7 +1544,7 @@ class JobDatabase:
             conn.close()
 
     def complete_user_onboarding(self, user_id: int, role: str) -> bool:
-        """Mark 4-step onboarding as completed and save chosen role ('seeker' or 'recruiter')."""
+        """Mark onboarding as completed and save chosen role ('seeker' or 'recruiter')."""
         if role not in ('seeker', 'recruiter'):
             return False
         conn = connect_database(self.db_path, timeout=10)
@@ -1497,6 +1559,72 @@ class JobDatabase:
             return cursor.rowcount > 0
         except Exception as e:
             logger.error(f"Error completing onboarding for user {user_id}: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def link_google_account(self, user_id: int, google_sub: Optional[str], email: Optional[str]) -> None:
+        """Bind google_sub and backfill blank users.email for an existing user."""
+        clean_sub = (google_sub or '').strip() or None
+        clean_email = (email or '').strip().lower() or None
+        if not user_id or (not clean_sub and not clean_email):
+            return
+        conn = connect_database(self.db_path, timeout=10)
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT email, google_sub FROM users WHERE id = ?", (user_id,))
+            row = cursor.fetchone()
+            if not row:
+                return
+            current_email, current_sub = row[0], row[1]
+            if clean_email and not (current_email or '').strip():
+                try:
+                    cursor.execute("UPDATE users SET email = ? WHERE id = ?", (clean_email, user_id))
+                    conn.commit()
+                except _DB_INTEGRITY_ERRORS:
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
+            if clean_sub and not (current_sub or '').strip():
+                try:
+                    cursor.execute("UPDATE users SET google_sub = ? WHERE id = ?", (clean_sub, user_id))
+                    conn.commit()
+                except _DB_INTEGRITY_ERRORS:
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
+        except Exception as e:
+            logger.warning(f"Could not link Google identity for user {user_id}: {e}")
+        finally:
+            conn.close()
+
+    def user_has_established_workspace(self, user_id: int) -> bool:
+        """Return True if user already has resume, company, jobs, profiles, or applications."""
+        if not user_id:
+            return False
+        conn = connect_database(self.db_path, timeout=10)
+        try:
+            cursor = conn.cursor()
+            checks = (
+                (
+                    "SELECT 1 FROM user_details WHERE user_id = ? "
+                    "AND resume_path IS NOT NULL AND TRIM(resume_path) <> '' LIMIT 1",
+                    (user_id,),
+                ),
+                ("SELECT 1 FROM companies WHERE recruiter_id = ? LIMIT 1", (user_id,)),
+                ("SELECT 1 FROM jobs WHERE user_id = ? LIMIT 1", (user_id,)),
+                ("SELECT 1 FROM search_profiles WHERE user_id = ? LIMIT 1", (user_id,)),
+                ("SELECT 1 FROM job_applications WHERE applicant_user_id = ? LIMIT 1", (user_id,)),
+            )
+            for query, params in checks:
+                cursor.execute(query, params)
+                if cursor.fetchone() is not None:
+                    return True
+            return False
+        except Exception as e:
+            logger.warning(f"Could not inspect workspace state for user {user_id}: {e}")
             return False
         finally:
             conn.close()
@@ -6132,9 +6260,7 @@ def index():
         return '', 200
 
     if current_user.is_authenticated:
-        if current_user.role == 'recruiter':
-            return redirect(url_for('recruiter_dashboard'))
-        return redirect(url_for('dashboard'))
+        return _auth_redirect_for_user(current_user)
     # Unauthenticated visitor redirected to marketing landing page
     landing_url = os.environ.get('MARKETING_URL', 'https://jobsnap.me/')
     return redirect(landing_url)
@@ -6717,7 +6843,7 @@ def set_password(token):
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+        return _auth_redirect_for_user(current_user)
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -7111,7 +7237,7 @@ def _generate_username_suggestions(
 
 
 def _generate_short_username(email: str) -> str:
-    """Generate a compact, human-friendly username (max 10 chars) from an email address."""
+    """Generate a compact, human-friendly username (3-10 chars) from an email address."""
     local_part = (email or '').split('@', 1)[0].lower()
     alpha_tokens = [tok for tok in re.findall(r'[a-z]+', local_part) if len(tok) >= 3]
     if alpha_tokens:
@@ -7119,6 +7245,8 @@ def _generate_short_username(email: str) -> str:
     else:
         cleaned = re.sub(r'[^a-z0-9]', '', local_part)
         base = (cleaned or 'user')[:8]
+    if len(base) < 3:
+        base = f"{base}dev" if base else 'user'
 
     if User.get_by_username(base) is None:
         return base
@@ -7244,9 +7372,13 @@ def google_auth_callback():
         flash('Google did not provide a verified email address.', 'danger')
         return redirect(url_for('login') + ('#register' if mode == 'register' else ''))
     email = email_claim.strip().lower()
+    google_sub = str(claims.get('sub') or '').strip() or None
 
-    db_user = User.get_by_email(email)
     database = JobDatabase()
+    db_user = User.get_by_google_sub(google_sub) if google_sub else None
+    if db_user is None:
+        db_user = User.get_by_email(email)
+
     if db_user is None:
         has_explicit_role = role in ('seeker', 'recruiter')
         user_role = role if has_explicit_role else 'seeker'
@@ -7257,16 +7389,29 @@ def google_auth_callback():
             role=user_role,
             email=email,
             onboarding_completed=has_explicit_role,
+            google_sub=google_sub,
         )
-        db_user = User.get_by_email(email)
+        db_user = User.get_by_google_sub(google_sub) if google_sub else None
+        if db_user is None:
+            db_user = User.get_by_email(email)
         if db_user is None:
             flash('Unable to create your account. Please try again.', 'danger')
             return redirect(url_for('login') + ('#register' if mode == 'register' else ''))
-    elif role in ('seeker', 'recruiter'):
-        database.complete_user_onboarding(db_user.id, role)
-        db_user.role = role
-        db_user.onboarding_completed = True
-        logger.info('Saved role %s and onboarding completion for user %s (%s) via Google auth', role, db_user.id, email)
+    else:
+        database.link_google_account(db_user.id, google_sub, email)
+        if not (db_user.email or '').strip():
+            db_user.email = email
+        if role in ('seeker', 'recruiter'):
+            database.complete_user_onboarding(db_user.id, role)
+            db_user.role = role
+            db_user.onboarding_completed = True
+            logger.info('Saved role %s and onboarding completion for user %s (%s) via Google auth', role, db_user.id, email)
+        elif not db_user.onboarding_completed and database.user_has_established_workspace(db_user.id):
+            resolved_role = db_user.role if db_user.role in ('seeker', 'recruiter') else 'seeker'
+            database.complete_user_onboarding(db_user.id, resolved_role)
+            db_user.role = resolved_role
+            db_user.onboarding_completed = True
+            logger.info('Auto-completed onboarding for established returning user %s (%s) via Google auth', db_user.id, email)
 
     # Extract and prefill name + signed-in email in user profile (editable later)
     try:
@@ -7308,7 +7453,7 @@ def google_auth_callback():
                     (db_user.id,),
                 )
                 conn.commit()
-                db_user = User.get_by_email(email)
+                db_user = User.get(db_user.id)
         finally:
             conn.close()
     if db_user and db_user.account_status == 'pending':
@@ -7316,14 +7461,17 @@ def google_auth_callback():
         if setup_token:
             flash('Google verified your email. Set a password to activate your account.', 'info')
             return redirect(url_for('set_password', token=setup_token))
-        db_user = User.get_by_email(email)
+        db_user = User.get(db_user.id)
 
     if db_user is None or db_user.account_status != 'active':
         flash('This account is not active. Please contact support.', 'danger')
         return redirect(url_for('login'))
 
-    login_user(db_user)
-    flash('Signed in with Google successfully!', 'success')
+    login_user(db_user, remember=True)
+    if not getattr(db_user, 'onboarding_completed', True):
+        flash('Welcome to AI JobSnap! Choose your role to finish setting up your workspace.', 'info')
+    else:
+        flash('Signed in with Google successfully!', 'success')
     return _auth_redirect_for_user(db_user)
 
 
@@ -7346,7 +7494,7 @@ def login():
             logout_user()
             flash('Sign in with an authorized administrator account.', 'danger')
             return redirect(url_for('login', admin='1'))
-        return redirect(url_for('dashboard'))
+        return _auth_redirect_for_user(current_user)
     if request.method == 'POST':
         username = request.form['username'].strip()
         password = request.form['password']
@@ -7409,7 +7557,7 @@ def login():
                         email=db_user.email,
                     )
             elif db_user.account_status == 'active':
-                login_user(db_user)
+                login_user(db_user, remember=bool(request.form.get('remember')))
                 if admin_login_mode and not db_user.is_admin:
                     logout_user()
                     flash('This account is not authorized for administrator access.', 'danger')
@@ -7519,6 +7667,8 @@ def save_onboarding_role():
     payload = request.get_json(silent=True) if request.is_json else request.form
     payload = payload or {}
     role = str(payload.get('role') or '').strip().lower()
+    if role == 'job_seeker':
+        role = 'seeker'
     if role not in ('seeker', 'recruiter'):
         return jsonify({'success': False, 'error': 'Please select a valid role.'}), 400
 
@@ -7527,7 +7677,8 @@ def save_onboarding_role():
         requested_username = str(payload.get('username') or '').strip()
         ok, err_msg = db.update_username(current_user.id, requested_username)
         if not ok:
-            return jsonify({'success': False, 'error': err_msg}), 409
+            status_code = 409 if err_msg and 'already taken' in err_msg.lower() else 400
+            return jsonify({'success': False, 'error': err_msg}), status_code
         current_user.username = _normalize_username_candidate(requested_username)
 
     if not db.complete_user_onboarding(current_user.id, role):

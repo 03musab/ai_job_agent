@@ -987,6 +987,7 @@
           </div>
         </button>
       </div>
+      <div id="onboardingStep1Error" class="ob-error-banner" role="alert"></div>
     </section>
 
     <!-- Step 2: Username (Mandatory) -->
@@ -1003,7 +1004,7 @@
       <div class="ob-split-card-grid ob-stagger ob-stagger-2">
         <div class="ob-card">
           <label for="onboardingUsernameInput" style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px;">
-            Username (3–30 letters, numbers, or underscores)
+            Username (3–24 letters, numbers, dots, underscores, or hyphens)
           </label>
           <div class="ob-input-wrap">
             <span class="ob-input-prefix">@</span>
@@ -1015,7 +1016,7 @@
               placeholder="your_handle"
               autocomplete="username"
               spellcheck="false"
-              maxlength="30"
+              maxlength="24"
             />
           </div>
 
@@ -1274,9 +1275,9 @@
         <div>
           <div class="ob-eyebrow">Step 5 of 5 · Launch</div>
           <h1 id="step5Heading" class="ob-title">Complete your workspace setup</h1>
-          <p id="step5Subtitle" class="ob-subtitle">Upload your resume to unlock job matching and skill-gap diagnostics.</p>
+          <p id="step5Subtitle" class="ob-subtitle">Upload your resume to unlock job matching and skill-gap diagnostics, or skip for now and add it later in Profile.</p>
         </div>
-        <span id="step5RequiredBadge" class="ob-badge-required">Resume Required</span>
+        <span id="step5RequiredBadge" class="ob-badge-required">Resume Optional</span>
       </div>
 
       <div class="ob-summary-strip ob-stagger ob-stagger-2">
@@ -1290,7 +1291,7 @@
         </div>
         <div class="ob-summary-cell">
           <div class="ob-summary-label" id="summaryThirdLabel">Resume</div>
-          <div id="summaryThirdValue" class="ob-summary-val">Required</div>
+          <div id="summaryThirdValue" class="ob-summary-val">Optional</div>
         </div>
       </div>
 
@@ -1317,7 +1318,7 @@
                 {% if user_details and user_details.resume_path %}
                   Uploaded: {{ user_details.resume_path.split('/')[-1].split('\\')[-1] }}
                 {% else %}
-                  Required · Supports PDF, DOC, DOCX, or TXT
+                  Optional · Supports PDF, DOC, DOCX, or TXT
                 {% endif %}
               </div>
             </div>
@@ -1389,17 +1390,24 @@
       Step 1 of 5
     </span>
 
-    <button type="button" id="onboardingNextBtn" class="ob-btn ob-btn-primary" onclick="nextStep()">
-      <span id="onboardingNextLabel">Continue</span>
-      <span class="material-symbols-outlined" style="font-size: 17px;">arrow_forward</span>
-    </button>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <button type="button" id="onboardingSkipResumeBtn" class="ob-btn ob-btn-ghost" style="display: none;" onclick="skipResumeAndLaunch()">
+        <span>Skip for now</span>
+      </button>
+      <button type="button" id="onboardingNextBtn" class="ob-btn ob-btn-primary" onclick="nextStep()">
+        <span id="onboardingNextLabel">Continue</span>
+        <span class="material-symbols-outlined" style="font-size: 17px;">arrow_forward</span>
+      </button>
+    </div>
   </footer>
 </div>
 
 <script>
   const TOTAL_STEPS = 5;
+  const SAVE_ROLE_URL = {{ url_for('save_onboarding_role') | tojson }};
   const CHECK_USERNAME_URL = {{ url_for('onboarding_username_check') | tojson }};
   const COMPLETE_ONBOARDING_URL = {{ url_for('complete_onboarding') | tojson }};
+  const DASHBOARD_TOUR_URL = {{ url_for('dashboard', tour=1) | tojson }};
 
   // Tactile Web Audio synthesizer for subtle onboarding sound effects
   class OnboardingAudioEngine {
@@ -1647,8 +1655,8 @@
         s5Sub.textContent = 'Add your organization details before launching your recruiter dashboard.';
         thirdLabel.textContent = 'Workspace';
       } else {
-        badge.textContent = 'Resume Required';
-        s5Sub.textContent = 'Upload your resume to unlock job matching and skill-gap diagnostics.';
+        badge.textContent = 'Resume Optional';
+        s5Sub.textContent = 'Upload your resume to unlock job matching and skill-gap diagnostics, or skip for now and add it later in Profile.';
         thirdLabel.textContent = 'Resume';
       }
     }
@@ -1674,21 +1682,23 @@
       } else if (obState.hasExistingResume) {
         thirdEl.textContent = 'Saved on profile';
       } else {
-        thirdEl.textContent = 'Required';
+        thirdEl.textContent = 'Optional';
       }
     }
   }
 
   function clearSubmitError() {
-    const err = document.getElementById('onboardingSubmitError');
-    if (err) {
-      err.textContent = '';
-      err.classList.remove('is-visible');
-    }
+    ['onboardingSubmitError', 'onboardingStep1Error'].forEach((id) => {
+      const err = document.getElementById(id);
+      if (err) {
+        err.textContent = '';
+        err.classList.remove('is-visible');
+      }
+    });
   }
 
-  function showSubmitError(msg) {
-    const err = document.getElementById('onboardingSubmitError');
+  function showSubmitError(msg, targetId = 'onboardingSubmitError') {
+    const err = document.getElementById(targetId);
     if (err) {
       err.textContent = msg;
       err.classList.add('is-visible');
@@ -1810,15 +1820,28 @@
     const backBtn = document.getElementById('onboardingBackBtn');
     const nextBtn = document.getElementById('onboardingNextBtn');
     const nextLabel = document.getElementById('onboardingNextLabel');
+    const skipBtn = document.getElementById('onboardingSkipResumeBtn');
     const footerStatus = document.getElementById('onboardingFooterStatus');
 
     if (backBtn) backBtn.disabled = obState.step <= 1 || obState.submitting;
     if (footerStatus) footerStatus.textContent = `Step ${obState.step} of ${TOTAL_STEPS}`;
 
+    const showSkip = (
+      obState.step === TOTAL_STEPS
+      && obState.role === 'seeker'
+      && !hasSeekerResume()
+      && hasValidUsername()
+      && !obState.submitting
+    );
+    if (skipBtn) {
+      skipBtn.style.display = showSkip ? 'inline-flex' : 'none';
+      skipBtn.disabled = obState.submitting;
+    }
+
     if (nextBtn && nextLabel) {
       if (obState.submitting) {
         nextBtn.disabled = true;
-        nextLabel.textContent = 'Completing setup...';
+        nextLabel.textContent = obState.step === TOTAL_STEPS ? 'Completing setup...' : 'Saving...';
       } else if (obState.step === 2) {
         nextBtn.disabled = !hasValidUsername();
         nextLabel.textContent = 'Continue';
@@ -1915,13 +1938,66 @@
     }
   }
 
+  async function persistRoleSelection(includeUsername = false) {
+    const body = { role: obState.role };
+    if (includeUsername && obState.username) {
+      body.username = obState.username;
+    }
+    try {
+      const resp = await fetch(SAVE_ROLE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data.success) {
+        return { ok: false, error: data.error || 'Could not save your selection. Please try again.' };
+      }
+      if (data.username) {
+        obState.username = data.username;
+      }
+      return { ok: true };
+    } catch (_) {
+      return { ok: false, error: 'Network error while saving your progress. Please try again.' };
+    }
+  }
+
   async function nextStep() {
     if (obState.submitting) return;
+    clearSubmitError();
+
+    if (obState.step === 1) {
+      obState.submitting = true;
+      updateNavButtons();
+      const saved = await persistRoleSelection(false);
+      obState.submitting = false;
+      if (!saved.ok) {
+        showSubmitError(saved.error, 'onboardingStep1Error');
+        updateNavButtons();
+        return;
+      }
+      updateNavButtons();
+    }
 
     if (obState.step === 2) {
       const inputVal = document.getElementById('onboardingUsernameInput')?.value || '';
       const ok = await checkUsernameAvailability(inputVal, true);
       if (!ok) return;
+      obState.submitting = true;
+      updateNavButtons();
+      const saved = await persistRoleSelection(true);
+      obState.submitting = false;
+      if (!saved.ok) {
+        setUsernameStatus(saved.error, 'error');
+        updateUsernameMascot('error', saved.error);
+        window.obSfx.usernameErr();
+        updateNavButtons();
+        return;
+      }
+      updateNavButtons();
     }
 
     if (obState.step < TOTAL_STEPS) {
@@ -1930,6 +2006,36 @@
     }
 
     await submitOnboarding();
+  }
+
+  async function skipResumeAndLaunch() {
+    if (obState.submitting) return;
+    clearSubmitError();
+
+    if (!hasValidUsername()) {
+      const ok = await checkUsernameAvailability(document.getElementById('onboardingUsernameInput')?.value || '', true);
+      if (!ok) {
+        obState.step = 2;
+        updateStepUI('back');
+        return;
+      }
+    }
+
+    obState.submitting = true;
+    updateNavButtons();
+    const saved = await persistRoleSelection(true);
+    if (!saved.ok) {
+      obState.submitting = false;
+      showSubmitError(saved.error);
+      updateNavButtons();
+      return;
+    }
+
+    window.obSfx.launch();
+    triggerLaunchConfetti();
+    setTimeout(() => {
+      window.location.href = DASHBOARD_TOUR_URL;
+    }, 260);
   }
 
   async function submitOnboarding() {

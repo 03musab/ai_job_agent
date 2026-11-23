@@ -871,5 +871,158 @@ class AIJobAgentTestCase(unittest.TestCase):
         self.assertIsInstance(payload.get('actions'), list)
         self.assertGreaterEqual(len(payload['actions']), 1)
 
+    def test_google_signin_links_google_sub_and_skips_onboarding_on_return(self):
+        flow = MagicMock()
+        flow.credentials.id_token = 'verified-id-token'
+        with patch.dict(os.environ, {'GOOGLE_CLIENT_ID': 'test-client-id'}), patch(
+            'app._google_oauth_flow', return_value=flow
+        ), patch(
+            'app.id_token.verify_oauth2_token',
+            return_value={
+                'sub': 'google-sub-12345',
+                'email': 'returning.google@example.com',
+                'email_verified': True,
+            },
+        ):
+            with self.client.session_transaction() as browser_session:
+                browser_session['google_oauth_state'] = 'state-sub-1'
+                browser_session['google_oauth_mode'] = 'register'
+                browser_session['google_oauth_role'] = None
+
+            first_resp = self.client.get('/auth/google/callback?state=state-sub-1&code=c1')
+            self.assertEqual(first_resp.status_code, 302)
+            self.assertIn('/onboarding', first_resp.headers['Location'])
+            set_cookies = first_resp.headers.getlist('Set-Cookie')
+            self.assertTrue(any('remember_token=' in c for c in set_cookies))
+
+            # Completing Step 1 persists role and onboarding_completed
+            role_resp = self.client.post('/api/onboarding/role', json={'role': 'recruiter'})
+            self.assertEqual(role_resp.status_code, 200)
+            self.assertIsNotNone(User.get_by_google_sub('google-sub-12345'))
+
+            # Logout and sign up/in with Google again (even via mode='register')
+            self.client.get('/logout')
+            with self.client.session_transaction() as browser_session:
+                browser_session['google_oauth_state'] = 'state-sub-2'
+                browser_session['google_oauth_mode'] = 'register'
+                browser_session['google_oauth_role'] = None
+
+            second_resp = self.client.get('/auth/google/callback?state=state-sub-2&code=c2')
+            self.assertEqual(second_resp.status_code, 302)
+            self.assertIn('/recruiter', second_resp.headers['Location'])
+            self.assertNotIn('/onboarding', second_resp.headers['Location'])
+
+    def test_google_signin_matches_legacy_user_details_email_without_duplicating(self):
+        database = TestJobDatabase()
+        legacy_id = database.add_user(
+            'legacy_user',
+            'hashed-pw',
+            role='recruiter',
+            email=None,
+            account_status='active',
+            onboarding_completed=True,
+        )
+        database.save_user_details(legacy_id, {'email': 'Legacy.User@example.com', 'full_name': 'Legacy User'})
+
+        flow = MagicMock()
+        flow.credentials.id_token = 'verified-id-token'
+        with patch.dict(os.environ, {'GOOGLE_CLIENT_ID': 'test-client-id'}), patch(
+            'app._google_oauth_flow', return_value=flow
+        ), patch(
+            'app.id_token.verify_oauth2_token',
+            return_value={
+                'sub': 'google-sub-legacy-1',
+                'email': 'legacy.user@example.com',
+                'email_verified': True,
+            },
+        ):
+            with self.client.session_transaction() as browser_session:
+                browser_session['google_oauth_state'] = 'state-legacy'
+                browser_session['google_oauth_mode'] = 'login'
+                browser_session['google_oauth_role'] = None
+
+            resp = self.client.get('/auth/google/callback?state=state-legacy&code=c-legacy')
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn('/recruiter', resp.headers['Location'])
+        self.assertNotIn('/onboarding', resp.headers['Location'])
+        matched = User.get_by_google_sub('google-sub-legacy-1')
+        self.assertIsNotNone(matched)
+        self.assertEqual(matched.id, legacy_id)
+        self.assertEqual(matched.email, 'legacy.user@example.com')
+
+    def test_google_signin_auto_heals_established_user_stuck_in_onboarding(self):
+        database = TestJobDatabase()
+        user_id = database.add_user(
+            'established_user',
+            'hashed-pw',
+            role='seeker',
+            email='established@example.com',
+            account_status='active',
+            onboarding_completed=False,
+        )
+        database.save_user_details(user_id, {'resume_path': 'uploads/1/resume.pdf'})
+
+        flow = MagicMock()
+        flow.credentials.id_token = 'verified-id-token'
+        with patch.dict(os.environ, {'GOOGLE_CLIENT_ID': 'test-client-id'}), patch(
+            'app._google_oauth_flow', return_value=flow
+        ), patch(
+            'app.id_token.verify_oauth2_token',
+            return_value={
+                'sub': 'google-sub-established',
+                'email': 'established@example.com',
+                'email_verified': True,
+            },
+        ):
+            with self.client.session_transaction() as browser_session:
+                browser_session['google_oauth_state'] = 'state-established'
+                browser_session['google_oauth_mode'] = 'login'
+                browser_session['google_oauth_role'] = None
+
+            resp = self.client.get('/auth/google/callback?state=state-established&code=c-est')
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn('/dashboard', resp.headers['Location'])
+        self.assertNotIn('/onboarding', resp.headers['Location'])
+        healed = User.get(user_id)
+        self.assertTrue(healed.onboarding_completed)
+
+    def test_onboarding_template_persists_step1_role_and_aligns_username_length(self):
+        database = TestJobDatabase()
+        database.add_user(
+            'onboard_ui',
+            'hashed-pw',
+            role='seeker',
+            email='onboard_ui@example.com',
+            account_status='active',
+            onboarding_completed=False,
+        )
+        flow = MagicMock()
+        flow.credentials.id_token = 'verified-id-token'
+        with patch.dict(os.environ, {'GOOGLE_CLIENT_ID': 'test-client-id'}), patch(
+            'app._google_oauth_flow', return_value=flow
+        ), patch(
+            'app.id_token.verify_oauth2_token',
+            return_value={'email': 'onboard_ui@example.com', 'email_verified': True},
+        ):
+            with self.client.session_transaction() as browser_session:
+                browser_session['google_oauth_state'] = 'state-ui'
+                browser_session['google_oauth_mode'] = 'login'
+                browser_session['google_oauth_role'] = None
+            self.client.get('/auth/google/callback?state=state-ui&code=c-ui')
+
+        page = self.client.get('/onboarding')
+        self.assertEqual(page.status_code, 200)
+        self.assertIn(b'/api/onboarding/role', page.data)
+        self.assertIn(b'onboardingSkipResumeBtn', page.data)
+        self.assertIn(b'maxlength="24"', page.data)
+
+    def test_generate_short_username_always_meets_minimum_length(self):
+        from app import _generate_short_username
+        short_handle = _generate_short_username('ab@example.com')
+        self.assertGreaterEqual(len(short_handle), 3)
+        self.assertRegex(short_handle, r'^[a-z0-9][a-z0-9._-]{2,23}$')
+
 if __name__ == '__main__':
     unittest.main()
