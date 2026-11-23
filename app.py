@@ -2445,7 +2445,7 @@ class JobDatabase:
                             user_level = 'lead'
 
                     logger.info(
-                        f"Top-picks filter — user {user_id}: "
+                        f"Top-picks filter - user {user_id}: "
                         f"~{user_years}yr exp → level={user_level or 'unknown'}, "
                         f"skills={len(user_skills)}"
                     )
@@ -2467,7 +2467,7 @@ class JobDatabase:
             quality_jobs = [j for j in all_jobs if _is_quality_job(j, user_years, user_level)]
 
             logger.info(
-                f"Top-picks filter — user {user_id}: "
+                f"Top-picks filter - user {user_id}: "
                 f"{len(all_jobs)} total → {len(quality_jobs)} after filters"
             )
 
@@ -3399,7 +3399,7 @@ class OutreachDatabase:
                     },
                     {
                         'template_name': 'Quick Follow-Up',
-                        'subject': 'Following up: Software Engineering Inquiry — {company}',
+                        'subject': 'Following up: Software Engineering Inquiry - {company}',
                         'body': 'Hi {firstName},\n\nI wanted to briefly follow up on my recent note regarding engineering opportunities at {company}. Please let me know if you would like me to share my resume or code samples.\n\nBest,'
                     }
                 ]
@@ -6750,7 +6750,7 @@ def _build_pro_invite_email_bodies(name: str, username: str, setup_link: str) ->
 </head>
 <body style="margin: 0; padding: 24px 12px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a; line-height: 1.6;">
     <span style="display: none; font-size: 1px; color: #f8fafc; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden;">
-        Your AI JobSnap Pro account is ready — activate it using your one-time setup link.
+        Your AI JobSnap Pro account is ready - activate it using your one-time setup link.
     </span>
     <table role="presentation" align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 560px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);">
         <tr>
@@ -6862,7 +6862,7 @@ def _send_password_setup_email(email_address: str, name: str, username: str, tok
     setup_link = urljoin(public_url.rstrip('/') + '/', setup_path)
     plain_body, html_body = _build_pro_invite_email_bodies(name, username, setup_link)
     message = MIMEMultipart('alternative')
-    message['Subject'] = 'Welcome to AI JobSnap Pro — Set Up Your Account'
+    message['Subject'] = 'Welcome to AI JobSnap Pro - Set Up Your Account'
     mail_from = os.environ.get('MAIL_FROM') or mail_username
     if mail_from:
         message['From'] = mail_from
@@ -7428,12 +7428,16 @@ def _google_oauth_flow(state=None, code_verifier=None, autogenerate_code_verifie
         }
     }
     os.environ.setdefault('OAUTHLIB_RELAX_TOKEN_SCOPE', '1')
+    # Request only non-sensitive identity scopes on standard sign-in so Google displays
+    # verified branding without the "Google hasn't verified this app" sensitive-scope warning.
+    include_sensitive = os.environ.get('GOOGLE_OAUTH_INCLUDE_SENSITIVE_SCOPES', '0').lower() in ('1', 'true', 'yes')
     oauth_scopes = [
         'openid',
         'https://www.googleapis.com/auth/userinfo.email',
         'https://www.googleapis.com/auth/userinfo.profile',
-        *SCOPES,
     ]
+    if include_sensitive:
+        oauth_scopes.extend(SCOPES)
     flow = Flow.from_client_config(
         client_config,
         scopes=oauth_scopes,
@@ -8129,7 +8133,7 @@ def complete_onboarding():
                     resume_file.save(file_path)
                     existing['resume_path'] = file_path
                     try:
-                        parsed_data = ResumeParsingService().parse(file_path)
+                        parsed_data = ResumeParsingService().parse(file_path, fast_mode=True)
                         if parsed_data:
                             existing['resume_parsed_data'] = json.dumps(parsed_data)
                     except Exception as parse_err:
@@ -8693,6 +8697,109 @@ def open_browser_session():
     except Exception as e:
         logger.error(f"Error opening browser session for user {current_user.id}: {e}", exc_info=True)
         return jsonify({'status': 'error', 'message': f'Failed to open browser: {e}'}), 500
+
+
+@app.route('/assisted_apply/<int:job_id>', methods=['POST'])
+@login_required
+def assisted_apply(job_id):
+    """
+    Assisted Apply (Beta Feature):
+    Automates injecting candidate credentials and opening target application portal.
+    Explicitly noted to users: Experimental beta that may or may not work depending on
+    portal bot protection (Cloudflare, CAPTCHAs, custom auth).
+    """
+    try:
+        db = JobDatabase()
+        jobs, _ = db.get_jobs_for_user(current_user.id, limit=1, search_query=f"id:{job_id}")
+        if not jobs:
+            return jsonify({
+                'status': 'error',
+                'beta': True,
+                'message': 'Job requisition not found in your database.'
+            }), 404
+
+        job = jobs[0]
+        portal_link = (job.get('link') or '').strip()
+        job_title = job.get('title') or 'Target Role'
+        job_company = job.get('company') or 'Employer'
+
+        if not portal_link or not portal_link.startswith('http'):
+            return jsonify({
+                'status': 'error',
+                'beta': True,
+                'message': 'No external job portal URL exists for this requisition. Please use Apply with JobSnap.'
+            }), 400
+
+        user_details = db.get_user_details(current_user.id) or {}
+        profile_path = user_details.get('browser_profile_path')
+        profile_name = user_details.get('browser_profile_name', 'Default')
+
+        # Check if undetected_chromedriver is available and a local desktop session can be run
+        if uc is None:
+            return jsonify({
+                'status': 'notice',
+                'beta': True,
+                'fallback': True,
+                'message': (
+                    'Assisted Apply (Beta): Automated browser injection is currently in experimental beta and requires local desktop execution. '
+                    'Third-party portals (Workday, Greenhouse, LinkedIn) frequently block automation with anti-bot protection. '
+                    'Please use "Apply on Portal Directly" to submit your application.'
+                ),
+                'portal_url': portal_link
+            })
+
+        # If browser profile is configured and exists locally:
+        if profile_path and os.path.isdir(profile_path):
+            try:
+                options = uc.ChromeOptions()
+                options.user_data_dir = profile_path
+                options.profile_directory = profile_name
+                # Non-headless with subprocess so user can see and take over if CAPTCHA appears
+                driver = uc.Chrome(options=options, headless=False, use_subprocess=True)
+                driver.get(portal_link)
+                return jsonify({
+                    'status': 'success',
+                    'beta': True,
+                    'message': (
+                        f'Assisted Apply (Beta): Browser launched with your paired profile for {job_title} at {job_company}. '
+                        'Please note this may or may not work on protected portals. If a CAPTCHA or multi-step verification appears, please complete it directly in the browser window.'
+                    ),
+                    'portal_url': portal_link
+                })
+            except Exception as browser_err:
+                logger.warning(f"Assisted apply browser launch failed: {browser_err}")
+                return jsonify({
+                    'status': 'notice',
+                    'beta': True,
+                    'fallback': True,
+                    'message': (
+                        f'Assisted Apply (Beta): Could not launch dedicated automation window ({browser_err}). '
+                        'Please use "Apply on Portal Directly" to submit directly.'
+                    ),
+                    'portal_url': portal_link
+                })
+
+        # If browser profile is not yet paired
+        return jsonify({
+            'status': 'notice',
+            'beta': True,
+            'fallback': True,
+            'message': (
+                'Assisted Apply (Beta): Your browser profile is not paired yet. '
+                'Because external career sites use strict bot protections, automation may or may not succeed without pairing. '
+                'You can pair your browser in Profile Settings or click "Apply on Portal Directly" to submit directly.'
+            ),
+            'portal_url': portal_link,
+            'setup_url': url_for('setup_assisted_apply')
+        })
+
+    except Exception as e:
+        logger.error(f"Error in assisted_apply for job {job_id}: {e}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'beta': True,
+            'message': f'Assisted Apply encountered an error: {str(e)}. Please apply on the portal directly.'
+        }), 500
 
 @app.route('/delete_contact/<int:contact_id>', methods=['POST'])
 @login_required
@@ -9415,6 +9522,17 @@ def enrich_job_data(job: dict, user_skills: list = None, user_years: int = None)
     else:
         job['match_explanation'] = f"Role aligns with core engineering competencies. Consider reviewing {missing[0].title() if missing else 'system architecture'}."
 
+    if job.get('id') is not None:
+        try:
+            slug_token = build_job_slug_token(job)
+            job['public_slug'] = slug_token
+            job['public_url'] = f"/jobs/{slug_token}"
+            job['public_ref'] = encode_job_ref(int(job['id'])).replace('-', '').replace('_', '').upper()[:8]
+        except Exception:
+            job['public_slug'] = ''
+            job['public_url'] = f"/job/{job.get('id')}"
+            job['public_ref'] = ''
+
     return job
 
 def add_status_colors(job):
@@ -9558,10 +9676,79 @@ def dashboard():
                            view_mode=view_mode,
                            now=datetime.datetime.now())
 
+_JOB_TOKEN_MASK = 0x5A3C9E2B
+
+
+def _job_token_secret() -> bytes:
+    raw = os.environ.get('JOB_URL_SALT') or app.secret_key or 'jobsnap-public-ref'
+    return str(raw).encode('utf-8')
+
+
+def encode_job_ref(job_id: int) -> str:
+    """Encode an integer job_id into an opaque, alphanumeric-only, HMAC-verified token."""
+    jid = int(job_id)
+    obfuscated = ((jid ^ _JOB_TOKEN_MASK) + 0x1F4A7) & 0xFFFFFFFF
+    raw_bytes = obfuscated.to_bytes(4, 'big')
+    sig = hmac.new(_job_token_secret(), raw_bytes, hashlib.sha256).digest()[:3]
+    return base64.b32encode(raw_bytes + sig).decode('ascii').rstrip('=').lower()
+
+
+def decode_job_ref(token_or_slug: str) -> Optional[int]:
+    """Decode an opaque slug-token (or raw token) back into an integer job_id."""
+    if not token_or_slug:
+        return None
+    token = str(token_or_slug).strip().rsplit('-', 1)[-1].upper()
+    if not token or len(token) < 10:
+        return None
+    try:
+        padded = token + '=' * ((8 - len(token) % 8) % 8)
+        blob = base64.b32decode(padded.encode('ascii'))
+        if len(blob) != 7:
+            return None
+        raw_bytes, sig = blob[:4], blob[4:]
+        expected = hmac.new(_job_token_secret(), raw_bytes, hashlib.sha256).digest()[:3]
+        if not hmac.compare_digest(sig, expected):
+            return None
+        obfuscated = int.from_bytes(raw_bytes, 'big')
+        jid = ((obfuscated - 0x1F4A7) & 0xFFFFFFFF) ^ _JOB_TOKEN_MASK
+        return jid if jid > 0 else None
+    except Exception:
+        return None
+
+
+def build_job_slug_token(job: dict) -> str:
+    """Build a clean, readable slug + opaque token without disclosing numeric IDs."""
+    title = (job.get('title') or 'role').strip()
+    company = (job.get('company') or '').strip()
+    base = f"{title} {company}".strip().lower()
+    slug = re.sub(r'[^a-z0-9]+', '-', base).strip('-')[:64].strip('-') or 'role'
+    token = encode_job_ref(int(job['id']))
+    return f"{slug}-{token}"
+
+
+@app.template_filter('job_url')
+def job_url_filter(job):
+    """Return the canonical obfuscated slug URL for a job dict."""
+    if isinstance(job, dict) and job.get('id') is not None:
+        return job.get('public_url') or f"/jobs/{build_job_slug_token(job)}"
+    return url_for('dashboard')
+
+
+@app.route('/jobs/<slug_token>')
+@login_required
+def job_details_slug(slug_token):
+    """Canonical opaque-token job details route (never exposes sequential DB IDs)."""
+    job_id = decode_job_ref(slug_token)
+    if not job_id:
+        flash('Job not found or link is invalid.', 'error')
+        return redirect(url_for('dashboard'))
+    return job_details(job_id)
+
+
 @app.route('/job/<int:job_id>')
 @login_required
 def job_details(job_id):
-    """Display full page for job details"""
+    """Display full page for job details with rich LinkedIn-style metadata and telemetry"""
     db = JobDatabase()
     jobs, _ = db.get_jobs_for_user(current_user.id, limit=1, search_query=f"id:{job_id}")
     
@@ -9569,24 +9756,56 @@ def job_details(job_id):
         flash('Job not found or you do not have permission to view it.', 'error')
         return redirect(url_for('dashboard'))
     
-    # Load user skills
+    # Load user skills & profile telemetry
     user_skills = []
+    user_details = {}
     try:
-        conn = connect_database(db.db_path, timeout=10)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        c.execute("SELECT resume_parsed_data FROM user_details WHERE user_id = ?", (current_user.id,))
-        row = c.fetchone()
-        if row and row['resume_parsed_data']:
-            parsed = json.loads(row['resume_parsed_data'])
-            user_skills = [s.lower().strip() for s in parsed.get('skills', []) if s.strip()]
-        conn.close()
+        user_details = db.get_user_details(current_user.id) or {}
+        if user_details.get('resume_parsed_data'):
+            parsed = json.loads(user_details['resume_parsed_data']) if isinstance(user_details['resume_parsed_data'], str) else user_details['resume_parsed_data']
+            user_skills = [s.lower().strip() for s in (parsed.get('skills') or []) if s.strip()]
     except Exception as e:
-        pass
+        logger.debug(f"Could not load user skills for job {job_id}: {e}")
 
     job = enrich_job_data(jobs[0], user_skills=user_skills)
-    
-    return render_template('job_details.html', job=job, now=datetime.datetime.now())
+
+    # Similar / recommended jobs for the sidebar
+    similar_jobs = []
+    try:
+        raw_picks = db.get_top_picks_for_user(current_user.id, limit=6)
+        similar_jobs = [enrich_job_data(j, user_skills=user_skills) for j in raw_picks if j.get('id') != job_id][:3]
+    except Exception:
+        similar_jobs = []
+
+    # Recruiter / hiring team lookup for this employer
+    recruiter_contact = None
+    try:
+        outreach_db = OutreachDatabase()
+        contacts = outreach_db.get_contacts_by_user(current_user.id)
+        comp_lower = (job.get('company') or '').lower()
+        for c in contacts:
+            if c.get('company') and comp_lower in str(c.get('company')).lower():
+                recruiter_contact = c
+                break
+    except Exception:
+        recruiter_contact = None
+
+    page_title = f"{job.get('title', 'Role')} | {job.get('company', 'Company')} | AI JobSnap"
+    og_title = f"{job.get('title', 'Role')} at {job.get('company', 'Company')}"
+    og_desc = f"{job.get('location', 'Remote / Hybrid')} · {job.get('formatted_experience', 'All Levels')} · {job.get('formatted_salary', 'Competitive')}. {job.get('match_score', 80)}% match with your candidate profile on AI JobSnap."
+
+    return render_template(
+        'job_details.html',
+        job=job,
+        title=page_title,
+        og_title=og_title,
+        og_description=og_desc,
+        similar_jobs=similar_jobs,
+        recruiter_contact=recruiter_contact,
+        user_skills=user_skills,
+        user_details=user_details,
+        now=datetime.datetime.now()
+    )
 
 
 _JD_FORMAT_CACHE: Dict[str, Dict[str, Any]] = {}
@@ -9781,7 +10000,7 @@ def format_job_description_api(job_id):
     if has_llm_key and len(raw_description) >= 40:
         system_prompt = (
             "You format messy job descriptions into a clean, scannable brief. "
-            "Keep it concise and factual — never invent requirements or salary. "
+            "Keep it concise and factual - never invent requirements or salary. "
             'Return strict JSON only: {"summary": "1-2 sentence overview", '
             '"sections": [{"title": "Short Section Title", "items": ["concise bullet 1", "concise bullet 2"]}]}. '
             "Use 2 to 5 sections (e.g. Responsibilities, Requirements, Nice to Have, Benefits) and max 8 short bullets per section."
@@ -10130,19 +10349,6 @@ def feedback():
     else:
         flash('Failed to record feedback.', 'danger')
     return redirect(url_for('dashboard'))
-
-@app.route('/assisted_apply/<int:job_id>', methods=['POST'])
-@login_required
-def assisted_apply(job_id):
-    """Triggers the assisted apply Celery task."""
-    try:
-        # You could add a check here to see if the user has filled out their profile
-        task = assisted_apply_task.delay(current_user.id, job_id)
-        logger.info(f"Enqueued assisted_apply_task {task.id} for user {current_user.id}, job {job_id}.")
-        return jsonify({'status': 'success', 'message': 'Task started! A browser window should open shortly.'})
-    except Exception as e:
-        logger.error(f"Failed to enqueue assisted_apply_task for user {current_user.id}, job {job_id}: {e}", exc_info=True)
-        return jsonify({'status': 'error', 'message': 'Failed to start task. Is the Celery worker running?'}), 500
 
 @app.route('/analyze_traffic/<int:job_id>', methods=['POST'])
 @login_required

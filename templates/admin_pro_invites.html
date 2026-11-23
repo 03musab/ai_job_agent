@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Pro Invitations — AI JobSnap{% endblock %}
+{% block title %}Pro Invitations - AI JobSnap{% endblock %}
 {% block content %}
 <main class="max-w-6xl mx-auto px-container-padding py-8 flex-1 flex flex-col gap-6 w-full">
     {% include "partials/_admin_tabs.html" %}
@@ -31,7 +31,7 @@
                     {% for user in pro_access_users %}
                     <tr>
                         <td class="px-3 py-2.5 font-semibold text-on-surface">{{ user.username }}</td>
-                        <td class="px-3 py-2.5 text-on-surface-variant">{{ user.email or '—' }}</td>
+                        <td class="px-3 py-2.5 text-on-surface-variant">{{ user.email or '-' }}</td>
                         <td class="px-3 py-2.5 text-on-surface-variant capitalize">{{ user.role }}</td>
                         <td class="px-3 py-2.5">
                             {% if user.account_status == 'active' %}
@@ -67,7 +67,7 @@
                 {% for entry in preview_entries %}
                 <li class="rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-[13px]">
                     <span class="font-semibold text-on-surface">{{ entry.name or 'Name not provided' }}</span>
-                    <span class="text-on-surface-variant"> — {{ entry.email }}</span>
+                    <span class="text-on-surface-variant"> - {{ entry.email }}</span>
                 </li>
                 {% endfor %}
             </ul>

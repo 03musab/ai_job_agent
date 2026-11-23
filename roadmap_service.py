@@ -86,12 +86,9 @@ class RoadmapService:
         Combines Skill Gap Analysis and Roadmap Generation into a single AI request.
         Returns a dictionary containing both 'analysis' and 'roadmap' keys.
         """
-        # 1. Get Required Skills
+        # 1. Get Required Skills (or infer via AI for any custom target role)
         skill_service = SkillGapService()
-        role_data = skill_service.get_role_def(target_role)
-        
-        if not role_data:
-             return {"error": f"Role '{target_role}' not found in skill map."}
+        role_data = skill_service.get_role_def(target_role) or {}
 
         required_core = role_data.get('core_skills', [])
         required_secondary = role_data.get('secondary_skills', [])
@@ -102,7 +99,8 @@ class RoadmapService:
         Perform two tasks in a single pass:
         
         TASK 1: SKILL GAP ANALYSIS
-        Compare User Skills against Required Skills.
+        Compare User Skills against Required Skills for the Target Role.
+        If the provided Required Skills lists are empty (custom role), infer the current industry-standard skills for that Target Role first.
         - Identify 'strong_skills' (direct matches).
         - Identify 'improving_skills' (related matches).
         - Identify 'missing_skills' (critical gaps).

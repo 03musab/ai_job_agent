@@ -1028,9 +1028,9 @@
             </span>
             <span id="spotlightBannerText" class="text-[12.5px] font-medium truncate">
                 {% if current_user.role == 'recruiter' %}
-                    Guided Tour with Snapy — walks across Dashboard, Post Job, Company Profile & Outreach Studio.
+                    Guided Tour with Snapy - walks across Dashboard, Post Job, Company Profile & Outreach Studio.
                 {% else %}
-                    Guided Tour with Snapy — walks across Job Matches, Outreach Studio & Skill Gap Roadmap.
+                    Guided Tour with Snapy - walks across Job Matches, Outreach Studio & Skill Gap Roadmap.
                 {% endif %}
             </span>
         </div>
@@ -1089,7 +1089,7 @@
             </div>
             <div class="min-w-0 flex-1">
                 <h3 id="spotlightCalloutText" class="spotlight-card-title">
-                    Begin to set up your workspace—monitor Active Jobs, Applications, and Hires live.
+                    Begin to set up your workspace-monitor Active Jobs, Applications, and Hires live.
                 </h3>
                 <p id="spotlightCalloutSub" class="spotlight-card-sub">
                     Click Active Jobs or Applications metric cards to jump straight to those rosters, or click Next to explore your hiring funnel.
@@ -1162,7 +1162,7 @@
                 <path d="M67 48c6 3 9 7 9 11" stroke="#e2e8f0" stroke-width="2.8" stroke-linecap="round"/>
             </svg>
         </div>
-        <div id="snapFinaleCaption">Tour complete — Snapy is ready to help!</div>
+        <div id="snapFinaleCaption">Tour complete - Snapy is ready to help!</div>
     </div>
 </div>
 
@@ -1295,7 +1295,7 @@
             pageLabel: 'Dashboard (1/4)',
             selectors: ['#recruiter-kpi-grid'],
             tag: 'LIVE TELEMETRY',
-            text: 'Begin to set up your workspace—monitor Active Jobs, Applications, and Hires live.',
+            text: 'Begin to set up your workspace-monitor Active Jobs, Applications, and Hires live.',
             sub: 'Snapy says: click Active Jobs or Applications metric cards to jump straight to those rosters, or click Next to explore your funnel.',
             preferredSide: 'bottom'
         },
@@ -1331,7 +1331,7 @@
             pageLabel: 'Dashboard (1/4)',
             selectors: ['#recruiter-export-excel-btn', '#recruiter-post-job-cta'],
             tag: 'EXCEL EXPORT',
-            text: 'Export your candidate roster to Excel—next Snapy will take you to Post Job!',
+            text: 'Export your candidate roster to Excel-next Snapy will take you to Post Job!',
             sub: 'Click Next to automatically open the Post Job page and explore requisition publishing.',
             preferredSide: 'top'
         },
@@ -1389,7 +1389,7 @@
             pageLabel: 'Company Profile (3/4)',
             selectors: ['#company-save-btn', '#company-form-card'],
             tag: 'SAVE PROFILE',
-            text: 'Save your Company Profile—next Snapy opens Outreach Studio!',
+            text: 'Save your Company Profile-next Snapy opens Outreach Studio!',
             sub: 'Click Next to open Outreach Studio and explore AI contact discovery and messaging.',
             preferredSide: 'top'
         },
@@ -2674,7 +2674,7 @@
 
             if (resp.redirected || resp.status === 401) {
                 if (typingEl) typingEl.remove();
-                appendSnapMessage('bot', 'Your session expired — please refresh and sign in again to chat with Snapy.');
+                appendSnapMessage('bot', 'Your session expired - please refresh and sign in again to chat with Snapy.');
                 return;
             }
 

@@ -1603,7 +1603,7 @@
               <span class="material-symbols-outlined" style="font-size: 30px; color: var(--color-primary, #10b981);">upload_file</span>
               <div id="resumeDropTitle" style="font-size: 14.5px; font-weight: 700;">
                 {% if user_details and user_details.resume_path %}
-                  Current resume on file — click to replace
+                  Current resume on file - click to replace
                 {% else %}
                   Drop your resume here or click to browse
                 {% endif %}
@@ -1890,7 +1890,7 @@
     }
     if (obState.selectedResumeFile) {
       box.dataset.mood = 'valid';
-      bubble.textContent = 'Snap locked in your resume — ready!';
+      bubble.textContent = 'Snap locked in your resume - ready!';
     } else if (obState.hasExistingResume) {
       box.dataset.mood = 'valid';
       bubble.textContent = 'Snap found your saved resume. Ready!';
@@ -2076,7 +2076,7 @@
         }
       } else {
         setUsernameStatus(data.message || 'Please choose a different username.', 'error');
-        updateUsernameMascot('error', 'That handle is unavailable — try another.');
+        updateUsernameMascot('error', 'That handle is unavailable - try another.');
         if (playChime && obState.lastSpokenHandleState !== handleKey) {
           window.obSfx.usernameErr();
         }
@@ -2095,7 +2095,7 @@
         obState.usernameValid = false;
         obState.usernameAvailable = false;
         setUsernameStatus('Could not verify username right now. Try again.', 'error');
-        updateUsernameMascot('error', 'Registry check failed — try again.');
+        updateUsernameMascot('error', 'Registry check failed - try again.');
         updateNavButtons();
       }
       return false;

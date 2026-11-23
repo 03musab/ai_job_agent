@@ -38,23 +38,20 @@ class SkillGapService:
         Returns a dictionary with strong, improving, and missing skills, plus a readiness score.
         """
 
-        # 1. Retrieve Required Skills from Map
-        # Case-insensitive lookup for the role
+        # 1. Retrieve Required Skills from Map (or allow any custom role via AI inference)
         role_data = next((self.role_map[r] for r in self.role_map if r.lower() == target_role.lower()), None)
-        
-        if not role_data:
-            return {"error": f"Role '{target_role}' not found in skill map."}
 
-        required_core = role_data.get('core_skills', [])
-        required_secondary = role_data.get('secondary_skills', [])
-        required_tools = role_data.get('tools', [])
+        required_core = role_data.get('core_skills', []) if role_data else []
+        required_secondary = role_data.get('secondary_skills', []) if role_data else []
+        required_tools = role_data.get('tools', []) if role_data else []
         
         # Combine user skills (deduplicated)
         user_skills = list(set(resume_skills + user_selected_skills))
 
         # 2. Construct Deterministic Prompt
         system_prompt = """You are an expert AI Skill Analyst. Perform a Skill Gap Analysis.
-        Compare the User's Skills against the Required Skills.
+        Compare the User's Skills against the Required Skills for the Target Role.
+        If Required Core/Secondary/Tools lists are empty (custom role), first infer the standard industry-benchmark skills for the Target Role, then compare the User's Skills against them.
         
         Classify the User's status for the Required Skills into:
         1. strong_skills: User has this skill or a semantic equivalent (e.g., 'React.js' matches 'React').

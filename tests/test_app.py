@@ -1428,10 +1428,28 @@ class AIJobAgentTestCase(unittest.TestCase):
         self.client.post('/login', data={'username': 'jd_ui_user', 'password': 'password123'})
         page = self.client.get(f'/job/{job_id}')
         self.assertEqual(page.status_code, 200)
+        self.assertIn(b'Frontend Developer | PixelWorks | AI JobSnap', page.data)
+        self.assertIn(b'How you match', page.data)
+        self.assertIn(b'Meet the hiring team', page.data)
+        self.assertIn(b'About the job', page.data)
+        self.assertIn(b'snapyConfirmForm', page.data)
+        self.assertIn(b'snapy-toast-stack', page.data)
+        self.assertNotIn(b'return confirm(', page.data)
         self.assertIn(b'Format with AI', page.data)
         self.assertIn(b'/api/jobs/', page.data)
         self.assertNotIn(b'const duration = 5000', page.data)
         self.assertNotIn(b'bulletSplitRegex', page.data)
+
+        # Verify opaque slug URL works and does not expose sequential job_id
+        from app import build_job_slug_token
+        slug_token = build_job_slug_token(jobs[0])
+        self.assertTrue(slug_token.startswith('frontend-developer-pixelworks-'))
+        self.assertNotIn(f'-{job_id}', slug_token)
+        slug_page = self.client.get(f'/jobs/{slug_token}')
+        self.assertEqual(slug_page.status_code, 200)
+        self.assertIn(b'Frontend Developer | PixelWorks | AI JobSnap', slug_page.data)
+        bad_slug = self.client.get('/jobs/frontend-developer-pixelworks-INVALID000')
+        self.assertEqual(bad_slug.status_code, 302)
 
     def test_google_signin_saves_avatar_and_onboarding_shows_account_and_switch_option(self):
         flow = MagicMock()
@@ -1496,6 +1514,87 @@ class AIJobAgentTestCase(unittest.TestCase):
         after_logout = self.client.get('/onboarding')
         self.assertEqual(after_logout.status_code, 302)
         self.assertIn('/login', after_logout.headers['Location'])
+
+    def test_assisted_apply_beta_notice_and_portal_fallback(self):
+        database = TestJobDatabase()
+        database.add_user(
+            'assisted_tester',
+            generate_password_hash('password123'),
+            role='seeker',
+            email='assisted@example.com',
+            account_status='active',
+            onboarding_completed=True,
+        )
+        user = User.get_by_username('assisted_tester')
+        self.client.post('/login', data={'username': 'assisted_tester', 'password': 'password123'})
+
+        # Insert a test job with an external portal link
+        database.add_job(
+            Job(
+                title='Senior Cloud Engineer',
+                company='Stripe',
+                location='Remote',
+                salary='$150k - $180k',
+                link='https://stripe.com/jobs/senior-cloud-engineer',
+                description='Design and scale cloud systems.',
+                keywords=['Cloud', 'AWS'],
+                skills=['aws', 'python'],
+                experience='3-5 years',
+                job_type='Full-time',
+                posted_date='Today',
+                source='LinkedIn',
+                deadline='N/A',
+            ),
+            user_id=user.id,
+            sync_calendar=False,
+        )
+        jobs, _ = database.get_jobs_for_user(user.id, limit=1)
+        self.assertEqual(len(jobs), 1)
+        job_id = jobs[0]['id']
+
+        # Call assisted_apply endpoint
+        resp = self.client.post(f'/assisted_apply/{job_id}')
+        self.assertEqual(resp.status_code, 200)
+        payload = resp.get_json()
+        self.assertTrue(payload.get('beta'))
+        self.assertIn('Beta', payload.get('message', ''))
+        self.assertEqual(payload.get('portal_url'), 'https://stripe.com/jobs/senior-cloud-engineer')
+
+        # Calling on non-existent job returns 404
+        resp_404 = self.client.post('/assisted_apply/999999')
+        self.assertEqual(resp_404.status_code, 404)
+        self.assertTrue(resp_404.get_json().get('beta'))
+
+    def test_learning_path_allows_custom_role_and_loads_themed_selects(self):
+        database = TestJobDatabase()
+        database.add_user(
+            'role_tester',
+            generate_password_hash('password123'),
+            role='seeker',
+            email='role_tester@example.com',
+            account_status='active',
+            onboarding_completed=True,
+        )
+        self.client.post('/login', data={'username': 'role_tester', 'password': 'password123'})
+
+        page = self.client.get('/learning_path')
+        self.assertEqual(page.status_code, 200)
+        self.assertIn(b'id="target-benchmark-role-input"', page.data)
+        self.assertIn(b'Use custom role:', page.data)
+        self.assertIn(b'themed-selects-script', page.data)
+
+        from skill_gap_service import SkillGapService
+        svc = SkillGapService()
+        with patch('skill_gap_service.safe_ai_request', return_value={
+            'strong_skills': ['Rust'],
+            'improving_skills': ['C++'],
+            'missing_skills': ['RTOS'],
+            'readiness_score': 72,
+        }) as mocked_ai:
+            res = svc.analyze('Embedded Rust Firmware Engineer', ['Rust', 'C++'], [])
+            self.assertEqual(res['readiness_score'], 72)
+            self.assertNotIn('error', res)
+            mocked_ai.assert_called_once()
 
 if __name__ == '__main__':
     unittest.main()

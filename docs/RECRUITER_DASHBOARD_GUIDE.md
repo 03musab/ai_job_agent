@@ -1,4 +1,4 @@
-# JobSnap Recruiter & HR Console — Comprehensive Feature Documentation
+# JobSnap Recruiter & HR Console - Comprehensive Feature Documentation
 
 > **Platform:** AI JobSnap (Automated Job Search & Hiring Ecosystem)  
 > **Target Persona:** HR Managers, Technical Recruiters, Talent Acquisition Leads  
@@ -33,7 +33,7 @@
 The **JobSnap Recruiter & HR Console** is an enterprise-grade applicant tracking and candidate intelligence hub. It bridges incoming job seeker submissions with automated AI resume analysis, multi-stage pipeline advancement, real-time conversion metrics, and one-click data export into Microsoft Excel.
 
 ### Core Value Propositions for HR:
-* **Zero Fake Telemetry:** Every metric—from 14-day velocity curves to stage conversions—is derived directly from real database records without synthetic random generators.
+* **Zero Fake Telemetry:** Every metric-from 14-day velocity curves to stage conversions-is derived directly from real database records without synthetic random generators.
 * **Privacy-First Candidate Screening:** Displays deep resume competencies, work authorization, and career highlights while completely shielding passwords, access tokens, and sensitive system credentials.
 * **Instant Spreadsheet Operability:** Single-click export of applicant rosters directly into Excel-ready CSV format with automated UTF-8 BOM encoding.
 * **Cumulative Pipeline Math:** True conversion funnel tracking that reflects authentic candidate flow from application submission to hire.
@@ -142,7 +142,7 @@ A multi-criteria live filtering suite allowing HR to dissect large applicant poo
    * `All Stages` | `Applied` | `Shortlisted` | `Interview` | `Offer` | `Hired` | `Rejected`
 3. **Requisition Filter Dropdown:** Dynamically populates with all job titles that have received applications, allowing 1-click filtering by specific role.
 4. **Sort Order Selector:**
-   * `Highest Match First` (Default — prioritizes top AI scores)
+   * `Highest Match First` (Default - prioritizes top AI scores)
    * `Lowest Match First`
    * `Newest First` (Chronological by application date)
    * `Candidate (A-Z)` (Alphabetical)
@@ -177,12 +177,12 @@ A multi-criteria live filtering suite allowing HR to dissect large applicant poo
 * **Resolved Candidate Emails:**
   Query uses SQL `COALESCE` with `NULLIF` falling back across `job_applications.applicant_email`, `user_details.email`, and `users.email_recipients` to guarantee real emails (e.g., `test1@gmail.com`) are displayed instead of blank or placeholder text.
 * **Stage Badges:** Real-time color-coded pill indicators:
-  * `APPLIED` — Blue
-  * `SHORTLISTED` — Secondary Teal
-  * `INTERVIEW` — Indigo
-  * `OFFER` — Amber
-  * `HIRED` — Green
-  * `REJECTED` — Rose
+  * `APPLIED` - Blue
+  * `SHORTLISTED` - Secondary Teal
+  * `INTERVIEW` - Indigo
+  * `OFFER` - Amber
+  * `HIRED` - Green
+  * `REJECTED` - Rose
 * **Sequential Stage Advancement:**
   * When status is `APPLIED` &rarr; Button shows **Shortlist**.
   * When status is `SHORTLISTED` &rarr; Button dynamically transforms into **Interview** (`Schedule Interview`).

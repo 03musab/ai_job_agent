@@ -1,4 +1,4 @@
-<!-- Top Job Picks for You — 3D Fan Carousel (Linear / Stripe Spec) -->
+<!-- Top Job Picks for You - 3D Fan Carousel (Linear / Stripe Spec) -->
 {% if current_user.role != 'recruiter' %}
 {% if top_picks %}
 <script type="application/json" id="picks-json-data">{{ top_picks | tojson }}</script>
@@ -115,7 +115,7 @@
 
                     <!-- View Details on active -->
                     <div class="px-3 pb-3 pt-1 border-t border-slate-100 dark:border-slate-800" x-show="i === activeIndex" x-transition>
-                        <a :href="'/job/' + pick.id"
+                        <a :href="pick.public_url || ('/job/' + pick.id)"
                             class="w-full bg-[#19D889] hover:bg-[#10b981] text-[#064e3b] hover:text-white font-semibold text-[12px] py-1.5 rounded-lg flex items-center justify-center gap-1 shadow-sm transition-all"
                             @click.stop>
                             <span>View Requisition</span>

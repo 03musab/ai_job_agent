@@ -218,9 +218,9 @@ def generate_report():
         readiness_badge = "🔴 **Action Required Before Hosting**"
 
     lines = []
-    lines.append("# 🚀 AI JobSnap — Cloud Hosting Readiness & Deployment Guide")
+    lines.append("# 🚀 AI JobSnap - Cloud Hosting Readiness & Deployment Guide")
     lines.append("")
-    lines.append(f"> **Status:** {readiness_badge} (`{passed_count}/{total_count}` checks passing — `{score_pct}%`)  ")
+    lines.append(f"> **Status:** {readiness_badge} (`{passed_count}/{total_count}` checks passing - `{score_pct}%`)  ")
     lines.append(f"> **Audit Timestamp:** `{now_utc}`  ")
     lines.append(f"> **Environment:** Multi-Cloud (Render, Railway, Docker, Fly.io, Self-Hosted VPS)  ")
     lines.append("")

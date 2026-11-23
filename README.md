@@ -1,4 +1,4 @@
-# 🤖 JobSnap — AI Job Agent & Career Automation Platform
+# 🤖 JobSnap - AI Job Agent & Career Automation Platform
 
 **JobSnap** is an end-to-end AI-powered job search, career intelligence, and candidate outreach platform built on Flask, Celery, and Tailwind CSS. It aggregates live job postings across top platforms, analyzes resume compatibility using AI scoring, auto-generates personalized learning roadmaps, assists ATS form-filling, and streamlines candidate/recruiter outreach.
 
@@ -169,23 +169,23 @@ honcho start
 
 ### Option B: Separate Terminals
 
-#### Terminal 1 — Compile Tailwind CSS
+#### Terminal 1 - Compile Tailwind CSS
 ```bash
 npm run watch:css
 ```
 
-#### Terminal 2 — Flask Web Server
+#### Terminal 2 - Flask Web Server
 ```bash
 python app.py
 ```
 *Access the web UI at `http://127.0.0.1:5000`*
 
-#### Terminal 3 — Celery Task Worker
+#### Terminal 3 - Celery Task Worker
 ```bash
 celery -A app.celery worker --loglevel=info -P gevent
 ```
 
-#### Terminal 4 — Celery Beat Scheduler
+#### Terminal 4 - Celery Beat Scheduler
 ```bash
 celery -A app.celery beat --loglevel=info
 ```

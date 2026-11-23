@@ -296,7 +296,7 @@
                                     <span class="material-symbols-outlined text-[16px]">play_arrow</span>
                                 </button>
                             </form>
-                            <form action="{{ url_for('delete_profile', profile_id=profile.id) }}" method="POST" onsubmit="return confirm('Delete this saved preset?');">
+                            <form action="{{ url_for('delete_profile', profile_id=profile.id) }}" method="POST" onsubmit="return window.snapyConfirmForm(event, this, 'Delete this saved preset?', { mood: 'sad', title: 'Snapy · Delete Preset?', subtext: 'This saved search preset will be removed permanently.', confirmText: 'Delete Preset', cancelText: 'Keep It', destructive: true });">
                                 <button type="submit" class="p-1 text-error hover:bg-error/10 rounded-lg transition-colors cursor-pointer" title="Delete preset">
                                     <span class="material-symbols-outlined text-[16px]">delete</span>
                                 </button>
@@ -380,7 +380,7 @@
                      x-transition:leave-end="opacity-0 -translate-y-1"
                      x-cloak class="pt-3 border-t border-outline-variant/60 mt-2.5 space-y-2">
                     <div class="flex flex-col gap-1.5">
-                        <form action="{{ url_for('sync_calendar') }}" method="POST" onsubmit="return confirm('Sync all pipeline jobs to Google Calendar?');" class="relative group/sync">
+                        <form action="{{ url_for('sync_calendar') }}" method="POST" onsubmit="return window.snapyConfirmForm(event, this, 'Sync all pipeline jobs to Google Calendar?', { mood: 'warning', title: 'Snapy · Calendar Sync', subtext: 'Deadlines, interviews, and follow-ups will be added to your calendar.', confirmText: 'Sync Now', cancelText: 'Cancel', destructive: false });" class="relative group/sync">
                             <button type="submit"
                                 title="All your jobs (deadlines, interviews & follow-ups) will be added to Google Calendar."
                                 class="w-full py-1.5 px-2.5 text-[11px] font-semibold rounded-xl bg-primary/10 border border-primary/30 text-primary hover:bg-primary hover:text-on-primary transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs">

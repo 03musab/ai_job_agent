@@ -1,0 +1,489 @@
+<!-- Global Snapy Expressive Toast & Interactive Confirmation System (_snapy_toasts.html) -->
+<style>
+    @keyframes snapyToastIn {
+        0% { opacity: 0; transform: translateY(-14px) scale(0.96); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes snapyToastOut {
+        0% { opacity: 1; transform: translateY(0) scale(1); }
+        100% { opacity: 0; transform: translateY(-10px) scale(0.96); }
+    }
+    @keyframes snapySadSway {
+        0%, 100% { transform: translateY(0) rotate(-3deg); }
+        50% { transform: translateY(2px) rotate(-6deg); }
+    }
+    @keyframes snapyTearDrop {
+        0% { opacity: 0; transform: translateY(0); }
+        25% { opacity: 1; }
+        85% { opacity: 0.9; transform: translateY(6px); }
+        100% { opacity: 0; transform: translateY(8px); }
+    }
+    @keyframes snapyHappyBounce {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-3px) scale(1.03); }
+    }
+    @keyframes snapyProgressDrain {
+        from { transform: scaleX(1); }
+        to { transform: scaleX(0); }
+    }
+
+    .snapy-toast-card {
+        position: relative;
+        overflow: hidden;
+        animation: snapyToastIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .snapy-toast-card.is-leaving {
+        animation: snapyToastOut 0.2s ease-in forwards;
+    }
+    .snapy-svg-sad {
+        transform-origin: center bottom;
+        animation: snapySadSway 2.4s ease-in-out infinite;
+    }
+    .snapy-tear {
+        animation: snapyTearDrop 1.9s ease-in infinite;
+    }
+    .snapy-svg-happy {
+        animation: snapyHappyBounce 1.8s ease-in-out infinite;
+    }
+    .snapy-toast-progress {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        pointer-events: none;
+        transform-origin: left center;
+        animation: snapyProgressDrain var(--toast-duration, 4500ms) linear forwards;
+    }
+    .snapy-toast-card:hover .snapy-toast-progress {
+        animation-play-state: paused;
+    }
+
+    #snapy-toast-stack {
+        position: fixed;
+        top: 62px;
+        left: 12px;
+        right: 12px;
+        z-index: 99997;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        pointer-events: none;
+    }
+    @media (min-width: 640px) {
+        #snapy-toast-stack {
+            top: 64px;
+            left: auto;
+            right: 20px;
+            width: 375px;
+        }
+    }
+
+    #snapy-confirm-host {
+        position: fixed;
+        top: 64px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 99998;
+        width: calc(100vw - 24px);
+        max-width: 430px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        pointer-events: none;
+    }
+
+    .snapy-confirm-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(148, 163, 184, 0.22);
+    }
+    .snapy-confirm-cancel {
+        flex: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 14px;
+        border-radius: 12px;
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid #cbd5e1;
+        background-color: #f8fafc;
+        color: #334155;
+        transition: background-color 150ms ease, border-color 150ms ease;
+    }
+    .snapy-confirm-cancel:hover {
+        background-color: #e2e8f0;
+    }
+    html.dark .snapy-confirm-cancel {
+        border-color: #334155;
+        background-color: #1e293b;
+        color: #e2e8f0;
+    }
+    html.dark .snapy-confirm-cancel:hover {
+        background-color: #334155;
+    }
+
+    .snapy-confirm-ok {
+        flex: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-size: 12.5px;
+        font-weight: 700;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: background-color 150ms ease, transform 120ms ease, box-shadow 150ms ease;
+    }
+    .snapy-confirm-ok.is-destructive {
+        background-color: #e11d48;
+        border-color: #be123c;
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(225, 29, 72, 0.28);
+    }
+    .snapy-confirm-ok.is-destructive:hover {
+        background-color: #be123c;
+    }
+    .snapy-confirm-ok.is-primary {
+        background-color: #10b981;
+        border-color: #059669;
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.28);
+    }
+    .snapy-confirm-ok.is-primary:hover {
+        background-color: #059669;
+    }
+</style>
+
+<!-- Floating Toast Notification Stack (Top-Right, below 48px navbar) -->
+<div id="snapy-toast-stack"
+     role="region" aria-label="Snapy Notifications" aria-live="polite"></div>
+
+<!-- Floating Snapy Interactive Confirmation Toast Container (Top-Center, below 48px navbar) -->
+<div id="snapy-confirm-host"
+     role="region" aria-label="Snapy Confirmation"></div>
+
+<script id="snapy-toast-script">
+(function () {
+    if (window.__snapyToastInitialized) return;
+    window.__snapyToastInitialized = true;
+
+    function escapeHtml(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    /**
+     * Renders Snapy's SVG mascot with expressive facial moods:
+     * 'sad' | 'happy' | 'warning' | 'error' | 'info'
+     */
+    function getSnapyFaceSvg(mood, size) {
+        const px = size || 46;
+        const m = (mood || 'info').toLowerCase();
+
+        if (m === 'sad') {
+            return `
+            <svg width="${px}" height="${px}" viewBox="0 0 80 80" fill="none" class="snapy-svg-sad shrink-0" aria-hidden="true">
+                <ellipse cx="40" cy="72" rx="17" ry="3.2" fill="#f43f5e" opacity="0.22"/>
+                <rect x="21" y="24" width="38" height="40" rx="16" fill="#10b981" stroke="#0f172a" stroke-width="2.4"/>
+                <rect x="27" y="33" width="26" height="16" rx="8" fill="#faf8f5" stroke="#0f172a" stroke-width="2"/>
+                <!-- Worried tilted eyebrows -->
+                <path d="M31.5 37.8l4.5-1.6" stroke="#0f172a" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M48.5 37.8l-4.5-1.6" stroke="#0f172a" stroke-width="1.8" stroke-linecap="round"/>
+                <!-- Glossy sad puppy eyes -->
+                <circle cx="35" cy="41" r="2.6" fill="#0f172a"/>
+                <circle cx="34.2" cy="40.1" r="0.9" fill="#ffffff"/>
+                <circle cx="45" cy="41" r="2.6" fill="#0f172a"/>
+                <circle cx="44.2" cy="40.1" r="0.9" fill="#ffffff"/>
+                <!-- Animated shiny blue teardrop -->
+                <path class="snapy-tear" d="M31.8 43.2c0 0-1.6 2.1-1.6 3.1a1.6 1.6 0 0 0 3.2 0c0-1-1.6-3.1-1.6-3.1z" fill="#38bdf8"/>
+                <!-- Cute downturned sad mouth -->
+                <path d="M37 46.2c1.5-2 4.5-2 6 0" stroke="#f43f5e" stroke-width="2.1" stroke-linecap="round"/>
+                <!-- Drooped antenna with rose beacon -->
+                <path d="M40 24c0-4 2-7 5-8.5" stroke="#cbd5e1" stroke-width="2.2" stroke-linecap="round"/>
+                <circle cx="46" cy="14.5" r="3.8" fill="#fb7185" stroke="#0f172a" stroke-width="2"/>
+            </svg>`;
+        }
+
+        if (m === 'happy' || m === 'success') {
+            return `
+            <svg width="${px}" height="${px}" viewBox="0 0 80 80" fill="none" class="snapy-svg-happy shrink-0" aria-hidden="true">
+                <ellipse cx="40" cy="72" rx="18" ry="3.2" fill="#10b981" opacity="0.25"/>
+                <rect x="21" y="24" width="38" height="40" rx="16" fill="#10b981" stroke="#0f172a" stroke-width="2.4"/>
+                <rect x="27" y="33" width="26" height="16" rx="8" fill="#faf8f5" stroke="#0f172a" stroke-width="2"/>
+                <!-- Happy curved smiling eyes -->
+                <path d="M32 41.2c1.2-2.2 3.8-2.2 5 0" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round"/>
+                <path d="M43 41.2c1.2-2.2 3.8-2.2 5 0" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round"/>
+                <!-- Rosy cheeks -->
+                <ellipse cx="31.5" cy="44" rx="2.3" ry="1.2" fill="#f59e0b" opacity="0.55"/>
+                <ellipse cx="48.5" cy="44" rx="2.3" ry="1.2" fill="#f59e0b" opacity="0.55"/>
+                <!-- Big joyful smile -->
+                <path d="M36 44c1.8 2.8 6.2 2.8 8 0" stroke="#10b981" stroke-width="2.2" stroke-linecap="round"/>
+                <line x1="40" y1="24" x2="40" y2="15" stroke="#e2e8f0" stroke-width="2.2" stroke-linecap="round"/>
+                <circle cx="40" cy="13" r="4" fill="#f59e0b" stroke="#0f172a" stroke-width="2"/>
+            </svg>`;
+        }
+
+        if (m === 'warning') {
+            return `
+            <svg width="${px}" height="${px}" viewBox="0 0 80 80" fill="none" class="shrink-0" aria-hidden="true">
+                <ellipse cx="40" cy="72" rx="17" ry="3.2" fill="#f59e0b" opacity="0.22"/>
+                <rect x="21" y="24" width="38" height="40" rx="16" fill="#10b981" stroke="#0f172a" stroke-width="2.4"/>
+                <rect x="27" y="33" width="26" height="16" rx="8" fill="#faf8f5" stroke="#0f172a" stroke-width="2"/>
+                <!-- Curious raised eyebrow + wide eyes -->
+                <path d="M43 36.5c1.5-1.2 3.5-1.2 5 0" stroke="#0f172a" stroke-width="1.8" stroke-linecap="round"/>
+                <circle cx="35" cy="40.5" r="2.4" fill="#0f172a"/>
+                <circle cx="45" cy="40.5" r="2.6" fill="#0f172a"/>
+                <!-- Surprised small 'o' mouth -->
+                <circle cx="40" cy="45.2" r="2" stroke="#d97706" stroke-width="2" fill="none"/>
+                <line x1="40" y1="24" x2="40" y2="15" stroke="#e2e8f0" stroke-width="2.2" stroke-linecap="round"/>
+                <circle cx="40" cy="13" r="4" fill="#f59e0b" stroke="#0f172a" stroke-width="2"/>
+            </svg>`;
+        }
+
+        if (m === 'error' || m === 'danger') {
+            return `
+            <svg width="${px}" height="${px}" viewBox="0 0 80 80" fill="none" class="snapy-svg-sad shrink-0" aria-hidden="true">
+                <ellipse cx="40" cy="72" rx="17" ry="3.2" fill="#ef4444" opacity="0.22"/>
+                <rect x="21" y="24" width="38" height="40" rx="16" fill="#10b981" stroke="#0f172a" stroke-width="2.4"/>
+                <rect x="27" y="33" width="26" height="16" rx="8" fill="#faf8f5" stroke="#0f172a" stroke-width="2"/>
+                <!-- X dizzy eyes -->
+                <path d="M33 38.5l4 4m0-4l-4 4" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
+                <path d="M43 38.5l4 4m0-4l-4 4" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
+                <!-- Wavy upset mouth -->
+                <path d="M36.5 46c1.5-1.6 5.5-1.6 7 0" stroke="#ef4444" stroke-width="2.1" stroke-linecap="round"/>
+                <line x1="40" y1="24" x2="40" y2="15" stroke="#e2e8f0" stroke-width="2.2" stroke-linecap="round"/>
+                <circle cx="40" cy="13" r="4" fill="#ef4444" stroke="#0f172a" stroke-width="2"/>
+            </svg>`;
+        }
+
+        // Default: friendly classic Snapy ('info')
+        return `
+        <svg width="${px}" height="${px}" viewBox="0 0 80 80" fill="none" class="shrink-0" aria-hidden="true">
+            <ellipse cx="40" cy="72" rx="17" ry="3.2" fill="#10b981" opacity="0.2"/>
+            <rect x="21" y="24" width="38" height="40" rx="16" fill="#10b981" stroke="#0f172a" stroke-width="2.4"/>
+            <rect x="27" y="33" width="26" height="16" rx="8" fill="#faf8f5" stroke="#0f172a" stroke-width="2"/>
+            <circle cx="35" cy="40.5" r="2.3" fill="#0f172a"/>
+            <circle cx="45" cy="40.5" r="2.3" fill="#0f172a"/>
+            <path d="M37 44.8c1.5 1.5 4.5 1.5 6 0" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+            <line x1="40" y1="24" x2="40" y2="15" stroke="#e2e8f0" stroke-width="2.2" stroke-linecap="round"/>
+            <circle cx="40" cy="13" r="4" fill="#f59e0b" stroke="#0f172a" stroke-width="2"/>
+        </svg>`;
+    }
+
+    /**
+     * Show a floating Snapy Toast notification.
+     * @param {string} message
+     * @param {object} [opts] - { mood: 'happy'|'sad'|'warning'|'error'|'info', title?: string, duration?: number }
+     */
+    window.snapyToast = function (message, opts) {
+        const stack = document.getElementById('snapy-toast-stack');
+        if (!stack) return;
+        const options = opts || {};
+        const mood = options.mood || 'info';
+        const duration = typeof options.duration === 'number' ? options.duration : 4500;
+
+        const themeMap = {
+            happy:   { border: 'border-emerald-400/50 dark:border-emerald-500/40', bar: 'bg-emerald-500', tag: 'text-emerald-700 dark:text-emerald-300', label: options.title || 'Snapy' },
+            success: { border: 'border-emerald-400/50 dark:border-emerald-500/40', bar: 'bg-emerald-500', tag: 'text-emerald-700 dark:text-emerald-300', label: options.title || 'Snapy' },
+            sad:     { border: 'border-rose-400/50 dark:border-rose-500/40',       bar: 'bg-rose-500',    tag: 'text-rose-700 dark:text-rose-300',       label: options.title || 'Snapy' },
+            error:   { border: 'border-rose-400/50 dark:border-rose-500/40',       bar: 'bg-rose-500',    tag: 'text-rose-700 dark:text-rose-300',       label: options.title || 'Oops!' },
+            danger:  { border: 'border-rose-400/50 dark:border-rose-500/40',       bar: 'bg-rose-500',    tag: 'text-rose-700 dark:text-rose-300',       label: options.title || 'Oops!' },
+            warning: { border: 'border-amber-400/50 dark:border-amber-500/40',     bar: 'bg-amber-500',   tag: 'text-amber-700 dark:text-amber-300',     label: options.title || 'Heads Up' },
+            info:    { border: 'border-slate-300/80 dark:border-slate-700',        bar: 'bg-emerald-500', tag: 'text-emerald-700 dark:text-emerald-400', label: options.title || 'Snapy' }
+        };
+        const t = themeMap[mood] || themeMap.info;
+
+        const toast = document.createElement('div');
+        toast.className = `snapy-toast-card pointer-events-auto relative overflow-hidden rounded-2xl border ${t.border} bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-2xl shadow-black/20 p-3.5 pr-3 flex items-center gap-3`;
+        toast.setAttribute('role', 'status');
+        toast.style.setProperty('--toast-duration', `${duration}ms`);
+
+        toast.innerHTML = `
+            ${getSnapyFaceSvg(mood, 44)}
+            <div class="min-w-0 flex-1">
+                <div class="font-mono text-[10px] uppercase tracking-wider font-bold ${t.tag} leading-none mb-1">${escapeHtml(t.label)}</div>
+                <div class="text-[13px] font-medium text-slate-800 dark:text-slate-100 leading-snug break-words">${escapeHtml(message)}</div>
+            </div>
+            <button type="button" class="snapy-toast-close self-start text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 rounded-lg transition-colors cursor-pointer" aria-label="Dismiss">
+                <span class="material-symbols-outlined text-[16px]">close</span>
+            </button>
+            <div class="snapy-toast-progress absolute bottom-0 left-0 right-0 h-[2.5px] ${t.bar} opacity-75"></div>
+        `;
+
+        let removed = false;
+        let timerId = null;
+
+        function dismiss() {
+            if (removed) return;
+            removed = true;
+            if (timerId) clearTimeout(timerId);
+            toast.classList.add('is-leaving');
+            setTimeout(() => toast.remove(), 210);
+        }
+
+        toast.querySelector('.snapy-toast-close').addEventListener('click', dismiss);
+
+        // Pause auto-dismiss on hover
+        let remaining = duration;
+        let startTime = Date.now();
+        function startTimer() {
+            startTime = Date.now();
+            timerId = setTimeout(dismiss, remaining);
+        }
+        toast.addEventListener('mouseenter', () => {
+            if (timerId) clearTimeout(timerId);
+            remaining = Math.max(600, remaining - (Date.now() - startTime));
+        });
+        toast.addEventListener('mouseleave', startTimer);
+
+        stack.appendChild(toast);
+        if (duration > 0) startTimer();
+    };
+
+    /**
+     * Show a floating Snapy Confirmation Toast Card (replaces native window.confirm).
+     * Returns a Promise<boolean>.
+     */
+    window.snapyConfirm = function (message, opts) {
+        return new Promise((resolve) => {
+            const host = document.getElementById('snapy-confirm-host');
+            if (!host) {
+                resolve(window.confirm(message));
+                return;
+            }
+
+            // Dismiss any previous open confirm toast cleanly
+            host.innerHTML = '';
+
+            const options = opts || {};
+            const isDestructive = options.destructive !== undefined
+                ? Boolean(options.destructive)
+                : /delete|remove|clear|permanently/i.test(String(message || ''));
+
+            const mood = options.mood || (isDestructive ? 'sad' : 'warning');
+            const title = options.title || (isDestructive ? 'Snapy · Wait a second' : 'Snapy · Confirm Action');
+            const subtext = options.subtext || (isDestructive
+                ? "Snapy will miss this one - this action can't be undone."
+                : 'Let Snapy know if you want to proceed.');
+            const confirmText = options.confirmText || (isDestructive ? 'Yes, Delete' : 'Continue');
+            const cancelText = options.cancelText || (isDestructive ? 'Keep It' : 'Cancel');
+
+            const card = document.createElement('div');
+            card.className = `snapy-toast-card pointer-events-auto w-full rounded-2xl border ${
+                isDestructive
+                    ? 'border-rose-400/60 dark:border-rose-500/50'
+                    : 'border-amber-400/60 dark:border-amber-500/50'
+            } bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.35)] p-4 space-y-3`;
+            card.setAttribute('role', 'alertdialog');
+            card.setAttribute('aria-modal', 'false');
+
+            const confirmBtnClass = isDestructive ? 'is-destructive' : 'is-primary';
+
+            card.innerHTML = `
+                <div class="flex items-start gap-3.5">
+                    <div class="shrink-0 mt-0.5">${getSnapyFaceSvg(mood, 54)}</div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between gap-2 mb-0.5">
+                            <span class="font-mono text-[10px] uppercase tracking-widest font-bold" style="color: ${isDestructive ? '#e11d48' : '#d97706'};">${escapeHtml(title)}</span>
+                            <button type="button" class="snapy-confirm-x text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded-lg cursor-pointer" aria-label="Close">
+                                <span class="material-symbols-outlined text-[16px]">close</span>
+                            </button>
+                        </div>
+                        <p class="text-[13.5px] font-bold text-slate-900 dark:text-slate-100 leading-snug">${escapeHtml(message)}</p>
+                        <p class="text-[11.5px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">${escapeHtml(subtext)}</p>
+                    </div>
+                </div>
+                <div class="snapy-confirm-actions">
+                    <button type="button" class="snapy-confirm-cancel">
+                        ${escapeHtml(cancelText)}
+                    </button>
+                    <button type="button" class="snapy-confirm-ok ${confirmBtnClass}">
+                        ${isDestructive ? '<span class="material-symbols-outlined text-[15px]">delete</span>' : '<span class="material-symbols-outlined text-[15px]">check</span>'}
+                        <span>${escapeHtml(confirmText)}</span>
+                    </button>
+                </div>
+            `;
+
+            let settled = false;
+            function finish(result) {
+                if (settled) return;
+                settled = true;
+                document.removeEventListener('keydown', onKeyDown);
+                card.classList.add('is-leaving');
+                setTimeout(() => card.remove(), 200);
+                resolve(result);
+            }
+
+            function onKeyDown(e) {
+                if (e.key === 'Escape') finish(false);
+            }
+            document.addEventListener('keydown', onKeyDown);
+
+            card.querySelector('.snapy-confirm-x').addEventListener('click', () => finish(false));
+            card.querySelector('.snapy-confirm-cancel').addEventListener('click', () => finish(false));
+            card.querySelector('.snapy-confirm-ok').addEventListener('click', () => finish(true));
+
+            host.appendChild(card);
+        });
+    };
+
+    /**
+     * Drop-in handler for <form onsubmit="return window.snapyConfirmForm(event, this, '...', {...});">
+     */
+    window.snapyConfirmForm = function (event, formEl, message, opts) {
+        if (formEl && formEl.dataset.snapyConfirmed === '1') {
+            return true;
+        }
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+        window.snapyConfirm(message, opts).then((confirmed) => {
+            if (confirmed && formEl) {
+                formEl.dataset.snapyConfirmed = '1';
+                formEl.submit();
+            }
+        });
+        return false;
+    };
+
+    /**
+     * Render server-side Flask flashed messages through Snapy Toasts automatically.
+     */
+    function hydrateFlashedMessages() {
+        const container = document.getElementById('snapy-flash-seed');
+        if (!container) return;
+        const items = container.querySelectorAll('[data-flash-msg]');
+        items.forEach((el, idx) => {
+            const cat = (el.getAttribute('data-flash-cat') || 'info').toLowerCase();
+            const msg = el.getAttribute('data-flash-msg') || '';
+            if (!msg) return;
+            let mood = 'info';
+            let title = 'Snapy';
+            if (cat === 'success') { mood = 'happy'; title = 'Success'; }
+            else if (cat === 'danger' || cat === 'error') { mood = 'error'; title = 'Attention'; }
+            else if (cat === 'warning') { mood = 'warning'; title = 'Heads Up'; }
+            setTimeout(() => window.snapyToast(msg, { mood, title }), idx * 140);
+        });
+        container.remove();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', hydrateFlashedMessages);
+    } else {
+        hydrateFlashedMessages();
+    }
+    window.addEventListener('page:loaded', hydrateFlashedMessages);
+})();
+</script>

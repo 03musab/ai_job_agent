@@ -58,7 +58,7 @@ EMAIL_TEMPLATES = {
                 </p>
 
                 <p style="margin: 0 0 18px 0; font-size: 14px; color: #475569;">
-                    Spending 45 minutes re-typing your resume into yet another Workday portal — only to get left on "seen" like an unreplied Instagram DM — has to stop.
+                    Spending 45 minutes re-typing your resume into yet another Workday portal - only to get left on "seen" like an unreplied Instagram DM - has to stop.
                 </p>
 
                 <div style="background-color: #f8fafc; border-left: 3px solid #0f172a; padding: 14px 16px; margin: 0 0 20px 0; border-radius: 0 6px 6px 0;">
@@ -135,7 +135,7 @@ EMAIL_TEMPLATES = {
                 </ol>
 
                 <p style="margin: 0 0 16px 0; font-size: 13.5px; color: #475569;">
-                    Have target roles in mind or specific features you’d love to see at launch? Simply reply to this email — I read every note personally.
+                    Have target roles in mind or specific features you’d love to see at launch? Simply reply to this email - I read every note personally.
                 </p>
 
                 <p style="margin: 24px 0 0 0; font-size: 13.5px; color: #64748b;">

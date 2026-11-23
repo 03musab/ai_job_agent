@@ -1,0 +1,469 @@
+<!-- Global Custom Themed Select Dropdown System (_themed_selects.html) -->
+<style>
+    /* Fallback dark/light styling for native selects before/if unenhanced */
+    select {
+        color-scheme: light;
+    }
+    html.dark select {
+        color-scheme: dark;
+    }
+
+    .jsnap-select-wrap {
+        position: relative;
+        display: block;
+        width: 100%;
+    }
+    .jsnap-select-wrap.is-inline {
+        display: inline-block;
+        width: auto;
+    }
+    .jsnap-select-native {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+        border: 0 !important;
+        pointer-events: none !important;
+    }
+
+    .jsnap-select-trigger {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        text-align: left;
+        cursor: pointer;
+        user-select: none;
+        background-color: var(--bg-surface-container-lowest, #ffffff);
+        color: var(--text-on-surface, #0f172a);
+        border: 1px solid var(--border-outline-variant, #cbd5e1);
+        border-radius: 0.75rem;
+        padding: 0.48rem 0.75rem;
+        font-size: 13px;
+        line-height: 1.35;
+        font-weight: 500;
+        transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+    }
+    html.dark .jsnap-select-trigger {
+        background-color: var(--bg-surface-container-lowest, #1e293b);
+        color: var(--text-on-surface, #f1f5f9);
+        border-color: var(--border-outline-variant, #334155);
+    }
+    .jsnap-select-trigger:hover:not(:disabled) {
+        border-color: rgba(16, 185, 129, 0.55);
+    }
+    .jsnap-select-trigger:focus-visible,
+    .jsnap-select-trigger[aria-expanded="true"] {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.16);
+    }
+    .jsnap-select-trigger:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+    .jsnap-select-trigger.is-compact {
+        padding: 0.36rem 0.62rem;
+        font-size: 12px;
+        border-radius: 0.65rem;
+    }
+
+    .jsnap-select-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+        min-width: 0;
+    }
+    .jsnap-select-label.is-placeholder {
+        opacity: 0.58;
+    }
+    .jsnap-select-chevron {
+        font-size: 18px !important;
+        opacity: 0.65;
+        transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), opacity 150ms ease;
+        flex-shrink: 0;
+    }
+    .jsnap-select-trigger[aria-expanded="true"] .jsnap-select-chevron {
+        transform: rotate(180deg);
+        opacity: 1;
+        color: #10b981;
+    }
+
+    /* Floating Portal Menu */
+    .jsnap-select-menu {
+        position: fixed;
+        z-index: 99996;
+        min-width: 160px;
+        max-height: 270px;
+        overflow-y: auto;
+        padding: 5px;
+        border-radius: 0.85rem;
+        background-color: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(15, 23, 42, 0.08);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        opacity: 0;
+        transform: translateY(-4px) scale(0.985);
+        transition: opacity 140ms ease, transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    html.dark .jsnap-select-menu {
+        background-color: rgba(15, 23, 42, 0.97);
+        border-color: rgba(71, 85, 105, 0.65);
+        box-shadow: 0 22px 54px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    }
+    .jsnap-select-menu.is-open {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    .jsnap-select-option {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 7px 10px;
+        border-radius: 0.55rem;
+        font-size: 12.5px;
+        line-height: 1.35;
+        font-weight: 500;
+        color: #1e293b;
+        background: transparent;
+        border: none;
+        text-align: left;
+        cursor: pointer;
+        transition: background-color 110ms ease, color 110ms ease;
+    }
+    html.dark .jsnap-select-option {
+        color: #e2e8f0;
+    }
+    .jsnap-select-option:hover:not(:disabled),
+    .jsnap-select-option.is-focused:not(:disabled) {
+        background-color: rgba(16, 185, 129, 0.11);
+        color: #059669;
+    }
+    html.dark .jsnap-select-option:hover:not(:disabled),
+    html.dark .jsnap-select-option.is-focused:not(:disabled) {
+        background-color: rgba(16, 185, 129, 0.16);
+        color: #34d399;
+    }
+    .jsnap-select-option.is-selected {
+        background-color: rgba(16, 185, 129, 0.14);
+        color: #047857;
+        font-weight: 600;
+    }
+    html.dark .jsnap-select-option.is-selected {
+        background-color: rgba(16, 185, 129, 0.2);
+        color: #19D889;
+    }
+    .jsnap-select-option:disabled {
+        opacity: 0.42;
+        cursor: not-allowed;
+    }
+    .jsnap-select-group-label {
+        padding: 6px 10px 3px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #94a3b8;
+    }
+</style>
+
+<script id="themed-selects-script">
+(function () {
+    if (window.__jsnapThemedSelectsInit) return;
+    window.__jsnapThemedSelectsInit = true;
+
+    let activeMenu = null;
+    let activeSelect = null;
+    let activeTrigger = null;
+
+    function closeActiveMenu(returnFocus) {
+        if (activeMenu) {
+            activeMenu.remove();
+            activeMenu = null;
+        }
+        if (activeTrigger) {
+            activeTrigger.setAttribute('aria-expanded', 'false');
+            if (returnFocus) activeTrigger.focus();
+            activeTrigger = null;
+        }
+        activeSelect = null;
+    }
+
+    function syncTriggerDisplay(select, trigger) {
+        if (!select || !trigger) return;
+        const labelEl = trigger.querySelector('.jsnap-select-label');
+        if (!labelEl) return;
+        const opt = select.options[select.selectedIndex];
+        const text = opt ? opt.textContent.trim() : '';
+        labelEl.textContent = text || 'Select...';
+        const isPlaceholder = !opt || (opt.disabled && opt.value === '');
+        labelEl.classList.toggle('is-placeholder', isPlaceholder);
+        trigger.disabled = Boolean(select.disabled);
+    }
+
+    function positionMenu(trigger, menu) {
+        const rect = trigger.getBoundingClientRect();
+        const vh = window.innerHeight;
+        const vw = window.innerWidth;
+        const menuW = Math.max(rect.width, 168);
+        const left = Math.min(Math.max(8, rect.left), vw - menuW - 8);
+
+        menu.style.width = `${menuW}px`;
+        menu.style.left = `${left}px`;
+
+        const spaceBelow = vh - rect.bottom - 12;
+        const spaceAbove = rect.top - 12;
+        const estHeight = Math.min(270, menu.scrollHeight || 220);
+
+        if (spaceBelow < estHeight && spaceAbove > spaceBelow) {
+            menu.style.top = 'auto';
+            menu.style.bottom = `${vh - rect.top + 6}px`;
+            menu.style.maxHeight = `${Math.min(270, spaceAbove)}px`;
+        } else {
+            menu.style.bottom = 'auto';
+            menu.style.top = `${rect.bottom + 6}px`;
+            menu.style.maxHeight = `${Math.min(270, Math.max(130, spaceBelow))}px`;
+        }
+    }
+
+    function openMenu(select, trigger) {
+        if (activeTrigger === trigger) {
+            closeActiveMenu(false);
+            return;
+        }
+        closeActiveMenu(false);
+        if (select.disabled) return;
+
+        const menu = document.createElement('div');
+        menu.className = 'jsnap-select-menu custom-scrollbar';
+        menu.setAttribute('role', 'listbox');
+
+        const optionButtons = [];
+
+        function appendOption(opt) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'jsnap-select-option';
+            btn.setAttribute('role', 'option');
+            btn.disabled = Boolean(opt.disabled);
+            const isSel = opt.selected && !opt.disabled;
+            if (isSel) {
+                btn.classList.add('is-selected');
+                btn.setAttribute('aria-selected', 'true');
+            }
+            const textSpan = document.createElement('span');
+            textSpan.className = 'truncate';
+            textSpan.textContent = opt.textContent.trim();
+            btn.appendChild(textSpan);
+
+            if (isSel) {
+                const check = document.createElement('span');
+                check.className = 'material-symbols-outlined text-[16px] shrink-0';
+                check.textContent = 'check';
+                btn.appendChild(check);
+            }
+
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (opt.disabled) return;
+                const changed = select.value !== opt.value;
+                select.value = opt.value;
+                syncTriggerDisplay(select, trigger);
+                closeActiveMenu(true);
+                if (changed) {
+                    select.dispatchEvent(new Event('input', { bubbles: true }));
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+
+            menu.appendChild(btn);
+            if (!opt.disabled) optionButtons.push({ btn, opt });
+        }
+
+        Array.from(select.children).forEach((child) => {
+            if (child.tagName === 'OPTGROUP') {
+                const grp = document.createElement('div');
+                grp.className = 'jsnap-select-group-label';
+                grp.textContent = child.label || '';
+                menu.appendChild(grp);
+                Array.from(child.children).forEach((opt) => {
+                    if (opt.tagName === 'OPTION') appendOption(opt);
+                });
+            } else if (child.tagName === 'OPTION') {
+                appendOption(child);
+            }
+        });
+
+        document.body.appendChild(menu);
+        positionMenu(trigger, menu);
+        requestAnimationFrame(() => menu.classList.add('is-open'));
+
+        trigger.setAttribute('aria-expanded', 'true');
+        activeMenu = menu;
+        activeSelect = select;
+        activeTrigger = trigger;
+
+        // Scroll selected item into view inside menu without moving outer page
+        const selectedBtn = menu.querySelector('.jsnap-select-option.is-selected');
+        if (selectedBtn) {
+            menu.scrollTop = Math.max(0, selectedBtn.offsetTop - 40);
+        }
+
+        menu._optionButtons = optionButtons;
+        menu._focusIdx = Math.max(0, optionButtons.findIndex((o) => o.btn.classList.contains('is-selected')));
+    }
+
+    function enhanceSelect(select) {
+        if (!select || select.dataset.themedSelect === '1') return;
+        if (select.multiple || select.hasAttribute('data-native-select')) return;
+        if (select.closest('.jsnap-select-wrap')) return;
+
+        select.dataset.themedSelect = '1';
+
+        const wrap = document.createElement('div');
+        wrap.className = 'jsnap-select-wrap';
+        const cls = select.className || '';
+        const isInline = /\bw-auto\b|\binline\b/.test(cls) && !/\bw-full\b/.test(cls);
+        if (isInline) wrap.classList.add('is-inline');
+
+        const isCompact = /\btext-\[1[012](\.\d+)?px\]\b|\btext-xs\b|\bpy-1(\.5)?\b/.test(cls);
+
+        const trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.className = 'jsnap-select-trigger' + (isCompact ? ' is-compact' : '');
+        trigger.setAttribute('aria-haspopup', 'listbox');
+        trigger.setAttribute('aria-expanded', 'false');
+        if (select.getAttribute('aria-label')) {
+            trigger.setAttribute('aria-label', select.getAttribute('aria-label'));
+        }
+        if (select.title) trigger.title = select.title;
+
+        trigger.innerHTML = `
+            <span class="jsnap-select-label"></span>
+            <span class="material-symbols-outlined jsnap-select-chevron" aria-hidden="true">expand_more</span>
+        `;
+
+        select.parentNode.insertBefore(wrap, select);
+        wrap.appendChild(select);
+        wrap.appendChild(trigger);
+        select.classList.add('jsnap-select-native');
+        select.tabIndex = -1;
+
+        syncTriggerDisplay(select, trigger);
+
+        // Keep trigger synced on native value changes (user, Alpine x-model, or JS)
+        select.addEventListener('change', () => syncTriggerDisplay(select, trigger));
+        select.addEventListener('input', () => syncTriggerDisplay(select, trigger));
+
+        // Intercept programmatic `select.value = ...` assignments
+        const valDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+        if (valDesc && valDesc.set) {
+            Object.defineProperty(select, 'value', {
+                configurable: true,
+                get: function () { return valDesc.get.call(this); },
+                set: function (v) {
+                    valDesc.set.call(this, v);
+                    syncTriggerDisplay(this, trigger);
+                }
+            });
+        }
+
+        // Observe dynamic option changes
+        const optObserver = new MutationObserver(() => syncTriggerDisplay(select, trigger));
+        optObserver.observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'selected'] });
+
+        trigger.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            openMenu(select, trigger);
+        });
+
+        trigger.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (activeTrigger !== trigger) {
+                    openMenu(select, trigger);
+                    return;
+                }
+            }
+            if (activeMenu && activeTrigger === trigger) {
+                const items = activeMenu._optionButtons || [];
+                if (!items.length) return;
+                if (e.key === 'ArrowDown') {
+                    activeMenu._focusIdx = (activeMenu._focusIdx + 1) % items.length;
+                    items.forEach((it, i) => it.btn.classList.toggle('is-focused', i === activeMenu._focusIdx));
+                } else if (e.key === 'ArrowUp') {
+                    activeMenu._focusIdx = (activeMenu._focusIdx - 1 + items.length) % items.length;
+                    items.forEach((it, i) => it.btn.classList.toggle('is-focused', i === activeMenu._focusIdx));
+                } else if (e.key === 'Enter' || e.key === ' ') {
+                    const picked = items[activeMenu._focusIdx];
+                    if (picked) picked.btn.click();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeActiveMenu(true);
+                }
+            }
+        });
+    }
+
+    function enhanceAll(root) {
+        const scope = root && root.querySelectorAll ? root : document;
+        scope.querySelectorAll('select:not([data-themed-select="1"]):not([multiple]):not([data-native-select])').forEach(enhanceSelect);
+    }
+
+    window.enhanceThemedSelects = enhanceAll;
+
+    // Close menu on outside click, Escape, scroll, or resize
+    document.addEventListener('click', (e) => {
+        if (!activeMenu) return;
+        if (activeMenu.contains(e.target) || (activeTrigger && activeTrigger.contains(e.target))) return;
+        closeActiveMenu(false);
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && activeMenu) closeActiveMenu(true);
+    });
+    window.addEventListener('resize', () => {
+        if (activeMenu && activeTrigger) positionMenu(activeTrigger, activeMenu);
+    }, { passive: true });
+    window.addEventListener('scroll', (e) => {
+        if (!activeMenu) return;
+        if (e.target === activeMenu) return;
+        closeActiveMenu(false);
+    }, { passive: true, capture: true });
+
+    // Initial run + SPA lifecycle + MutationObserver for dynamic selects
+    let moTimer = null;
+    const domObserver = new MutationObserver(() => {
+        if (moTimer) clearTimeout(moTimer);
+        moTimer = setTimeout(() => enhanceAll(document), 60);
+    });
+
+    function boot() {
+        enhanceAll(document);
+        if (document.body) {
+            domObserver.observe(document.body, { childList: true, subtree: true });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+    } else {
+        boot();
+    }
+    window.addEventListener('page:loaded', () => {
+        closeActiveMenu(false);
+        setTimeout(() => enhanceAll(document), 30);
+    });
+})();
+</script>

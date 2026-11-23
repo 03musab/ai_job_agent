@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Skill Gap & Roadmap Engine — AI JobSnap{% endblock %}
+{% block title %}Skill Gap & Roadmap Engine - AI JobSnap{% endblock %}
 
 {% block content %}
 <div class="max-w-[1400px] mx-auto px-container-padding py-6 flex-1 flex flex-col gap-4 w-full" x-data="learningPath()">
@@ -116,19 +116,89 @@
         <!-- Role Selection & Analysis Bar -->
         <div x-show="!roadmap" class="border border-outline-variant rounded-2xl p-5 bg-surface shadow-xs">
             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                <div class="md:col-span-5 flex flex-col gap-1.5">
-                    <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">Target Benchmark Role</label>
-                    <select x-model="targetRole"
-                        class="w-full bg-surface-container-lowest border border-outline-variant rounded-xl px-3 py-2 text-[13px] text-on-surface focus:border-primary focus:outline-none shadow-2xs">
-                        <option value="" disabled selected>Select Benchmark Role...</option>
-                        <option value="Frontend Developer">Frontend Developer</option>
-                        <option value="Backend Developer">Backend Developer</option>
-                        <option value="Full Stack Developer">Full Stack Developer</option>
-                        <option value="Data Analyst">Data Analyst</option>
-                        <option value="Data Scientist">Data Scientist</option>
-                        <option value="DevOps Engineer">DevOps Engineer</option>
-                        <option value="UI/UX Designer">UI/UX Designer</option>
-                    </select>
+                <div class="md:col-span-5 flex flex-col gap-1.5 relative"
+                     x-data="{
+                         roleMenuOpen: false,
+                         presetRoles: [
+                             'Frontend Developer',
+                             'Backend Developer',
+                             'Full Stack Developer',
+                             'AI / ML Engineer',
+                             'Data Analyst',
+                             'Data Scientist',
+                             'DevOps Engineer',
+                             'Cloud Architect',
+                             'Mobile Developer',
+                             'Cybersecurity Engineer',
+                             'Product Manager',
+                             'UI/UX Designer'
+                         ],
+                         filteredRoles() {
+                             const q = (targetRole || '').trim().toLowerCase();
+                             if (!q) return this.presetRoles;
+                             return this.presetRoles.filter(r => r.toLowerCase().includes(q));
+                         }
+                     }"
+                     @click.outside="roleMenuOpen = false">
+                    <label for="target-benchmark-role-input" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">
+                        Target Benchmark Role
+                    </label>
+                    <div class="relative w-full" style="position: relative; width: 100%;">
+                        <input id="target-benchmark-role-input"
+                               type="text"
+                               x-model="targetRole"
+                               @focus="roleMenuOpen = true"
+                               @input="roleMenuOpen = true"
+                               @keydown.escape="roleMenuOpen = false"
+                               @keydown.enter.prevent="roleMenuOpen = false; if (targetRole && targetRole.trim()) analyzeGap();"
+                               placeholder="Type any role (e.g. AI Engineer, Rust Developer) or pick..."
+                               autocomplete="off"
+                               style="width: 100%; padding-left: 0.75rem; padding-right: 2.4rem; box-sizing: border-box;"
+                               class="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-2 text-[13px] text-on-surface placeholder:text-on-surface-variant/45 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none shadow-2xs transition-all">
+                        <button type="button"
+                                @click="roleMenuOpen = !roleMenuOpen"
+                                aria-label="Toggle suggested roles"
+                                style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; padding: 0; background: transparent; border: none;"
+                                class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
+                            <span class="material-symbols-outlined text-[18px] transition-transform duration-150"
+                                  :class="roleMenuOpen ? 'rotate-180 text-primary' : ''">expand_more</span>
+                        </button>
+
+                        <!-- Themed Combobox Dropdown Suggestions -->
+                        <div x-show="roleMenuOpen"
+                             x-transition:enter="transition ease-out duration-150"
+                             x-transition:enter-start="opacity-0 -translate-y-1 scale-98"
+                             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                             x-transition:leave="transition ease-in duration-100"
+                             x-transition:leave-start="opacity-100 scale-100"
+                             x-transition:leave-end="opacity-0 -translate-y-1 scale-98"
+                             x-cloak
+                             class="absolute left-0 right-0 top-full mt-1.5 z-50 max-h-60 overflow-y-auto custom-scrollbar rounded-xl border border-outline-variant bg-surface/98 dark:bg-slate-900/98 backdrop-blur-xl shadow-2xl p-1.5 space-y-0.5">
+                            <div class="px-2.5 py-1 font-data-mono text-[9.5px] uppercase tracking-wider text-on-surface-variant/75 font-bold">
+                                Suggested Benchmark Roles (or type any custom role)
+                            </div>
+                            <template x-for="role in filteredRoles()" :key="role">
+                                <button type="button"
+                                        @click="targetRole = role; roleMenuOpen = false"
+                                        class="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-[12.5px] text-left transition-colors cursor-pointer"
+                                        :class="(targetRole || '').trim().toLowerCase() === role.toLowerCase()
+                                            ? 'bg-primary/15 text-primary font-semibold'
+                                            : 'text-on-surface hover:bg-primary/10 hover:text-primary font-medium'">
+                                    <span x-text="role"></span>
+                                    <span x-show="(targetRole || '').trim().toLowerCase() === role.toLowerCase()"
+                                          class="material-symbols-outlined text-[15px]">check</span>
+                                </button>
+                            </template>
+                            <template x-if="(targetRole || '').trim() && !presetRoles.some(r => r.toLowerCase() === (targetRole || '').trim().toLowerCase())">
+                                <button type="button"
+                                        @click="roleMenuOpen = false"
+                                        class="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[12.5px] text-left bg-primary/10 text-primary font-semibold border border-primary/25 cursor-pointer">
+                                    <span class="material-symbols-outlined text-[15px]">auto_awesome</span>
+                                    <span class="truncate">Use custom role: "<span x-text="(targetRole || '').trim()"></span>"</span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
                 </div>
                 <div class="md:col-span-4 flex flex-col gap-1.5">
                     <label class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">Target Company (Optional)</label>
@@ -136,7 +206,7 @@
                         class="w-full bg-surface-container-lowest border border-outline-variant rounded-xl px-3 py-2 text-[13px] text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none shadow-2xs">
                 </div>
                 <div class="md:col-span-3 flex flex-col justify-end">
-                    <button @click="analyzeGap" :disabled="!targetRole || loading"
+                    <button @click="analyzeGap" :disabled="!targetRole || !targetRole.trim() || loading"
                         class="w-full py-2.5 px-4 bg-primary text-on-primary font-semibold rounded-xl hover:bg-emerald-600 disabled:opacity-40 transition-all flex items-center justify-center gap-2 shadow-xs text-[12.5px] cursor-pointer">
                         <span x-show="loading" class="w-4 h-4 border-2 border-on-primary/20 border-t-on-primary rounded-full animate-spin"></span>
                         <span class="material-symbols-outlined text-[17px]" x-show="!loading">insights</span>
@@ -427,7 +497,7 @@
                                                     class="w-full px-3 py-2 flex items-center justify-between hover:bg-surface-container transition-colors text-left cursor-pointer">
                                                     <div class="flex items-center gap-2">
                                                         <span class="material-symbols-outlined text-[16px] text-rose-500">smart_display</span>
-                                                        <span class="font-data-mono text-[11px] text-on-surface" x-text="topic.title + ' — Video Guide'"></span>
+                                                        <span class="font-data-mono text-[11px] text-on-surface" x-text="topic.title + ' - Video Guide'"></span>
                                                     </div>
                                                     <span class="material-symbols-outlined text-[16px] text-on-surface-variant transition-transform" :class="{'rotate-180': videoExpanded}">expand_more</span>
                                                 </button>

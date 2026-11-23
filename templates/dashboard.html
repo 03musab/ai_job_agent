@@ -172,7 +172,7 @@
 
                                         <div class="min-w-0 flex-1">
                                             <div class="flex items-center gap-2 flex-wrap mb-1">
-                                                <a href="{{ url_for('job_details', job_id=job.id) }}"
+                                                <a href="{{ job.public_url or url_for('job_details', job_id=job.id) }}"
                                                    class="text-[15px] font-bold text-on-surface group-hover:text-primary transition-colors line-clamp-2 sm:truncate max-w-full sm:max-w-xl break-words"
                                                    title="{{ job.title }}">
                                                     {{ job.title }}
@@ -304,7 +304,7 @@
                                             </button>
                                             {% endif %}
 
-                                            <a href="{{ url_for('job_details', job_id=job.id) }}"
+                                            <a href="{{ job.public_url or url_for('job_details', job_id=job.id) }}"
                                                class="px-3.5 py-2 sm:py-1.5 rounded-xl bg-primary text-on-primary hover:bg-emerald-600 font-semibold text-[12px] transition-all flex items-center justify-center gap-1 shadow-xs flex-1 sm:flex-initial whitespace-nowrap">
                                                 <span>View Details</span>
                                                 <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
@@ -749,7 +749,10 @@
                 const fields = ['search_terms', 'location', 'experience', 'job_type'];
                 const values = fields.map(id => document.getElementById(id) ? document.getElementById(id).value.trim() : '');
 
-                if (!values[0]) return alert('Please specify keywords first.');
+                if (!values[0]) {
+                    if (window.snapyToast) window.snapyToast('Please specify keywords first.', { mood: 'warning', title: 'Missing Keywords' });
+                    return;
+                }
 
                 const profileName = prompt('Enter a profile name:');
                 if (!profileName || !profileName.trim()) return;
@@ -759,8 +762,17 @@
                 fields.forEach((f, i) => formData.append(f, values[i]));
 
                 fetch('/save_profile', { method: 'POST', body: formData })
-                    .then(r => r.ok ? (alert('Profile saved.'), window.location.reload()) : alert('Failed to save profile.'))
-                    .catch(() => alert('Error saving profile.'));
+                    .then(r => {
+                        if (r.ok) {
+                            if (window.snapyToast) window.snapyToast('Search preset saved!', { mood: 'happy', title: 'Preset Saved' });
+                            setTimeout(() => window.location.reload(), 650);
+                        } else if (window.snapyToast) {
+                            window.snapyToast('Failed to save search preset.', { mood: 'error', title: 'Save Failed' });
+                        }
+                    })
+                    .catch(() => {
+                        if (window.snapyToast) window.snapyToast('Error saving search preset.', { mood: 'error', title: 'Network Error' });
+                    });
             });
         }
 
@@ -816,8 +828,15 @@
                 try {
                     const res = await fetch(`/assisted_apply/${jobId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
                     const data = await res.json();
-                    alert(data.status === 'success' ? data.message : 'Error: ' + data.message);
-                } catch (e) { alert('Error occurred.'); }
+                    if (window.snapyToast) {
+                        window.snapyToast(data.message || 'Assisted Apply finished.', {
+                            mood: data.status === 'success' ? 'happy' : 'warning',
+                            title: 'Assisted Apply (Beta)'
+                        });
+                    }
+                } catch (e) {
+                    if (window.snapyToast) window.snapyToast('Could not reach automation worker.', { mood: 'error', title: 'Assisted Apply' });
+                }
                 closeApplyModal();
             };
         };
@@ -960,7 +979,9 @@
                 if (filterTerms) filterTerms.focus();
                 else if (heroTerms) heroTerms.focus();
                 else if (sidebarTerms) sidebarTerms.focus();
-                alert('Please enter a role title, tech stack, or skill (e.g. Python, Full Stack) to search.');
+                if (window.snapyToast) {
+                    window.snapyToast('Please enter a role title, tech stack, or skill (e.g. Python, Full Stack) to search.', { mood: 'warning', title: 'Enter Keywords' });
+                }
                 return;
             }
 

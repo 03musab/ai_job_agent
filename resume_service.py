@@ -16,20 +16,27 @@ class ResumeParsingService:
     """
     
     def __init__(self):
-        self.has_api_key = bool(os.environ.get("CEREBRAS_API_KEY"))
+        self.has_api_key = bool(
+            os.environ.get("CEREBRAS_API_KEY")
+            or os.environ.get("GEMINI_API_KEY")
+            or os.environ.get("GOOGLE_API_KEY")
+        )
         
         # Fallback keywords if AI fails or is unavailable
         self.keyword_bank = {
-            'python', 'java', 'javascript', 'typescript', 'c++', 'c#', 'html', 'css', 'sql', 'nosql',
-            'react', 'angular', 'vue', 'node.js', 'django', 'flask', 'fastapi', 'aws', 'azure', 'gcp',
-            'docker', 'kubernetes', 'git', 'ci/cd', 'agile', 'scrum', 'machine learning', 'ai',
-            'communication', 'leadership', 'problem solving', 'teamwork'
+            'python', 'java', 'javascript', 'typescript', 'c++', 'c#', 'go', 'rust', 'html', 'css',
+            'sql', 'nosql', 'postgresql', 'mongodb', 'redis', 'react', 'next.js', 'angular', 'vue',
+            'node.js', 'django', 'flask', 'fastapi', 'spring boot', 'aws', 'azure', 'gcp', 'linux',
+            'docker', 'kubernetes', 'terraform', 'git', 'ci/cd', 'graphql', 'rest api', 'agile', 'scrum',
+            'machine learning', 'deep learning', 'nlp', 'llm', 'pytorch', 'tensorflow', 'pandas', 'ai',
+            'figma', 'ui/ux', 'communication', 'leadership', 'problem solving', 'teamwork'
         }
 
-    def parse(self, file_path: str) -> Dict[str, Any]:
+    def parse(self, file_path: str, fast_mode: bool = False) -> Dict[str, Any]:
         """
         Main entry point to parse a resume file.
         Returns a dictionary with raw_text, skills, and work_experience.
+        When fast_mode=True (onboarding), uses ultra-fast lightweight models with strict timeout.
         """
         if not os.path.exists(file_path):
             logger.error(f"Resume file not found: {file_path}")
@@ -44,7 +51,7 @@ class ResumeParsingService:
         clean_text = self._normalize_text(raw_text)
 
         # 3. Extract Data (Skills + Experience)
-        extracted_data = self._extract_structured_data(clean_text)
+        extracted_data = self._extract_structured_data(clean_text, fast_mode=fast_mode)
 
         return {
             'raw_text': raw_text,
@@ -53,13 +60,17 @@ class ResumeParsingService:
         }
 
     def _extract_text(self, file_path: str) -> str:
-        """Extracts text from PDF or DOCX files."""
+        """Extracts text from PDF, DOCX, or TXT files."""
         try:
-            if file_path.lower().endswith('.pdf'):
+            low = file_path.lower()
+            if low.endswith('.pdf'):
                 return extract_text(file_path)
-            elif file_path.lower().endswith('.docx'):
+            elif low.endswith('.docx'):
                 doc = docx.Document(file_path)
                 return "\n".join([para.text for para in doc.paragraphs])
+            elif low.endswith('.txt'):
+                with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+                    return f.read()
             else:
                 logger.warning(f"Unsupported file format: {file_path}")
                 return ""
@@ -77,9 +88,11 @@ class ResumeParsingService:
         text = re.sub(r'\s+', ' ', text).strip()
         return text
 
-    def _extract_structured_data(self, text: str) -> Dict[str, Any]:
+    def _extract_structured_data(self, text: str, fast_mode: bool = False) -> Dict[str, Any]:
         """
-        Uses OpenAI to extract skills and work experience. 
+        Uses AI to extract skills and work experience.
+        When fast_mode=True (onboarding), uses the fastest lightweight model (Cerebras llama3.1-8b
+        or Gemini Flash-Lite) with zero retries and a tight timeout so onboarding feels instant.
         Falls back to keyword matching for skills if AI fails.
         """
         # 1. Keyword Matching (Baseline)
@@ -88,20 +101,34 @@ class ResumeParsingService:
         # 2. AI Extraction
         if self.has_api_key:
             try:
-                system_prompt = "You are an expert resume parser. Extract skills and work experience from the resume text provided. Return ONLY valid JSON."
-                user_prompt = f"Analyze the following resume text and extract:\n1. 'skills': A list of technical and soft skills.\n2. 'work_experience': A list of objects, each containing 'title', 'company', 'start_date', 'end_date', and 'description'.\n\nResume Text:\n{text[:4000]}"
+                system_prompt = "Extract skills and work experience from the resume. Return ONLY valid JSON."
+                excerpt_len = 2800 if fast_mode else 4000
+                user_prompt = (
+                    "Extract JSON with keys:\n"
+                    '1. "skills": list of technical and soft skill strings\n'
+                    '2. "work_experience": list of objects {"title","company","start_date","end_date","description"}\n\n'
+                    f"Resume:\n{text[:excerpt_len]}"
+                )
 
-                data = safe_ai_request(system_prompt, user_prompt, model="gemini-3.6-flash")
+                if fast_mode:
+                    data = safe_ai_request(
+                        system_prompt,
+                        user_prompt,
+                        model="gemini-2.0-flash-lite",
+                        retries=0,
+                        timeout=6,
+                        prefer_fast=True,
+                    )
+                else:
+                    data = safe_ai_request(system_prompt, user_prompt, model="gemini-2.5-flash")
                 
-                
-                # Merge AI skills with keyword skills (deduplicate)
-                ai_skills = [s.lower() for s in data.get('skills', [])]
-                combined_skills = list(set(found_skills + ai_skills))
-                
-                return {
-                    'skills': combined_skills,
-                    'work_experience': data.get('work_experience', [])
-                }
+                if isinstance(data, dict):
+                    ai_skills = [str(s).lower().strip() for s in (data.get('skills') or []) if str(s).strip()]
+                    combined_skills = list(set(found_skills + ai_skills))
+                    return {
+                        'skills': combined_skills,
+                        'work_experience': data.get('work_experience', []) if isinstance(data.get('work_experience'), list) else []
+                    }
 
             except Exception as e:
                 logger.error(f"AI parsing failed: {e}")
@@ -109,5 +136,5 @@ class ResumeParsingService:
         # Fallback if AI fails
         return {
             'skills': found_skills,
-            'work_experience': [] # Regex fallback could be added here if strictly necessary
+            'work_experience': []
         }

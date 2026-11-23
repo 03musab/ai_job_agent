@@ -24,6 +24,12 @@ _DEFAULT_GEMINI_MODELS = [
     "gemini-flash-latest",
 ]
 
+_FAST_GEMINI_MODELS = [
+    "gemini-2.0-flash-lite",
+    "gemini-2.5-flash-lite",
+    "gemini-2.0-flash",
+]
+
 
 def _extract_json_from_text(text: str):
     """
@@ -91,27 +97,59 @@ def _is_provider_fatal_error(err: Exception) -> bool:
     ))
 
 
-def safe_ai_request(system_prompt, user_prompt, model="gemini-2.5-flash", retries=1, timeout=15):
+def safe_ai_request(system_prompt, user_prompt, model="gemini-2.5-flash", retries=1, timeout=15, prefer_fast=False):
     """
-    Executes an AI completion request prioritizing Google Gemini (with fallback to Cerebras):
-    - Uses valid, fast Gemini Flash models with strict request timeouts
-    - Skips pointless retries on 404/auth/quota errors so fallback happens immediately
-    - JSON enforcement
+    Executes an AI completion request prioritizing Google Gemini (with fallback to Cerebras),
+    or when prefer_fast=True (e.g. onboarding resume parse), prioritizing ultra-low-latency
+    Cerebras llama3.1-8b -> Gemini Flash-Lite for sub-second responses.
     """
     gemini_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
     cerebras_key = os.getenv('CEREBRAS_API_KEY')
 
     normalized_model = _LEGACY_MODEL_ALIASES.get((model or "").strip().lower(), model or "gemini-2.5-flash")
+    full_prompt = f"{system_prompt}\n\n{user_prompt}"
 
-    # Priority 1: Google Gemini API
+    def _run_cerebras(selected_model: str):
+        if not cerebras_key:
+            return None
+        client = Cerebras(api_key=cerebras_key, timeout=timeout)
+        attempt = 0
+        while attempt <= retries:
+            try:
+                logger.info(f"Attempting Cerebras request with model: {selected_model}")
+                response = client.chat.completions.create(
+                    model=selected_model,
+                    messages=[{"role": "user", "content": full_prompt}],
+                    response_format={"type": "json_object"},
+                    temperature=0.2
+                )
+                content = response.choices[0].message.content
+                if content:
+                    return _extract_json_from_text(content)
+                break
+            except Exception as e:
+                logger.error(f"Cerebras Service Error ({selected_model}, Attempt {attempt+1}): {e}")
+                if _is_non_retryable_error(e):
+                    break
+                attempt += 1
+                if attempt <= retries:
+                    time.sleep(0.5)
+        return None
+
+    # Fast Path (e.g. onboarding resume parse): Cerebras llama3.1-8b first (~200-400ms)
+    if prefer_fast and cerebras_key:
+        for fast_cb_model in ("llama3.1-8b", "llama-3.3-70b"):
+            res = _run_cerebras(fast_cb_model)
+            if res is not None:
+                return res
+
+    # Priority 1 (or fallback in prefer_fast): Google Gemini API
     if gemini_key:
         genai.configure(api_key=gemini_key)
 
-        candidate_models = list(_DEFAULT_GEMINI_MODELS)
+        candidate_models = list(_FAST_GEMINI_MODELS if prefer_fast else _DEFAULT_GEMINI_MODELS)
         if normalized_model and "gemini" in normalized_model.lower() and normalized_model not in candidate_models:
             candidate_models.insert(0, normalized_model)
-
-        full_prompt = f"{system_prompt}\n\n{user_prompt}"
 
         for m_name in candidate_models:
             attempt = 0
@@ -147,36 +185,15 @@ def safe_ai_request(system_prompt, user_prompt, model="gemini-2.5-flash", retrie
             if provider_failed:
                 break
 
-    # Priority 2: Cerebras Fallback (if CEREBRAS_API_KEY is configured)
-    if cerebras_key:
-        client = Cerebras(api_key=cerebras_key, timeout=timeout)
+    # Priority 2: Cerebras Fallback (when not already tried in prefer_fast)
+    if not prefer_fast and cerebras_key:
         cerebras_model = (
             "llama-3.3-70b"
             if ("qwen" in normalized_model.lower() or "gemini" in normalized_model.lower())
             else normalized_model
         )
-
-        full_prompt = f"{system_prompt}\n\n{user_prompt}"
-        attempt = 0
-        while attempt <= retries:
-            try:
-                logger.info(f"Attempting Cerebras request with model: {cerebras_model}")
-                response = client.chat.completions.create(
-                    model=cerebras_model,
-                    messages=[{"role": "user", "content": full_prompt}],
-                    response_format={"type": "json_object"},
-                    temperature=0.2
-                )
-                content = response.choices[0].message.content
-                if content:
-                    return _extract_json_from_text(content)
-                break
-            except Exception as e:
-                logger.error(f"Cerebras Service Error (Attempt {attempt+1}): {e}")
-                if _is_non_retryable_error(e):
-                    break
-                attempt += 1
-                if attempt <= retries:
-                    time.sleep(0.5)
+        res = _run_cerebras(cerebras_model)
+        if res is not None:
+            return res
 
     raise Exception("AI Service failed to return valid JSON after retries. Please check your GEMINI_API_KEY or CEREBRAS_API_KEY in .env.")

@@ -4,18 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title | default('AI JobSnap — Enterprise Console') }}</title>
-    <meta name="description" content="Automate your job search with multi-source scraping, resume-aware relevance scoring, outreach generation, and scheduled application reports.">
+    <title>{% block title %}{{ title | default('AI JobSnap - Smart Career Copilot') }}{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}{{ og_description | default('Automate your job search with multi-source scraping, resume-aware relevance scoring, outreach generation, and scheduled application reports.') }}{% endblock %}">
     <meta name="theme-color" content="#10b981">
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='assets/jobsnap-logo.svg') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='assets/jobsnap-logo-120.png') }}">
     <link rel="canonical" href="{{ request.url }}">
     
     <!-- Open Graph / Social Media -->
+    <meta property="og:site_name" content="AI JobSnap">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.url }}">
-    <meta property="og:title" content="{{ title | default('AI JobSnap — Enterprise Console') }}">
-    <meta property="og:description" content="Automate your job search with multi-source scraping, resume-aware relevance scoring, outreach generation, and scheduled application reports.">
+    <meta property="og:title" content="{% block og_title %}{{ og_title | default(title | default('AI JobSnap - Smart Career Copilot')) }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ og_description | default('Automate your job search with multi-source scraping, resume-aware relevance scoring, outreach generation, and scheduled application reports.') }}{% endblock %}">
     <meta property="og:image" content="{{ url_for('static', filename='assets/jobsnap-logo-120.png', _external=True) }}">
 
     <!-- Fonts from Stitch Design Spec -->
@@ -406,30 +407,12 @@
     </nav>
     {% endblock %}
 
-    <!-- Flash Notifications (Floating Toast Stack) -->
+    <!-- Flash Notifications Seeded into Expressive Snapy Toasts -->
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    <div id="flash-toast-container" class="fixed top-[60px] sm:top-16 left-3 right-3 sm:left-auto sm:right-6 z-[110] space-y-2 sm:max-w-sm sm:w-full pointer-events-none" role="region" aria-label="Notifications">
+    <div id="snapy-flash-seed" class="hidden" aria-hidden="true">
         {% for category, message in messages %}
-        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4500)"
-             x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
-             class="pointer-events-auto p-3.5 rounded-xl border shadow-2xl flex items-center justify-between gap-3 backdrop-blur-md animate-fade-in
-                {% if category in ['danger', 'error'] %}bg-surface-container-high border-error/40 text-error
-                {% elif category == 'success' %}bg-surface-container-high border-secondary/40 text-secondary
-                {% else %}bg-surface-container-high border-outline-variant text-on-surface{% endif %}"
-             role="alert">
-            <div class="flex items-center gap-2.5 min-w-0">
-                <span class="material-symbols-outlined text-[18px] shrink-0">
-                    {% if category in ['danger', 'error'] %}error
-                    {% elif category == 'success' %}check_circle
-                    {% else %}info{% endif %}
-                </span>
-                <span class="font-body-sm text-[13px] font-medium">{{ message }}</span>
-            </div>
-            <button type="button" @click="show = false" class="text-on-surface-variant hover:text-on-surface shrink-0 p-0.5 rounded transition-colors" aria-label="Dismiss alert">
-                <span class="material-symbols-outlined text-[16px]">close</span>
-            </button>
-        </div>
+        <span data-flash-cat="{{ category }}" data-flash-msg="{{ message }}"></span>
         {% endfor %}
     </div>
     {% endif %}
@@ -534,7 +517,7 @@
                         // Execute all scripts from the fetched page
                         allNewScripts.forEach(oldScript => {
                             if (oldScript.src && oldScript.src.includes('alpinejs')) return;
-                            if (oldScript.id === 'spotlight-tour-script') return;
+                            if (oldScript.id === 'spotlight-tour-script' || oldScript.id === 'snapy-toast-script' || oldScript.id === 'themed-selects-script') return;
                             if (oldScript.textContent.includes('spaNavigate')) return;
 
                             const newScript = document.createElement('script');
@@ -604,6 +587,8 @@
             window.spaNavigate = spaNavigate;
         })();
     </script>
+    {% include "partials/_themed_selects.html" %}
+    {% include "partials/_snapy_toasts.html" %}
     {% include "partials/_spotlight_tour.html" %}
     {% block scripts %}{% endblock %}
 </body>
