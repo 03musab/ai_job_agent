@@ -4,7 +4,7 @@
 {% block og_description %}{{ job.location or 'Remote / Hybrid' }} · {{ job.formatted_experience }} · {{ job.formatted_salary }}. {{ job.match_score }}% match with your candidate profile on AI JobSnap.{% endblock %}
 
 {% block content %}
-<div class="max-w-[1260px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 flex flex-col gap-6 w-full font-sans antialiased">
+<div id="job-details-page" class="max-w-[1260px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 flex flex-col gap-6 w-full font-sans antialiased">
     
     <!-- Top Breadcrumb & Requisition Quick Bar -->
     <div class="flex flex-wrap items-center justify-between gap-3 text-[12px]">
@@ -77,7 +77,7 @@
                             <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[13px] flex-wrap mt-1.5 font-medium">
                                 <span>{{ job.location or 'Remote / Bengaluru, India' }}</span>
                                 <span>•</span>
-                                <span>Indexed {{ job.found_date or 'recently' }}</span>
+                                <span>Indexed {{ (job.found_date | string)[:10] if job.found_date else 'recently' }}</span>
                                 <span>•</span>
                                 <span class="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
                                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -813,6 +813,129 @@
 .jd-theme-rose .jd-section-title { color: #9f1239; }
 .dark .jd-theme-rose .jd-section-title { color: #fda4af; }
 .jd-theme-rose .jd-bullet-marker { background-color: #f43f5e; }
+
+/* ==========================================================================
+   Obsidian Precision Dark Mode Overrides for Job Details & Modals
+   Matches --bg-surface (#11131a), --bg-surface-container (#161822),
+   --bg-surface-container-high (#1e212d), --border-outline-variant (#1e293b)
+   ========================================================================== */
+html.dark #job-details-page .bg-white,
+html.dark #apply-modal .bg-white,
+html.dark #traffic-analysis-modal .bg-white,
+html.dark #direct-apply-modal .bg-white {
+    background-color: var(--bg-surface, #11131a) !important;
+}
+html.dark #job-details-page [class*="bg-slate-50"],
+html.dark #job-details-page [class*="bg-slate-100"],
+html.dark #apply-modal [class*="bg-slate-50"],
+html.dark #apply-modal [class*="bg-slate-100"],
+html.dark #traffic-analysis-modal [class*="bg-slate-50"],
+html.dark #direct-apply-modal [class*="bg-slate-50"] {
+    background-color: var(--bg-surface-container, #161822) !important;
+}
+html.dark #job-details-page [class*="hover:bg-slate-100"]:hover,
+html.dark #job-details-page [class*="hover:bg-slate-200"]:hover {
+    background-color: var(--bg-surface-container-high, #1e212d) !important;
+}
+html.dark #job-details-page [class*="bg-emerald-50"],
+html.dark #direct-apply-modal [class*="bg-emerald-50"] {
+    background-color: rgba(16, 185, 129, 0.12) !important;
+}
+html.dark #job-details-page [class*="bg-amber-50"],
+html.dark #apply-modal [class*="bg-amber-50"] {
+    background-color: rgba(245, 158, 11, 0.10) !important;
+}
+html.dark #job-details-page [class*="bg-sky-50"],
+html.dark #job-details-page [class*="bg-sky-100"] {
+    background-color: rgba(56, 189, 248, 0.12) !important;
+}
+html.dark #job-details-page [class*="bg-[#fcfbf8]"],
+html.dark #job-details-page #job-description-rendered {
+    background-color: var(--bg-surface-container, #161822) !important;
+}
+
+/* Borders */
+html.dark #job-details-page [class*="border-slate-100"],
+html.dark #job-details-page [class*="border-slate-200"],
+html.dark #apply-modal [class*="border-slate-100"],
+html.dark #apply-modal [class*="border-slate-200"],
+html.dark #traffic-analysis-modal [class*="border-slate-100"],
+html.dark #traffic-analysis-modal [class*="border-slate-200"],
+html.dark #direct-apply-modal [class*="border-slate-100"],
+html.dark #direct-apply-modal [class*="border-slate-200"] {
+    border-color: var(--border-outline-variant, #1e293b) !important;
+}
+html.dark #job-details-page [class*="divide-slate-100"] > :not([hidden]) ~ :not([hidden]) {
+    border-color: rgba(30, 41, 59, 0.85) !important;
+}
+html.dark #job-details-page [class*="border-emerald-200"],
+html.dark #job-details-page [class*="border-emerald-300"] {
+    border-color: rgba(16, 185, 129, 0.30) !important;
+}
+html.dark #job-details-page [class*="border-amber-200"],
+html.dark #job-details-page [class*="border-amber-300"],
+html.dark #apply-modal [class*="border-amber-300"] {
+    border-color: rgba(245, 158, 11, 0.32) !important;
+}
+html.dark #job-details-page [class*="border-sky-200"],
+html.dark #job-details-page [class*="border-sky-300"] {
+    border-color: rgba(56, 189, 248, 0.30) !important;
+}
+
+/* Typography Contrast */
+html.dark #job-details-page .text-slate-900,
+html.dark #apply-modal .text-slate-900,
+html.dark #traffic-analysis-modal .text-slate-900,
+html.dark #direct-apply-modal .text-slate-900 {
+    color: #f8fafc !important;
+}
+html.dark #job-details-page .text-slate-800,
+html.dark #apply-modal .text-slate-800,
+html.dark #direct-apply-modal .text-slate-800 {
+    color: #e2e8f0 !important;
+}
+html.dark #job-details-page .text-slate-700,
+html.dark #apply-modal .text-slate-700,
+html.dark #direct-apply-modal .text-slate-700 {
+    color: #cbd5e1 !important;
+}
+html.dark #job-details-page .text-slate-500,
+html.dark #apply-modal .text-slate-500,
+html.dark #direct-apply-modal .text-slate-500 {
+    color: #94a3b8 !important;
+}
+html.dark #job-details-page .text-emerald-800,
+html.dark #job-details-page .text-emerald-700 {
+    color: #34d399 !important;
+}
+html.dark #job-details-page .text-amber-800,
+html.dark #job-details-page .text-amber-900,
+html.dark #apply-modal .text-amber-800,
+html.dark #apply-modal .text-amber-900 {
+    color: #fcd34d !important;
+}
+html.dark #job-details-page .text-sky-700 {
+    color: #7dd3fc !important;
+}
+
+/* Keep solid bright buttons crisp in dark mode */
+html.dark #job-details-page #btn-direct-apply,
+html.dark #job-details-page #btn-apply-portal,
+html.dark #direct-apply-modal #btn-submit-direct-apply {
+    background-color: #19D889 !important;
+    color: #064e3b !important;
+}
+html.dark #job-details-page #btn-direct-apply:hover,
+html.dark #job-details-page #btn-apply-portal:hover,
+html.dark #direct-apply-modal #btn-submit-direct-apply:hover {
+    background-color: #10b981 !important;
+    color: #ffffff !important;
+}
+html.dark #job-details-page #btn-applied-state {
+    background-color: rgba(25, 216, 137, 0.14) !important;
+    border-color: rgba(25, 216, 137, 0.35) !important;
+    color: #19D889 !important;
+}
 </style>
 {% endblock %}
 
