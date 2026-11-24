@@ -718,22 +718,234 @@
         };
 
         const scrapeBtnText = els.scrapeBtn ? els.scrapeBtn.querySelector('.button-text') : null;
-        let eventSource = null;
+        const scrapeBtnIcon = els.scrapeBtn ? els.scrapeBtn.querySelector('.button-icon') : null;
+        const scraperStatusBadge = document.getElementById('scraper-status-badge');
+        const cooldownBanner = document.getElementById('scraper-cooldown-banner');
+        const cooldownLabel = document.getElementById('scraper-cooldown-label');
+        const cooldownSubtext = document.getElementById('scraper-cooldown-subtext');
+        const cooldownBar = document.getElementById('scraper-cooldown-bar');
+        const COOLDOWN_STORAGE_KEY = 'jobsnap_scraper_cooldown_u{{ current_user.id }}';
 
-        function resetProgressBar() {
-            if (!els.progress.container) return;
-            els.progress.container.classList.remove('hidden');
-            els.progress.bar.style.width = '0%';
-            els.progress.pct.textContent = '0%';
-            els.progress.status.textContent = 'Ready to start...';
-            els.progress.error.classList.add('hidden');
-            els.progress.error.textContent = '';
-            Object.values(els.progress.milestones).forEach(el => { if(el) el.className = 'w-1.5 h-1.5 rounded-full bg-outline'; });
+        let eventSource = null;
+        let pollTimer = null;
+
+        const cooldownState = {
+            active: false,
+            cooldownUntilMs: 0,
+            cooldownTotalSec: 0,
+            completedCount: 0,
+            nextCooldownSec: 15,
+            tickInterval: null
+        };
+
+        function getCooldownRemainingSec() {
+            if (!cooldownState.cooldownUntilMs) return 0;
+            const diffMs = cooldownState.cooldownUntilMs - Date.now();
+            return diffMs > 0 ? Math.ceil(diffMs / 1000) : 0;
+        }
+
+        function saveCooldownCache() {
+            try {
+                localStorage.setItem(COOLDOWN_STORAGE_KEY, JSON.stringify({
+                    cooldownUntilMs: cooldownState.cooldownUntilMs,
+                    cooldownTotalSec: cooldownState.cooldownTotalSec,
+                    completedCount: cooldownState.completedCount,
+                    nextCooldownSec: cooldownState.nextCooldownSec
+                }));
+            } catch (e) {}
+        }
+
+        function loadCooldownCache() {
+            try {
+                const cached = JSON.parse(localStorage.getItem(COOLDOWN_STORAGE_KEY) || '{}');
+                if (cached.cooldownUntilMs && cached.cooldownUntilMs > Date.now()) {
+                    cooldownState.cooldownUntilMs = Number(cached.cooldownUntilMs) || 0;
+                    cooldownState.cooldownTotalSec = Number(cached.cooldownTotalSec) || 15;
+                }
+                if (typeof cached.completedCount === 'number') {
+                    cooldownState.completedCount = cached.completedCount;
+                }
+                if (typeof cached.nextCooldownSec === 'number') {
+                    cooldownState.nextCooldownSec = cached.nextCooldownSec;
+                }
+            } catch (e) {}
+        }
+
+        function applyServerCooldown(data) {
+            if (!data || typeof data !== 'object') return;
+            if (typeof data.active === 'boolean') {
+                cooldownState.active = data.active;
+            }
+            if (typeof data.completed_count === 'number') {
+                cooldownState.completedCount = data.completed_count;
+            }
+            if (typeof data.next_cooldown_seconds === 'number' && data.next_cooldown_seconds > 0) {
+                cooldownState.nextCooldownSec = data.next_cooldown_seconds;
+            }
+            const rem = Number(data.cooldown_remaining || 0);
+            const totalSec = Number(data.cooldown_seconds || rem || 0);
+            if (rem > 0) {
+                cooldownState.cooldownUntilMs = Date.now() + (rem * 1000);
+                cooldownState.cooldownTotalSec = Math.max(totalSec, rem);
+            } else if (data.cooldown_until && Number(data.cooldown_until) * 1000 > Date.now()) {
+                cooldownState.cooldownUntilMs = Number(data.cooldown_until) * 1000;
+                cooldownState.cooldownTotalSec = Math.max(totalSec, Math.ceil((cooldownState.cooldownUntilMs - Date.now()) / 1000));
+            } else if (!cooldownState.active) {
+                cooldownState.cooldownUntilMs = 0;
+                cooldownState.cooldownTotalSec = 0;
+            }
+            saveCooldownCache();
+            renderCooldownUI();
+        }
+
+        function renderCooldownUI() {
+            const rem = getCooldownRemainingSec();
+            const isLocked = cooldownState.active || rem > 0;
 
             if (els.scrapeBtn) {
-                els.scrapeBtn.disabled = true;
-                if (scrapeBtnText) scrapeBtnText.textContent = 'Searching...';
+                els.scrapeBtn.disabled = isLocked;
+                els.scrapeBtn.style.opacity = isLocked ? '0.65' : '';
+                els.scrapeBtn.style.cursor = isLocked ? 'not-allowed' : 'pointer';
+                if (cooldownState.active) {
+                    if (scrapeBtnText) scrapeBtnText.textContent = 'Searching...';
+                    if (scrapeBtnIcon) scrapeBtnIcon.textContent = 'progress_activity';
+                } else if (rem > 0) {
+                    if (scrapeBtnText) scrapeBtnText.textContent = `Cooldown (${rem}s)`;
+                    if (scrapeBtnIcon) scrapeBtnIcon.textContent = 'hourglass_top';
+                } else {
+                    if (scrapeBtnText) scrapeBtnText.textContent = 'Start Search';
+                    if (scrapeBtnIcon) scrapeBtnIcon.textContent = 'radar';
+                }
             }
+
+            if (scraperStatusBadge) {
+                if (cooldownState.active) {
+                    scraperStatusBadge.textContent = 'Scanning';
+                    scraperStatusBadge.className = 'font-data-mono text-[9px] px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/35 font-bold uppercase';
+                } else if (rem > 0) {
+                    scraperStatusBadge.textContent = `Wait ${rem}s`;
+                    scraperStatusBadge.className = 'font-data-mono text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold uppercase';
+                } else {
+                    scraperStatusBadge.textContent = 'Active';
+                    scraperStatusBadge.className = 'font-data-mono text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/25 font-bold uppercase';
+                }
+            }
+
+            if (cooldownBanner) {
+                if (!cooldownState.active && rem > 0) {
+                    cooldownBanner.classList.remove('hidden');
+                    if (cooldownLabel) cooldownLabel.textContent = `Cooldown: ${rem}s`;
+                    if (cooldownSubtext) cooldownSubtext.textContent = 'Search & presets paused';
+                    if (cooldownBar) {
+                        const denom = Math.max(cooldownState.cooldownTotalSec || rem, 1);
+                        const pct = Math.max(0, Math.min(100, (rem / denom) * 100));
+                        cooldownBar.style.width = `${pct}%`;
+                    }
+                } else {
+                    cooldownBanner.classList.add('hidden');
+                }
+            }
+
+            // Lock or unlock every Saved Preset Play button
+            document.querySelectorAll('.preset-play-btn').forEach((btn) => {
+                btn.disabled = isLocked;
+                btn.setAttribute('aria-disabled', isLocked ? 'true' : 'false');
+                btn.style.opacity = isLocked ? '0.42' : '';
+                btn.style.cursor = isLocked ? 'not-allowed' : 'pointer';
+                const iconEl = btn.querySelector('.preset-play-icon');
+                if (cooldownState.active) {
+                    btn.title = 'A search is currently running';
+                    if (iconEl) iconEl.textContent = 'hourglass_top';
+                } else if (rem > 0) {
+                    btn.title = `Scraper on cooldown (${rem}s remaining)`;
+                    if (iconEl) iconEl.textContent = 'hourglass_top';
+                } else {
+                    btn.title = 'Run this search preset';
+                    if (iconEl) iconEl.textContent = 'play_arrow';
+                }
+            });
+        }
+
+        function startCooldownTicker() {
+            if (window._jobsnapCooldownInterval) {
+                clearInterval(window._jobsnapCooldownInterval);
+            }
+            window._jobsnapCooldownInterval = setInterval(() => {
+                const rem = getCooldownRemainingSec();
+                if (rem <= 0 && cooldownState.cooldownUntilMs > 0) {
+                    cooldownState.cooldownUntilMs = 0;
+                    cooldownState.cooldownTotalSec = 0;
+                    saveCooldownCache();
+                }
+                renderCooldownUI();
+            }, 500);
+            cooldownState.tickInterval = window._jobsnapCooldownInterval;
+        }
+
+        async function syncCooldownFromServer() {
+            try {
+                const res = await fetch('/api/scrape_cooldown', { headers: { 'Accept': 'application/json' } });
+                if (res.ok) {
+                    const data = await res.json();
+                    applyServerCooldown(data);
+                }
+            } catch (e) {}
+        }
+
+        function stopActiveStreams() {
+            if (eventSource) {
+                try { eventSource.close(); } catch (e) {}
+                eventSource = null;
+            }
+            if (pollTimer) {
+                clearInterval(pollTimer);
+                pollTimer = null;
+            }
+        }
+
+        function resetProgressBar(statusText = 'Initializing job search...') {
+            if (els.progress.container) {
+                els.progress.container.classList.remove('hidden');
+                if (els.progress.bar) els.progress.bar.style.width = '5%';
+                if (els.progress.pct) els.progress.pct.textContent = '5%';
+                if (els.progress.status) els.progress.status.textContent = statusText;
+                if (els.progress.error) {
+                    els.progress.error.classList.add('hidden');
+                    els.progress.error.textContent = '';
+                }
+                Object.values(els.progress.milestones).forEach(el => { if (el) el.className = 'w-1.5 h-1.5 rounded-full bg-outline'; });
+            }
+
+            const heroProg = document.getElementById('hero-progress-container');
+            const heroBar = document.getElementById('hero-progress-bar');
+            const heroPct = document.getElementById('hero-progress-percentage');
+            const heroStatus = document.getElementById('hero-progress-status');
+            const heroErr = document.getElementById('hero-progress-error');
+            if (heroProg) {
+                heroProg.classList.remove('hidden');
+                if (heroBar) heroBar.style.width = '5%';
+                if (heroPct) heroPct.textContent = '5%';
+                if (heroStatus) heroStatus.textContent = statusText;
+                if (heroErr) {
+                    heroErr.classList.add('hidden');
+                    heroErr.textContent = '';
+                }
+            }
+        }
+
+        function updateProgressUI(percent, message) {
+            const safePct = Math.max(0, Math.min(100, Number(percent) || 0));
+            if (els.progress.bar) els.progress.bar.style.width = `${safePct}%`;
+            if (els.progress.pct) els.progress.pct.textContent = `${safePct}%`;
+            if (els.progress.status && message) els.progress.status.textContent = message;
+            updateMilestones(safePct);
+
+            const heroBar = document.getElementById('hero-progress-bar');
+            const heroPct = document.getElementById('hero-progress-percentage');
+            const heroStatus = document.getElementById('hero-progress-status');
+            if (heroBar) heroBar.style.width = `${safePct}%`;
+            if (heroPct) heroPct.textContent = `${safePct}%`;
+            if (heroStatus && message) heroStatus.textContent = message;
         }
 
         function updateMilestones(percent) {
@@ -753,67 +965,308 @@
             window.location.href = targetUrl.toString();
         }
 
-        if (els.searchForm) {
+        function handleSearchError(msg, isCooldownError = false) {
+            stopActiveStreams();
+            cooldownState.active = false;
+            renderCooldownUI();
+
+            if (els.progress.status) {
+                els.progress.status.textContent = isCooldownError ? 'Cooldown Active' : 'Task Failed';
+            }
+            if (els.progress.error) {
+                els.progress.error.textContent = msg;
+                els.progress.error.classList.remove('hidden');
+            }
+            const heroErr = document.getElementById('hero-progress-error');
+            if (heroErr) {
+                heroErr.textContent = msg;
+                heroErr.classList.remove('hidden');
+            }
+            if (window.snapyToast) {
+                window.snapyToast(msg, {
+                    mood: isCooldownError ? 'warning' : 'error',
+                    title: isCooldownError ? 'Scraper Cooldown' : 'Search Failed'
+                });
+            }
+            if (!isCooldownError) {
+                syncCooldownFromServer();
+            }
+        }
+
+        function handleScanSuccess(payload) {
+            stopActiveStreams();
+            cooldownState.active = false;
+
+            const fallbackNextSec = (cooldownState.completedCount === 0) ? 15 : 30;
+            const cdSec = Number(payload && payload.cooldown_seconds) || fallbackNextSec;
+            const cdUntil = (payload && payload.cooldown_until) ? Number(payload.cooldown_until) : ((Date.now() / 1000) + cdSec);
+            const completedCnt = (payload && typeof payload.completed_count === 'number')
+                ? payload.completed_count
+                : (cooldownState.completedCount + 1);
+
+            applyServerCooldown({
+                active: false,
+                cooldown_remaining: cdSec,
+                cooldown_seconds: cdSec,
+                cooldown_until: cdUntil,
+                completed_count: completedCnt,
+                next_cooldown_seconds: 30
+            });
+
+            updateProgressUI(100, `Complete! Next scan in ${cdSec}s — refreshing...`);
+            if (window.snapyToast) {
+                const summary = (payload && payload.message) || 'Job scan complete!';
+                window.snapyToast(`${summary} Cooldown: ${cdSec}s.`, { mood: 'happy', title: 'Scan Complete' });
+            }
+            setTimeout(() => redirectToFreshDashboard(), 600);
+        }
+
+        function startPollingTaskStatus(taskId) {
+            if (pollTimer) clearInterval(pollTimer);
+            let attempts = 0;
+            const maxAttempts = 150; // ~3 minutes max
+            pollTimer = setInterval(async () => {
+                attempts += 1;
+                if (attempts > maxAttempts) {
+                    handleSearchError('Search timed out waiting for worker response.');
+                    return;
+                }
+                try {
+                    const res = await fetch(`/task_status/${encodeURIComponent(taskId)}`, { headers: { 'Accept': 'application/json' } });
+                    if (!res.ok) return;
+                    const d = await res.json();
+                    const pct = typeof d.progress === 'number' ? d.progress : (d.percent || 0);
+                    updateProgressUI(pct, d.message || d.status || d.state);
+                    if (d.state === 'SUCCESS') {
+                        handleScanSuccess(d);
+                    } else if (d.state === 'FAILURE') {
+                        handleSearchError(d.message || d.status || 'Search task failed.');
+                    }
+                } catch (e) {}
+            }, 1200);
+        }
+
+        async function runScraperScan({ searchTerms, location = '', experience = '', jobType = '', scanMode = 'fast', sourceLabel = '' }) {
+            const rem = getCooldownRemainingSec();
+            if (cooldownState.active) {
+                if (window.snapyToast) {
+                    window.snapyToast('A job search is already running. Please wait for it to finish.', { mood: 'warning', title: 'Search In Progress' });
+                }
+                return false;
+            }
+            if (rem > 0) {
+                if (window.snapyToast) {
+                    window.snapyToast(`Scraper is on cooldown. Please wait ${rem}s before starting another scan.`, { mood: 'warning', title: 'Scraper Cooldown' });
+                }
+                if (cooldownBanner) {
+                    cooldownBanner.classList.remove('hidden');
+                }
+                return false;
+            }
+
+            const cleanTerms = String(searchTerms || '').trim();
+            if (!cleanTerms) {
+                const termsInput = document.getElementById('search_terms') || document.getElementById('search_query');
+                if (termsInput) termsInput.focus();
+                if (window.snapyToast) {
+                    window.snapyToast('Please enter at least one role, skill, or keyword to scan.', { mood: 'warning', title: 'Enter Keywords' });
+                }
+                return false;
+            }
+
+            const cleanLoc = String(location || '').trim();
+            const cleanExp = String(experience || '').trim();
+            const cleanJobType = String(jobType || '').trim();
+            const cleanMode = (scanMode === 'deep') ? 'deep' : 'fast';
+
+            // Keep sidebar form fields & Alpine depth toggle in sync
+            const setField = (id, val) => {
+                const el = document.getElementById(id);
+                if (el && el.value !== val) {
+                    el.value = val;
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            };
+            setField('search_terms', cleanTerms);
+            setField('location', cleanLoc);
+            setField('experience', cleanExp);
+            setField('job_type', cleanJobType);
+            setField('scan_mode', cleanMode);
+            window.dispatchEvent(new CustomEvent('scraper:set-mode', { detail: cleanMode }));
+
+            window._activeScanSearchTerms = cleanTerms;
+            window._activeScanLocation = cleanLoc;
+
+            stopActiveStreams();
+            cooldownState.active = true;
+            renderCooldownUI();
+
+            const startLabel = sourceLabel
+                ? `Running preset "${sourceLabel}" (${cleanMode === 'deep' ? 'Deep' : 'Quick'})...`
+                : `Starting ${cleanMode === 'deep' ? 'Deep' : 'Quick'} scan...`;
+            resetProgressBar(startLabel);
+
+            const params = new URLSearchParams({
+                search_terms: cleanTerms,
+                location: cleanLoc,
+                experience: cleanExp,
+                job_type: cleanJobType,
+                scan_mode: cleanMode
+            }).toString();
+
+            try {
+                const response = await fetch("{{ url_for('start_scrape') }}", {
+                    method: 'POST',
+                    body: params,
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await response.json().catch(() => ({}));
+
+                if (response.status === 429) {
+                    applyServerCooldown(data);
+                    handleSearchError(data.error || data.message || 'Scraper is on cooldown.', true);
+                    return false;
+                }
+
+                if (response.ok && data.task_id) {
+                    if (typeof data.next_cooldown_seconds === 'number') {
+                        cooldownState.nextCooldownSec = data.next_cooldown_seconds;
+                    }
+                    let finished = false;
+                    eventSource = new EventSource(`/task_progress_stream/${encodeURIComponent(data.task_id)}`);
+                    eventSource.onmessage = (event) => {
+                        try {
+                            const d = JSON.parse(event.data);
+                            updateProgressUI(d.percent, d.message || d.state);
+                            if (d.state === 'SUCCESS') {
+                                finished = true;
+                                handleScanSuccess(d);
+                            } else if (d.state === 'FAILURE') {
+                                finished = true;
+                                handleSearchError(d.message || 'Error occurred during scan.');
+                            }
+                        } catch (parseErr) {}
+                    };
+                    eventSource.onerror = () => {
+                        if (finished) return;
+                        if (eventSource) {
+                            try { eventSource.close(); } catch (e) {}
+                            eventSource = null;
+                        }
+                        // Gracefully fall back to HTTP polling instead of failing mid-scrape
+                        startPollingTaskStatus(data.task_id);
+                    };
+                    return true;
+                } else {
+                    handleSearchError(data.message || data.error || 'Unable to start search.');
+                    return false;
+                }
+            } catch (error) {
+                handleSearchError('Failed to connect to agent backend.');
+                return false;
+            }
+        }
+
+        // Bind #search-form (idempotent across SPA navigations)
+        if (els.searchForm && els.searchForm.dataset.bound !== '1') {
+            els.searchForm.dataset.bound = '1';
             els.searchForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                resetProgressBar();
-
                 const formData = new FormData(els.searchForm);
-                window._activeScanSearchTerms = (formData.get('search_terms') || '').toString().trim();
-                window._activeScanLocation = (formData.get('location') || '').toString().trim();
-                const params = new URLSearchParams(formData).toString();
+                await runScraperScan({
+                    searchTerms: formData.get('search_terms') || '',
+                    location: formData.get('location') || '',
+                    experience: formData.get('experience') || '',
+                    jobType: formData.get('job_type') || '',
+                    scanMode: formData.get('scan_mode') || 'fast'
+                });
+            });
+        }
+
+        // Bind Saved Presets Play button (.apply-profile-form) with cooldown guard
+        const savedProfilesContainer = document.getElementById('saved-profiles-container');
+        if (savedProfilesContainer && savedProfilesContainer.dataset.presetBound !== '1') {
+            savedProfilesContainer.dataset.presetBound = '1';
+            savedProfilesContainer.addEventListener('submit', async (e) => {
+                const presetForm = e.target.closest('.apply-profile-form');
+                if (!presetForm) return;
+                e.preventDefault();
+
+                const rem = getCooldownRemainingSec();
+                if (cooldownState.active) {
+                    if (window.snapyToast) {
+                        window.snapyToast('A job search is already running. Please wait for it to finish before playing a preset.', { mood: 'warning', title: 'Search In Progress' });
+                    }
+                    return;
+                }
+                if (rem > 0) {
+                    if (window.snapyToast) {
+                        window.snapyToast(`Scraper is on cooldown — saved presets unlock in ${rem}s.`, { mood: 'warning', title: 'Preset Paused (Cooldown)' });
+                    }
+                    if (cooldownBanner) cooldownBanner.classList.remove('hidden');
+                    return;
+                }
+
+                const playBtn = presetForm.querySelector('.preset-play-btn');
+                if (playBtn) playBtn.disabled = true;
 
                 try {
-                    const response = await fetch("{{ url_for('start_scrape') }}", {
+                    const res = await fetch(presetForm.action, {
                         method: 'POST',
-                        body: params,
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                        headers: { 'Accept': 'application/json' }
                     });
-                    const data = await response.json();
+                    const data = await res.json().catch(() => ({}));
 
-                    if (response.ok && data.task_id) {
-                        eventSource = new EventSource(`/task_progress_stream/${data.task_id}`);
-                        eventSource.onmessage = (event) => {
-                            const d = JSON.parse(event.data);
-                            els.progress.bar.style.width = `${d.percent}%`;
-                            els.progress.pct.textContent = `${d.percent}%`;
-                            els.progress.status.textContent = d.message || d.state;
-                            updateMilestones(d.percent);
-
-                            if (d.state === 'SUCCESS') {
-                                els.progress.status.textContent = 'Complete! Refreshing...';
-                                eventSource.close();
-                                setTimeout(() => redirectToFreshDashboard(), 300);
-                            } else if (d.state === 'FAILURE') {
-                                handleSearchError(d.message || 'Error occurred');
-                            }
-                        };
-                        eventSource.onerror = () => {
-                            eventSource.close();
-                            handleSearchError('Connection lost.');
-                        };
-                    } else {
-                        handleSearchError(data.message || data.error || 'Unknown error.');
+                    if (res.status === 429) {
+                        applyServerCooldown(data);
+                        if (window.snapyToast) {
+                            window.snapyToast(data.error || `Scraper is on cooldown. Please wait before running presets.`, { mood: 'warning', title: 'Preset Paused (Cooldown)' });
+                        }
+                        return;
                     }
-                } catch (error) {
-                    handleSearchError('Failed to connect to agent backend.');
+
+                    if (!res.ok || !data.success || !data.profile) {
+                        if (window.snapyToast) {
+                            window.snapyToast(data.error || 'Could not load saved preset.', { mood: 'error', title: 'Preset Error' });
+                        }
+                        renderCooldownUI();
+                        return;
+                    }
+
+                    const prof = data.profile;
+                    const currentMode = document.getElementById('scan_mode')?.value || 'fast';
+                    if (window.snapyToast) {
+                        window.snapyToast(`Starting saved preset "${prof.profile_name}"...`, { mood: 'happy', title: 'Running Preset' });
+                    }
+                    await runScraperScan({
+                        searchTerms: prof.search_terms || presetForm.dataset.searchTerms || '',
+                        location: prof.location || presetForm.dataset.location || '',
+                        experience: prof.experience || presetForm.dataset.experience || '',
+                        jobType: prof.job_type || presetForm.dataset.jobType || '',
+                        scanMode: currentMode,
+                        sourceLabel: prof.profile_name || presetForm.dataset.profileName || ''
+                    });
+                } catch (err) {
+                    if (window.snapyToast) {
+                        window.snapyToast('Network error while starting saved preset.', { mood: 'error', title: 'Network Error' });
+                    }
+                    renderCooldownUI();
                 }
             });
         }
 
-        function handleSearchError(msg) {
-            if (!els.progress.status) return;
-            els.progress.status.textContent = 'Task Failed';
-            els.progress.error.textContent = msg;
-            els.progress.error.classList.remove('hidden');
-            if (eventSource) eventSource.close();
-            if (els.scrapeBtn) {
-                els.scrapeBtn.disabled = false;
-                if (scrapeBtnText) scrapeBtnText.textContent = 'Retry Search';
-            }
-        }
+        // Initialize cooldown state immediately from cache + sync live from backend
+        loadCooldownCache();
+        renderCooldownUI();
+        startCooldownTicker();
+        syncCooldownFromServer();
 
-        if (els.saveProfileBtn) {
+        if (els.saveProfileBtn && els.saveProfileBtn.dataset.bound !== '1') {
+            els.saveProfileBtn.dataset.bound = '1';
             els.saveProfileBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 const fields = ['search_terms', 'location', 'experience', 'job_type'];
@@ -874,7 +1327,12 @@
                 const saved = JSON.parse(localStorage.getItem('jobsnap_console_search') || '{}');
                 fields.forEach(f => {
                     const el = document.getElementById(f);
-                    if (el && !el.value && saved[f] !== undefined && saved[f] !== '') {
+                    if (!el || saved[f] === undefined || saved[f] === '') return;
+                    if (f === 'scan_mode') {
+                        const restoredMode = saved[f] === 'deep' ? 'deep' : 'fast';
+                        el.value = restoredMode;
+                        window.dispatchEvent(new CustomEvent('scraper:set-mode', { detail: restoredMode }));
+                    } else if (!el.value) {
                         el.value = saved[f];
                         el.dispatchEvent(new Event('input', { bubbles: true }));
                         el.dispatchEvent(new Event('change', { bubbles: true }));
@@ -884,7 +1342,8 @@
 
             fields.forEach(f => {
                 const el = document.getElementById(f);
-                if (el) {
+                if (el && el.dataset.persistBound !== '1') {
+                    el.dataset.persistBound = '1';
                     el.addEventListener('input', persistSearchConsole);
                     el.addEventListener('change', persistSearchConsole);
                 }
@@ -1059,7 +1518,6 @@
             const heroLoc = document.getElementById('hero_location');
             const sidebarTerms = document.getElementById('search_terms');
             const sidebarLoc = document.getElementById('location');
-            const scanModeInput = document.getElementById('scan_mode');
 
             const searchKeywords =
                 (filterTerms && filterTerms.value.trim()) ||
@@ -1082,89 +1540,16 @@
                 (sidebarLoc && sidebarLoc.value.trim()) ||
                 '';
 
-            if (sidebarTerms) sidebarTerms.value = searchKeywords;
             if (heroTerms) heroTerms.value = searchKeywords;
             if (heroLoc) heroLoc.value = searchLoc;
-            if (sidebarLoc) sidebarLoc.value = searchLoc;
-            if (scanModeInput) scanModeInput.value = mode;
 
-            window._activeScanSearchTerms = searchKeywords;
-            window._activeScanLocation = searchLoc;
-
-            // Show real-time progress card in Hero
-            const heroProg = document.getElementById('hero-progress-container');
-            const heroBar = document.getElementById('hero-progress-bar');
-            const heroPct = document.getElementById('hero-progress-percentage');
-            const heroStatus = document.getElementById('hero-progress-status');
-            const heroErr = document.getElementById('hero-progress-error');
-
-            if (heroProg) {
-                heroProg.classList.remove('hidden');
-                if (heroBar) heroBar.style.width = '0%';
-                if (heroPct) heroPct.textContent = '0%';
-                if (heroStatus) heroStatus.textContent = `Starting ${mode === 'fast' ? 'Quick' : 'Deep'} scan...`;
-                if (heroErr) heroErr.classList.add('hidden');
-            }
-
-            // Also trigger reset on sidebar progress bar if present
-            resetProgressBar();
-
-            const params = new URLSearchParams({
-                search_terms: searchKeywords,
+            await runScraperScan({
+                searchTerms: searchKeywords,
                 location: searchLoc,
-                scan_mode: mode,
                 experience: document.getElementById('experience')?.value || '',
-                job_type: document.getElementById('job_type')?.value || ''
-            }).toString();
-
-            try {
-                const response = await fetch("{{ url_for('start_scrape') }}", {
-                    method: 'POST',
-                    body: params,
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-                });
-                const data = await response.json();
-
-                if (response.ok && data.task_id) {
-                    const es = new EventSource(`/task_progress_stream/${data.task_id}`);
-                    es.onmessage = (event) => {
-                        const d = JSON.parse(event.data);
-                        if (heroBar) heroBar.style.width = `${d.percent}%`;
-                        if (heroPct) heroPct.textContent = `${d.percent}%`;
-                        if (heroStatus) heroStatus.textContent = d.message || d.state;
-                        updateMilestones(d.percent);
-
-                        if (d.state === 'SUCCESS') {
-                            if (heroStatus) heroStatus.textContent = 'Scan completed! Refreshing matches...';
-                            es.close();
-                            setTimeout(() => redirectToFreshDashboard(), 1100);
-                        } else if (d.state === 'FAILURE') {
-                            if (heroErr) {
-                                heroErr.textContent = d.message || 'Error occurred';
-                                heroErr.classList.remove('hidden');
-                            }
-                            es.close();
-                        }
-                    };
-                    es.onerror = () => {
-                        es.close();
-                        if (heroErr) {
-                            heroErr.textContent = 'Connection lost with agent backend.';
-                            heroErr.classList.remove('hidden');
-                        }
-                    };
-                } else {
-                    if (heroErr) {
-                        heroErr.textContent = data.message || data.error || 'Unable to start search.';
-                        heroErr.classList.remove('hidden');
-                    }
-                }
-            } catch (e) {
-                if (heroErr) {
-                    heroErr.textContent = 'Failed to connect to agent backend.';
-                    heroErr.classList.remove('hidden');
-                }
-            }
+                jobType: document.getElementById('job_type')?.value || '',
+                scanMode: mode === 'deep' ? 'deep' : 'fast'
+            });
         };
 
         // Google Calendar Sync: Events & Refresh controls in sidebar

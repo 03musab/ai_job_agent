@@ -8,6 +8,7 @@ import hmac
 import html
 import json
 import logging
+import math
 import os
 import pickle
 import random
@@ -498,6 +499,12 @@ def _set_local_task_result(task_id: str, state: str, info: Optional[Dict[str, An
         }
 
 
+_SCRAPE_COOLDOWN_LOCK = threading.Lock()
+SCRAPE_FIRST_COOLDOWN_SECONDS = 15
+SCRAPE_SUBSEQUENT_COOLDOWN_SECONDS = 30
+SCRAPE_ACTIVE_STALE_SECONDS = 180
+
+
 def _get_local_task_result(task_id: str) -> Optional[Dict[str, Any]]:
     """Return a copy of a locally tracked task's state/info, if present."""
     if not task_id:
@@ -766,8 +773,10 @@ def task_progress_stream(task_id):
     def generate():
         # initial client retry directive
         yield 'retry: 1000\n\n'
+        ticks = 0
 
         while True:
+            ticks += 1
             ready = False
             local_entry = _get_local_task_result(task_id)
             if local_entry is not None:
@@ -820,12 +829,26 @@ def task_progress_stream(task_id):
                 'milestone': milestone or None,
                 'message': message or None,
             }
+            if isinstance(info, dict):
+                for extra_key in (
+                    'cooldown_seconds',
+                    'cooldown_until',
+                    'cooldown_remaining',
+                    'completed_count',
+                    'new_jobs_count',
+                    'total_found',
+                ):
+                    if extra_key in info and info[extra_key] is not None:
+                        payload[extra_key] = info[extra_key]
 
             yield f"data: {json.dumps(payload)}\n\n"
 
             # Terminate stream on final states
             if state in ('SUCCESS', 'FAILURE') or ready:
                 break
+
+            if ticks % 20 == 0:
+                yield ": keepalive\n\n"
 
             time.sleep(0.25)
 
@@ -1707,12 +1730,300 @@ class JobDatabase:
             )
         ''')
 
+        # --- Per-User Progressive Scraper Cooldown State ---
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_scrape_cooldowns (
+                user_id INTEGER PRIMARY KEY,
+                completed_count INTEGER NOT NULL DEFAULT 0,
+                active_task_id TEXT DEFAULT '',
+                active_started_at REAL DEFAULT 0,
+                cooldown_until REAL DEFAULT 0,
+                last_cooldown_seconds INTEGER DEFAULT 0,
+                updated_at REAL DEFAULT 0,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        ''')
+
         conn.commit()
         conn.close()
         logger.debug("Database schema check/update complete.")
         if os.environ.get('RUN_JOB_HASH_MIGRATION', '0') == '1':
             logger.info("RUN_JOB_HASH_MIGRATION=1 detected; starting job_hash migration...")
             self.migrate_job_hashes_normalized()
+
+    @staticmethod
+    def _compute_next_cooldown_seconds(completed_count: int) -> int:
+        """1st completed scrape -> 15s cooldown; 2nd, 3rd, ... -> 30s cooldown."""
+        return SCRAPE_FIRST_COOLDOWN_SECONDS if int(completed_count or 0) <= 0 else SCRAPE_SUBSEQUENT_COOLDOWN_SECONDS
+
+    def _read_scrape_cooldown_row(self, cursor, user_id: int) -> Optional[Dict[str, Any]]:
+        cursor.execute(
+            """
+            SELECT completed_count, active_task_id, active_started_at, cooldown_until, last_cooldown_seconds, updated_at
+            FROM user_scrape_cooldowns
+            WHERE user_id = ?
+            """,
+            (user_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return None
+        return {
+            'completed_count': int(row[0] or 0),
+            'active_task_id': str(row[1] or ''),
+            'active_started_at': float(row[2] or 0.0),
+            'cooldown_until': float(row[3] or 0.0),
+            'last_cooldown_seconds': int(row[4] or 0),
+            'updated_at': float(row[5] or 0.0),
+        }
+
+    def _upsert_scrape_cooldown_row(
+        self,
+        cursor,
+        user_id: int,
+        completed_count: int,
+        active_task_id: str,
+        active_started_at: float,
+        cooldown_until: float,
+        last_cooldown_seconds: int,
+        updated_at: float,
+    ) -> None:
+        cursor.execute("SELECT 1 FROM user_scrape_cooldowns WHERE user_id = ?", (user_id,))
+        exists = cursor.fetchone() is not None
+        if exists:
+            cursor.execute(
+                """
+                UPDATE user_scrape_cooldowns
+                SET completed_count = ?, active_task_id = ?, active_started_at = ?,
+                    cooldown_until = ?, last_cooldown_seconds = ?, updated_at = ?
+                WHERE user_id = ?
+                """,
+                (
+                    int(completed_count),
+                    str(active_task_id or ''),
+                    float(active_started_at or 0.0),
+                    float(cooldown_until or 0.0),
+                    int(last_cooldown_seconds or 0),
+                    float(updated_at),
+                    user_id,
+                ),
+            )
+        else:
+            cursor.execute(
+                """
+                INSERT INTO user_scrape_cooldowns
+                    (user_id, completed_count, active_task_id, active_started_at, cooldown_until, last_cooldown_seconds, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    user_id,
+                    int(completed_count),
+                    str(active_task_id or ''),
+                    float(active_started_at or 0.0),
+                    float(cooldown_until or 0.0),
+                    int(last_cooldown_seconds or 0),
+                    float(updated_at),
+                ),
+            )
+
+    def _evaluate_scrape_status(self, row: Optional[Dict[str, Any]], now: float) -> Tuple[Dict[str, Any], bool]:
+        if not row:
+            return ({
+                'active': False,
+                'active_task_id': '',
+                'cooldown_remaining': 0,
+                'cooldown_seconds': 0,
+                'cooldown_until': 0.0,
+                'completed_count': 0,
+                'next_cooldown_seconds': SCRAPE_FIRST_COOLDOWN_SECONDS,
+                'can_scrape': True,
+            }, False)
+
+        completed_count = int(row.get('completed_count') or 0)
+        active_task_id = str(row.get('active_task_id') or '').strip()
+        active_started_at = float(row.get('active_started_at') or 0.0)
+        cooldown_until = float(row.get('cooldown_until') or 0.0)
+        last_cooldown_seconds = int(row.get('last_cooldown_seconds') or 0)
+
+        stale_cleared = False
+        active = False
+        if active_task_id:
+            if active_started_at <= 0 or (now - active_started_at) >= SCRAPE_ACTIVE_STALE_SECONDS:
+                active_task_id = ''
+                active_started_at = 0.0
+                stale_cleared = True
+            else:
+                local_entry = _get_local_task_result(active_task_id)
+                if local_entry and local_entry.get('state') in ('SUCCESS', 'FAILURE'):
+                    active_task_id = ''
+                    active_started_at = 0.0
+                    stale_cleared = True
+                else:
+                    active = True
+
+        remaining_float = cooldown_until - now
+        cooldown_remaining = int(math.ceil(remaining_float)) if remaining_float > 0 else 0
+        if cooldown_remaining <= 0:
+            cooldown_remaining = 0
+
+        status = {
+            'active': active,
+            'active_task_id': active_task_id if active else '',
+            'cooldown_remaining': cooldown_remaining,
+            'cooldown_seconds': last_cooldown_seconds if cooldown_remaining > 0 else 0,
+            'cooldown_until': cooldown_until if cooldown_remaining > 0 else 0.0,
+            'completed_count': completed_count,
+            'next_cooldown_seconds': self._compute_next_cooldown_seconds(completed_count),
+            'can_scrape': (not active) and (cooldown_remaining == 0),
+        }
+        return status, stale_cleared
+
+    def get_scrape_cooldown_status(self, user_id: int, now: Optional[float] = None) -> Dict[str, Any]:
+        ts = time.time() if now is None else float(now)
+        with _SCRAPE_COOLDOWN_LOCK:
+            conn = connect_database(self.db_path, timeout=10)
+            try:
+                cursor = conn.cursor()
+                row = self._read_scrape_cooldown_row(cursor, user_id)
+                status, stale_cleared = self._evaluate_scrape_status(row, ts)
+                if stale_cleared and row is not None:
+                    self._upsert_scrape_cooldown_row(
+                        cursor,
+                        user_id=user_id,
+                        completed_count=row['completed_count'],
+                        active_task_id='',
+                        active_started_at=0.0,
+                        cooldown_until=row['cooldown_until'],
+                        last_cooldown_seconds=row['last_cooldown_seconds'],
+                        updated_at=ts,
+                    )
+                    conn.commit()
+                return status
+            finally:
+                conn.close()
+
+    def try_acquire_scrape_slot(self, user_id: int, task_id: str = 'pending', now: Optional[float] = None) -> Tuple[bool, Dict[str, Any]]:
+        ts = time.time() if now is None else float(now)
+        with _SCRAPE_COOLDOWN_LOCK:
+            conn = connect_database(self.db_path, timeout=10)
+            try:
+                cursor = conn.cursor()
+                row = self._read_scrape_cooldown_row(cursor, user_id)
+                status, _ = self._evaluate_scrape_status(row, ts)
+                if status['active']:
+                    return False, {
+                        **status,
+                        'reason': 'active',
+                        'error': 'A job search is already running. Please wait for it to finish.',
+                    }
+                if status['cooldown_remaining'] > 0:
+                    rem = status['cooldown_remaining']
+                    return False, {
+                        **status,
+                        'reason': 'cooldown',
+                        'error': f'Scraper is on cooldown. Please wait {rem}s before starting another scan.',
+                    }
+
+                completed_count = row['completed_count'] if row else 0
+                last_cd = row['last_cooldown_seconds'] if row else 0
+                self._upsert_scrape_cooldown_row(
+                    cursor,
+                    user_id=user_id,
+                    completed_count=completed_count,
+                    active_task_id=task_id or 'pending',
+                    active_started_at=ts,
+                    cooldown_until=0.0,
+                    last_cooldown_seconds=last_cd,
+                    updated_at=ts,
+                )
+                conn.commit()
+                return True, {
+                    'active': True,
+                    'active_task_id': task_id or 'pending',
+                    'cooldown_remaining': 0,
+                    'cooldown_seconds': 0,
+                    'cooldown_until': 0.0,
+                    'completed_count': completed_count,
+                    'next_cooldown_seconds': self._compute_next_cooldown_seconds(completed_count),
+                    'can_scrape': False,
+                }
+            finally:
+                conn.close()
+
+    def set_active_scrape_task_id(self, user_id: int, task_id: str) -> None:
+        if not task_id:
+            return
+        with _SCRAPE_COOLDOWN_LOCK:
+            conn = connect_database(self.db_path, timeout=10)
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE user_scrape_cooldowns SET active_task_id = ?, updated_at = ? WHERE user_id = ?",
+                    (str(task_id), time.time(), user_id),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+    def record_scrape_completion(self, user_id: int, now: Optional[float] = None) -> Dict[str, Any]:
+        ts = time.time() if now is None else float(now)
+        with _SCRAPE_COOLDOWN_LOCK:
+            conn = connect_database(self.db_path, timeout=10)
+            try:
+                cursor = conn.cursor()
+                row = self._read_scrape_cooldown_row(cursor, user_id)
+                prev_count = row['completed_count'] if row else 0
+                new_count = prev_count + 1
+                cooldown_seconds = (
+                    SCRAPE_FIRST_COOLDOWN_SECONDS
+                    if new_count == 1
+                    else SCRAPE_SUBSEQUENT_COOLDOWN_SECONDS
+                )
+                cooldown_until = ts + cooldown_seconds
+                self._upsert_scrape_cooldown_row(
+                    cursor,
+                    user_id=user_id,
+                    completed_count=new_count,
+                    active_task_id='',
+                    active_started_at=0.0,
+                    cooldown_until=cooldown_until,
+                    last_cooldown_seconds=cooldown_seconds,
+                    updated_at=ts,
+                )
+                conn.commit()
+                return {
+                    'active': False,
+                    'active_task_id': '',
+                    'cooldown_remaining': cooldown_seconds,
+                    'cooldown_seconds': cooldown_seconds,
+                    'cooldown_until': cooldown_until,
+                    'completed_count': new_count,
+                    'next_cooldown_seconds': self._compute_next_cooldown_seconds(new_count),
+                    'can_scrape': False,
+                }
+            finally:
+                conn.close()
+
+    def release_scrape_slot_on_failure(self, user_id: int) -> None:
+        with _SCRAPE_COOLDOWN_LOCK:
+            conn = connect_database(self.db_path, timeout=10)
+            try:
+                cursor = conn.cursor()
+                row = self._read_scrape_cooldown_row(cursor, user_id)
+                if row:
+                    self._upsert_scrape_cooldown_row(
+                        cursor,
+                        user_id=user_id,
+                        completed_count=row['completed_count'],
+                        active_task_id='',
+                        active_started_at=0.0,
+                        cooldown_until=row['cooldown_until'],
+                        last_cooldown_seconds=row['last_cooldown_seconds'],
+                        updated_at=time.time(),
+                    )
+                    conn.commit()
+            finally:
+                conn.close()
 
     def add_user(self, username: str, password_hash: str, role: str = 'seeker',
                  email: Optional[str] = None, is_pro: bool = False,
@@ -6884,8 +7195,8 @@ class JobHunter:
         if not jobs:
             logger.info(f"📊 Found 0 new jobs matching criteria for user {self.user_id} today.")
             if self.task:
-                self.task.update_state(state='SUCCESS', meta={'status': 'Search complete. No new jobs found.', 'progress': 100})
-            return
+                self.task.update_state(state='PROGRESS', meta={'status': 'Finalizing search results...', 'progress': 98, 'milestone': 'Reporting'})
+            return {'new_jobs_count': 0, 'total_found': 0}
 
         # Dispatch optional email digest & calendar deadline sync asynchronously so the UI updates immediately
         user_settings = self.db.get_user_settings(self.user_id)
@@ -6894,6 +7205,7 @@ class JobHunter:
         self._dispatch_post_scrape_notifications(jobs, deadline_jobs, email_recipients, send_excel_attachment)
 
         logger.info(f"🤖 Super Job Agent finished its run for user {self.user_id}.")
+        return {'new_jobs_count': new_jobs_count, 'total_found': len(jobs)}
 
 # --- Celery Tasks ---
 def _run_job_hunt_impl(task_ctx, user_id: int, search_terms: List[str], location: str, experience: str, job_type: str, scan_mode: str = 'fast'):
@@ -6904,14 +7216,35 @@ def _run_job_hunt_impl(task_ctx, user_id: int, search_terms: List[str], location
         logger.info(f"Creating JobHunter instance for user {user_id} with scan_mode={scan_mode}.")
         hunter = JobHunter(user_id=user_id, search_terms=search_terms, location=location, experience=experience, job_type=job_type, task=task_ctx, scan_mode=scan_mode)
         logger.info(f"Running JobHunter.run() for user {user_id}.")
-        hunter.run()
-        logger.info(f"Job hunt task {task_id} completed successfully for user {user_id}.")
+        run_summary = hunter.run() or {}
+        cooldown_info = JobDatabase().record_scrape_completion(user_id)
+        new_count = int(run_summary.get('new_jobs_count', 0) or 0)
+        total_found = int(run_summary.get('total_found', 0) or 0)
+        done_msg = (
+            f"Complete! Found {total_found} jobs ({new_count} new)."
+            if total_found > 0
+            else "Search complete. No new jobs found."
+        )
+        logger.info(
+            f"Job hunt task {task_id} completed successfully for user {user_id} "
+            f"(completed_count={cooldown_info['completed_count']}, cooldown={cooldown_info['cooldown_seconds']}s)."
+        )
         return {
-            'status': 'Complete! Your dashboard will now reload.',
-            'message': 'Complete! Your dashboard will now reload.',
+            'status': done_msg,
+            'message': done_msg,
             'progress': 100,
+            'new_jobs_count': new_count,
+            'total_found': total_found,
+            'cooldown_seconds': cooldown_info['cooldown_seconds'],
+            'cooldown_until': cooldown_info['cooldown_until'],
+            'cooldown_remaining': cooldown_info['cooldown_remaining'],
+            'completed_count': cooldown_info['completed_count'],
         }
     except Exception as e:
+        try:
+            JobDatabase().release_scrape_slot_on_failure(user_id)
+        except Exception as release_err:
+            logger.warning(f"Failed to release scrape slot for user {user_id}: {release_err}")
         logger.error(f"Job hunt task {task_id} failed for user {user_id}: {e}", exc_info=True)
         if task_ctx:
             task_ctx.update_state(state='FAILURE', meta={'status': 'Task failed!', 'message': str(e), 'error': str(e), 'progress': 100})
@@ -11001,23 +11334,50 @@ def format_job_description_api(job_id):
 @app.route('/search_jobs', methods=['POST'])
 @login_required
 def search_jobs():
-    search_terms_str = request.form.get('search_terms', '')
-    location = request.form.get('location', '')
-    experience = request.form.get('experience', '')
-    job_type = request.form.get('job_type', '')
+    payload = request.get_json(silent=True) if request.is_json else request.form
+    search_terms_str = (payload.get('search_terms', '') or '').strip()
+    location = (payload.get('location', '') or '').strip()
+    experience = (payload.get('experience', '') or '').strip()
+    job_type = (payload.get('job_type', '') or '').strip()
+    scan_mode = (payload.get('scan_mode', 'fast') or 'fast').strip().lower()
+    if scan_mode not in ('fast', 'deep'):
+        scan_mode = 'fast'
 
     search_terms = [term.strip() for term in search_terms_str.split(',') if term.strip()]
 
     if not search_terms:
+        if request.is_json or request.headers.get('Accept', '').startswith('application/json'):
+            return jsonify({'status': 'error', 'error': 'Please enter at least one search term.'}), 400
         flash('Please enter at least one search term.', 'warning')
         return redirect(url_for('dashboard'))
 
+    db = JobDatabase()
+    allowed, cd_status = db.try_acquire_scrape_slot(current_user.id)
+    if not allowed:
+        err_msg = cd_status.get('error') or 'Scraper is on cooldown. Please wait before searching again.'
+        return jsonify({
+            'status': cd_status.get('reason', 'cooldown'),
+            'error': err_msg,
+            'message': err_msg,
+            'cooldown_remaining': cd_status.get('cooldown_remaining', 0),
+            'cooldown_seconds': cd_status.get('cooldown_seconds', 0),
+            'cooldown_until': cd_status.get('cooldown_until', 0.0),
+            'completed_count': cd_status.get('completed_count', 0),
+            'active': cd_status.get('active', False),
+        }), 429
+
     # Trigger the Celery task for job scraping (with automatic thread fallback if Redis is unavailable)
     try:
-        task = _dispatch_background_task(run_job_hunt_task, current_user.id, search_terms, location, experience, job_type)
+        task = _dispatch_background_task(run_job_hunt_task, current_user.id, search_terms, location, experience, job_type, scan_mode)
+        db.set_active_scrape_task_id(current_user.id, task.id)
         logger.info(f"Task {task.id} enqueued for user {current_user.id} with terms '{search_terms_str}'.")
-        return jsonify({'status': 'success', 'task_id': task.id})
+        return jsonify({
+            'status': 'success',
+            'task_id': task.id,
+            'next_cooldown_seconds': cd_status.get('next_cooldown_seconds', SCRAPE_FIRST_COOLDOWN_SECONDS),
+        })
     except Exception as e:
+        db.release_scrape_slot_on_failure(current_user.id)
         logger.error(f"Failed to enqueue Celery task for user {current_user.id} with terms '{search_terms_str}': {e}", exc_info=True)
         return jsonify({'status': 'error', 'message': 'Failed to start search. Celery worker might be down.'}), 500
 
@@ -11081,20 +11441,38 @@ def apply_profile(profile_id):
         profile = db.get_search_profile_by_id(profile_id, current_user.id)
         if not profile:
             return jsonify({'error': 'Profile not found or access denied.'}), 404
-        
+
+        cd_status = db.get_scrape_cooldown_status(current_user.id)
+        if not cd_status['can_scrape']:
+            if cd_status['active']:
+                err_msg = 'A job search is already running. Please wait for it to finish before running a saved preset.'
+            else:
+                err_msg = f"Scraper is on cooldown. Please wait {cd_status['cooldown_remaining']}s before running a saved preset."
+            return jsonify({
+                'success': False,
+                'status': 'active' if cd_status['active'] else 'cooldown',
+                'error': err_msg,
+                'message': err_msg,
+                'cooldown_remaining': cd_status['cooldown_remaining'],
+                'cooldown_seconds': cd_status['cooldown_seconds'],
+                'cooldown_until': cd_status['cooldown_until'],
+                'completed_count': cd_status['completed_count'],
+                'active': cd_status['active'],
+            }), 429
+
         # Always return JSON for apply_profile since it's used by JavaScript
         return jsonify({
             'success': True,
             'profile': {
+                'id': profile['id'],
                 'profile_name': profile['profile_name'],
                 'search_terms': profile['search_terms'],
                 'location': profile['location'] or '',
                 'experience': profile['experience'] or '',
                 'job_type': profile['job_type'] or ''
-            }
+            },
+            'cooldown': cd_status,
         })
-        
-        # Note: Original behavior for starting search task is now handled by the search form
     except Exception as e:
         logger.error(f"Failed to apply profile for user {current_user.id} from profile {profile_id}: {e}", exc_info=True)
         return jsonify({'error': 'Failed to apply profile.'}), 500
@@ -11624,41 +12002,78 @@ def calendar_sync_status():
 
 # --- Missing Routes for Dashboard JavaScript ---
 
+@app.route('/api/scrape_cooldown', methods=['GET'])
+@login_required
+def api_scrape_cooldown():
+    """Return the current user's live scraper cooldown and active-scan status."""
+    try:
+        status = JobDatabase().get_scrape_cooldown_status(current_user.id)
+        return jsonify(status)
+    except Exception as e:
+        logger.error(f"Failed to read scrape cooldown status for user {current_user.id}: {e}")
+        return jsonify({'error': 'Failed to check cooldown status'}), 500
+
+
 @app.route('/start_scrape', methods=['POST'])
 @login_required
 def start_scrape():
-    """Start job scraping task and return task ID."""
+    """Start job scraping task and return task ID, enforcing progressive cooldown."""
+    db = JobDatabase()
+    slot_acquired = False
     try:
-        search_terms = request.form.get('search_terms', '')
-        location = request.form.get('location', '')
-        experience = request.form.get('experience', '')
-        job_type = request.form.get('job_type', '')
-        scan_mode = request.form.get('scan_mode', 'fast')
-        
+        payload = request.get_json(silent=True) if request.is_json else request.form
+        search_terms = (payload.get('search_terms', '') or '').strip()
+        location = (payload.get('location', '') or '').strip()
+        experience = (payload.get('experience', '') or '').strip()
+        job_type = (payload.get('job_type', '') or '').strip()
+        scan_mode = (payload.get('scan_mode', 'fast') or 'fast').strip().lower()
+
         # Validate scan_mode
         if scan_mode not in ('fast', 'deep'):
             scan_mode = 'fast'
-        
-        if not search_terms:
-            return jsonify({'error': 'Search terms are required'}), 400
-        
-        logger.info(f"Starting scrape for user {current_user.id} with scan_mode={scan_mode}")
-        
+
         # Convert search terms to list
         search_terms_list = [term.strip() for term in search_terms.split(',') if term.strip()]
-        
+        if not search_terms_list:
+            return jsonify({'error': 'Search terms are required'}), 400
+
+        allowed, cd_status = db.try_acquire_scrape_slot(current_user.id)
+        if not allowed:
+            err_msg = cd_status.get('error') or 'Scraper is on cooldown. Please wait before searching again.'
+            return jsonify({
+                'status': cd_status.get('reason', 'cooldown'),
+                'error': err_msg,
+                'message': err_msg,
+                'cooldown_remaining': cd_status.get('cooldown_remaining', 0),
+                'cooldown_seconds': cd_status.get('cooldown_seconds', 0),
+                'cooldown_until': cd_status.get('cooldown_until', 0.0),
+                'completed_count': cd_status.get('completed_count', 0),
+                'active': cd_status.get('active', False),
+            }), 429
+        slot_acquired = True
+
+        logger.info(f"Starting scrape for user {current_user.id} with scan_mode={scan_mode}")
+
         # Start the Celery task (with automatic thread fallback if Redis is unavailable)
         task = _dispatch_background_task(
             run_job_hunt_task, current_user.id, search_terms_list, location, experience, job_type, scan_mode
         )
-        
+        db.set_active_scrape_task_id(current_user.id, task.id)
+
         return jsonify({
             'task_id': task.id,
             'status': 'started',
+            'scan_mode': scan_mode,
+            'next_cooldown_seconds': cd_status.get('next_cooldown_seconds', SCRAPE_FIRST_COOLDOWN_SECONDS),
             'message': 'Job search started successfully'
         })
-        
+
     except Exception as e:
+        if slot_acquired:
+            try:
+                db.release_scrape_slot_on_failure(current_user.id)
+            except Exception:
+                pass
         logger.error(f"Failed to start scraping task: {e}")
         return jsonify({'error': 'Failed to start search. Celery worker might be down.'}), 500
 

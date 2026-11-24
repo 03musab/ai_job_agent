@@ -165,23 +165,23 @@
                         <span class="material-symbols-outlined text-[16px] text-primary">travel_explore</span>
                         <span class="font-headline-md text-on-surface text-[12.5px] font-bold">Automated Job Scraper</span>
                     </div>
-                    <span class="font-data-mono text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/25 font-bold uppercase">Active</span>
+                    <span id="scraper-status-badge" class="font-data-mono text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/25 font-bold uppercase">Active</span>
                 </div>
 
                 <form id="search-form" class="space-y-3" aria-labelledby="new-job-search-heading">
                     
                     <!-- Search Depth Segmented Control -->
-                    <div x-data="{ mode: 'fast' }">
+                    <div x-data="{ mode: 'fast' }" @scraper:set-mode.window="mode = ($event.detail === 'deep' ? 'deep' : 'fast')">
                         <label class="font-data-mono text-[9.5px] text-on-surface-variant uppercase mb-1.5 tracking-wider block font-semibold">Search Depth</label>
                         <input type="hidden" name="scan_mode" :value="mode" id="scan_mode">
                         <div class="flex bg-surface-container border border-outline-variant rounded-xl p-1 gap-1">
-                            <button type="button" @click="mode = 'fast'"
+                            <button type="button" @click="mode = 'fast'; $nextTick(() => { const el = document.getElementById('scan_mode'); if (el) el.dispatchEvent(new Event('change', { bubbles: true })); })"
                                 :class="mode === 'fast' ? 'bg-surface text-primary font-bold shadow-xs border border-primary/30' : 'text-on-surface-variant hover:text-on-surface'"
                                 class="flex-1 py-1 px-2 rounded-lg text-[11px] text-center transition-all cursor-pointer flex items-center justify-center gap-1">
                                 <span class="material-symbols-outlined text-[13px]">bolt</span>
                                 <span>Quick (~10s)</span>
                             </button>
-                            <button type="button" @click="mode = 'deep'"
+                            <button type="button" @click="mode = 'deep'; $nextTick(() => { const el = document.getElementById('scan_mode'); if (el) el.dispatchEvent(new Event('change', { bubbles: true })); })"
                                 :class="mode === 'deep' ? 'bg-surface text-primary font-bold shadow-xs border border-primary/30' : 'text-on-surface-variant hover:text-on-surface'"
                                 class="flex-1 py-1 px-2 rounded-lg text-[11px] text-center transition-all cursor-pointer flex items-center justify-center gap-1">
                                 <span class="material-symbols-outlined text-[13px]">travel_explore</span>
@@ -231,7 +231,7 @@
                     <div class="flex gap-2 pt-1">
                         <button type="submit" id="scrape-btn"
                             class="flex-1 bg-primary text-on-primary font-semibold text-[11.5px] py-2 rounded-xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs">
-                            <span class="material-symbols-outlined text-[15px]">radar</span>
+                            <span class="material-symbols-outlined text-[15px] button-icon">radar</span>
                             <span class="button-text">Start Search</span>
                         </button>
                         <button type="button" id="save-profile-btn"
@@ -240,6 +240,20 @@
                             <span class="material-symbols-outlined text-[15px]">bookmark</span>
                             <span>Save</span>
                         </button>
+                    </div>
+
+                    <!-- Progressive Scraper Cooldown Banner -->
+                    <div id="scraper-cooldown-banner" class="hidden rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 space-y-1.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-data-mono text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[14px]">hourglass_top</span>
+                                <span id="scraper-cooldown-label">Cooldown: 15s</span>
+                            </span>
+                            <span id="scraper-cooldown-subtext" class="text-[10px] text-on-surface-variant">Presets paused</span>
+                        </div>
+                        <div class="w-full bg-surface-container-high rounded-full h-1 overflow-hidden">
+                            <div id="scraper-cooldown-bar" class="h-full rounded-full transition-all duration-300 ease-linear" style="width: 100%; background-color: #f59e0b;"></div>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -291,9 +305,19 @@
                             <div class="font-data-mono text-[10px] text-on-surface-variant truncate" title="{{ profile.search_terms }}">{{ profile.search_terms }}</div>
                         </div>
                         <div class="flex items-center gap-1 shrink-0">
-                            <form action="{{ url_for('apply_profile', profile_id=profile.id) }}" method="POST" class="inline-block apply-profile-form">
-                                <button type="submit" class="p-1 text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer" title="Run this search preset">
-                                    <span class="material-symbols-outlined text-[16px]">play_arrow</span>
+                            <form action="{{ url_for('apply_profile', profile_id=profile.id) }}" method="POST"
+                                  class="inline-block apply-profile-form"
+                                  data-profile-id="{{ profile.id }}"
+                                  data-profile-name="{{ profile.profile_name }}"
+                                  data-search-terms="{{ profile.search_terms }}"
+                                  data-location="{{ profile.location or '' }}"
+                                  data-experience="{{ profile.experience or '' }}"
+                                  data-job-type="{{ profile.job_type or '' }}">
+                                <button type="submit"
+                                        class="preset-play-btn p-1 text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer"
+                                        title="Run this search preset"
+                                        aria-label="Run preset {{ profile.profile_name }}">
+                                    <span class="material-symbols-outlined text-[16px] preset-play-icon">play_arrow</span>
                                 </button>
                             </form>
                             <form action="{{ url_for('delete_profile', profile_id=profile.id) }}" method="POST" onsubmit="return window.snapyConfirmForm(event, this, 'Delete this saved preset?', { mood: 'sad', title: 'Snapy · Delete Preset?', subtext: 'This saved search preset will be removed permanently.', confirmText: 'Delete Preset', cancelText: 'Keep It', destructive: true });">
