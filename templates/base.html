@@ -29,6 +29,42 @@
 
     <style>
         [x-cloak] { display: none !important; }
+
+        #global-notif-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            width: 340px;
+            max-width: calc(100vw - 24px);
+            background-color: var(--bg-surface-container-high);
+            border: 1px solid var(--border-outline);
+            border-radius: 16px;
+            box-shadow: 0 22px 55px rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            z-index: 99999;
+            overflow: hidden;
+        }
+
+        #global-notif-list {
+            max-height: 360px;
+            max-height: min(360px, calc(100vh - 120px));
+            max-height: min(360px, calc(100dvh - 120px));
+            overflow-y: auto;
+        }
+
+        @media (max-width: 639px) {
+            #global-notif-menu {
+                position: fixed;
+                top: 56px;
+                left: 12px;
+                right: 12px;
+                width: auto;
+                max-width: 420px;
+                margin-left: auto;
+                margin-right: 0;
+            }
+        }
     </style>
 </head>
 
@@ -260,6 +296,36 @@
                     {{ current_user.username }} ({{ current_user.role }})
                 </span>
 
+                <!-- Notifications & Reminders Bell Dropdown -->
+                <div class="relative" id="global-notif-wrapper">
+                    <button id="global-notif-btn" type="button"
+                            class="relative w-7 h-7 rounded-lg bg-surface-container-high/50 border border-outline-variant/50 text-on-surface-variant hover:text-primary hover:border-primary/40 transition-colors flex items-center justify-center cursor-pointer"
+                            aria-label="Notifications and Reminders"
+                            aria-haspopup="true"
+                            aria-expanded="false">
+                        <span class="material-symbols-outlined text-[16px]">notifications</span>
+                        <span id="global-notif-badge"
+                              style="display: none; position: absolute; top: -4px; right: -4px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px; background-color: #e11d48; color: #ffffff; font-size: 9px; font-weight: 800; line-height: 15px; text-align: center; box-shadow: 0 2px 6px rgba(225, 29, 72, 0.45);">0</span>
+                    </button>
+
+                    <div id="global-notif-menu" style="display: none;">
+                        <div class="flex items-center justify-between gap-2 px-3.5 py-2.5 border-b border-outline-variant/70">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <span class="material-symbols-outlined text-[16px] text-primary shrink-0">notifications_active</span>
+                                <span class="font-headline-md text-[13px] font-bold text-on-surface truncate">Notifications & Reminders</span>
+                            </div>
+                            <button type="button" id="global-notif-read-all"
+                                    class="font-data-mono text-[10px] font-semibold text-primary hover:underline cursor-pointer shrink-0"
+                                    style="white-space: nowrap;">
+                                Mark all read
+                            </button>
+                        </div>
+                        <div id="global-notif-list" class="p-2 space-y-1.5">
+                            <div class="py-6 text-center text-[11.5px] text-on-surface-variant">Loading reminders...</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Dark Mode Toggle Button -->
                 <button @click="toggleTheme($event)" type="button" 
                         class="w-7 h-7 rounded-lg bg-surface-container-high/50 border border-outline-variant/50 text-on-surface-variant hover:text-primary hover:border-primary/40 transition-colors flex items-center justify-center cursor-pointer"
@@ -271,9 +337,16 @@
                 <!-- Profile Dropdown -->
                 <div class="relative" x-data="{ open: false }">
                     <button id="profile-dropdown-btn" @click="open = !open" @keydown.escape="open = false" type="button"
-                            class="w-7 h-7 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center font-data-mono text-[11px] font-bold text-primary hover:border-primary hover:bg-primary/20 transition-all shadow-sm focus:outline-none"
+                            class="w-7 h-7 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center font-data-mono text-[11px] font-bold text-primary hover:border-primary hover:bg-primary/20 transition-all shadow-sm focus:outline-none overflow-hidden cursor-pointer"
                             aria-haspopup="true" :aria-expanded="open">
-                        {{ current_user.username[0] | upper }}
+                        {% if current_user_avatar_url %}
+                            <img src="{{ current_user_avatar_url }}" alt="{{ current_user.username }}" referrerpolicy="no-referrer"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"
+                                 class="w-full h-full object-cover">
+                            <span style="display: none;">{{ current_user.username[0] | upper }}</span>
+                        {% else %}
+                            {{ current_user.username[0] | upper }}
+                        {% endif %}
                     </button>
                     
                     <div x-show="open" @click.away="open = false" 
@@ -512,12 +585,16 @@
                     const allNewScripts = doc.querySelectorAll('script');
 
                     if (newMain && mainEl) {
+                        // Update browser URL BEFORE running page scripts & Alpine init so URLSearchParams sees the new query string
+                        if (pushState) {
+                            window.history.pushState({}, '', url);
+                        }
                         mainEl.innerHTML = newMain.innerHTML;
 
                         // Execute all scripts from the fetched page
                         allNewScripts.forEach(oldScript => {
                             if (oldScript.src && oldScript.src.includes('alpinejs')) return;
-                            if (oldScript.id === 'spotlight-tour-script' || oldScript.id === 'snapy-toast-script' || oldScript.id === 'themed-selects-script') return;
+                            if (oldScript.id === 'spotlight-tour-script' || oldScript.id === 'snapy-toast-script' || oldScript.id === 'themed-selects-script' || oldScript.id === 'global-notifications-script') return;
                             if (oldScript.textContent.includes('spaNavigate')) return;
 
                             const newScript = document.createElement('script');
@@ -540,9 +617,6 @@
                         return;
                     }
 
-                    if (pushState) {
-                        window.history.pushState({}, '', url);
-                    }
                     window.scrollTo({ top: 0, behavior: 'instant' });
                 } catch (e) {
                     console.warn('SPA navigation failed, falling back to standard load:', e);
@@ -589,6 +663,164 @@
     </script>
     {% include "partials/_themed_selects.html" %}
     {% include "partials/_snapy_toasts.html" %}
+    {% if current_user.is_authenticated %}
+    <script id="global-notifications-script">
+    (function () {
+        if (window.__globalNotifInit) return;
+        window.__globalNotifInit = true;
+
+        function escHtml(s) {
+            return String(s || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function formatRemindTime(isoStr) {
+            if (!isoStr) return '';
+            const d = new Date(isoStr);
+            if (isNaN(d.getTime())) return isoStr;
+            return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        }
+
+        async function loadNotifications() {
+            const badge = document.getElementById('global-notif-badge');
+            const listEl = document.getElementById('global-notif-list');
+            if (!badge || !listEl) return;
+
+            try {
+                const res = await fetch('/api/notifications', { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) return;
+                const data = await res.json();
+                const items = Array.isArray(data.notifications) ? data.notifications : [];
+                const count = Number(data.unread_count || 0);
+
+                if (count > 0) {
+                    badge.textContent = count > 9 ? '9+' : String(count);
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+
+                if (items.length === 0) {
+                    listEl.innerHTML = `
+                        <div class="py-7 px-4 text-center space-y-1.5">
+                            <span class="material-symbols-outlined text-[26px] text-on-surface-variant/50">notifications_none</span>
+                            <p class="text-[12px] font-semibold text-on-surface">You're all caught up!</p>
+                            <p class="text-[11px] text-on-surface-variant">Reminders from Contact Notes and upcoming deadlines appear here.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                listEl.innerHTML = items.map((item) => {
+                    const isReminder = item.kind === 'reminder';
+                    const badgeHtml = item.is_due
+                        ? `<span style="background: rgba(225, 29, 72, 0.14); color: #e11d48; border: 1px solid rgba(225, 29, 72, 0.35); padding: 1px 6px; border-radius: 999px; font-size: 9px; font-weight: 800; text-transform: uppercase;">Due</span>`
+                        : (isReminder
+                            ? `<span style="background: rgba(16, 185, 129, 0.14); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35); padding: 1px 6px; border-radius: 999px; font-size: 9px; font-weight: 800; text-transform: uppercase;">Reminder</span>`
+                            : `<span style="background: rgba(245, 158, 11, 0.14); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.35); padding: 1px 6px; border-radius: 999px; font-size: 9px; font-weight: 800; text-transform: uppercase;">${escHtml(item.source_type || 'Alert')}</span>`);
+
+                    const safeCalUrl = (item.calendar_url && /^https?:\/\//i.test(item.calendar_url)) ? item.calendar_url : '';
+                    const calHtml = safeCalUrl
+                        ? `<a href="${escHtml(safeCalUrl)}" target="_blank" rel="noopener noreferrer" class="font-data-mono text-[9.5px] text-primary hover:underline inline-flex items-center gap-0.5 font-semibold"><span class="material-symbols-outlined text-[12px]">calendar_month</span>${item.calendar_synced ? 'In Google Calendar' : 'Add to G-Cal'}</a>`
+                        : '';
+
+                    const doneBtn = isReminder
+                        ? `<button type="button" data-complete-rem="${escHtml(item.id)}" class="font-data-mono text-[9.5px] px-2 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/30 hover:bg-primary hover:text-on-primary transition-colors font-bold cursor-pointer">Done ✓</button>`
+                        : '';
+
+                    return `
+                        <div class="p-2.5 rounded-xl border border-outline-variant/70 bg-surface space-y-1.5">
+                            <div class="flex items-start justify-between gap-2">
+                                <a href="${escHtml(item.action_url || '/dashboard')}" class="text-[12px] font-bold text-on-surface hover:text-primary leading-snug line-clamp-2">${escHtml(item.title)}</a>
+                                ${badgeHtml}
+                            </div>
+                            ${item.note ? `<p class="text-[11px] text-on-surface-variant leading-snug line-clamp-2">${escHtml(item.note)}</p>` : ''}
+                            <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                                <span class="font-data-mono text-[9.5px] text-on-surface-variant flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[12px]">schedule</span>
+                                    ${escHtml(formatRemindTime(item.remind_at))}
+                                </span>
+                                <div class="flex items-center gap-2">
+                                    ${calHtml}
+                                    ${doneBtn}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                listEl.querySelectorAll('[data-complete-rem]').forEach((btn) => {
+                    btn.addEventListener('click', async (ev) => {
+                        ev.stopPropagation();
+                        const remId = btn.getAttribute('data-complete-rem');
+                        if (!remId) return;
+                        btn.disabled = true;
+                        try {
+                            const r = await fetch(`/api/notifications/${encodeURIComponent(remId)}/complete`, { method: 'POST' });
+                            if (r.ok) {
+                                if (window.snapyToast) window.snapyToast('Reminder marked complete!', { mood: 'happy', title: 'Done' });
+                                loadNotifications();
+                            }
+                        } catch (e) {}
+                    });
+                });
+            } catch (err) {}
+        }
+
+        function closeNotifMenu() {
+            const btn = document.getElementById('global-notif-btn');
+            const menu = document.getElementById('global-notif-menu');
+            if (menu) menu.style.display = 'none';
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+        }
+
+        document.addEventListener('click', (e) => {
+            const wrapper = document.getElementById('global-notif-wrapper');
+            const btn = document.getElementById('global-notif-btn');
+            const menu = document.getElementById('global-notif-menu');
+            if (!wrapper || !btn || !menu) return;
+
+            if (btn.contains(e.target)) {
+                const isOpen = menu.style.display === 'block';
+                menu.style.display = isOpen ? 'none' : 'block';
+                btn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+                if (!isOpen) loadNotifications();
+                return;
+            }
+            if (!wrapper.contains(e.target) || e.target.closest('#global-notif-list a')) {
+                closeNotifMenu();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeNotifMenu();
+        });
+
+        const readAllBtn = document.getElementById('global-notif-read-all');
+        if (readAllBtn) {
+            readAllBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                try {
+                    await fetch('/api/notifications/read-all', { method: 'POST' });
+                    loadNotifications();
+                } catch (err) {}
+            });
+        }
+
+        window.addEventListener('notifications:refresh', loadNotifications);
+        window.addEventListener('page:loaded', loadNotifications);
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadNotifications);
+        } else {
+            loadNotifications();
+        }
+        setInterval(loadNotifications, 60000);
+    })();
+    </script>
+    {% endif %}
     {% include "partials/_spotlight_tour.html" %}
     {% block scripts %}{% endblock %}
 </body>

@@ -161,6 +161,42 @@
     .snapy-confirm-ok.is-primary:hover {
         background-color: #059669;
     }
+
+    .snapy-prompt-input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 9px 12px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 500;
+        border: 1.5px solid #cbd5e1;
+        background-color: #f8fafc;
+        color: #0f172a;
+        outline: none;
+        transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+    .snapy-prompt-input:focus {
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+    }
+    html.dark .snapy-prompt-input {
+        border-color: #334155;
+        background-color: #0f172a;
+        color: #f1f5f9;
+    }
+    html.dark .snapy-prompt-input:focus {
+        border-color: #19D889;
+        box-shadow: 0 0 0 3px rgba(25, 216, 137, 0.18);
+    }
+    .snapy-prompt-error {
+        font-size: 11px;
+        font-weight: 600;
+        color: #e11d48;
+        margin-top: 5px;
+    }
+    html.dark .snapy-prompt-error {
+        color: #fb7185;
+    }
 </style>
 
 <!-- Floating Toast Notification Stack (Top-Right, below 48px navbar) -->
@@ -436,6 +472,113 @@
             card.querySelector('.snapy-confirm-ok').addEventListener('click', () => finish(true));
 
             host.appendChild(card);
+        });
+    };
+
+    /**
+     * Show a floating Snapy Prompt Toast Card with text input (replaces native window.prompt).
+     * Returns a Promise<string|null>.
+     */
+    window.snapyPrompt = function (message, opts) {
+        return new Promise((resolve) => {
+            const host = document.getElementById('snapy-confirm-host');
+            if (!host) {
+                resolve(window.prompt(message, (opts && opts.defaultValue) || ''));
+                return;
+            }
+
+            host.innerHTML = '';
+
+            const options = opts || {};
+            const mood = options.mood || 'happy';
+            const title = options.title || 'Snapy · Quick Input';
+            const subtext = options.subtext || 'Give this a short, memorable name.';
+            const placeholder = options.placeholder || 'Type a name...';
+            const defaultValue = options.defaultValue || '';
+            const confirmText = options.confirmText || 'Save';
+            const cancelText = options.cancelText || 'Cancel';
+            const requiredMessage = options.requiredMessage || 'Please enter a name first.';
+
+            const card = document.createElement('div');
+            card.className = 'snapy-toast-card pointer-events-auto w-full rounded-2xl border border-emerald-400/60 dark:border-emerald-500/50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.35)] p-4 space-y-3';
+            card.setAttribute('role', 'dialog');
+            card.setAttribute('aria-modal', 'false');
+
+            card.innerHTML = `
+                <div class="flex items-start gap-3.5">
+                    <div class="shrink-0 mt-0.5">${getSnapyFaceSvg(mood, 52)}</div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between gap-2 mb-0.5">
+                            <span class="font-mono text-[10px] uppercase tracking-widest font-bold" style="color: #10b981;">${escapeHtml(title)}</span>
+                            <button type="button" class="snapy-confirm-x text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded-lg cursor-pointer" aria-label="Close">
+                                <span class="material-symbols-outlined text-[16px]">close</span>
+                            </button>
+                        </div>
+                        <p class="text-[13.5px] font-bold text-slate-900 dark:text-slate-100 leading-snug">${escapeHtml(message)}</p>
+                        <p class="text-[11.5px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">${escapeHtml(subtext)}</p>
+                    </div>
+                </div>
+                <div>
+                    <input type="text" class="snapy-prompt-input" placeholder="${escapeHtml(placeholder)}" value="${escapeHtml(defaultValue)}" maxlength="80" autocomplete="off">
+                    <div class="snapy-prompt-error" style="display: none;"></div>
+                </div>
+                <div class="snapy-confirm-actions">
+                    <button type="button" class="snapy-confirm-cancel">${escapeHtml(cancelText)}</button>
+                    <button type="button" class="snapy-confirm-ok is-primary">
+                        <span class="material-symbols-outlined text-[15px]">bookmark_add</span>
+                        <span>${escapeHtml(confirmText)}</span>
+                    </button>
+                </div>
+            `;
+
+            const inputEl = card.querySelector('.snapy-prompt-input');
+            const errEl = card.querySelector('.snapy-prompt-error');
+
+            let settled = false;
+            function finish(val) {
+                if (settled) return;
+                settled = true;
+                document.removeEventListener('keydown', onKeyDown);
+                card.classList.add('is-leaving');
+                setTimeout(() => card.remove(), 200);
+                resolve(val);
+            }
+
+            function submitValue() {
+                const cleaned = (inputEl.value || '').trim();
+                if (!cleaned) {
+                    errEl.textContent = requiredMessage;
+                    errEl.style.display = 'block';
+                    inputEl.focus();
+                    return;
+                }
+                finish(cleaned);
+            }
+
+            function onKeyDown(e) {
+                if (e.key === 'Escape') finish(null);
+            }
+            document.addEventListener('keydown', onKeyDown);
+
+            inputEl.addEventListener('input', () => {
+                if (errEl.style.display !== 'none') errEl.style.display = 'none';
+            });
+            inputEl.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    submitValue();
+                }
+            });
+
+            card.querySelector('.snapy-confirm-x').addEventListener('click', () => finish(null));
+            card.querySelector('.snapy-confirm-cancel').addEventListener('click', () => finish(null));
+            card.querySelector('.snapy-confirm-ok').addEventListener('click', submitValue);
+
+            host.appendChild(card);
+            setTimeout(() => {
+                inputEl.focus();
+                if (defaultValue) inputEl.select();
+            }, 30);
         });
     };
 

@@ -1,0 +1,767 @@
+{
+  "version": 1,
+  "historyId": "91c7425f-5888-4da9-bcbc-fc49ad2f2444",
+  "currentRevision": "63072b91-d1ee-46e9-859b-d8f5c83edee6",
+  "pendingChanges": false,
+  "files": {
+    "LICENSES.txt": {
+      "hash": "797b5c3aebb4f980ff6dce58e38a381f8ee129781c77800e4ef986e599acd98f",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\79\\797b5c3aebb4f980ff6dce58e38a381f8ee129781c77800e4ef986e599acd98f"
+    },
+    "STORYBOARD.md": {
+      "hash": "932966e6da8b67d2ce28e8bc20d802561aa8e0cb01376d1c0fbb6d0a7d7269e1",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\93\\932966e6da8b67d2ce28e8bc20d802561aa8e0cb01376d1c0fbb6d0a7d7269e1"
+    },
+    "STYLE.md": {
+      "hash": "ac6748f5bdb57e86f133f5fd84b4225b4ea51eb5890dc7a3628bf5accb17dd52",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\ac\\ac6748f5bdb57e86f133f5fd84b4225b4ea51eb5890dc7a3628bf5accb17dd52"
+    },
+    "assets/ae-motion.js": {
+      "hash": "eb851b7e2531885f35adbf37ab6d8a1eaff1f33ccad951db9a940f992857e8ce",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\eb\\eb851b7e2531885f35adbf37ab6d8a1eaff1f33ccad951db9a940f992857e8ce"
+    },
+    "compositions/film.html": {
+      "hash": "b7028a3f6b21eb25753ac40c5be3a9197e99d04f2e1eccd6dd897842ef31fd1a",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\b7\\b7028a3f6b21eb25753ac40c5be3a9197e99d04f2e1eccd6dd897842ef31fd1a"
+    },
+    "index.html": {
+      "hash": "c46f2176715ac15a972119066783ed5cf98977c71526796f8c54373dd26ec315",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\c4\\c46f2176715ac15a972119066783ed5cf98977c71526796f8c54373dd26ec315"
+    },
+    "meta.json": {
+      "hash": "4d4f0e45b9fe78cb1c16ec2569c3ac6fc54d233e07ce5ed6ed8897f2dfdb6ecd",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\4d\\4d4f0e45b9fe78cb1c16ec2569c3ac6fc54d233e07ce5ed6ed8897f2dfdb6ecd"
+    },
+    "package.json": {
+      "hash": "005315bf762e6812c422385a03620f0ed5ca7794ed038040d0860bfa48fcccaa",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\00\\005315bf762e6812c422385a03620f0ed5ca7794ed038040d0860bfa48fcccaa"
+    },
+    "preview.html": {
+      "hash": "e0aa2c8629e8450f7b97bdaca4c99142fd5204cc976f3b40fb2c27961d016a40",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\e0\\e0aa2c8629e8450f7b97bdaca4c99142fd5204cc976f3b40fb2c27961d016a40"
+    },
+    "project.json": {
+      "hash": "27a50c49eb29b6191066ca63b8cf0d858882fd938a6f4187d1d698b93f6d5f85",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\27\\27a50c49eb29b6191066ca63b8cf0d858882fd938a6f4187d1d698b93f6d5f85"
+    },
+    "script.txt": {
+      "hash": "674c5a249e0c183fa964fc30dff766969277c091ffd9a05f98cb3614ead60a76",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\67\\674c5a249e0c183fa964fc30dff766969277c091ffd9a05f98cb3614ead60a76"
+    },
+    "setup_and_render.ps1": {
+      "hash": "adac04e2aee049a77aea6c9540a91a819dde1055e3c7e213f738aebfe1e29a8b",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\ad\\adac04e2aee049a77aea6c9540a91a819dde1055e3c7e213f738aebfe1e29a8b"
+    },
+    "src/build.py": {
+      "hash": "66106e97afe03e4e116647007b937d707017c9c4902dc926efa6826eef28b2e1",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\66\\66106e97afe03e4e116647007b937d707017c9c4902dc926efa6826eef28b2e1"
+    },
+    "src/film.src.html": {
+      "hash": "e8387331f2fd9e89b8e3c4ecdbb392e2fbe06d8124ba3e3260e53d41cc5dee0b",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\e8\\e8387331f2fd9e89b8e3c4ecdbb392e2fbe06d8124ba3e3260e53d41cc5dee0b"
+    },
+    "src/index.src.html": {
+      "hash": "28a0d1da5493d35583f1e23b7418c1e3a9bcb7a8700c1288beffd0663045cbd7",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\28\\28a0d1da5493d35583f1e23b7418c1e3a9bcb7a8700c1288beffd0663045cbd7"
+    },
+    "src/scenes/01_hook_folder.js": {
+      "hash": "1e800061fce910d3429a4fe3ae2c53157bb83403882fd2bb77f119967b65ebaa",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\1e\\1e800061fce910d3429a4fe3ae2c53157bb83403882fd2bb77f119967b65ebaa"
+    },
+    "src/scenes/02_radial_phones.js": {
+      "hash": "f38c7c17d391cf3fb3b98777bf078e34add6f53463f1dfd1085b732bc71ff073",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\f3\\f38c7c17d391cf3fb3b98777bf078e34add6f53463f1dfd1085b732bc71ff073"
+    },
+    "src/scenes/03_ribbon_progress_done.js": {
+      "hash": "44c170146b9c6ca21192839d860303fed6c5a6e0ee9a5d58f93889ec92768336",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\44\\44c170146b9c6ca21192839d860303fed6c5a6e0ee9a5d58f93889ec92768336"
+    },
+    "src/scenes/04_dashboard_orbit.js": {
+      "hash": "0520f445c3bf5e80c7a5f5e795c4e43e58a7b54d0f61e4f6ca4fa78fb183c5e4",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\05\\0520f445c3bf5e80c7a5f5e795c4e43e58a7b54d0f61e4f6ca4fa78fb183c5e4"
+    },
+    "src/scenes/05_macro_cta.js": {
+      "hash": "1cfd12aa1643300b16f825ed3a309ac5d94d8e7e0a078e6272e726c33d51a99a",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\1c\\1cfd12aa1643300b16f825ed3a309ac5d94d8e7e0a078e6272e726c33d51a99a"
+    },
+    "src/scenes/06_sparkle_logo.js": {
+      "hash": "7f6dc3b6bdeb7ce561286545f5d5f59e59349520fc09afa25c8996f65e8345ec",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\7f\\7f6dc3b6bdeb7ce561286545f5d5f59e59349520fc09afa25c8996f65e8345ec"
+    },
+    "work/words.json": {
+      "hash": "573f660a5cb9e19fcfd5b50b71fa61f2b836ca9c860c90dda8c2288404509298",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\57\\573f660a5cb9e19fcfd5b50b71fa61f2b836ca9c860c90dda8c2288404509298"
+    },
+    "VOICEOVER_SCRIPT.md": {
+      "hash": "ab13ed3582a8a7c1de777aa5931e6136fae022a5af772c0daeebaaad5bcd816b",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\ab\\ab13ed3582a8a7c1de777aa5931e6136fae022a5af772c0daeebaaad5bcd816b"
+    },
+    "src/voice.py": {
+      "hash": "d20f723710ccb70112a0825e4bbeea9f0d6b2abcec7442e57fb991883cb1c95b",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\d2\\d20f723710ccb70112a0825e4bbeea9f0d6b2abcec7442e57fb991883cb1c95b"
+    },
+    "work/My_voice.mp3": {
+      "hash": "9382b9a24a98a6e7f8d724119a85bd50fa8f7c8fa873feaa7935ca6e926c5b2b",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\93\\9382b9a24a98a6e7f8d724119a85bd50fa8f7c8fa873feaa7935ca6e926c5b2b"
+    },
+    "src/clone_voice.py": {
+      "hash": "cf53bfb103921e2632095f69f7f4209fa82bfbc754dc113199b28167bcfda10e",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\cf\\cf53bfb103921e2632095f69f7f4209fa82bfbc754dc113199b28167bcfda10e"
+    },
+    "src/mix_sfx.py": {
+      "hash": "8c260f1e21a5334cd573f9c4ad9d12f82681bfe67aab4aba720f8021a699b787",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\8c\\8c260f1e21a5334cd573f9c4ad9d12f82681bfe67aab4aba720f8021a699b787"
+    },
+    "src/music.py": {
+      "hash": "8551d3e4205f853c2bd55a4947ddfd629f0b05cbe0342029c44150e9db9d6cb2",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\85\\8551d3e4205f853c2bd55a4947ddfd629f0b05cbe0342029c44150e9db9d6cb2"
+    },
+    "work/My_voice.transcript.json": {
+      "hash": "0c1c4d0f07bb1936137f6cebde26a438c991607743bfa3b90b93a08d4cd2c4de",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\0c\\0c1c4d0f07bb1936137f6cebde26a438c991607743bfa3b90b93a08d4cd2c4de"
+    },
+    "work/ElevenLabs_2026-11-24T11_33_01_Musab_ivc_s50_sim75_v4.mp3": {
+      "hash": "f40349c4b3947780d0702747ff3080b893ff35cd77f36690cbdeb1abf57ce5dc",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\f4\\f40349c4b3947780d0702747ff3080b893ff35cd77f36690cbdeb1abf57ce5dc"
+    },
+    "work/Launch_Day_2026-11-24T114838.mp3": {
+      "hash": "05d18526a7f166bb2b75dc632b1ef12330ad1b57481865bd14748201a1d12753",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\05\\05d18526a7f166bb2b75dc632b1ef12330ad1b57481865bd14748201a1d12753"
+    },
+    "work/ElevenLabs_2026-11-24T11_33_01_Musab_ivc_s50_sim75_v4.transcript.json": {
+      "hash": "7abf2881afd855dbf4d9085b5f8346b5cabfe9623b6b918d2585f66156f5a245",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\7a\\7abf2881afd855dbf4d9085b5f8346b5cabfe9623b6b918d2585f66156f5a245"
+    },
+    "assets/audio/vo.wav": {
+      "hash": "af7dd2f5232cf0830c91713722d1a271f0b7aea2e99f5a530bd6befadce4ac60",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\af\\af7dd2f5232cf0830c91713722d1a271f0b7aea2e99f5a530bd6befadce4ac60"
+    },
+    "work/bg_music.mp3": {
+      "hash": "05d18526a7f166bb2b75dc632b1ef12330ad1b57481865bd14748201a1d12753",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\05\\05d18526a7f166bb2b75dc632b1ef12330ad1b57481865bd14748201a1d12753"
+    },
+    "assets/audio/music.wav": {
+      "hash": "0d0c4e85178fa2306cba1df4d6bf35babfcdd8a3068943fcc803de4517f32464",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\0d\\0d0c4e85178fa2306cba1df4d6bf35babfcdd8a3068943fcc803de4517f32464"
+    },
+    "assets/audio/vo.transcript.json": {
+      "hash": "467706967e747ce93f07023a98ddf897bdaf417b268edb3cffcb3d424e631c15",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\46\\467706967e747ce93f07023a98ddf897bdaf417b268edb3cffcb3d424e631c15"
+    },
+    "export_final_video.ps1": {
+      "hash": "40d70d5c639078437a8aa2a5f1a2155762db931f74bfa65b970c38d1dda1066a",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\40\\40d70d5c639078437a8aa2a5f1a2155762db931f74bfa65b970c38d1dda1066a"
+    },
+    "assets/audio/sfx.wav": {
+      "hash": "40e2cd12678181c3d7020b29168ca5d0668ada7662f8c03b89df5146434134c6",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\40\\40e2cd12678181c3d7020b29168ca5d0668ada7662f8c03b89df5146434134c6"
+    },
+    "make_final.py": {
+      "hash": "98f2744a92fa0f68185893c1c423303facff60365ed7ef4c368c197f20075ec3",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\98\\98f2744a92fa0f68185893c1c423303facff60365ed7ef4c368c197f20075ec3"
+    },
+    "work/_clean_1080p_video.mp4": {
+      "hash": "f11c613e4541529a31e8f59f6d4bf7a6355dad34c3eb55f17bee1b4c118b05ac",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\f1\\f11c613e4541529a31e8f59f6d4bf7a6355dad34c3eb55f17bee1b4c118b05ac"
+    },
+    "assets/audio/FINAL_MASTER_MIX.wav": {
+      "hash": "f212176382c917815cf293c7756d167df9589a4c00ff8237ef766af112c99d41",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\f2\\f212176382c917815cf293c7756d167df9589a4c00ff8237ef766af112c99d41"
+    },
+    "assets/audio/FINAL_MASTER_MIX.transcript.json": {
+      "hash": "b2bf7434bf258c6446b23ed87106236c0ef04a129def381482b308db1cf9b298",
+      "content": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\b2\\b2bf7434bf258c6446b23ed87106236c0ef04a129def381482b308db1cf9b298"
+    }
+  },
+  "revisions": {
+    "b070dc72-b2fd-49dd-9384-6a4f61ea004b": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795520823932,
+      "endedAt": 1795520824187,
+      "files": {
+        "preview.html": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\f6\\f62657da4e3f3c44f17c8174cc5b4297339766ff1760f612e52f4f21303b8a0c",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\d3\\d35770af5b7fc98f9b2f7406e15dcbae223c4e60b563e6bd57a22e3c8697fabb"
+        },
+        "script.txt": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\c8\\c84835780bca203a9234496c72f88bc48df109bc001a8a3445d3f75f3faa5d5d",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\67\\674c5a249e0c183fa964fc30dff766969277c091ffd9a05f98cb3614ead60a76"
+        },
+        "src/clone_voice.py": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\cf\\cf53bfb103921e2632095f69f7f4209fa82bfbc754dc113199b28167bcfda10e"
+        },
+        "src/film.src.html": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\fc\\fcae58f509884bc67781ee1c9d113518a74ff1866e5746d8715c9915fba94e62",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\80\\8053269a75ab1161559e175e5c447e7761eb41fec8c2c995f2ae6ae3b8f1572d"
+        },
+        "src/mix_sfx.py": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\3c\\3c87628f27a3e1be11ef5b1ebe172f13f2b2b6a5af5d07508848746435d5bfc2"
+        },
+        "src/music.py": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\85\\8551d3e4205f853c2bd55a4947ddfd629f0b05cbe0342029c44150e9db9d6cb2"
+        },
+        "src/scenes/01_hook_folder.js": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\9b\\9b4c4a2c9c7a16823c1696ddbcd864ed2ccff6bbff727ebcb8f5d03ffcfbf07e",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\49\\49a9846a8ff02285267f53f895cb365806fb9ca1f9eee38d3918940a61075fd5"
+        },
+        "src/scenes/02_radial_phones.js": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\6c\\6c9b65a737685e5d3998a240cff06ee0c567c2fcd192294166d22d52d93ad3ac",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\f3\\f38c7c17d391cf3fb3b98777bf078e34add6f53463f1dfd1085b732bc71ff073"
+        },
+        "src/scenes/03_ribbon_progress_done.js": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\57\\57fbceb4e057c29e704258cd40085bdfef7c54cbce48c677d24dc341cac047b3",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\44\\44c170146b9c6ca21192839d860303fed6c5a6e0ee9a5d58f93889ec92768336"
+        },
+        "src/scenes/04_dashboard_orbit.js": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\b0\\b0d0ec2a0ec94b3505f4f914279dbb8949b2deb5ea81dfb26c6c158509bf38c4",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\05\\0520f445c3bf5e80c7a5f5e795c4e43e58a7b54d0f61e4f6ca4fa78fb183c5e4"
+        },
+        "src/scenes/05_macro_cta.js": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\25\\259fe4eab9411209cb89d56b3e14c7504d09575e18797508bcafc6e7b401ad6d",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\1c\\1cfd12aa1643300b16f825ed3a309ac5d94d8e7e0a078e6272e726c33d51a99a"
+        },
+        "src/scenes/06_sparkle_logo.js": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\3a\\3a45be8feebc3948226991c79609de023ff0408594ba967d8c7a0dada868d881",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\7f\\7f6dc3b6bdeb7ce561286545f5d5f59e59349520fc09afa25c8996f65e8345ec"
+        },
+        "src/voice.py": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\d2\\d20f723710ccb70112a0825e4bbeea9f0d6b2abcec7442e57fb991883cb1c95b"
+        },
+        "VOICEOVER_SCRIPT.md": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\ab\\ab13ed3582a8a7c1de777aa5931e6136fae022a5af772c0daeebaaad5bcd816b"
+        },
+        "work/My_voice.mp3": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\93\\9382b9a24a98a6e7f8d724119a85bd50fa8f7c8fa873feaa7935ca6e926c5b2b"
+        }
+      }
+    },
+    "94e7e605-6604-43bb-85cb-b091b6a5a610": {
+      "actor": {
+        "kind": "person",
+        "name": "You"
+      },
+      "label": "Element ids",
+      "startedAt": 1795520824725,
+      "endedAt": 1795520824725,
+      "files": {
+        "compositions/film.html": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\e6\\e60e37d5e754d31abe07a9d7970443ba77f63bab179bfa8135387be298b44932",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\b0\\b0d72eabb72b72b13acd5dc8d89604e55462c0528ae9949453385584fb7b0da7"
+        },
+        "index.html": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\8d\\8d2e21d9dda0d6713f9399b250bc50a0e09341937f069a8f424f85d165c140a2",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\d9\\d96ccdfbb454bed7992653766ef0f541218aba39ef39f261eb3a4b0aaaef066f"
+        },
+        "preview.html": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\d3\\d35770af5b7fc98f9b2f7406e15dcbae223c4e60b563e6bd57a22e3c8697fabb",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\e0\\e0aa2c8629e8450f7b97bdaca4c99142fd5204cc976f3b40fb2c27961d016a40"
+        },
+        "src/film.src.html": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\80\\8053269a75ab1161559e175e5c447e7761eb41fec8c2c995f2ae6ae3b8f1572d",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\e8\\e8387331f2fd9e89b8e3c4ecdbb392e2fbe06d8124ba3e3260e53d41cc5dee0b"
+        },
+        "src/index.src.html": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\2f\\2f9a628ad81a8b188ad0feb9668d8972874e4fe8b2097731177629d003d8bc8b",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\28\\28a0d1da5493d35583f1e23b7418c1e3a9bcb7a8700c1288beffd0663045cbd7"
+        }
+      }
+    },
+    "c5588ee9-37d6-41b3-8322-15c69da5bfec": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795520834682,
+      "endedAt": 1795520836686,
+      "files": {
+        "work/My_voice.transcript.json": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\0c\\0c1c4d0f07bb1936137f6cebde26a438c991607743bfa3b90b93a08d4cd2c4de"
+        }
+      }
+    },
+    "f551104c-4fb2-44a6-a292-1fd3098d796e": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795521927890,
+      "endedAt": 1795521929903,
+      "files": {
+        "project.json": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\3f\\3fd35bee1620541a30981084c24cd20bc2b55eaaf8c2d64b26277aec3edcb448",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\27\\27a50c49eb29b6191066ca63b8cf0d858882fd938a6f4187d1d698b93f6d5f85"
+        }
+      }
+    },
+    "69204147-8c04-458c-bcf1-61ce26f8453b": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795521931907,
+      "endedAt": 1795521933982,
+      "files": {
+        "setup_and_render.ps1": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\54\\54bfd6c31cc356abf10892101105b4cf3aef84b989d098e15cf547341cf2249e",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\e3\\e3f2dfb16eaaacba595e24f9795bca445100909eb287dd3ee1e4b79c0604c16b"
+        }
+      }
+    },
+    "1421a163-bd6f-4233-9372-788ea2334b3a": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795521970804,
+      "endedAt": 1795521972810,
+      "files": {
+        "setup_and_render.ps1": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\e3\\e3f2dfb16eaaacba595e24f9795bca445100909eb287dd3ee1e4b79c0604c16b",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\01\\01cc9a027ee92c294c78893d102c08917fc12c7c8571c712f195293df975e3fb"
+        }
+      }
+    },
+    "a3fec9f8-461f-4c26-8fd2-74bb6b07e68b": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795522001624,
+      "endedAt": 1795522003632,
+      "files": {
+        "work/ElevenLabs_2026-11-24T11_33_01_Musab_ivc_s50_sim75_v4.mp3": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\f4\\f40349c4b3947780d0702747ff3080b893ff35cd77f36690cbdeb1abf57ce5dc"
+        }
+      }
+    },
+    "72554e90-7e69-41c9-af46-913e1484e181": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795522009115,
+      "endedAt": 1795522011382,
+      "files": {
+        "work/ElevenLabs_2026-11-24T11_33_01_Musab_ivc_s50_sim75_v4.transcript.json": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\7a\\7abf2881afd855dbf4d9085b5f8346b5cabfe9623b6b918d2585f66156f5a245"
+        },
+        "work/Launch_Day_2026-11-24T114838.mp3": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\05\\05d18526a7f166bb2b75dc632b1ef12330ad1b57481865bd14748201a1d12753"
+        }
+      }
+    },
+    "03309b06-9d83-4a3e-925e-0e3a412de5a4": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795522091481,
+      "endedAt": 1795522093493,
+      "files": {
+        "setup_and_render.ps1": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\01\\01cc9a027ee92c294c78893d102c08917fc12c7c8571c712f195293df975e3fb",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\c3\\c3078ea1e6d1e4699632236da41f8ab529645d820b6d93d8e7b6e06b544e6dc9"
+        }
+      }
+    },
+    "ed2bf20e-22eb-4b71-956b-5ea813d0adcd": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795522115755,
+      "endedAt": 1795522117811,
+      "files": {
+        "compositions/film.html": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\b0\\b0d72eabb72b72b13acd5dc8d89604e55462c0528ae9949453385584fb7b0da7",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\b7\\b7028a3f6b21eb25753ac40c5be3a9197e99d04f2e1eccd6dd897842ef31fd1a"
+        },
+        "index.html": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\d9\\d96ccdfbb454bed7992653766ef0f541218aba39ef39f261eb3a4b0aaaef066f",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\fc\\fc37ba8b73d72bfdc7b0505a124d3eced7cbd9620feca69ff14673ae008b07e8"
+        }
+      }
+    },
+    "7f391780-7e82-41cf-8aa0-e9457ac32085": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795522758965,
+      "endedAt": 1795522760965,
+      "files": {
+        "setup_and_render.ps1": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\c3\\c3078ea1e6d1e4699632236da41f8ab529645d820b6d93d8e7b6e06b544e6dc9",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\a5\\a5815f32b24eee7e698941f53c07eb6a4e9987348217ebaf2dd0cc1f504ca90e"
+        }
+      }
+    },
+    "c1b66fcb-2f8d-4881-a9c2-dc7a2a5d5e4d": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795522789052,
+      "endedAt": 1795522791067,
+      "files": {
+        "setup_and_render.ps1": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\a5\\a5815f32b24eee7e698941f53c07eb6a4e9987348217ebaf2dd0cc1f504ca90e",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\ad\\adac04e2aee049a77aea6c9540a91a819dde1055e3c7e213f738aebfe1e29a8b"
+        }
+      }
+    },
+    "254dbb58-93ce-4856-9629-0529ac0509b4": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795531388800,
+      "endedAt": 1795531393557,
+      "files": {
+        "assets/audio/vo.wav": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\af\\af7dd2f5232cf0830c91713722d1a271f0b7aea2e99f5a530bd6befadce4ac60"
+        },
+        "work/bg_music.mp3": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\05\\05d18526a7f166bb2b75dc632b1ef12330ad1b57481865bd14748201a1d12753"
+        }
+      }
+    },
+    "d0e118c5-3e0b-4d7f-a107-be856ea7a412": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795531395996,
+      "endedAt": 1795531398006,
+      "files": {
+        "assets/audio/music.wav": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\0d\\0d0c4e85178fa2306cba1df4d6bf35babfcdd8a3068943fcc803de4517f32464"
+        }
+      }
+    },
+    "09184001-9cfa-4eab-96b1-f750f274d81b": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795531399540,
+      "endedAt": 1795531401550,
+      "files": {
+        "assets/audio/vo.transcript.json": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\46\\467706967e747ce93f07023a98ddf897bdaf417b268edb3cffcb3d424e631c15"
+        }
+      }
+    },
+    "178df84b-4a10-448c-a1c2-fb81f5706929": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795531738743,
+      "endedAt": 1795531740757,
+      "files": {
+        "src/mix_sfx.py": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\3c\\3c87628f27a3e1be11ef5b1ebe172f13f2b2b6a5af5d07508848746435d5bfc2",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\d9\\d94fa149b451e591d5aa6149a57a9813ef6211347a00576af729a1f20fccc436"
+        }
+      }
+    },
+    "9c19a63b-84c6-41f4-9c11-4a1682da69e5": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795531741915,
+      "endedAt": 1795531743914,
+      "files": {
+        "src/build.py": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\e8\\e8675916fe9c8c5745446946f4f5e1836d661c90e2b2d0639fe3802f63b6cb97",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\66\\66106e97afe03e4e116647007b937d707017c9c4902dc926efa6826eef28b2e1"
+        }
+      }
+    },
+    "30c1d2c3-1ef5-4545-ad01-6858e37ac7d3": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795531744641,
+      "endedAt": 1795531746641,
+      "files": {
+        "export_final_video.ps1": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\5e\\5e506649a6c6486be292a67e71036f79864c001869fc600aa82e9359191dd8cb"
+        }
+      }
+    },
+    "c74442dd-96e4-490e-89b9-2f512941304b": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795531773354,
+      "endedAt": 1795531775357,
+      "files": {
+        "export_final_video.ps1": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\5e\\5e506649a6c6486be292a67e71036f79864c001869fc600aa82e9359191dd8cb",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\d3\\d39bfdbe55e8a563302bbd57ead3767c8f8b4f2039628b333f35e05841be8829"
+        }
+      }
+    },
+    "4702c689-4cb0-4e9a-a5c1-f68ce2c15691": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795532465349,
+      "endedAt": 1795532470159,
+      "files": {
+        "assets/audio/sfx.wav": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\6e\\6e5f893355adeb9998ed8ff834062578d6e1886c61bad91da6f018bbaadb12cf"
+        },
+        "index.html": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\fc\\fc37ba8b73d72bfdc7b0505a124d3eced7cbd9620feca69ff14673ae008b07e8",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\c4\\c46f2176715ac15a972119066783ed5cf98977c71526796f8c54373dd26ec315"
+        }
+      }
+    },
+    "e11cca94-3809-416d-b4e7-167ba6577a6e": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795532835662,
+      "endedAt": 1795532837669,
+      "files": {
+        "src/mix_sfx.py": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\d9\\d94fa149b451e591d5aa6149a57a9813ef6211347a00576af729a1f20fccc436",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\8c\\8c260f1e21a5334cd573f9c4ad9d12f82681bfe67aab4aba720f8021a699b787"
+        }
+      }
+    },
+    "db49bd66-4f50-44ca-907b-b683f3c7af16": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795532839303,
+      "endedAt": 1795532841313,
+      "files": {
+        "export_final_video.ps1": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\d3\\d39bfdbe55e8a563302bbd57ead3767c8f8b4f2039628b333f35e05841be8829",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\48\\48e05c13fd7224bb1bf3f722cb7cae9a074af0ca27285c255730ce9f46839978"
+        }
+      }
+    },
+    "cae98f03-f804-40bc-bd4d-3c62f82603e9": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795532842662,
+      "endedAt": 1795532844663,
+      "files": {
+        "export_final_video.ps1": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\48\\48e05c13fd7224bb1bf3f722cb7cae9a074af0ca27285c255730ce9f46839978",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\40\\40d70d5c639078437a8aa2a5f1a2155762db931f74bfa65b970c38d1dda1066a"
+        }
+      }
+    },
+    "b52ded55-6ab6-47c9-868a-31facecb8f82": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795533458812,
+      "endedAt": 1795533460827,
+      "files": {
+        "make_final.py": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\0b\\0b2965256163f748f889c7561719df3098cf8fafd26c19ea9b1b48888cb6d0bb"
+        }
+      }
+    },
+    "1ce65f00-7765-4a6d-8780-102b1b4f6471": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795533463540,
+      "endedAt": 1795533465543,
+      "files": {
+        "src/scenes/01_hook_folder.js": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\49\\49a9846a8ff02285267f53f895cb365806fb9ca1f9eee38d3918940a61075fd5",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\1e\\1e800061fce910d3429a4fe3ae2c53157bb83403882fd2bb77f119967b65ebaa"
+        }
+      }
+    },
+    "0b0c8710-9f1a-4219-bf73-431196f43b65": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795533781090,
+      "endedAt": 1795533783093,
+      "files": {
+        "make_final.py": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\0b\\0b2965256163f748f889c7561719df3098cf8fafd26c19ea9b1b48888cb6d0bb",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\f2\\f2dee9168433a42aaf4da7230940fba1ac0907172111fab421210f78819cfb60"
+        }
+      }
+    },
+    "1253d0f9-fefa-4766-a493-ea66ae4c96b6": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795533895560,
+      "endedAt": 1795533900125,
+      "files": {
+        "assets/audio/FINAL_MASTER_MIX.wav": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\a2\\a2b52e3c124b5acd343d15e41ed42141780193e0f54956747e9a8db8449d6f96"
+        },
+        "assets/audio/sfx.wav": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\6e\\6e5f893355adeb9998ed8ff834062578d6e1886c61bad91da6f018bbaadb12cf",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\49\\4979c4905f5c2adcd0fea19bca964b3d7686bcbf641a552fba3598e135eb2cbd"
+        },
+        "work/_clean_1080p_video.mp4": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\f1\\f11c613e4541529a31e8f59f6d4bf7a6355dad34c3eb55f17bee1b4c118b05ac"
+        }
+      }
+    },
+    "d3f13da4-962b-4950-a766-8bc9ca05a1b6": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795533916240,
+      "endedAt": 1795533918249,
+      "files": {
+        "assets/audio/FINAL_MASTER_MIX.transcript.json": {
+          "before": null,
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\f3\\f3ad4815ed314950e7cabd6c27a96ead2b2e28c627322196fbd01fbff4e5e00a"
+        }
+      }
+    },
+    "db615d37-9918-4b4f-a756-c2cb7e9f4f4d": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795534262281,
+      "endedAt": 1795534264291,
+      "files": {
+        "make_final.py": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\f2\\f2dee9168433a42aaf4da7230940fba1ac0907172111fab421210f78819cfb60",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\98\\98f2744a92fa0f68185893c1c423303facff60365ed7ef4c368c197f20075ec3"
+        }
+      }
+    },
+    "54ca061b-040b-4875-821c-93175a16acb8": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795534449014,
+      "endedAt": 1795534451496,
+      "files": {
+        "assets/audio/FINAL_MASTER_MIX.wav": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\a2\\a2b52e3c124b5acd343d15e41ed42141780193e0f54956747e9a8db8449d6f96",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\f2\\f212176382c917815cf293c7756d167df9589a4c00ff8237ef766af112c99d41"
+        },
+        "assets/audio/sfx.wav": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\49\\4979c4905f5c2adcd0fea19bca964b3d7686bcbf641a552fba3598e135eb2cbd",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\40\\40e2cd12678181c3d7020b29168ca5d0668ada7662f8c03b89df5146434134c6"
+        }
+      }
+    },
+    "63072b91-d1ee-46e9-859b-d8f5c83edee6": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1795534475355,
+      "endedAt": 1795534477406,
+      "files": {
+        "assets/audio/FINAL_MASTER_MIX.transcript.json": {
+          "before": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\f3\\f3ad4815ed314950e7cabd6c27a96ead2b2e28c627322196fbd01fbff4e5e00a",
+          "after": "C:\\Users\\musab\\.cache\\hyperframes\\history\\91c7425f-5888-4da9-bcbc-fc49ad2f2444\\blobs\\b2\\b2bf7434bf258c6446b23ed87106236c0ef04a129def381482b308db1cf9b298"
+        }
+      }
+    }
+  },
+  "checks": {
+    "latest": null,
+    "revisions": {},
+    "unversioned": []
+  },
+  "snapshots": {
+    "latest": null,
+    "revisions": {},
+    "unversioned": []
+  },
+  "renders": {
+    "latest": {
+      "id": "3b36f8c2-9329-4f8b-b2f5-8e2b0b33c3ad",
+      "completedAt": 1795532600065,
+      "output": "C:\\Users\\musab\\Desktop\\ai_job_agent\\jobsnap-luminous-video\\renders\\_raw_video.mp4",
+      "status": "completed",
+      "revision": "4702c689-4cb0-4e9a-a5c1-f68ce2c15691"
+    },
+    "retainedRevisions": [
+      "4702c689-4cb0-4e9a-a5c1-f68ce2c15691",
+      "ed2bf20e-22eb-4b71-956b-5ea813d0adcd"
+    ]
+  },
+  "pendingArtifactCleanup": []
+}

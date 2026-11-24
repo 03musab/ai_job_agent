@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "src": "work/Launch_Day_2026-11-24T114838.mp3",
+  "sha": "05d18526a7f166bb2b75dc632b1ef12330ad1b57481865bd14748201a1d12753",
+  "engine": "scribe",
+  "model": "scribe-v2",
+  "detectedLanguage": "en",
+  "words": [],
+  "language": "auto",
+  "generatedWordsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "createdAt": "2026-11-24T12:06:56.719Z"
+}

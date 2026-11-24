@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JobSnap Luminous Glass — 32.5s Interactive 1080p Preview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 100%; height: 100%; background: #0E1016; color: #F5F6FA;
+        font-family: "Plus Jakarta Sans", sans-serif; overflow: hidden;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+      }
+      #viewport { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; padding: 18px 24px 10px; overflow: hidden; }
+      #stage-shell {
+        position: relative; width: 1920px; height: 1080px; transform-origin: center center;
+        border-radius: 18px; overflow: hidden;
+        box-shadow: 0 32px 90px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.12);
+      }
+      #controls {
+        width: min(1160px, 96vw); margin-bottom: 14px;
+        background: rgba(24,26,36,0.92); border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 16px; padding: 12px 18px; display: flex; flex-direction: column; gap: 10px;
+      }
+      .ctrl-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .cbtn { background: #FFFFFF; color: #0B0B0F; border: none; border-radius: 999px; padding: 7px 15px; font: 700 13px "Plus Jakarta Sans", sans-serif; cursor: pointer; }
+      .cbtn.ghost { background: rgba(255,255,255,0.1); color: #FFFFFF; }
+      .cbtn.ghost:hover { background: rgba(255,255,255,0.2); }
+      .cbtn.active { background: #38BDF8; color: #0B0B0F; }
+      #scrub { flex: 1; accent-color: #38BDF8; cursor: pointer; }
+      #tc { font: 600 13px "JetBrains Mono", monospace; color: #93C5FD; min-width: 112px; text-align: right; }
+
+      /* === LUMINOUS GLASS FILM ENGINE === */
+      #root { position: absolute; inset: 0; overflow: hidden; background: #F8FAFF; }
+      #f-all { position: absolute; inset: 0; overflow: hidden; background: #F8FAFF; color: #0F172A; font-family: "Plus Jakarta Sans", "Inter", sans-serif; -webkit-font-smoothing: antialiased; }
+      #f-all *, #f-all *::before, #f-all *::after { box-sizing: border-box; }
+      .abs { position: absolute; }
+      #bg { position: absolute; inset: 0; background: #090D16; overflow: hidden; }
+      .bg-wash { position: absolute; inset: -8%; width: 116%; height: 116%; opacity: 0; pointer-events: none; will-change: opacity, transform; }
+      #bg-grain {
+        position: absolute; inset: 0; pointer-events: none; opacity: 0.065; mix-blend-mode: overlay; z-index: 2;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        background-size: 220px 220px;
+      }
+      .sc { position: absolute; inset: 0; display: none; overflow: hidden; perspective: 1600px; }
+      .lt { position: absolute; font-weight: 500; letter-spacing: -0.03em; line-height: 1.12; color: #0F172A; white-space: nowrap; }
+      .lt-blue { color: #2563EB; }
+      .lt-sky  { color: #38BDF8; }
+      .lt-grad { background: linear-gradient(90deg, #2563EB 0%, #0EA5E9 55%, #10B981 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+      .mono { font-family: "JetBrains Mono", monospace; }
+      .g-folder { position: absolute; width: 310px; height: 244px; transform-style: preserve-3d; filter: drop-shadow(0 30px 48px rgba(37,99,235,0.28)); }
+      .g-folder-back { position: absolute; inset: 0; background: linear-gradient(155deg, #60A5FA 0%, #2563EB 100%); border-radius: 26px; }
+      .g-folder-tab { position: absolute; left: 0; top: -22px; width: 122px; height: 38px; background: linear-gradient(155deg, #60A5FA 0%, #3B82F6 100%); border-radius: 16px 16px 0 0; }
+      .g-folder-doc { position: absolute; background: #FFFFFF; border-radius: 14px; border: 1.5px solid rgba(15,23,42,0.08); box-shadow: 0 8px 20px rgba(15,23,42,0.08); padding: 14px; }
+      .g-folder-front { position: absolute; left: 0; right: 0; bottom: 0; height: 176px; background: linear-gradient(160deg, rgba(147,197,253,0.72) 0%, rgba(59,130,246,0.88) 55%, rgba(37,99,235,0.95) 100%); backdrop-filter: blur(14px); border-radius: 24px; border-top: 2px solid rgba(255,255,255,0.65); padding: 24px; color: #FFFFFF; display: flex; flex-direction: column; justify-content: flex-end; }
+      .iphone { position: absolute; width: 440px; height: 860px; background: #0F172A; border-radius: 58px; padding: 14px; box-shadow: 0 36px 80px rgba(15,23,42,0.16), 0 0 0 1px rgba(15,23,42,0.08); }
+      .iphone-scr { width: 100%; height: 100%; background: #FFFFFF; border-radius: 46px; overflow: hidden; position: relative; padding: 58px 26px 26px; }
+      .iphone-island { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); width: 118px; height: 28px; border-radius: 999px; background: #0F172A; z-index: 5; }
+      .saas-card { background: #FFFFFF; border: 1.5px solid rgba(37,99,235,0.16); border-radius: 20px; box-shadow: 0 14px 36px rgba(37,99,235,0.09); overflow: hidden; }
+      .saas-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+      .prog-track { position: absolute; left: -60px; top: 484px; width: 1620px; height: 118px; border-radius: 999px; background: #EEF2FF; overflow: hidden; box-shadow: 0 28px 70px rgba(59,130,246,0.24); }
+      .prog-fill { height: 100%; width: 100%; border-radius: 999px; background: linear-gradient(90deg, #E0E7FF 0%, #6366F1 24%, #3B82F6 62%, #38BDF8 86%, #34D399 100%); transform-origin: left center; }
+      .hand-cur { position: absolute; width: 64px; height: 64px; z-index: 60; pointer-events: none; filter: drop-shadow(0 10px 18px rgba(15,23,42,0.22)); }
+      .click-ring { position: absolute; width: 56px; height: 56px; border-radius: 50%; border: 3px solid #3B82F6; pointer-events: none; z-index: 59; opacity: 0; }
+      svg.ic { position: absolute; overflow: visible; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-wud3" id="viewport">
+      <div data-hf-id="hf-fsks" id="stage-shell">
+        <div data-hf-id="hf-3hct" id="root" data-composition-id="film" data-width="1920" data-height="1080">
+          <div data-hf-id="hf-qj6z" id="f-all">
+            <div data-hf-id="hf-2xc0" id="bg"><div data-hf-id="hf-le7u" id="bg-grain"></div></div>
+            <div data-hf-id="hf-a5qg" id="f-scenes" class="abs" style="inset:0; z-index:4;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div data-hf-id="hf-ke2z" id="controls">
+      <div data-hf-id="hf-gxbk" class="ctrl-row">
+        <button data-hf-id="hf-6ken" id="btn-play" class="cbtn">Play</button>
+        <button data-hf-id="hf-wh5a" id="btn-restart" class="cbtn ghost">Restart</button>
+        <button data-hf-id="hf-5200" id="btn-sound" class="cbtn active" title="Toggle preview sound effects & light electronic bed">🔊 Sound ON</button>
+        <button data-hf-id="hf-nv4b" id="btn-vo" class="cbtn ghost" title="Load your recorded voiceover (.mp3, .wav, .m4a) to test synced live">🎙️ Load My Voice</button>
+        <input data-hf-id="hf-mper" id="vo-file" type="file" accept="audio/*" style="display:none" />
+        <button data-hf-id="hf-6kfk" id="btn-bg" class="cbtn ghost" title="Load a background music track (.mp3, .wav) — auto-ducks under your voice">🎵 Load BG Music</button>
+        <input data-hf-id="hf-xnhr" id="bg-file" type="file" accept="audio/*" style="display:none" />
+        <input data-hf-id="hf-0n5x" id="scrub" type="range" min="0" max="32" step="0.02" value="0" />
+        <span data-hf-id="hf-kyfe" id="tc">00.00 / 32.00s</span>
+      </div>
+      <div data-hf-id="hf-szf2" class="ctrl-row" id="scene-jumps">
+        <button data-hf-id="hf-01w3" class="cbtn ghost" data-t="0.4">01 Hook</button>
+        <button data-hf-id="hf-ksjt" class="cbtn ghost" data-t="3.1">02 Glass Folder</button>
+        <button data-hf-id="hf-vwc9" class="cbtn ghost" data-t="7.5">03 4-Phone Ring</button>
+        <button data-hf-id="hf-n4h8" class="cbtn ghost" data-t="13.2">04 Progress 99/100</button>
+        <button data-hf-id="hf-r9df" class="cbtn ghost" data-t="15.0">05 Done!</button>
+        <button data-hf-id="hf-sw0w" class="cbtn ghost" data-t="17.2">06 3D Dashboard</button>
+        <button data-hf-id="hf-k1mo" class="cbtn ghost" data-t="19.8">07 Multiple Sources</button>
+        <button data-hf-id="hf-w6dt" class="cbtn ghost" data-t="23.9">08 Applied Glow</button>
+        <button data-hf-id="hf-nxmc" class="cbtn ghost" data-t="26.9">09 Match Fill Land</button>
+        <button data-hf-id="hf-xy33" class="cbtn ghost" data-t="29.5">10 jobsnap.me</button>
+      </div>
+    </div>
+
+    <script>
+      function fitStage() {
+        const vp = document.getElementById("viewport"), sh = document.getElementById("stage-shell");
+        const s = Math.min((vp.clientWidth - 36) / 1920, (vp.clientHeight - 24) / 1080);
+        sh.style.transform = `scale(${s.toFixed(4)})`;
+      }
+      window.addEventListener("resize", fitStage); fitStage();
+
+      const DUR = 32.0, VW = 1920, VH = 1080;
+      const $ = (s) => document.querySelector(s), NS = "http://www.w3.org/2000/svg";
+
+      function buildFilm() {
+        const rootTl = gsap.timeline({ paused: true }), tl = gsap.timeline();
+        rootTl.add(tl, 0);
+        const ticks = [], P0 = (t) => Math.max(0, t), clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+        const hash = (n) => { let q = Math.imul((n | 0) ^ 0x9e3779b9, 0x85ebca6b); q ^= q >>> 13; q = Math.imul(q, 0xc2b2ae35); q ^= q >>> 16; return (q >>> 0) / 4294967296; };
+        const mk = (parent, cls = "abs", css = "", html = "") => { const e = document.createElement("div"); e.className = cls; if (css) e.style.cssText = css; if (html) e.innerHTML = html; parent.appendChild(e); return e; };
+        const svgEl = (parent, x, y, w, h, inner) => { const s = document.createElementNS(NS, "svg"); s.setAttribute("class", "ic"); s.setAttribute("width", w); s.setAttribute("height", h); s.setAttribute("viewBox", `0 0 ${w} ${h}`); s.style.left = x + "px"; s.style.top = y + "px"; s.innerHTML = inner; parent.appendChild(s); return s; };
+        function scene(id, t0, t1) { const e = mk($("#f-scenes"), "sc"); tl.set(e, { display: "block" }, P0(t0)); if (t1 != null) tl.set(e, { display: "none" }, t1); return e; }
+        /* 11 Rich Film-Grained Editorial Color-Field Backgrounds (Zero Excel/Grid Lines!) */
+        const bgRoot = $("#bg");
+        const BG_THEMES = [
+          { at: 0.0,  dur: 0.01, css: "background: radial-gradient(ellipse 68% 64% at 18% 22%, #FB923C 0%, rgba(251,146,60,0.45) 38%, transparent 70%), radial-gradient(ellipse 65% 65% at 86% 78%, #FDBA74 0%, rgba(253,186,116,0.5) 40%, transparent 70%), radial-gradient(ellipse 60% 58% at 54% 48%, #EDE9FE 0%, #DDD6FE 48%, #F5F3FF 100%);" },
+          { at: 2.38, dur: 0.45, css: "background: radial-gradient(ellipse 74% 110% at 14% 52%, #EA580C 0%, #F97316 42%, rgba(251,146,60,0.22) 66%, transparent 78%), linear-gradient(100deg, #F97316 0%, #FB923C 28%, #E2E8F0 64%, #CBD5E1 100%);" },
+          { at: 4.28, dur: 0.45, css: "background: radial-gradient(ellipse 46% 62% at 32% 48%, #F8FAFC 0%, #CBD5E1 26%, rgba(148,163,184,0.38) 50%, transparent 72%), radial-gradient(ellipse 55% 42% at 12% 28%, rgba(255,255,255,0.85) 0%, transparent 60%), radial-gradient(circle at 75% 55%, #050507 0%, #090A0F 100%); background-color:#050507;" },
+          { at: 6.00, dur: 0.52, css: "background: radial-gradient(ellipse 62% 72% at 15% 45%, #EC4899 0%, rgba(236,72,153,0.65) 42%, transparent 72%), radial-gradient(ellipse 44% 78% at 38% 36%, #F59E0B 0%, rgba(251,191,36,0.5) 36%, transparent 66%), radial-gradient(ellipse 56% 74% at 62% 68%, #0F766E 0%, rgba(13,148,136,0.75) 45%, transparent 74%), radial-gradient(ellipse 64% 76% at 88% 72%, #7C3AED 0%, #4C1D95 55%, #1E1B4B 100%); background-color:#130F26;" },
+          { at: 10.65, dur: 0.48, css: "background: radial-gradient(ellipse 62% 68% at 20% 42%, #2563EB 0%, rgba(37,99,235,0.45) 44%, transparent 74%), radial-gradient(ellipse 60% 66% at 84% 58%, #059669 0%, rgba(16,185,129,0.42) 42%, transparent 72%), radial-gradient(ellipse 55% 55% at 54% 18%, rgba(56,189,248,0.34) 0%, transparent 68%), #070B19;" },
+          { at: 14.65, dur: 0.36, css: "background: radial-gradient(ellipse 64% 64% at 22% 24%, #6EE7B7 0%, rgba(110,231,183,0.4) 44%, transparent 74%), radial-gradient(ellipse 64% 64% at 82% 76%, #FDBA74 0%, rgba(253,186,116,0.42) 44%, transparent 74%), radial-gradient(ellipse 70% 70% at 50% 50%, #F0F9FF 0%, #E0F2FE 65%, #ECFEFF 100%);" },
+          { at: 15.80, dur: 0.45, css: "background: radial-gradient(ellipse 68% 68% at 16% 20%, #A5B4FC 0%, rgba(165,180,252,0.45) 42%, transparent 72%), radial-gradient(ellipse 62% 64% at 86% 80%, #99F6E4 0%, rgba(153,246,228,0.48) 42%, transparent 72%), linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 52%, #F0FDFA 100%);" },
+          { at: 18.55, dur: 0.48, css: "background: radial-gradient(ellipse 64% 66% at 18% 76%, #FDA4AF 0%, rgba(253,164,175,0.48) 42%, transparent 72%), radial-gradient(ellipse 64% 66% at 82% 22%, #FDBA74 0%, rgba(253,186,116,0.48) 42%, transparent 72%), radial-gradient(ellipse 65% 65% at 50% 50%, #EFF6FF 0%, #DBEAFE 70%, #F5F3FF 100%);" },
+          { at: 21.35, dur: 0.48, css: "background: radial-gradient(ellipse 66% 58% at 78% 28%, rgba(16,185,129,0.52) 0%, rgba(16,185,129,0.16) 46%, transparent 74%), radial-gradient(ellipse 68% 62% at 22% 76%, rgba(99,102,241,0.56) 0%, rgba(79,70,229,0.18) 48%, transparent 74%), #070A13;" },
+          { at: 25.15, dur: 0.42, css: "background: radial-gradient(ellipse 52% 64% at 52% 48%, rgba(56,189,248,0.34) 0%, rgba(59,130,246,0.14) 42%, transparent 72%), radial-gradient(ellipse 46% 54% at 24% 34%, rgba(226,232,240,0.42) 0%, transparent 62%), #05060A;" },
+          { at: 27.45, dur: 0.55, css: "background: radial-gradient(ellipse 58% 60% at 14% 20%, rgba(253,186,116,0.55) 0%, transparent 68%), radial-gradient(ellipse 58% 60% at 88% 82%, rgba(110,231,183,0.52) 0%, transparent 68%), radial-gradient(ellipse 64% 64% at 82% 18%, rgba(196,181,253,0.42) 0%, transparent 68%), #FAF8FF;" }
+        ];
+        const bgEls = BG_THEMES.map((b, idx) => {
+          const el = mk(bgRoot, "bg-wash", b.css + " z-index:1;");
+          if (idx === 0) gsap.set(el, { opacity: 1 });
+          else tl.to(el, { opacity: 1, duration: b.dur, ease: "power2.inOut" }, P0(b.at));
+          return el;
+        });
+        for (let i = 0; i < bgEls.length - 1; i++) {
+          const next = BG_THEMES[i + 1];
+          tl.set(bgEls[i], { opacity: 0 }, P0(next.at + next.dur + 0.04));
+        }
+        ticks.push((T) => {
+          const dx = Math.sin(T * 0.45) * 32, dy = Math.cos(T * 0.36) * 24, sc = 1.03 + Math.sin(T * 0.28) * 0.025;
+          for (let i = 0; i < bgEls.length; i++) bgEls[i].style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${sc.toFixed(3)})`;
+        });
+        const blurIn = (el, t, d = 0.45, o = {}) => tl.fromTo(el, { opacity: 0, x: o.x || 0, y: o.y || 0, scale: o.scale != null ? o.scale : 0.96, filter: `blur(${o.blur != null ? o.blur : 14}px)` }, { opacity: 1, x: 0, y: 0, scale: 1, filter: "blur(0px)", duration: d, ease: o.ease || "power3.out", immediateRender: o.imm !== false }, P0(t));
+        const blurOut = (el, t, d = 0.34, o = {}) => tl.to(el, { opacity: 0, x: o.x || 0, y: o.y || 0, scale: o.scale != null ? o.scale : 1.04, filter: `blur(${o.blur != null ? o.blur : 14}px)`, duration: d, ease: "power2.in" }, P0(t));
+        function stroke(p, t, d = 0.52, ease = "power2.inOut") { const L = (p.getTotalLength ? p.getTotalLength() : 600) + 2; gsap.set(p, { opacity: 0, attr: { "stroke-dasharray": L, "stroke-dashoffset": L } }); tl.set(p, { opacity: 1 }, P0(t)); tl.to(p, { attr: { "stroke-dashoffset": 0 }, duration: d, ease }, P0(t)); }
+        function counter(el, from, to, t0, dur, fmt) { const fn = gsap.parseEase("power2.out"); ticks.push((T) => { el.textContent = T < t0 ? fmt(from) : fmt(from + (to - from) * fn(clamp((T - t0) / Math.max(0.01, dur)))); }); }
+        const HAND_SVG = `<svg viewBox="0 0 64 64" width="60" height="60" xmlns="http://www.w3.org/2000/svg"><path d="M24 10 C24 7 29 7 29 10 L29 26 L31 26 C31 23 36 23 36 26 L36 28 L38 28 C38 25 43 25 43 28 L43 31 L45 31 C45 28 50 28 50 32 L50 43 C50 52 43 57 34 57 C25 57 20 51 16 44 L11 35 C9 32 13 28 17 31 L24 36 Z" fill="#FFFFFF" stroke="#0F172A" stroke-width="3.2" stroke-linejoin="round"/><line x1="29" y1="32" x2="29" y2="45" stroke="#0F172A" stroke-width="2.4" stroke-linecap="round"/><line x1="36" y1="33" x2="36" y2="45" stroke="#0F172A" stroke-width="2.4" stroke-linecap="round"/><line x1="43" y1="35" x2="43" y2="45" stroke="#0F172A" stroke-width="2.4" stroke-linecap="round"/></svg>`;
+        function pointerClick(parent, fromX, fromY, toX, toY, arriveAt, clickAt, exitAt) {
+          const cur = mk(parent, "hand-cur", `left:${fromX}px; top:${fromY}px; opacity:0;`, HAND_SVG);
+          const ring = mk(parent, "click-ring", `left:${toX-4}px; top:${toY-12}px; opacity:0;`);
+          gsap.set(ring, { opacity: 0, scale: 0.35 });
+          tl.to(cur, { opacity: 1, duration: 0.22 }, P0(arriveAt));
+          tl.to(cur, { left: toX, top: toY, duration: Math.max(0.25, clickAt - arriveAt), ease: "power3.inOut" }, P0(arriveAt));
+          tl.to(cur, { scale: 0.84, duration: 0.11, ease: "power2.in" }, P0(clickAt));
+          tl.to(cur, { scale: 1.0, duration: 0.18, ease: "back.out(2)" }, P0(clickAt + 0.11));
+          tl.fromTo(ring, { scale: 0.4, opacity: 0.85 }, { scale: 1.8, opacity: 0, duration: 0.45, ease: "power2.out", immediateRender: false }, P0(clickAt + 0.04));
+          if (exitAt != null) tl.to(cur, { opacity: 0, y: 24, duration: 0.24 }, P0(exitAt));
+        }
+        let _svgUid = 0;
+        const LOGO_SVG = (size = 64) => { const gid = "jsLumP_" + (++_svgUid); return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="${size}" height="${size}" style="display:block;flex-shrink:0"><defs><linearGradient id="${gid}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#047857"/></linearGradient></defs><rect width="120" height="120" rx="28" fill="url(#${gid})"/><polygon points="68.4,22.2 34.8,67.8 58.8,67.8 51.6,103.8 85.2,58.2 61.2,58.2" fill="#022c22" opacity="0.18"/><polygon points="68.4,19.2 34.8,64.8 58.8,64.8 51.6,100.8 85.2,55.2 61.2,55.2" fill="#ffffff"/></svg>`; };
+        const SPARKLE_SVG = (size = 96) => { const sid = "spGradP_" + (++_svgUid); return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" style="display:block;overflow:visible;"><defs><linearGradient id="${sid}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#60A5FA"/><stop offset="55%" stop-color="#3B82F6"/><stop offset="100%" stop-color="#10B981"/></linearGradient></defs><path d="M50 4 C54 34, 66 46, 96 50 C66 54, 54 66, 50 96 C46 66, 34 54, 4 50 C34 46, 46 34, 50 4 Z" fill="url(#${sid})"/></svg>`; };
+
+        /* SHOT 1 & 2 (Voice-locked 0.0–4.4s) */
+        {
+          const s1 = scene("s1", 0.0, 4.42);
+          const w1 = mk(s1, "lt", "left:0; width:1920px; top:480px; text-align:center; font-size:96px;", `<span class="lt-blue">Turn</span> <span>Resumes</span>`);
+          blurIn(w1, 0.02, 0.36, { x: -28, blur: 14 }); blurOut(w1, 0.90, 0.24, { x: 42, blur: 14 });
+          const w2 = mk(s1, "lt lt-grad", "left:0; width:1920px; top:480px; text-align:center; font-size:104px;", `Interviews`);
+          blurIn(w2, 1.02, 0.36, { x: 48, blur: 16 }); blurOut(w2, 1.85, 0.24, { x: -42, blur: 16 });
+          const wAny = mk(s1, "lt lt-blue", "left:0; width:1920px; top:484px; text-align:center; font-size:92px;", `Any`);
+          blurIn(wAny, 1.98, 0.28, { scale: 0.9, blur: 12 }); blurOut(wAny, 2.34, 0.20, { x: -160, blur: 10 });
+          const leftTxt = mk(s1, "lt", "left:210px; top:492px; font-size:76px; font-weight:600; color:#FFFFFF; text-shadow:0 6px 28px rgba(154,52,18,0.28);", `Any role`);
+          const rightTxt = mk(s1, "lt", "right:230px; top:492px; font-size:76px; font-weight:600; color:#0F172A;", `Instantly`);
+          blurIn(leftTxt, 2.42, 0.36, { x: 60, blur: 12 }); blurIn(rightTxt, 2.92, 0.36, { x: -60, blur: 12 });
+          const folder = mk(s1, "g-folder", "left:805px; top:418px;");
+          folder.innerHTML = `<div class="g-folder-tab"></div><div class="g-folder-back"></div><div class="g-folder-doc" style="left:26px;top:16px;width:236px;height:150px;transform:rotate(-4deg);"><div style="display:flex;align-items:center;gap:8px;">${LOGO_SVG(24)}<div style="height:8px;width:96px;border-radius:4px;background:#E2E8F0;"></div></div><div style="height:8px;width:170px;border-radius:4px;background:#F1F5F9;margin-top:12px;"></div><div style="height:8px;width:130px;border-radius:4px;background:#DBEAFE;margin-top:8px;"></div></div><div class="g-folder-doc" style="left:46px;top:24px;width:236px;height:150px;transform:rotate(5deg);background:#F8FAFC;"><div class="mono" style="font-size:12px;color:#059669;font-weight:600;">96% MATCH · STRIPE</div><div style="height:9px;width:160px;border-radius:4px;background:#E2E8F0;margin-top:10px;"></div></div><div class="g-folder-front"><div style="font-size:26px;font-weight:600;">JobSnap</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;"><span style="font-size:15px;opacity:0.85;">Resume & 48 Matches</span><span style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.28);display:inline-flex;align-items:center;justify-content:center;font-size:16px;">→</span></div></div>`;
+          tl.fromTo(folder, { opacity: 0, scale: 0.72, y: 50, rotation: -12 }, { opacity: 1, scale: 1, y: 0, rotation: 5.5, duration: 0.52, ease: "back.out(1.4)" }, 2.42);
+          pointerClick(s1, 1260, 720, 1040, 560, 2.95, 3.40, 3.72);
+          tl.to(folder, { scale: 0.94, rotation: 2, duration: 0.1 }, 3.40);
+          blurOut(leftTxt, 3.50, 0.26, { x: -40, blur: 14 }); blurOut(rightTxt, 3.50, 0.26, { x: 40, blur: 14 });
+          tl.to(folder, { scale: 1.55, opacity: 0, filter: "blur(18px)", duration: 0.36, ease: "power3.in" }, 3.52);
+          const glassPlane = mk(s1, "abs", "left:170px; top:140px; width:1580px; height:800px; border-radius:28px; background:linear-gradient(180deg, rgba(255,255,255,0.96), rgba(245,249,255,0.98)); border:2px solid rgba(59,130,246,0.42); box-shadow:0 40px 100px rgba(59,130,246,0.18); opacity:0; transform-origin:center bottom; padding:38px 44px; display:flex; flex-direction:column; justify-content:space-between;");
+          glassPlane.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;align-items:center;gap:12px;">${LOGO_SVG(38)}<span style="font-size:26px;font-weight:700;color:#0F172A;">JobSnap Workspace</span></div><span class="saas-chip" style="background:#EFF6FF;color:#2563EB;font-size:15px;padding:7px 16px;">● Auto-Scan Active</span></div><div style="display:grid;grid-template-columns:250px 1fr;gap:30px;flex:1;margin:26px 0;"><div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:14px;"><div style="padding:12px 16px;border-radius:12px;background:#EFF6FF;color:#2563EB;font-size:17px;font-weight:600;">Job Matches (48)</div><div style="padding:12px 16px;border-radius:12px;color:#64748B;font-size:17px;">AI Resume Match</div><div style="padding:12px 16px;border-radius:12px;color:#64748B;font-size:17px;">Career Roadmaps</div><div style="padding:12px 16px;border-radius:12px;color:#64748B;font-size:17px;">1-Click ATS Fill</div></div><div style="display:flex;flex-direction:column;gap:20px;"><div style="border:2px dashed rgba(59,130,246,0.45);border-radius:20px;background:linear-gradient(135deg, rgba(239,246,255,0.85), rgba(236,253,245,0.75));padding:28px 34px;display:flex;justify-content:space-between;align-items:center;"><div><div class="mono" style="font-size:13px;color:#2563EB;font-weight:700;">AI RESUME ENGINE READY</div><div style="font-size:28px;font-weight:700;color:#0F172A;margin-top:4px;">Drop your resume to match live roles</div><div style="font-size:17px;color:#64748B;margin-top:4px;">Scanning LinkedIn · Naukri · Internshala · Direct Portals</div></div><span style="padding:14px 28px;border-radius:14px;background:linear-gradient(90deg,#2563EB,#38BDF8);color:#FFFFFF;font-size:18px;font-weight:600;box-shadow:0 12px 28px rgba(37,99,235,0.28);">Upload Resume</span></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;flex:1;"><div class="saas-card" style="padding:20px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(180deg,#FFFFFF,#F8FAFF);"><span class="saas-chip" style="background:#ECFDF5;color:#059669;align-self:flex-start;">96% Match</span><div><div style="font-size:20px;font-weight:700;color:#0F172A;">Senior Full-Stack</div><div style="font-size:15px;color:#64748B;margin-top:4px;">Stripe · Remote</div></div></div><div class="saas-card" style="padding:20px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(180deg,#FFFFFF,#F8FAFF);"><span class="saas-chip" style="background:#EFF6FF;color:#2563EB;align-self:flex-start;">94% Match</span><div><div style="font-size:20px;font-weight:700;color:#0F172A;">AI Product Engineer</div><div style="font-size:15px;color:#64748B;margin-top:4px;">Linear · Remote</div></div></div><div class="saas-card" style="padding:20px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(180deg,#FFFFFF,#F8FAFF);"><span class="saas-chip" style="background:#F5F3FF;color:#4F46E5;align-self:flex-start;">92% Match</span><div><div style="font-size:20px;font-weight:700;color:#0F172A;">Staff Frontend Lead</div><div style="font-size:15px;color:#64748B;margin-top:4px;">Vercel · Hybrid</div></div></div></div></div></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:17px;color:#64748B;padding-top:8px;border-top:1px solid #EEF2F7;"><span>Synced LinkedIn · Naukri · Internshala · Direct Portals</span><span style="color:#0F172A;font-weight:600;">jobsnap.me</span></div>`;
+          tl.fromTo(glassPlane, { opacity: 0, rotateX: 56, scale: 0.78, y: 120 }, { opacity: 1, rotateX: 26, scale: 1.0, y: 0, duration: 0.44, ease: "power3.out" }, 3.65);
+          tl.to(glassPlane, { opacity: 0, rotateX: 0, scale: 1.24, filter: "blur(14px)", duration: 0.34, ease: "power2.in" }, 4.08);
+        }
+
+        /* SHOT 3 (Voice-locked 4.35–10.75s) */
+        {
+          const s3 = scene("s3", 4.35, 10.78);
+          const lineDrop = mk(s3, "lt", "left:0; width:1920px; top:486px; text-align:center; font-size:80px; font-weight:600; color:#FFFFFF; text-shadow:0 8px 36px rgba(0,0,0,0.45);", `<span style="color:#93C5FD;">Just drop it</span> <span>into JobSnap</span>`);
+          blurIn(lineDrop, 4.38, 0.36, { y: 18, blur: 12 }); blurOut(lineDrop, 5.72, 0.26, { scale: 0.92, blur: 12 });
+          const c1 = mk(s3, "lt", "left:0; width:1920px; top:496px; text-align:center; font-size:64px; font-weight:600; color:#FFFFFF; text-shadow:0 6px 30px rgba(0,0,0,0.45);", `Jobs.`);
+          blurIn(c1, 6.00, 0.32, { scale: 0.94, blur: 10 }); blurOut(c1, 6.72, 0.22, { blur: 8 });
+          const c2 = mk(s3, "lt", "left:0; width:1920px; top:496px; text-align:center; font-size:60px; font-weight:600; color:#FFFFFF; text-shadow:0 6px 32px rgba(0,0,0,0.42);", `Jobs. Match. Apply`);
+          blurIn(c2, 6.88, 0.36, { scale: 0.95, blur: 10 }); blurOut(c2, 8.78, 0.24, { blur: 10 });
+          const c3 = mk(s3, "lt", "left:0; width:1920px; top:496px; text-align:center; font-size:58px; font-weight:600; color:#FFFFFF; text-shadow:0 6px 32px rgba(0,0,0,0.45);", `All In One Platform`);
+          blurIn(c3, 8.92, 0.36, { scale: 0.95, blur: 10 }); blurOut(c3, 10.42, 0.26, { x: 160, blur: 14 });
+          function makePhone(css, html) { const p = mk(s3, "iphone", css + " border:1.5px solid rgba(255,255,255,0.22); box-shadow:0 36px 90px rgba(0,0,0,0.55), 0 0 40px rgba(59,130,246,0.18);"); p.innerHTML = `<div class="iphone-island"></div><div class="iphone-scr">${html}</div>`; return p; }
+          const pL = makePhone("left:-72px; top:110px;", `<div class="mono" style="font-size:14px;color:#2563EB;font-weight:600;">LIVE AGGREGATOR</div><div style="font-size:28px;font-weight:700;margin-top:8px;">Top Matches</div><div style="margin-top:20px;display:flex;flex-direction:column;gap:14px;"><div style="padding:16px;border-radius:16px;background:#EFF6FF;border:1px solid #BFDBFE;"><div style="font-size:19px;font-weight:700;">Senior Full-Stack</div><div style="font-size:15px;color:#475569;margin-top:4px;">Stripe · 96% Match</div></div><div style="padding:16px;border-radius:16px;background:#F8FAFC;border:1px solid #E2E8F0;"><div style="font-size:19px;font-weight:700;">AI Product Engineer</div><div style="font-size:15px;color:#475569;margin-top:4px;">Linear · 94% Match</div></div><div style="padding:16px;border-radius:16px;background:#ECFDF5;border:1px solid #A7F3D0;"><div style="font-size:19px;font-weight:700;">Staff Frontend</div><div style="font-size:15px;color:#065F46;margin-top:4px;">Vercel · 92% Match</div></div></div>`);
+          const pR = makePhone("right:-72px; top:110px;", `<div class="mono" style="font-size:14px;color:#059669;font-weight:600;">AI RESUME ENGINE</div><div style="font-size:28px;font-weight:700;margin-top:8px;">Skill Match</div><div style="margin-top:24px;padding:22px;border-radius:20px;background:linear-gradient(135deg,#EFF6FF,#ECFDF5);text-align:center;"><div style="font-size:58px;font-weight:700;color:#2563EB;">96%</div><div style="font-size:16px;color:#0F172A;font-weight:600;margin-top:4px;">High Compatibility</div></div><div style="margin-top:18px;display:flex;flex-wrap:wrap;gap:8px;"><span class="saas-chip" style="background:#EFF6FF;color:#2563EB;">✓ TypeScript</span><span class="saas-chip" style="background:#ECFDF5;color:#059669;">✓ Python</span><span class="saas-chip" style="background:#EFF6FF;color:#2563EB;">✓ Flask</span></div>`);
+          const pT = makePhone("left:740px; top:-530px;", `<div style="position:absolute;bottom:34px;left:28px;right:28px;"><div class="mono" style="font-size:14px;color:#2563EB;">CAREER ROADMAP</div><div style="font-size:24px;font-weight:700;margin-top:6px;">Close Skill Gaps Faster</div><div style="height:10px;border-radius:999px;background:#E2E8F0;margin-top:12px;overflow:hidden;"><div style="width:82%;height:100%;background:linear-gradient(90deg,#3B82F6,#10B981);"></div></div></div>`);
+          const pB = makePhone("left:740px; top:750px;", `<div style="display:flex;justify-content:space-between;align-items:center;"><span class="mono" style="font-size:14px;color:#059669;font-weight:600;">1-CLICK ATS COPILOT</span><span class="saas-chip" style="background:#ECFDF5;color:#059669;">SYNCED</span></div><div style="font-size:24px;font-weight:700;margin-top:12px;">Workday · Greenhouse · Lever</div><div style="margin-top:16px;padding:14px;border-radius:14px;background:#0F172A;color:#FFFFFF;text-align:center;font-size:17px;font-weight:600;">Auto-Fill Complete ✓</div>`);
+          tl.fromTo(pL, { x: -560, y: 240, rotation: 28, opacity: 0 }, { x: 110, y: 0, rotation: 16, opacity: 1, duration: 0.85, ease: "power3.out" }, 5.15);
+          tl.fromTo(pR, { x: 560, y: -220, rotation: -28, opacity: 0 }, { x: -110, y: 0, rotation: -16, opacity: 1, duration: 0.85, ease: "power3.out" }, 5.75);
+          tl.fromTo(pT, { y: -320, rotation: -98, opacity: 0 }, { y: 40, rotation: -84, opacity: 1, duration: 0.8, ease: "power3.out" }, 5.85);
+          tl.fromTo(pB, { y: 320, rotation: 98, opacity: 0 }, { y: -36, rotation: 84, opacity: 1, duration: 0.8, ease: "power3.out" }, 5.92);
+          tl.to(pL, { rotation: 7, x: 150, duration: 3.5, ease: "sine.inOut" }, 6.7);
+          tl.to(pR, { rotation: -7, x: -150, duration: 3.5, ease: "sine.inOut" }, 6.7);
+          tl.to(pT, { rotation: -90, y: 70, duration: 3.5, ease: "sine.inOut" }, 6.7);
+          tl.to(pB, { rotation: 90, y: -64, duration: 3.5, ease: "sine.inOut" }, 6.7);
+          tl.to(pR, { x: 640, opacity: 0, duration: 0.4, ease: "power3.in" }, 10.32);
+          tl.to(pT, { y: -420, opacity: 0, duration: 0.4, ease: "power3.in" }, 10.32);
+          tl.to(pB, { y: 420, opacity: 0, duration: 0.4, ease: "power3.in" }, 10.32);
+          tl.to(pL, { rotation: 0, x: -20, duration: 0.38, ease: "power3.inOut" }, 10.32);
+          tl.set(s3, { display: "none" }, 10.72);
+        }
+
+        /* SHOT 4 & 5 (Voice-locked 10.70–15.88s: Ribbon -> Progress -> "Done." at 14.8s) */
+        {
+          const s4 = scene("s4", 10.70, 15.88);
+          const rib = svgEl(s4, 0, 0, VW, VH, `<defs><linearGradient id="ribGradP" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#4F46E5"/><stop offset="48%" stop-color="#3B82F6"/><stop offset="86%" stop-color="#38BDF8"/><stop offset="100%" stop-color="#38BDF8" stop-opacity="0"/></linearGradient></defs><path d="M 0 0 L 290 0 C 560 320, 960 400, 1860 445 L 1860 635 C 960 680, 560 760, 290 1080 L 0 1080 Z" fill="url(#ribGradP)"/>`);
+          const launchPhone = mk(s4, "iphone", "left:-92px; top:110px; z-index:4; border:1.5px solid rgba(255,255,255,0.22); box-shadow:0 36px 90px rgba(0,0,0,0.55), 0 0 40px rgba(59,130,246,0.18);");
+          launchPhone.innerHTML = `<div class="iphone-island"></div><div class="iphone-scr"><div class="mono" style="font-size:14px;color:#2563EB;font-weight:600;">LIVE AGGREGATOR</div><div style="font-size:28px;font-weight:700;margin-top:8px;">Top Matches</div><div style="margin-top:20px;display:flex;flex-direction:column;gap:14px;"><div style="padding:16px;border-radius:16px;background:#EFF6FF;border:1px solid #BFDBFE;"><div style="font-size:19px;font-weight:700;">Senior Full-Stack</div><div style="font-size:15px;color:#475569;margin-top:4px;">Stripe · 96% Match</div></div><div style="padding:16px;border-radius:16px;background:#F8FAFC;border:1px solid #E2E8F0;"><div style="font-size:19px;font-weight:700;">AI Product Engineer</div><div style="font-size:15px;color:#475569;margin-top:4px;">Linear · 94% Match</div></div><div style="padding:16px;border-radius:16px;background:#ECFDF5;border:1px solid #A7F3D0;"><div style="font-size:19px;font-weight:700;">Staff Frontend</div><div style="font-size:15px;color:#065F46;margin-top:4px;">Vercel · 92% Match</div></div></div></div>`;
+          tl.fromTo(rib, { scaleX: 0.15, transformOrigin: "260px 540px", opacity: 0 }, { scaleX: 1, opacity: 1, duration: 0.44, ease: "power3.out" }, 10.70);
+          tl.to(launchPhone, { x: -460, opacity: 0, duration: 0.42, ease: "power3.in" }, 11.02);
+          tl.to(rib, { scaleY: 0.12, opacity: 0, transformOrigin: "0% 50%", duration: 0.36, ease: "power3.inOut" }, 11.16);
+          const barWrap = mk(s4, "abs", "inset:0; opacity:0;");
+          barWrap.innerHTML = `<div id="p-cnt-wrap" style="position:absolute; left:1120px; top:324px; font-size:94px; font-weight:400; letter-spacing:-0.03em; font-variant-numeric:tabular-nums;"><span id="p-cnt" style="color:#38BDF8;">0</span><span style="color:rgba(248,250,252,0.38);">/100</span></div><div class="prog-track" style="background:rgba(255,255,255,0.09); border:1.5px solid rgba(255,255,255,0.14); box-shadow:0 28px 90px rgba(56,189,248,0.32);"><div id="p-fill" class="prog-fill"></div></div>`;
+          tl.to(barWrap, { opacity: 1, duration: 0.28 }, 11.30);
+          tl.fromTo(barWrap.querySelector("#p-fill"), { scaleX: 0.14 }, { scaleX: 0.99, duration: 3.15, ease: "power2.out" }, 11.32);
+          tl.fromTo(barWrap.querySelector("#p-cnt-wrap"), { x: -240 }, { x: 160, duration: 3.15, ease: "power2.out" }, 11.32);
+          counter(barWrap.querySelector("#p-cnt"), 12, 100, 11.32, 3.05, (v) => String(Math.round(v)));
+          tl.to(barWrap, { opacity: 0, scale: 0.85, filter: "blur(12px)", duration: 0.26, ease: "power2.in" }, 14.48);
+
+          const doneTxt = mk(s4, "lt", "left:0; width:1920px; top:208px; text-align:center; font-size:84px; font-weight:600; color:#1D4ED8;", `Done`);
+          blurIn(doneTxt, 14.75, 0.28, { y: 20, blur: 10 }); blurOut(doneTxt, 15.42, 0.22, { y: -18, blur: 10 });
+          const sphere = mk(s4, "abs", "left:820px; top:390px; width:280px; height:280px; border-radius:50%; background:radial-gradient(circle at 30% 25%, #FFFFFF 0%, #EFF6FF 58%, #BFDBFE 100%); border:3px solid rgba(59,130,246,0.55); box-shadow:0 28px 80px rgba(59,130,246,0.28), inset 0 6px 18px rgba(255,255,255,0.9); display:flex; align-items:center; justify-content:center; opacity:0;");
+          sphere.innerHTML = `<svg width="124" height="124" viewBox="0 0 120 120"><path id="chk-p" d="M 28 62 L 52 86 L 94 36" fill="none" stroke="#2563EB" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+          tl.fromTo(sphere, { scale: 0.55, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.36, ease: "back.out(1.7)" }, 14.74);
+          stroke(sphere.querySelector("#chk-p"), 14.82, 0.36, "power2.out");
+          const confColors = ["#2563EB", "#38BDF8", "#10B981", "#818CF8", "#F472B6"];
+          for (let i = 0; i < 18; i++) {
+            const ang = (i / 18) * Math.PI * 2 + (hash(i + 1) - 0.5) * 0.35, dist = 340 + hash(i + 20) * 380;
+            const cf = mk(s4, "abs", `left:960px; top:530px; width:${18+Math.round(hash(i+40)*28)}px; height:${12+Math.round(hash(i+60)*22)}px; background:${confColors[i%confColors.length]}; border-radius:4px; opacity:0; pointer-events:none;`);
+            tl.fromTo(cf, { x: 0, y: 0, rotation: 0, scale: 0.3, opacity: 0 }, { x: Math.cos(ang)*dist, y: Math.sin(ang)*dist - 60, rotation: (hash(i+80)-0.5)*420, scale: 1, opacity: 1, duration: 0.52, ease: "power3.out" }, 14.80 + (i % 4) * 0.02);
+            tl.to(cf, { opacity: 0, y: "+=60", duration: 0.32, ease: "power2.in" }, 15.32);
+          }
+          tl.to(sphere.querySelector("#chk-p"), { opacity: 0, duration: 0.18 }, 15.40);
+          tl.to(sphere, { borderRadius: "54px", width: 340, height: 340, left: 790, top: 370, background: "#FFFFFF", boxShadow: "0 0 80px rgba(59,130,246,0.34)", duration: 0.28, ease: "power3.inOut" }, 15.42);
+          tl.to(sphere, { scale: 2.2, opacity: 0, duration: 0.24, ease: "power2.in" }, 15.65);
+        }
+
+        /* SHOT 6 (Voice-locked 15.80–21.45s) */
+        {
+          const s6 = scene("s6", 15.80, 21.45);
+          const dash = mk(s6, "abs", "left:140px; top:94px; width:1640px; height:892px; background:#FFFFFF; border-radius:26px; border:1.5px solid rgba(37,99,235,0.22); box-shadow:0 36px 96px rgba(37,99,235,0.14); display:flex; overflow:hidden; transform-origin:center center;");
+          dash.innerHTML = `<div style="width:270px;background:#FAFBFD;border-right:1.5px solid #EEF2F7;padding:28px 22px;display:flex;flex-direction:column;gap:24px;"><div style="display:flex;align-items:center;gap:10px;">${LOGO_SVG(36)}<span style="font-size:24px;font-weight:700;">JobSnap</span><span class="mono" style="font-size:11px;padding:3px 7px;border-radius:6px;background:#EFF6FF;color:#2563EB;font-weight:700;">BETA</span></div><div style="display:flex;flex-direction:column;gap:8px;font-size:17px;font-weight:500;color:#64748B;"><div style="padding:11px 14px;">Home</div><div style="padding:11px 14px;border-radius:12px;background:#EFF6FF;color:#2563EB;font-weight:600;">Job Matches</div><div style="padding:11px 14px;">Career Roadmaps</div><div style="padding:11px 14px;">ATS Copilot</div></div></div><div style="flex:1;padding:32px 38px;"><div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:32px;font-weight:700;">Matched Roles</div><div style="display:flex;align-items:center;gap:14px;"><span class="saas-chip" style="background:#ECFDF5;color:#059669;">● 48 Synced</span><span style="padding:10px 20px;border-radius:12px;background:#0F172A;color:#FFFFFF;font-size:16px;font-weight:600;">+ Run AI Scan</span></div></div><div style="display:flex;gap:24px;margin-top:20px;border-bottom:1.5px solid #EEF2F7;padding-bottom:12px;font-size:17px;font-weight:600;color:#64748B;"><span style="color:#2563EB;border-bottom:2.5px solid #2563EB;padding-bottom:11px;">All Sources</span><span>LinkedIn</span><span>Naukri</span><span>Internshala</span><span>Direct Portals</span></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:26px;"><div class="saas-card" style="padding:20px;"><div style="height:126px;border-radius:14px;background:linear-gradient(135deg,#EFF6FF,#DBEAFE);padding:16px;display:flex;flex-direction:column;justify-content:space-between;"><span class="saas-chip" style="background:#FFFFFF;color:#2563EB;align-self:flex-start;">LinkedIn</span><div style="font-size:28px;font-weight:700;color:#1E3A8A;">94% Fit</div></div><div style="font-size:20px;font-weight:700;margin-top:14px;">AI Product Engineer</div><div style="font-size:15px;color:#64748B;margin-top:4px;">Linear · Remote</div></div><div class="saas-card" style="padding:20px;border:2.5px solid #3B82F6;box-shadow:0 18px 44px rgba(37,99,235,0.22);"><div style="height:126px;border-radius:14px;background:linear-gradient(135deg,#ECFDF5,#A7F3D0);padding:16px;display:flex;flex-direction:column;justify-content:space-between;"><span class="saas-chip" style="background:#FFFFFF;color:#059669;align-self:flex-start;">Direct · Stripe</span><div style="font-size:28px;font-weight:700;color:#065F46;">96% Fit</div></div><div style="font-size:20px;font-weight:700;margin-top:14px;">Senior Full-Stack Eng</div><div style="font-size:15px;color:#64748B;margin-top:4px;">Stripe · Global Remote</div></div><div class="saas-card" style="padding:20px;"><div style="height:126px;border-radius:14px;background:linear-gradient(135deg,#F5F3FF,#E0E7FF);padding:16px;display:flex;flex-direction:column;justify-content:space-between;"><span class="saas-chip" style="background:#FFFFFF;color:#4F46E5;align-self:flex-start;">Naukri</span><div style="font-size:28px;font-weight:700;color:#312E81;">92% Fit</div></div><div style="font-size:20px;font-weight:700;margin-top:14px;">Staff Frontend Lead</div><div style="font-size:15px;color:#64748B;margin-top:4px;">Vercel · Hybrid</div></div><div class="saas-card" style="padding:20px;"><div style="height:126px;border-radius:14px;background:linear-gradient(135deg,#FFFBEB,#FEF3C7);padding:16px;display:flex;flex-direction:column;justify-content:space-between;"><span class="saas-chip" style="background:#FFFFFF;color:#B45309;align-self:flex-start;">Internshala</span><div style="font-size:28px;font-weight:700;color:#78350F;">91% Fit</div></div><div style="font-size:20px;font-weight:700;margin-top:14px;">Founding ML Engineer</div><div style="font-size:15px;color:#64748B;margin-top:4px;">Raycast · Remote</div></div><div class="saas-card" style="padding:20px;"><div style="height:126px;border-radius:14px;background:linear-gradient(135deg,#F0FDF4,#DCFCE7);padding:16px;display:flex;flex-direction:column;justify-content:space-between;"><span class="saas-chip" style="background:#FFFFFF;color:#15803D;align-self:flex-start;">LinkedIn</span><div style="font-size:28px;font-weight:700;color:#14532D;">90% Fit</div></div><div style="font-size:20px;font-weight:700;margin-top:14px;">Backend Platform Eng</div><div style="font-size:15px;color:#64748B;margin-top:4px;">Figma · Remote</div></div><div class="saas-card" style="padding:20px;"><div style="height:126px;border-radius:14px;background:linear-gradient(135deg,#EFF6FF,#E0F2FE);padding:16px;display:flex;flex-direction:column;justify-content:space-between;"><span class="saas-chip" style="background:#FFFFFF;color:#0369A1;align-self:flex-start;">Career Portal</span><div style="font-size:28px;font-weight:700;color:#0C4A6E;">89% Fit</div></div><div style="font-size:20px;font-weight:700;margin-top:14px;">Design Systems Eng</div><div style="font-size:15px;color:#64748B;margin-top:4px;">Notion · Remote</div></div></div></div>`;
+          tl.fromTo(dash, { scale: 1.75, x: -60, y: 80, opacity: 0 }, { scale: 1.45, x: -20, y: 40, opacity: 1, duration: 0.62, ease: "power3.out" }, 15.82);
+          tl.to(dash, { scale: 0.96, x: 0, y: 0, rotateY: -9, rotateX: 5, duration: 0.9, ease: "power3.inOut" }, 16.50);
+          tl.to(dash, { scale: 1.32, x: -110, y: 40, rotateY: -2, rotateX: 2, duration: 0.68, ease: "power3.inOut" }, 17.50);
+          pointerClick(s6, 1260, 740, 1020, 480, 17.75, 18.25, 18.62);
+          tl.to(dash, { opacity: 0, scale: 1.5, filter: "blur(14px)", duration: 0.38, ease: "power2.in" }, 18.50);
+          [
+            { src:"LinkedIn", fit:"96% Fit", role:"Senior Full-Stack · Stripe", bg:"linear-gradient(135deg,#EFF6FF,#DBEAFE)", col:"#2563EB", x:110, y:70, rot:10 },
+            { src:"Naukri", fit:"94% Fit", role:"AI Product Eng · Linear", bg:"linear-gradient(135deg,#ECFDF5,#A7F3D0)", col:"#059669", x:1310, y:80, rot:-10 },
+            { src:"Internshala", fit:"92% Fit", role:"Staff Frontend · Vercel", bg:"linear-gradient(135deg,#F5F3FF,#E0E7FF)", col:"#4F46E5", x:90, y:660, rot:-9 },
+            { src:"Direct API", fit:"95% Fit", role:"Platform Eng · Figma", bg:"linear-gradient(135deg,#FFFBEB,#FEF3C7)", col:"#B45309", x:1330, y:650, rot:9 }
+          ].forEach((sp, i) => {
+            const c = mk(s6, "abs saas-card", `left:${sp.x}px; top:${sp.y}px; width:500px; padding:24px; border:2px solid rgba(59,130,246,0.35); box-shadow:0 26px 64px rgba(37,99,235,0.16); opacity:0;`);
+            c.innerHTML = `<div style="height:142px;border-radius:16px;background:${sp.bg};padding:18px;display:flex;flex-direction:column;justify-content:space-between;"><span class="saas-chip" style="background:#FFFFFF;color:${sp.col};align-self:flex-start;font-size:15px;">${sp.src}</span><div style="font-size:34px;font-weight:700;color:${sp.col};">${sp.fit}</div></div><div style="font-size:23px;font-weight:700;margin-top:16px;">${sp.role}</div><div style="font-size:16px;color:#64748B;margin-top:4px;">Verified & Resume-Scored</div>`;
+            tl.fromTo(c, { x: i%2===0?420:-420, y: i<2?260:-260, scale: 0.65, rotation: 0, opacity: 0 }, { x: 0, y: 0, scale: 1, rotation: sp.rot, opacity: 1, duration: 0.65, ease: "power3.out" }, 18.58 + i * 0.04);
+            tl.to(c, { x: i%2===0?-24:24, y: i<2?-14:14, duration: 1.8, ease: "sine.inOut" }, 19.28);
+            tl.to(c, { opacity: 0, scale: 0.85, filter: "blur(10px)", duration: 0.34, ease: "power2.in" }, 21.08);
+          });
+          const multTxt = mk(s6, "lt", "left:0; width:1920px; top:488px; text-align:center; font-size:84px; font-weight:600; color:#0F172A;", `Multiple Sources`);
+          blurIn(multTxt, 19.05, 0.42, { scale: 0.92, blur: 12 }); blurOut(multTxt, 21.05, 0.32, { scale: 1.06, blur: 12 });
+        }
+
+        /* SHOT 7 (Voice-locked 21.38–25.28s) */
+        {
+          const s7 = scene("s7", 21.38, 25.28);
+          const listDash = mk(s7, "abs", "left:170px; top:110px; width:1580px; height:860px; background:#FFFFFF; border-radius:26px; border:1.5px solid rgba(37,99,235,0.2); box-shadow:0 36px 96px rgba(37,99,235,0.12); padding:38px 46px;");
+          listDash.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;"><div style="display:flex;align-items:center;gap:12px;">${LOGO_SVG(36)}<span style="font-size:28px;font-weight:700;">ATS Queue</span></div><span style="padding:10px 22px;border-radius:12px;background:#0F172A;color:#FFFFFF;font-size:16px;font-weight:600;">+ Add Role</span></div><div style="display:flex;flex-direction:column;gap:16px;"><div style="padding:22px 26px;border-radius:18px;border:1.5px solid #BFDBFE;background:#F8FAFF;display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;align-items:center;gap:18px;"><div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#10B981,#059669);color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;">S</div><div><div style="font-size:22px;font-weight:700;">Senior Full-Stack Engineer · Stripe</div><div style="font-size:16px;color:#64748B;">96% Match · Ready for ATS Auto-Fill</div></div></div><span style="padding:12px 24px;border-radius:12px;background:#0F172A;color:#FFFFFF;font-size:17px;font-weight:600;">1-Click ATS Fill</span></div><div style="padding:20px 26px;border-radius:18px;border:1.5px solid #EEF2F7;display:flex;justify-content:space-between;align-items:center;"><div style="font-size:21px;font-weight:600;">AI Product Engineer · Linear <span style="color:#64748B;font-weight:400;margin-left:12px;">94% Match</span></div><span class="saas-chip" style="background:#EFF6FF;color:#2563EB;">Queued</span></div><div style="padding:20px 26px;border-radius:18px;border:1.5px solid #EEF2F7;display:flex;justify-content:space-between;align-items:center;"><div style="font-size:21px;font-weight:600;">Staff Frontend Lead · Vercel <span style="color:#64748B;font-weight:400;margin-left:12px;">92% Match</span></div><span class="saas-chip" style="background:#ECFDF5;color:#059669;">Applied ✓</span></div><div style="padding:20px 26px;border-radius:18px;border:1.5px solid #EEF2F7;display:flex;justify-content:space-between;align-items:center;"><div style="font-size:21px;font-weight:600;">Founding ML Engineer · Raycast <span style="color:#64748B;font-weight:400;margin-left:12px;">91% Match</span></div><span class="saas-chip" style="background:#F1F5F9;color:#475569;">Synced</span></div></div>`;
+          tl.fromTo(listDash, { rotateY: 16, rotateX: 8, scale: 0.86, opacity: 0 }, { rotateY: -6, rotateX: 4, scale: 0.98, opacity: 1, duration: 0.52, ease: "power3.out" }, 21.40);
+          pointerClick(s7, 1140, 680, 920, 320, 21.75, 22.10, 22.35);
+          tl.to(listDash, { scale: 1.55, opacity: 0, filter: "blur(14px)", duration: 0.32, ease: "power2.in" }, 22.22);
+
+          const macroRow = mk(s7, "abs", "left:220px; top:408px; width:2180px; height:264px; border-radius:40px; background:#FFFFFF; border:1.5px solid rgba(59,130,246,0.18); box-shadow:0 36px 96px rgba(59,130,246,0.22), 0 12px 32px rgba(16,185,129,0.12); display:flex; align-items:center; justify-content:space-between; padding:0 90px; opacity:0;");
+          macroRow.innerHTML = `<div style="display:flex;align-items:center;gap:42px;"><div style="width:42px;height:42px;border-radius:11px;border:3px solid #CBD5E1;"></div><div style="width:142px;height:142px;border-radius:28px;background:linear-gradient(135deg,#10B981,#047857);display:flex;align-items:center;justify-content:center;box-shadow:0 16px 36px rgba(16,185,129,0.26);">${LOGO_SVG(96)}</div><div><div style="font-size:52px;font-weight:600;color:#0F172A;">Senior Full-Stack · Stripe</div><div style="font-size:34px;color:#64748B;margin-top:8px;">96% Resume Match · Greenhouse ATS</div></div></div><div id="macro-cta" style="position:relative;padding:40px 76px;border-radius:26px;background:#0F172A;color:#FFFFFF;font-size:48px;font-weight:600;box-shadow:0 22px 54px rgba(15,23,42,0.22);margin-right:120px;"><span id="macro-cta-txt">1-Click ATS Fill</span></div>`;
+          tl.fromTo(macroRow, { x: 140, scale: 0.9, opacity: 0 }, { x: 0, scale: 1, opacity: 1, duration: 0.42, ease: "power3.out" }, 22.40);
+          tl.to(macroRow, { x: -1070, duration: 0.65, ease: "power3.inOut" }, 22.85);
+          pointerClick(s7, 1220, 740, 975, 555, 23.05, 23.48, 23.95);
+          const cta = macroRow.querySelector("#macro-cta"), ctaTxt = macroRow.querySelector("#macro-cta-txt");
+          tl.to(cta, { scale: 0.92, duration: 0.1 }, 23.48);
+          tl.to(cta, { scale: 1.12, background: "linear-gradient(90deg, #3B82F6 0%, #38BDF8 58%, #10B981 100%)", boxShadow: "0 26px 84px rgba(56,189,248,0.52)", duration: 0.38, ease: "back.out(1.6)" }, 23.58);
+          tl.to(macroRow, { background: "rgba(255,255,255,0)", borderColor: "rgba(255,255,255,0)", boxShadow: "none", duration: 0.32 }, 23.62);
+          ticks.push((T) => { ctaTxt.textContent = T >= 23.62 ? "Applied via JobSnap ✓" : "1-Click ATS Fill"; });
+          tl.to(cta, { scale: 0.15, opacity: 0, filter: "blur(12px)", duration: 0.34, ease: "power3.in" }, 24.85);
+        }
+
+        /* SHOT 8 (Voice-locked 25.18–32.0s: "Match. Fill. Land." -> "JobSnap — at jobsnap.me") */
+        {
+          const s8 = scene("s8", 25.18, null);
+          const arcSvg = svgEl(s8, 0, 0, VW, VH, `<defs><linearGradient id="arcGradP" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#38BDF8" stop-opacity="0"/><stop offset="50%" stop-color="#60A5FA" stop-opacity="0.32"/><stop offset="100%" stop-color="#3B82F6" stop-opacity="0.55"/></linearGradient></defs><path id="sp-arc" d="M 520 560 Q 760 400 1020 530 T 1420 460" fill="none" stroke="url(#arcGradP)" stroke-width="26" stroke-linecap="round"/>`);
+          stroke(arcSvg.querySelector("#sp-arc"), 25.45, 0.85); tl.to(arcSvg, { opacity: 0, duration: 0.35 }, 26.55);
+          const star = mk(s8, "abs", "left:900px; top:480px; width:120px; height:120px; filter:drop-shadow(0 14px 36px rgba(59,130,246,0.45)); opacity:0;", SPARKLE_SVG(120));
+          tl.fromTo(star, { scale: 0.2, rotation: -90, opacity: 0 }, { scale: 1.15, rotation: 0, opacity: 1, duration: 0.36, ease: "back.out(1.8)" }, 25.18);
+          tl.to(star, { x: 382, y: -6, scale: 0.52, rotation: 180, duration: 1.15, ease: "power3.inOut" }, 25.52);
+          tl.to(star, { scale: 0, opacity: 0, rotation: 300, duration: 0.28, ease: "power2.in" }, 27.25);
+          const wRow = mk(s8, "lt", "left:0; width:1920px; top:486px; text-align:center; font-size:90px; font-weight:500; display:flex; justify-content:center; align-items:center; gap:26px;");
+          const t1 = mk(wRow, "", "position:relative; color:#60A5FA;", "Match.");
+          const t2 = mk(wRow, "", "position:relative; color:#34D399;", "Fill.");
+          const t3 = mk(wRow, "", "position:relative; color:#F8FAFC; padding-right:56px;", "Land");
+          blurIn(t1, 25.52, 0.36, { x: -24, blur: 12 }); blurIn(t2, 26.12, 0.36, { x: -18, blur: 12 }); blurIn(t3, 26.68, 0.36, { x: -18, blur: 12 });
+          blurOut(wRow, 27.25, 0.28, { scale: 0.92, blur: 12 });
+          const endCenter = mk(s8, "abs", "inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;");
+          const lockup = mk(endCenter, "", "display:inline-flex; align-items:center; justify-content:center; gap:26px; opacity:0;");
+          lockup.innerHTML = `<div style="filter:drop-shadow(0 16px 34px rgba(16,185,129,0.28));">${LOGO_SVG(102)}</div><div style="font-size:108px;font-weight:600;letter-spacing:-0.035em;color:#0F172A;line-height:1;">JobSnap</div>`;
+          const dom = mk(endCenter, "", "margin-top:34px; font-size:34px; font-weight:500; color:#475569; letter-spacing:0.015em; opacity:0;", `jobsnap.me`);
+          tl.fromTo(lockup, { opacity: 0, scale: 0.94, y: 12, filter: "blur(10px)" }, { opacity: 1, scale: 1, y: 0, filter: "blur(0px)", duration: 0.58, ease: "power3.out" }, 27.62);
+          tl.fromTo(dom, { opacity: 0, y: 14, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.52, ease: "power2.out" }, 28.32);
+          tl.to(endCenter, { scale: 1.025, duration: 3.4, ease: "none" }, 28.5);
+        }
+
+        const clock = { _t: 0 };
+        Object.defineProperty(clock, "t", { get() { return this._t; }, set(v) { this._t = v; for (const f of ticks) f(v); } });
+        rootTl.to(clock, { t: DUR, duration: DUR, ease: "none" }, 0);
+        for (const f of ticks) f(0);
+
+        const btnPlay = $("#btn-play"), btnRes = $("#btn-restart"), btnSnd = $("#btn-sound"), btnVo = $("#btn-vo"), voInput = $("#vo-file"), btnBg = $("#btn-bg"), bgInput = $("#bg-file"), scrub = $("#scrub"), tc = $("#tc");
+        let voAudio = null, bgAudio = null;
+        btnVo.onclick = () => voInput.click();
+        voInput.onchange = () => {
+          const f = voInput.files && voInput.files[0];
+          if (!f) return;
+          if (voAudio) { voAudio.pause(); URL.revokeObjectURL(voAudio.src); }
+          voAudio = new Audio(URL.createObjectURL(f));
+          voAudio.preload = "auto";
+          voAudio.volume = 1.0;
+          btnVo.textContent = "🎙️ " + (f.name.length > 16 ? f.name.slice(0, 13) + "…" : f.name);
+          btnVo.classList.add("active");
+          ensureAudio();
+          if (masterGain) masterGain.gain.value = 0.34;
+          prevT = -0.01;
+          rootTl.time(0).play();
+          voAudio.currentTime = 0; voAudio.play().catch(() => {});
+          if (bgAudio) { bgAudio.currentTime = 0; bgAudio.play().catch(() => {}); }
+        };
+        btnBg.onclick = () => bgInput.click();
+        bgInput.onchange = () => {
+          const f = bgInput.files && bgInput.files[0];
+          if (!f) return;
+          if (bgAudio) { bgAudio.pause(); URL.revokeObjectURL(bgAudio.src); }
+          bgAudio = new Audio(URL.createObjectURL(f));
+          bgAudio.preload = "auto";
+          bgAudio.volume = 0.24;
+          btnBg.textContent = "🎵 " + (f.name.length > 16 ? f.name.slice(0, 13) + "…" : f.name);
+          btnBg.classList.add("active");
+          ensureAudio();
+          prevT = -0.01;
+          rootTl.time(0).play();
+          bgAudio.currentTime = 0; bgAudio.play().catch(() => {});
+          if (voAudio) { voAudio.currentTime = 0; voAudio.play().catch(() => {}); }
+        };
+
+        /* === REAL-TIME STUDIO PREVIEW AUDIO ENGINE (Web Audio API) ===
+           Provides tactile glass clicks, silky air whooshes, progress ticks, crystalline chimes,
+           and a gentle 120 BPM warm electronic pulse bed during interactive browser playback.
+           (For final HyperFrames MP4 export, drop licensed .wav recordings into src/mix_sfx.py + work/music-edit.wav.) */
+        let audioCtx = null, masterGain = null, noiseBuf = null, soundEnabled = true;
+        function ensureAudio() {
+          if (!soundEnabled) return null;
+          if (!audioCtx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return null;
+            audioCtx = new AC();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0.72;
+            masterGain.connect(audioCtx.destination);
+            /* Soft pink-ish filtered noise buffer for silky studio air whooshes */
+            const len = audioCtx.sampleRate * 1.2;
+            noiseBuf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+            const ch = noiseBuf.getChannelData(0);
+            let b0 = 0, b1 = 0, b2 = 0;
+            for (let i = 0; i < len; i++) {
+              const w = Math.random() * 2 - 1;
+              b0 = 0.997 * b0 + w * 0.029;
+              b1 = 0.985 * b1 + w * 0.032;
+              b2 = 0.950 * b2 + w * 0.048;
+              ch[i] = (b0 + b1 + b2 + w * 0.018) * 1.4;
+            }
+          }
+          if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+          return audioCtx;
+        }
+
+        const SFX = {
+          whoosh(dur = 0.42, f0 = 320, f1 = 1550, vol = 0.22) {
+            const ctx = ensureAudio(); if (!ctx || !noiseBuf) return;
+            const t = ctx.currentTime;
+            const src = ctx.createBufferSource(); src.buffer = noiseBuf;
+            const flt = ctx.createBiquadFilter(); flt.type = "bandpass"; flt.Q.value = 1.6;
+            flt.frequency.setValueAtTime(f0, t);
+            flt.frequency.exponentialRampToValueAtTime(f1, t + dur * 0.55);
+            flt.frequency.exponentialRampToValueAtTime(Math.max(180, f0 * 0.75), t + dur);
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.linearRampToValueAtTime(vol, t + dur * 0.38);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            src.connect(flt); flt.connect(g); g.connect(masterGain);
+            src.start(t); src.stop(t + dur + 0.04);
+          },
+          click(vol = 0.32) {
+            const ctx = ensureAudio(); if (!ctx) return;
+            const t = ctx.currentTime;
+            const o = ctx.createOscillator(); o.type = "triangle";
+            o.frequency.setValueAtTime(1650, t);
+            o.frequency.exponentialRampToValueAtTime(420, t + 0.032);
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(vol, t);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
+            o.connect(g); g.connect(masterGain);
+            o.start(t); o.stop(t + 0.045);
+          },
+          pop(freq = 540, vol = 0.16) {
+            const ctx = ensureAudio(); if (!ctx) return;
+            const t = ctx.currentTime;
+            const o = ctx.createOscillator(); o.type = "sine";
+            o.frequency.setValueAtTime(freq * 0.68, t);
+            o.frequency.exponentialRampToValueAtTime(freq * 1.22, t + 0.075);
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0.001, t);
+            g.gain.linearRampToValueAtTime(vol, t + 0.012);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+            o.connect(g); g.connect(masterGain);
+            o.start(t); o.stop(t + 0.13);
+          },
+          tick(step = 0) {
+            const ctx = ensureAudio(); if (!ctx) return;
+            const t = ctx.currentTime;
+            const o = ctx.createOscillator(); o.type = "sine";
+            o.frequency.setValueAtTime(760 + step * 58, t);
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0.075, t);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.038);
+            o.connect(g); g.connect(masterGain);
+            o.start(t); o.stop(t + 0.042);
+          },
+          chime(notes = [523.25, 659.25, 783.99, 1174.66], vol = 0.12, spread = 0.055, decay = 0.95) {
+            const ctx = ensureAudio(); if (!ctx) return;
+            const now = ctx.currentTime;
+            notes.forEach((f, i) => {
+              const t = now + i * spread;
+              const o = ctx.createOscillator(); o.type = "sine";
+              o.frequency.setValueAtTime(f, t);
+              const g = ctx.createGain();
+              g.gain.setValueAtTime(0.0001, t);
+              g.gain.linearRampToValueAtTime(vol, t + 0.018);
+              g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+              o.connect(g); g.connect(masterGain);
+              o.start(t); o.stop(t + decay + 0.05);
+            });
+          },
+          padChord() {
+            const ctx = ensureAudio(); if (!ctx) return;
+            const now = ctx.currentTime;
+            const flt = ctx.createBiquadFilter(); flt.type = "lowpass"; flt.frequency.value = 1400;
+            flt.connect(masterGain);
+            [261.63, 392.0, 493.88, 659.25].forEach((f) => {
+              const o = ctx.createOscillator(); o.type = "triangle"; o.frequency.setValueAtTime(f, now);
+              const g = ctx.createGain();
+              g.gain.setValueAtTime(0.0001, now);
+              g.gain.linearRampToValueAtTime(0.055, now + 0.45);
+              g.gain.exponentialRampToValueAtTime(0.0001, now + 3.1);
+              o.connect(g); g.connect(flt);
+              o.start(now); o.stop(now + 3.2);
+            });
+          },
+          pulse(beatIdx) {
+            const ctx = ensureAudio(); if (!ctx) return;
+            const t = ctx.currentTime;
+            const chordRoots = [130.81, 146.83, 164.81, 196.0]; /* C3, D3, E3, G3 */
+            const root = chordRoots[Math.floor(beatIdx / 8) % chordRoots.length];
+            const isDown = beatIdx % 4 === 0;
+            /* Soft warm sub-kick on downbeats */
+            if (beatIdx % 2 === 0) {
+              const k = ctx.createOscillator(); k.type = "sine";
+              k.frequency.setValueAtTime(isDown ? 112 : 94, t);
+              k.frequency.exponentialRampToValueAtTime(42, t + 0.11);
+              const kg = ctx.createGain();
+              kg.gain.setValueAtTime(isDown ? 0.14 : 0.07, t);
+              kg.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+              k.connect(kg); kg.connect(masterGain);
+              k.start(t); k.stop(t + 0.15);
+            }
+            /* Airy muted synth pluck on off-beats */
+            const arp = [root * 2, root * 2.5, root * 3, root * 4];
+            const freq = arp[beatIdx % 4];
+            const o = ctx.createOscillator(); o.type = "triangle"; o.frequency.setValueAtTime(freq, t);
+            const flt = ctx.createBiquadFilter(); flt.type = "lowpass"; flt.frequency.value = 1150;
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.linearRampToValueAtTime(0.036, t + 0.012);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+            o.connect(flt); flt.connect(g); g.connect(masterGain);
+            o.start(t); o.stop(t + 0.26);
+          }
+        };
+
+        /* Frame-accurate cue table synced directly to the real 30s voiceover */
+        const CUES = [
+          [0.04,  () => SFX.whoosh(0.36, 280, 1200, 0.16)],
+          [1.04,  () => SFX.whoosh(0.36, 360, 1450, 0.16)],
+          [2.00,  () => SFX.pop(520, 0.14)],
+          [2.42,  () => SFX.whoosh(0.42, 260, 1300, 0.18)],
+          [3.40,  () => SFX.click(0.36)],
+          [3.65,  () => SFX.whoosh(0.48, 220, 1700, 0.20)],
+          [4.38,  () => SFX.whoosh(0.48, 180, 980,  0.20)],
+          [5.15,  () => SFX.whoosh(0.36, 320, 1250, 0.15)],
+          [5.80,  () => SFX.whoosh(0.42, 340, 1400, 0.16)],
+          [6.88,  () => SFX.pop(600, 0.14)],
+          [8.92,  () => SFX.pop(680, 0.16)],
+          [10.70, () => SFX.whoosh(0.56, 240, 2100, 0.26)],
+          [11.45, () => SFX.tick(0)], [11.75, () => SFX.tick(1)], [12.05, () => SFX.tick(2)], [12.35, () => SFX.tick(3)],
+          [12.65, () => SFX.tick(4)], [12.95, () => SFX.tick(5)], [13.25, () => SFX.tick(6)], [13.55, () => SFX.tick(7)],
+          [13.85, () => SFX.tick(8)], [14.15, () => SFX.tick(9)],
+          [14.76, () => { SFX.pop(640, 0.18); SFX.chime([523.25, 659.25, 783.99, 1046.5], 0.13, 0.045, 0.95); }],
+          [15.82, () => SFX.whoosh(0.45, 260, 1350, 0.18)],
+          [16.52, () => SFX.whoosh(0.42, 420, 1050, 0.15)],
+          [18.25, () => SFX.click(0.36)],
+          [18.58, () => SFX.whoosh(0.48, 300, 1650, 0.20)],
+          [19.05, () => SFX.pop(580, 0.15)],
+          [21.40, () => SFX.whoosh(0.48, 200, 1150, 0.20)],
+          [22.10, () => SFX.click(0.32)],
+          [22.40, () => SFX.whoosh(0.38, 320, 1450, 0.16)],
+          [22.85, () => SFX.whoosh(0.44, 260, 1200, 0.16)],
+          [23.48, () => SFX.click(0.38)],
+          [23.60, () => SFX.chime([392.0, 587.33, 783.99], 0.12, 0.055, 0.85)],
+          [25.18, () => SFX.chime([659.25, 987.77, 1318.5], 0.10, 0.05, 0.65)],
+          [25.52, () => SFX.pop(540, 0.14)],
+          [26.12, () => SFX.pop(640, 0.14)],
+          [26.68, () => SFX.pop(760, 0.15)],
+          [27.50, () => SFX.whoosh(0.52, 260, 1600, 0.18)],
+          [27.64, () => { SFX.padChord(); SFX.chime([523.25, 659.25, 987.77], 0.11, 0.07, 1.8); }]
+        ];
+
+        let prevT = -1;
+        function syncUI() {
+          const t = rootTl.time();
+          scrub.value = t.toFixed(2);
+          tc.textContent = `${t.toFixed(2).padStart(5,"0")} / ${DUR.toFixed(2)}s`;
+          btnPlay.textContent = rootTl.paused() ? "Play" : "Pause";
+          if (!rootTl.paused() && soundEnabled && prevT >= 0) {
+            const dt = t - prevT;
+            if (dt > 0 && dt < 0.25) {
+              for (const [ct, fn] of CUES) {
+                if (prevT < ct && t >= ct) fn();
+              }
+              /* Gentle 120 BPM preview pulse only when no custom BG music file is loaded */
+              if (!bgAudio && t >= 0.25 && t < 27.2) {
+                const bPrev = Math.floor(prevT / 0.25);
+                const bCurr = Math.floor(t / 0.25);
+                if (bCurr > bPrev) SFX.pulse(bCurr);
+              }
+            }
+          }
+          /* Auto-duck loaded BG music under voice, swell on jobsnap.me outro, fade out at 32.0s */
+          if (bgAudio && !bgAudio.paused) {
+            const base = voAudio ? 0.20 : 0.42;
+            const outro = voAudio ? 0.42 : 0.48;
+            let vol = base;
+            if (t < 0.7) vol = base * (t / 0.7);
+            else if (t > 28.8 && t < 30.8) vol = base + (outro - base) * clamp((t - 28.8) / 0.8);
+            else if (t >= 30.8) vol = outro * clamp((DUR - t) / 1.2);
+            bgAudio.volume = clamp(vol, 0, 1);
+            if (t >= DUR - 0.04) bgAudio.pause();
+          }
+          prevT = t;
+        }
+        gsap.ticker.add(syncUI);
+        btnSnd.onclick = () => {
+          soundEnabled = !soundEnabled;
+          btnSnd.textContent = soundEnabled ? "🔊 Sound ON" : "🔇 Muted";
+          btnSnd.classList.toggle("active", soundEnabled);
+          if (bgAudio) bgAudio.muted = !soundEnabled;
+          if (soundEnabled) { ensureAudio(); SFX.pop(620, 0.12); }
+        };
+        btnPlay.onclick = () => {
+          ensureAudio();
+          if (rootTl.time() >= DUR - 0.05) { rootTl.time(0); prevT = -0.01; }
+          const nextPaused = !rootTl.paused();
+          rootTl.paused(nextPaused);
+          if (voAudio) {
+            if (nextPaused) voAudio.pause();
+            else { voAudio.currentTime = rootTl.time(); voAudio.play().catch(() => {}); }
+          }
+          if (bgAudio) {
+            if (nextPaused) bgAudio.pause();
+            else { bgAudio.currentTime = rootTl.time(); bgAudio.play().catch(() => {}); }
+          }
+          syncUI();
+        };
+        btnRes.onclick = () => {
+          ensureAudio(); prevT = -0.01; rootTl.time(0).play();
+          if (voAudio) { voAudio.currentTime = 0; voAudio.play().catch(() => {}); }
+          if (bgAudio) { bgAudio.currentTime = 0; bgAudio.play().catch(() => {}); }
+          syncUI();
+        };
+        scrub.oninput = () => {
+          const v = parseFloat(scrub.value); prevT = v; rootTl.pause(v);
+          if (voAudio) { voAudio.pause(); voAudio.currentTime = Math.min(v, voAudio.duration || v); }
+          if (bgAudio) { bgAudio.pause(); bgAudio.currentTime = Math.min(v, bgAudio.duration || v); }
+          syncUI();
+        };
+        document.querySelectorAll("#scene-jumps button").forEach((b) => {
+          b.onclick = () => {
+            ensureAudio();
+            document.querySelectorAll("#scene-jumps button").forEach((x) => x.classList.remove("active"));
+            b.classList.add("active");
+            const v = parseFloat(b.dataset.t);
+            prevT = v;
+            rootTl.pause(v);
+            if (voAudio) { voAudio.pause(); voAudio.currentTime = Math.min(v, voAudio.duration || v); }
+            if (bgAudio) { bgAudio.pause(); bgAudio.currentTime = Math.min(v, bgAudio.duration || v); }
+            syncUI();
+          };
+        });
+        window.addEventListener("keydown", (e) => { if (e.code === "Space") { e.preventDefault(); btnPlay.click(); } });
+        /* Unlock audio automatically on first user click anywhere on page */
+        window.addEventListener("pointerdown", () => { if (soundEnabled) ensureAudio(); }, { once: true });
+        rootTl.play(0);
+      }
+
+      const ready = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+      Promise.all([
+        ready,
+        document.fonts.load('400 72px "Plus Jakarta Sans"'),
+        document.fonts.load('500 84px "Plus Jakarta Sans"'),
+        document.fonts.load('600 40px "Plus Jakarta Sans"'),
+        document.fonts.load('500 24px "JetBrains Mono"')
+      ]).then(buildFilm, buildFilm);
+    </script>
+  </body>
+</html>

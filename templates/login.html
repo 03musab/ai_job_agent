@@ -11,7 +11,8 @@
     <!-- ============================================================== -->
     <!-- LEFT COLUMN: Crisp Form Surface (White Card with Pill Geometry) -->
     <!-- ============================================================== -->
-    <div class="w-full lg:w-[440px] xl:w-[480px] shrink-0 bg-white text-slate-900 p-5 sm:p-10 xl:p-14 flex flex-col justify-between relative z-20 shadow-2xl lg:shadow-[25px_0_60px_rgba(0,0,0,0.35)] min-h-screen lg:min-h-0 lg:h-full overflow-y-auto">
+    <div class="w-full lg:w-[440px] xl:w-[480px] shrink-0 bg-white text-slate-900 p-5 sm:p-10 xl:p-14 flex flex-col justify-between relative z-20 shadow-2xl lg:shadow-[25px_0_60px_rgba(0,0,0,0.35)] min-h-screen lg:min-h-0 lg:h-full overflow-y-auto"
+         style="padding-top: 24px; padding-bottom: 24px;">
         
         <!-- Toast Notification (Aligned to Left Sidebar) -->
         <div id="authToast" role="status" aria-live="polite"
@@ -86,7 +87,7 @@
                                 <input type="checkbox" name="remember" class="w-3.5 h-3.5 rounded border-slate-300 text-slate-900 focus:ring-0 cursor-pointer">
                                 <span>Remember me</span>
                             </label>
-                            <a href="#" onclick="showAuthToast('Password reset instructions will be sent to your registered email.'); return false;" class="hover:text-slate-900 transition-colors">
+                            <a href="#" onclick="showAuthToast('Use Continue with Google to sign in, or contact support to reset a password account.'); return false;" class="hover:text-slate-900 transition-colors">
                                 Forgot password?
                             </a>
                         </div>
@@ -133,15 +134,6 @@
                             <div class="flex items-center rounded-full px-4 py-3 sm:py-2.5 bg-slate-100 focus-within:bg-slate-50 focus-within:ring-2 focus-within:ring-slate-900/15 transition-all">
                                 <span class="material-symbols-outlined text-slate-500 text-[19px] mr-2.5 select-none shrink-0">mail</span>
                                 <input name="email" type="email" required autocomplete="email" placeholder="EMAIL ADDRESS"
-                                    class="w-full bg-transparent border-none p-0 text-[16px] sm:text-[12px] font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none tracking-wider">
-                            </div>
-                        </div>
-
-                        <!-- Pill Input: Username -->
-                        <div class="relative">
-                            <div class="flex items-center rounded-full px-4 py-3 sm:py-2.5 bg-slate-100 focus-within:bg-slate-50 focus-within:ring-2 focus-within:ring-slate-900/15 transition-all">
-                                <span class="material-symbols-outlined text-slate-500 text-[19px] mr-2.5 select-none shrink-0">badge</span>
-                                <input name="username" type="text" required autocomplete="off" placeholder="USERNAME"
                                     class="w-full bg-transparent border-none p-0 text-[16px] sm:text-[12px] font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none tracking-wider">
                             </div>
                         </div>
@@ -202,7 +194,8 @@
     <!-- RIGHT COLUMN: Luminous 3D Fluid Wave Mesh Hero Canvas          -->
     <!-- Visible on Desktop Screens (lg+), Cleanly Hidden on Mobile     -->
     <!-- ============================================================== -->
-    <div class="hidden lg:flex flex-1 relative overflow-hidden bg-[#070c1e] text-white p-8 sm:p-12 lg:p-16 flex-col justify-between h-full min-h-[520px]">
+    <div class="hidden lg:flex flex-1 relative overflow-hidden bg-[#070c1e] text-white p-8 sm:p-12 lg:p-16 flex-col justify-between h-full min-h-[520px]"
+         style="padding-top: 24px; padding-bottom: 28px;">
         
         <!-- Vector S-Curve Fluid Wave Canvas (Edge-to-Edge Full Screen) -->
         <div class="absolute inset-0 pointer-events-none overflow-hidden select-none">

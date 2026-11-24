@@ -15,11 +15,8 @@ class RoadmapService:
     def __init__(self):
         pass
 
-    def generate(self, target_role: str, current_skill_level: str, missing_skills: List[str], availability_hours: int, learning_style: str) -> Dict[str, Any]:
+    def generate(self, target_role: str, current_skill_level: str, missing_skills: List[str], availability_hours: int, learning_style: str, goal_focus: str = '') -> Dict[str, Any]:
         """
-        # Important: explicitly forbid markdown/code fences or extra commentary
-        # so the response is raw JSON only (helps avoid intermittent parse failures).
-        system_prompt += "\nIMPORTANT: Do NOT wrap the JSON in Markdown code fences or include any explanatory\ntext. Return raw JSON only."
         Generates a weekly learning roadmap based on missing skills and user preferences.
         """
         if not missing_skills:
@@ -32,7 +29,7 @@ class RoadmapService:
         system_prompt = """You are an expert Technical Career Coach and Curriculum Designer.
         Create a personalized, practical learning roadmap for a user to bridge their skill gaps.
         
-        The roadmap must be beginner-friendly, actionable, and project-based.
+        Tailor depth, pacing, examples, and mini-projects to the user's Current Skill Level, Learning Style, Weekly Availability, and Primary Goal.
         
         Output MUST be valid JSON with the following structure:
         {
@@ -52,6 +49,7 @@ class RoadmapService:
         # so the response is raw JSON only (helps avoid intermittent parse failures).
         system_prompt += "\nIMPORTANT: Do NOT wrap the JSON in Markdown code fences or include any explanatory\ntext. Return raw JSON only."
 
+        goal_line = f"\n        Primary Goal: {goal_focus}" if goal_focus else ""
         user_prompt = f"""
         Generate a learning roadmap based on the following profile:
         
@@ -59,18 +57,18 @@ class RoadmapService:
         Current Skill Level: {current_skill_level}
         Missing Skills: {json.dumps(missing_skills)}
         Weekly Availability: {availability_hours} hours
-        Learning Style: {learning_style}
+        Learning Style: {learning_style}{goal_line}
         
         Constraints:
-        1. Break down the missing skills into a logical sequence.
+        1. Break down the missing skills into a logical sequence suited for a {current_skill_level} learner.
         2. Ensure the workload fits within {availability_hours} hours/week.
-        3. Each week must have a concrete 'mini_project' or 'practice_task' to reinforce learning.
+        3. Match the {learning_style} learning style and include a concrete 'mini_project' or 'practice_task' each week.
         4. Keep explanations concise and practical.
         5. If the list of missing skills is long, group related skills or prioritize the most critical ones for the first few weeks.
         """
 
         try:
-            return safe_ai_request(system_prompt, user_prompt, model="gemini-3.6-flash")
+            return safe_ai_request(system_prompt, user_prompt, model="gemini-3.5-flash-lite")
 
         except Exception as e:
             logger.error(f"Roadmap generation failed: {e}")
@@ -135,7 +133,7 @@ class RoadmapService:
         """
 
         try:
-            return safe_ai_request(system_prompt, user_prompt, model="gemini-3.6-flash")
+            return safe_ai_request(system_prompt, user_prompt, model="gemini-3.5-flash-lite")
         except Exception as e:
             logger.error(f"Combined generation failed: {e}")
             return {"error": str(e)}

@@ -1,0 +1,24 @@
+{
+  "name": "jobsnap-luminous-video",
+  "style": "luminous-glass",
+  "size": [1920, 1080],
+  "fps": 30,
+  "tail": 2.5,
+  "theme": {
+    "accent": "#2563EB",
+    "second": "#10B981",
+    "ground": "#F8FAFF",
+    "ink": "#0F172A"
+  },
+  "fonts": {
+    "text": "Plus Jakarta Sans"
+  },
+  "handle": "jobsnap.me",
+  "hud": { "left": "", "right": "" },
+  "pace": { "keep": 0.16, "keep_long": 0.36, "min_stop": 0.28, "min_comma": 0.1 },
+  "voice_lufs": -15,
+  "music_source": "work/music-edit.wav",
+  "music_bed": null,
+  "sfx_library": "",
+  "hyperframes": "hyperframes"
+}

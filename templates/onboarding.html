@@ -398,10 +398,12 @@
     flex: 1;
     min-height: 0;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     padding: 18px 24px;
-    overflow: hidden;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
     position: relative;
   }
 
@@ -409,7 +411,7 @@
     display: none;
     width: 100%;
     max-width: 860px;
-    max-height: 100%;
+    margin: auto 0;
     flex-direction: column;
     gap: 16px;
   }
@@ -1031,30 +1033,215 @@
     animation: obHeadShake 0.35s ease;
   }
 
+  .ob-recruiter-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .ob-footer-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
   @media (max-width: 780px) {
-    .ob-header,
-    .ob-footer {
-      padding: 0 14px;
+    .ob-header {
+      height: auto;
+      grid-template-columns: minmax(0, 1fr) auto;
+      row-gap: 10px;
+      column-gap: 10px;
+      padding: 10px 14px;
+    }
+    .ob-brand {
+      font-size: 14.5px;
+      gap: 8px;
+    }
+    .ob-brand-mark {
+      width: 26px;
+      height: 26px;
+    }
+    .ob-stepper {
+      grid-column: 1 / -1;
+      order: 3;
+      width: 100%;
+      justify-self: stretch;
+      justify-content: space-between;
+      gap: 4px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-outline-variant, #e0d9cc);
+    }
+    .ob-step-pill {
+      flex: 1;
+      padding: 6px 6px;
+      font-size: 11px;
     }
     .ob-step-label,
-    .ob-account-pill-label {
+    .ob-account-pill-label,
+    #obSfxText {
       display: none;
+    }
+    .ob-header-actions {
+      gap: 6px;
+    }
+    .ob-icon-btn {
+      height: 34px;
+      min-width: 34px;
+      padding: 0 8px;
+    }
+    .ob-account-pill {
+      height: 34px;
+      padding: 0 6px 0 5px;
+      gap: 4px;
+    }
+    .ob-account-menu {
+      width: min(268px, calc(100vw - 24px));
+      right: 0;
+    }
+    .ob-stage {
+      align-items: flex-start;
+      padding: 14px 14px 20px;
+    }
+    .ob-panel {
+      gap: 13px;
+      margin: 0;
+    }
+    .ob-title {
+      font-size: clamp(1.28rem, 5.5vw, 1.65rem);
+      line-height: 1.18;
+    }
+    .ob-subtitle {
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .ob-step1-head {
+      flex-direction: column;
+      gap: 10px;
+    }
+    .ob-account-bar {
+      width: 100%;
+      justify-content: space-between;
+      padding: 8px 10px;
+      gap: 8px;
+    }
+    .ob-account-bar-info {
+      flex: 1;
+      max-width: none;
+    }
+    .ob-account-bar-divider {
+      display: none;
+    }
+    .ob-switch-btn {
+      padding: 6px 9px;
+      font-size: 11px;
     }
     .ob-role-grid,
     .ob-two-col,
     .ob-split-card-grid,
-    .ob-summary-strip {
+    .ob-recruiter-fields-grid {
       grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .ob-summary-strip {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .ob-summary-cell {
+      padding: 8px 9px;
+    }
+    .ob-summary-label {
+      font-size: 9.5px;
+    }
+    .ob-summary-val {
+      font-size: 12px;
     }
     .ob-companion-box--hide-sm {
       display: none;
     }
-    .ob-stage {
-      padding: 12px 14px;
-    }
     .ob-card,
     .ob-role-card {
-      padding: 15px;
+      padding: 14px;
+      border-radius: 14px;
+    }
+    .ob-role-card {
+      gap: 9px;
+    }
+    .ob-role-char-pop svg {
+      width: 52px;
+      height: 52px;
+    }
+    .ob-role-name {
+      font-size: 15.5px;
+    }
+    .ob-role-desc {
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+    .ob-header-with-mascot {
+      gap: 10px;
+    }
+    .ob-header-with-mascot .ob-char-stage svg {
+      width: 54px;
+      height: 54px;
+    }
+    .ob-kv-item {
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 9px 11px;
+      font-size: 12.5px;
+    }
+    .ob-tag {
+      font-size: 10.5px;
+    }
+    .ob-input {
+      font-size: 16px; /* Prevents iOS Safari auto-zoom on focus */
+      height: 44px;
+    }
+    .ob-status-row {
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 12px;
+    }
+    .ob-dropzone {
+      height: auto;
+      min-height: 128px;
+      padding: 18px 14px;
+    }
+    .ob-footer {
+      height: auto;
+      min-height: 62px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    }
+    #onboardingFooterStatus {
+      display: none;
+    }
+    .ob-footer-right {
+      gap: 8px;
+      margin-left: auto;
+    }
+    .ob-btn {
+      height: 40px;
+      padding: 0 13px;
+      font-size: 12.5px;
+      gap: 6px;
+      white-space: nowrap;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .ob-header-with-mascot .ob-char-stage {
+      display: none;
+    }
+    .ob-summary-strip {
+      grid-template-columns: 1fr;
+    }
+    .ob-btn {
+      padding: 0 11px;
+      font-size: 12px;
     }
   }
 
@@ -1286,8 +1473,8 @@
 
     <!-- Step 2: Username (Mandatory) -->
     <section id="onboardingStep2" class="ob-panel" aria-labelledby="step2Heading">
-      <div class="ob-stagger ob-stagger-1" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
-        <div>
+      <div class="ob-stagger ob-stagger-1" style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px;">
+        <div style="min-width: 0; flex: 1 1 220px;">
           <div class="ob-eyebrow">Step 2 of 5 · Account Handle</div>
           <h1 id="step2Heading" class="ob-title">Claim your unique username</h1>
           <p class="ob-subtitle">Your handle identifies your profile and workspace URL. A unique username is required before continuing.</p>
@@ -1565,8 +1752,8 @@
 
     <!-- Step 5: Final Setup & Launch (Resume Mandatory for Seekers) -->
     <section id="onboardingStep5" class="ob-panel" aria-labelledby="step5Heading">
-      <div class="ob-stagger ob-stagger-1" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
-        <div>
+      <div class="ob-stagger ob-stagger-1" style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px;">
+        <div style="min-width: 0; flex: 1 1 220px;">
           <div class="ob-eyebrow">Step 5 of 5 · Launch</div>
           <h1 id="step5Heading" class="ob-title">Complete your workspace setup</h1>
           <p id="step5Subtitle" class="ob-subtitle">Upload your resume to unlock job matching and skill-gap diagnostics, or skip for now and add it later in Profile.</p>
@@ -1620,7 +1807,7 @@
 
           <!-- Recruiter company details -->
           <div id="step5RecruiterForm" class="ob-card" style="display: none; height: 100%;">
-            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
+            <div class="ob-recruiter-fields-grid">
               <div>
                 <label for="onboardingCompanyInput" style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">Company Name</label>
                 <input
@@ -1684,7 +1871,7 @@
       Step 1 of 5
     </span>
 
-    <div style="display: flex; align-items: center; gap: 10px;">
+    <div class="ob-footer-right">
       <button type="button" id="onboardingSkipResumeBtn" class="ob-btn ob-btn-ghost" style="display: none;" onclick="skipResumeAndLaunch()">
         <span>Skip for now</span>
       </button>
@@ -2175,6 +2362,10 @@
     clearSubmitError();
     renderStepContent();
     updateNavButtons();
+    const stage = document.querySelector('.ob-stage');
+    if (stage) {
+      stage.scrollTop = 0;
+    }
   }
 
   async function goToStep(targetStep, options = {}) {

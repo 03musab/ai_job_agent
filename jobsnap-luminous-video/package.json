@@ -1,0 +1,11 @@
+{
+  "name": "jobsnap-luminous-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes hyperframes preview",
+    "check": "npx --yes hyperframes check",
+    "render": "npx --yes hyperframes render -q high -o renders/jobsnap-luminous-16x9.mp4",
+    "render:draft": "npx --yes hyperframes render -q draft -o renders/draft-luminous.mp4"
+  }
+}

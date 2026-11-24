@@ -337,12 +337,36 @@
                      x-transition:leave-start="opacity-100 translate-y-0"
                      x-transition:leave-end="opacity-0 -translate-y-1"
                      x-cloak class="pt-3 border-t border-outline-variant/60 mt-2.5 space-y-2.5">
-                    <form action="{{ url_for('update_settings') }}" method="POST" class="space-y-2.5">
+                    <form id="email-alert-settings-form" action="{{ url_for('update_settings') }}" method="POST" class="space-y-2.5" novalidate
+                          onsubmit="
+                              const inp = this.querySelector('#email_recipients');
+                              const errBox = this.querySelector('#email-recipients-error');
+                              const raw = (inp ? inp.value : '').trim();
+                              const showErr = (msg) => {
+                                  if (errBox) { errBox.textContent = msg; errBox.style.display = 'block'; }
+                                  if (inp) { inp.style.borderColor = '#e11d48'; inp.focus(); }
+                                  if (window.snapyToast) window.snapyToast(msg, { mood: 'error', title: 'Missing Email' });
+                                  return false;
+                              };
+                              if (!raw) {
+                                  return showErr('Please enter at least one recipient email (e.g. you@example.com) before saving alert settings.');
+                              }
+                              const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+                              const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                              if (parts.length === 0 || parts.some(e => !emailRe.test(e))) {
+                                  return showErr('Please enter valid email address(es), separated by commas (e.g. you@example.com).');
+                              }
+                              if (errBox) errBox.style.display = 'none';
+                              if (inp) inp.style.borderColor = '';
+                              return true;
+                          ">
                         <div>
                             <label for="email_recipients" class="font-data-mono text-[9px] text-on-surface-variant uppercase tracking-wider block mb-1 font-semibold">Recipient Emails</label>
                             <input type="text" name="email_recipients" id="email_recipients" placeholder="e.g. you@example.com"
+                                oninput="this.style.borderColor=''; const e = document.getElementById('email-recipients-error'); if (e) e.style.display='none';"
                                 class="w-full bg-surface-container-lowest border border-outline-variant rounded-xl px-2.5 py-1.5 text-[12px] text-on-surface"
                                 value="{{ user_settings.email_recipients if user_settings else '' }}">
+                            <p id="email-recipients-error" class="mt-1 text-[10.5px] font-semibold" style="display: none; color: #e11d48;"></p>
                         </div>
                         <div class="flex items-center gap-2 pt-0.5">
                             <input id="send_excel_attachment" name="send_excel_attachment" type="checkbox"
@@ -380,23 +404,29 @@
                      x-transition:leave-end="opacity-0 -translate-y-1"
                      x-cloak class="pt-3 border-t border-outline-variant/60 mt-2.5 space-y-2">
                     <div class="flex flex-col gap-1.5">
-                        <form action="{{ url_for('sync_calendar') }}" method="POST" onsubmit="return window.snapyConfirmForm(event, this, 'Sync all pipeline jobs to Google Calendar?', { mood: 'warning', title: 'Snapy · Calendar Sync', subtext: 'Deadlines, interviews, and follow-ups will be added to your calendar.', confirmText: 'Sync Now', cancelText: 'Cancel', destructive: false });" class="relative group/sync">
+                        <form action="{{ url_for('sync_calendar') }}" method="POST" onsubmit="return window.snapyConfirmForm(event, this, 'Sync all pipeline jobs to Google Calendar?', { mood: 'warning', title: 'Snapy · Calendar Sync', subtext: 'Deadlines, interviews, and follow-ups will be added to your calendar.', confirmText: 'Sync Now', cancelText: 'Cancel', destructive: false });" class="space-y-1.5">
                             <button type="submit"
                                 title="All your jobs (deadlines, interviews & follow-ups) will be added to Google Calendar."
                                 class="w-full py-1.5 px-2.5 text-[11px] font-semibold rounded-xl bg-primary/10 border border-primary/30 text-primary hover:bg-primary hover:text-on-primary transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs">
                                 <span class="material-symbols-outlined text-[14px]">sync</span>
                                 Sync Jobs to Calendar
                             </button>
-                            <div role="tooltip"
-                                 class="pointer-events-none opacity-0 group-hover/sync:opacity-100 transition-opacity duration-150 mt-1 px-2.5 py-1 rounded-lg bg-surface-container-high border border-outline-variant text-[10px] text-on-surface-variant text-center shadow-xs">
-                                All jobs will be added to Google Calendar
-                            </div>
+                            <p class="px-2 py-1 rounded-lg bg-surface-container border border-outline-variant/80 text-[10px] text-on-surface-variant flex items-center justify-center gap-1 text-center leading-snug">
+                                <span class="material-symbols-outlined text-[12px] text-primary shrink-0">info</span>
+                                <span>All jobs will be added to Google Calendar</span>
+                            </p>
                         </form>
                         <form action="{{ url_for('test_calendar') }}" method="POST">
                             <button type="submit" class="w-full py-1.5 px-2 text-[10.5px] font-medium rounded-xl border border-outline-variant bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors cursor-pointer">
                                 Test G-Calendar
                             </button>
                         </form>
+                        <a href="{{ url_for('google_calendar_connect') }}"
+                           class="w-full py-1.5 px-2 text-[10.5px] font-semibold rounded-xl border border-tertiary/40 bg-tertiary/10 hover:bg-tertiary hover:text-on-tertiary text-tertiary transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+                           title="Grant Google Calendar access for your signed-in Google account">
+                            <span class="material-symbols-outlined text-[14px]">link</span>
+                            <span>Connect Google Calendar</span>
+                        </a>
                     </div>
                     <div class="pt-1 border-t border-outline-variant/50">
                         <div class="grid grid-cols-3 gap-1">

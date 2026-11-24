@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "src": "assets/audio/music.wav",
+  "sha": "0d0c4e85178fa2306cba1df4d6bf35babfcdd8a3068943fcc803de4517f32464",
+  "engine": "scribe",
+  "model": "scribe-v2",
+  "detectedLanguage": "en",
+  "words": [],
+  "language": "auto",
+  "generatedWordsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "createdAt": "2026-11-24T14:43:28.285Z"
+}

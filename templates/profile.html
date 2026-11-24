@@ -26,32 +26,63 @@
     <div class="border border-outline-variant rounded-xl p-6 bg-surface-container">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="flex items-center gap-4">
-                <!-- Profile Picture Preview -->
-                {% if user_details and user_details.profile_picture %}
-                    {% set pp = user_details.profile_picture %}
-                    {% set pp_parts = pp.split('/') %}
-                    {% set user_id = pp_parts[1] if pp_parts|length > 1 else current_user.id %}
-                    {% set filename = pp_parts[-1] %}
-                    <img src="{{ url_for('serve_user_uploads', user_id=user_id, filename=filename) }}" alt="Profile Picture" class="w-20 h-20 rounded-full object-cover border-2 border-primary" id="profile-pic-preview">
+                <!-- Profile Picture Preview (Auto-extracted from Gmail/Google or custom upload) -->
+                {% if effective_profile_picture_url %}
+                    <img src="{{ effective_profile_picture_url }}"
+                         alt="Profile Picture"
+                         referrerpolicy="no-referrer"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                         class="w-20 h-20 rounded-full object-cover border-2 border-primary shrink-0"
+                         id="profile-pic-preview">
+                    <div class="w-20 h-20 rounded-full bg-secondary/20 items-center justify-center border-2 border-outline-variant shrink-0" style="display: none;">
+                        <span class="material-symbols-outlined text-[32px] text-on-surface-variant">person</span>
+                    </div>
                 {% else %}
-                    <div class="w-20 h-20 rounded-full bg-secondary/20 flex items-center justify-center border-2 border-outline-variant" id="profile-pic-preview">
+                    <div class="w-20 h-20 rounded-full bg-secondary/20 flex items-center justify-center border-2 border-outline-variant shrink-0" id="profile-pic-preview">
                         <span class="material-symbols-outlined text-[32px] text-on-surface-variant">person</span>
                     </div>
                 {% endif %}
                 <div>
-                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest block mb-1">Profile Picture</span>
+                    <div class="flex flex-wrap items-center gap-2 mb-1">
+                        <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Profile Picture</span>
+                        {% if is_google_profile_picture %}
+                        <span class="inline-flex items-center gap-1 font-data-mono text-[9.5px] px-2 py-0.5 rounded-full bg-primary/10 border border-primary/30 text-primary font-semibold">
+                            <span class="material-symbols-outlined text-[12px]">verified</span>
+                            Synced from Gmail
+                        </span>
+                        {% endif %}
+                    </div>
                     <h2 class="font-headline-lg text-on-surface text-[18px] font-medium">Personalize Your Profile</h2>
-                    <p class="font-body-sm text-[12px] text-on-surface-variant mt-1">Upload a professional photo to make your profile stand out to employers</p>
+                    <p class="font-body-sm text-[12px] text-on-surface-variant mt-1">
+                        {% if is_google_profile_picture %}
+                            Automatically pulled from your Google / Gmail account. You can also upload a custom photo anytime.
+                        {% elif google_avatar_url %}
+                            Using a custom photo. Switch back to your Gmail photo or upload a new one below.
+                        {% else %}
+                            Automatically extracted when signed in with Google, or upload a custom photo below.
+                        {% endif %}
+                    </p>
                 </div>
             </div>
-            <div class="flex flex-col sm:flex-row gap-2">
+            <div class="flex flex-col sm:flex-row flex-wrap gap-2">
                 <label for="profile_picture" class="px-4 py-2 bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary font-data-mono text-[10px] rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5">
                     <span class="material-symbols-outlined text-[16px]">photo_camera</span>
                     <span>Upload Photo</span>
-                    <input id="profile_picture" name="profile_picture" type="file" accept="image/*" class="sr-only" onchange="previewProfilePicture(this)">
+                    <input id="profile_picture" name="profile_picture" form="main-profile-form" type="file" accept="image/*" class="sr-only" onchange="previewProfilePicture(this)">
                 </label>
-                {% if user_details and user_details.profile_picture %}
-                <button type="button" onclick="removeProfilePicture()" class="px-4 py-2 bg-error-container text-on-error font-data-mono text-[10px] rounded-lg hover:bg-error transition-colors flex items-center justify-center gap-1.5">
+                {% if google_avatar_url and not is_google_profile_picture %}
+                <button type="button" onclick="useGoogleProfilePicture('{{ google_avatar_url }}')" class="px-4 py-2 bg-primary/10 border border-primary/30 text-primary hover:bg-primary hover:text-on-primary font-data-mono text-[10px] rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+                    <span class="material-symbols-outlined text-[15px]">sync</span>
+                    <span>Use Gmail Photo</span>
+                </button>
+                {% elif not google_avatar_url %}
+                <a href="{{ url_for('google_auth_start', mode='login') }}" class="px-4 py-2 bg-primary/10 border border-primary/30 text-primary hover:bg-primary hover:text-on-primary font-data-mono text-[10px] rounded-lg transition-colors flex items-center justify-center gap-1.5">
+                    <span class="material-symbols-outlined text-[15px]">sync</span>
+                    <span>Sync from Gmail</span>
+                </a>
+                {% endif %}
+                {% if effective_profile_picture_url %}
+                <button type="button" onclick="removeProfilePicture()" class="px-4 py-2 bg-error-container text-on-error font-data-mono text-[10px] rounded-lg hover:bg-error transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
                     <span class="material-symbols-outlined text-[16px]">delete</span>
                     <span>Remove</span>
                 </button>
@@ -328,40 +359,83 @@ document.addEventListener('DOMContentLoaded', function () {
 // ─────────────────────────────────────────────────────────────────────────────
 function previewProfilePicture(input) {
     const preview = document.getElementById('profile-pic-preview');
+    const removalField = document.getElementById('profile_picture_removed');
+    if (removalField) removalField.remove();
+    const googleField = document.getElementById('use_google_photo');
+    if (googleField) googleField.remove();
+
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = function(e) {
-            // If preview is a div (placeholder), replace with img
             if (preview.tagName === 'DIV') {
                 const img = document.createElement('img');
                 img.id = 'profile-pic-preview';
-                img.className = 'w-20 h-20 rounded-full object-cover border-2 border-primary';
+                img.className = 'w-20 h-20 rounded-full object-cover border-2 border-primary shrink-0';
                 img.src = e.target.result;
                 preview.replaceWith(img);
             } else {
+                preview.style.display = '';
                 preview.src = e.target.result;
+            }
+            if (window.snapyToast) {
+                window.snapyToast('Photo preview ready - click Save Changes below to keep it.', { mood: 'info', title: 'Profile Photo' });
             }
         };
         reader.readAsDataURL(input.files[0]);
     }
 }
 
+function useGoogleProfilePicture(googleUrl) {
+    const preview = document.getElementById('profile-pic-preview');
+    const input = document.getElementById('profile_picture');
+    if (input) input.value = '';
+    const removalField = document.getElementById('profile_picture_removed');
+    if (removalField) removalField.remove();
+
+    if (preview) {
+        if (preview.tagName === 'DIV') {
+            const img = document.createElement('img');
+            img.id = 'profile-pic-preview';
+            img.referrerPolicy = 'no-referrer';
+            img.className = 'w-20 h-20 rounded-full object-cover border-2 border-primary shrink-0';
+            img.src = googleUrl;
+            preview.replaceWith(img);
+        } else {
+            preview.style.display = '';
+            preview.referrerPolicy = 'no-referrer';
+            preview.src = googleUrl;
+        }
+    }
+
+    const form = document.getElementById('main-profile-form');
+    if (form) {
+        let googleField = document.getElementById('use_google_photo');
+        if (!googleField) {
+            googleField = document.createElement('input');
+            googleField.type = 'hidden';
+            googleField.name = 'use_google_photo';
+            googleField.id = 'use_google_photo';
+            form.appendChild(googleField);
+        }
+        googleField.value = 'true';
+        form.submit();
+    }
+}
+
 function removeProfilePicture() {
     const preview = document.getElementById('profile-pic-preview');
     const input = document.getElementById('profile_picture');
+    if (input) input.value = '';
+    const googleField = document.getElementById('use_google_photo');
+    if (googleField) googleField.remove();
     
-    // Clear the file input
-    input.value = '';
-    
-    // Replace image with placeholder div
     const placeholder = document.createElement('div');
     placeholder.id = 'profile-pic-preview';
-    placeholder.className = 'w-20 h-20 rounded-full bg-secondary/20 flex items-center justify-center border-2 border-outline-variant';
+    placeholder.className = 'w-20 h-20 rounded-full bg-secondary/20 flex items-center justify-center border-2 border-outline-variant shrink-0';
     placeholder.innerHTML = '<span class="material-symbols-outlined text-[32px] text-on-surface-variant">person</span>';
     
-    preview.replaceWith(placeholder);
+    if (preview) preview.replaceWith(placeholder);
     
-    // Add a hidden field to indicate removal
     let removalField = document.getElementById('profile_picture_removed');
     if (!removalField) {
         removalField = document.createElement('input');
@@ -370,6 +444,9 @@ function removeProfilePicture() {
         removalField.id = 'profile_picture_removed';
         removalField.value = 'true';
         document.getElementById('main-profile-form').appendChild(removalField);
+    }
+    if (window.snapyToast) {
+        window.snapyToast('Photo marked for removal - click Save Changes below to apply.', { mood: 'info', title: 'Profile Photo' });
     }
 }
 </script>

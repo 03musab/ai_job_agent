@@ -21,7 +21,7 @@
             </span>
             <span class="text-slate-300 dark:text-slate-700">•</span>
             {% endif %}
-            <span class="font-mono text-[10.5px] px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 uppercase font-semibold">
+            <span id="breadcrumb-status-badge" class="font-mono text-[10.5px] px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 uppercase font-semibold">
                 {{ job.status_text or job.status or 'New' }}
             </span>
         </div>
@@ -75,14 +75,16 @@
                             </h1>
 
                             <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[13px] flex-wrap mt-1.5 font-medium">
-                                <span>{{ job.location or 'Remote / Bengaluru, India' }}</span>
+                                <span>{{ job.location or 'Not specified' }}</span>
                                 <span>•</span>
                                 <span>Indexed {{ (job.found_date | string)[:10] if job.found_date else 'recently' }}</span>
+                                {% if job.source %}
                                 <span>•</span>
                                 <span class="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    Actively reviewing candidates
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    Source: {{ job.source }}
                                 </span>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -126,7 +128,10 @@
                         <span>⚡ Easy Apply with JobSnap</span>
                     </button>
                     {% else %}
-                    <a href="{{ job.link }}" target="_blank" id="btn-apply-portal"
+                    <a href="{{ job.link }}" target="_blank" rel="noopener noreferrer" id="btn-apply-portal"
+                        data-external-apply-job-id="{{ job.id }}"
+                        data-external-apply-title="{{ job.title }}"
+                        data-external-apply-company="{{ job.company }}"
                         class="px-6 py-2.5 min-h-[44px] bg-[#19D889] hover:bg-[#10b981] text-[#064e3b] hover:text-white font-bold text-[13.5px] rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 flex-1 sm:flex-initial">
                         <span>Apply on company website</span>
                         <span class="material-symbols-outlined text-[17px]">open_in_new</span>
@@ -188,8 +193,12 @@
                     </div>
 
                     <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200">
+                        {% if job.has_resume_match or (job.match_score and job.match_score > 0) %}
                         <span class="font-mono text-[14px] font-extrabold">{{ job.match_score }}%</span>
                         <span class="text-[11.5px] font-medium">Fit Score</span>
+                        {% else %}
+                        <span class="font-mono text-[12px] font-bold">Resume Needed</span>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -238,7 +247,7 @@
                             </div>
                             <div class="flex flex-wrap gap-1.5">
                                 {% for skill in (job.missing_skills or []) %}
-                                <a href="{{ url_for('learning_path') }}?skill={{ skill | urlencode }}"
+                                <a href="{{ url_for('learning_path') }}?skill={{ skill | urlencode }}{% if job.company %}&company={{ job.company | urlencode }}{% endif %}"
                                    class="font-mono text-[11px] px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700 hover:border-amber-500 hover:text-amber-600 flex items-center gap-1 font-semibold shadow-2xs transition-colors group"
                                    title="Generate learning roadmap for {{ skill }}">
                                     <span class="text-amber-600 font-bold">+</span>
@@ -258,26 +267,34 @@
                 <div class="pt-2 border-t border-slate-100 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800/70 text-[12.5px]">
                     <div class="py-2.5 flex items-center justify-between">
                         <div class="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                            <span class="material-symbols-outlined text-[18px] text-emerald-600">check_circle</span>
+                            <span class="material-symbols-outlined text-[18px] text-slate-500">badge</span>
                             <span>Experience level: <strong>{{ job.formatted_experience }}</strong></span>
                         </div>
-                        <span class="font-mono text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">Matches Profile</span>
+                        <span class="font-mono text-[11px] text-slate-500 dark:text-slate-400 font-semibold">From Listing</span>
                     </div>
 
                     <div class="py-2.5 flex items-center justify-between">
                         <div class="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                            <span class="material-symbols-outlined text-[18px] text-emerald-600">check_circle</span>
-                            <span>Target location: <strong>{{ job.location or 'Remote / Hybrid' }}</strong></span>
+                            <span class="material-symbols-outlined text-[18px] text-slate-500">location_on</span>
+                            <span>Target location: <strong>{{ job.location or 'Not specified' }}</strong></span>
                         </div>
-                        <span class="font-mono text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">Eligible</span>
+                        <span class="font-mono text-[11px] text-slate-500 dark:text-slate-400 font-semibold">{{ 'Remote / Hybrid' if job.is_remote else 'On-site / Listed' }}</span>
                     </div>
 
                     <div class="py-2.5 flex items-center justify-between">
                         <div class="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                            <span class="material-symbols-outlined text-[18px] text-emerald-600">check_circle</span>
-                            <span>Work authorization: <strong>Legally Authorized</strong></span>
+                            <span class="material-symbols-outlined text-[18px] {{ 'text-emerald-600' if user_details and user_details.get('authorized_to_work') else 'text-slate-400' }}">
+                                {{ 'check_circle' if user_details and user_details.get('authorized_to_work') else 'info' }}
+                            </span>
+                            <span>Work authorization:
+                                <strong>{{ user_details.get('authorized_to_work') if user_details and user_details.get('authorized_to_work') else 'Not set in profile' }}</strong>
+                            </span>
                         </div>
-                        <span class="font-mono text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">Verified</span>
+                        {% if user_details and user_details.get('authorized_to_work') %}
+                        <span class="font-mono text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">From Profile</span>
+                        {% else %}
+                        <a href="{{ url_for('profile') }}" class="font-mono text-[11px] text-emerald-700 dark:text-emerald-400 hover:underline font-semibold">Update Profile</a>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -344,14 +361,18 @@
 
             </section>
 
-            <!-- 4. Meet The Hiring Team (LinkedIn Feature) -->
+            <!-- 4. Meet The Hiring Team -->
             <section class="border border-slate-200/90 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-xs space-y-3.5">
                 <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                     <h2 class="text-slate-900 dark:text-slate-100 text-[16px] font-bold tracking-tight flex items-center gap-2">
                         <span class="material-symbols-outlined text-[18px] text-sky-500">group</span>
                         <span>Meet the hiring team</span>
                     </h2>
-                    <span class="font-mono text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Verified Contact</span>
+                    {% if recruiter_contact %}
+                    <span class="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 uppercase tracking-widest font-semibold">Saved Contact</span>
+                    {% else %}
+                    <span class="font-mono text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Not Indexed Yet</span>
+                    {% endif %}
                 </div>
 
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/70">
@@ -364,19 +385,28 @@
                             {% endif %}
                         </div>
                         <div class="min-w-0">
+                            {% if recruiter_contact %}
                             <h4 class="text-[14px] font-bold text-slate-900 dark:text-slate-100 truncate">
-                                {{ recruiter_contact.full_name if recruiter_contact else 'Talent Acquisition Team' }}
+                                {{ recruiter_contact.full_name }}
                             </h4>
                             <p class="text-[12px] text-slate-500 dark:text-slate-400 truncate">
-                                {{ recruiter_contact.title if recruiter_contact else ('Hiring Partner at ' ~ job.company) }}
+                                {{ recruiter_contact.title or ('Contact at ' ~ job.company) }}
                             </p>
+                            {% else %}
+                            <h4 class="text-[14px] font-bold text-slate-900 dark:text-slate-100 truncate">
+                                No hiring contact saved for {{ job.company }} yet
+                            </h4>
+                            <p class="text-[12px] text-slate-500 dark:text-slate-400 truncate">
+                                Use Outreach Studio to discover or add real contacts at {{ job.company }}.
+                            </p>
+                            {% endif %}
                         </div>
                     </div>
 
                     <a href="{{ url_for('outreach_studio') }}?company={{ job.company | urlencode }}"
                         class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-[12px] rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 shrink-0">
-                        <span class="material-symbols-outlined text-[16px]">mail</span>
-                        <span>Message Recruiter</span>
+                        <span class="material-symbols-outlined text-[16px]">{{ 'mail' if recruiter_contact else 'person_search' }}</span>
+                        <span>{{ 'Message Recruiter' if recruiter_contact else 'Find Contacts' }}</span>
                     </a>
                 </div>
             </section>
@@ -388,12 +418,12 @@
                         <span class="material-symbols-outlined text-[18px] text-emerald-600">domain</span>
                         <span>About the company</span>
                     </h2>
-                    {% if job.link and 'http' in job.link %}
-                    <button type="button" onclick="analyzeTraffic({{ job.id }})"
+                    {% if company_profile and company_profile.get('website') %}
+                    <a href="{{ company_profile.website }}" target="_blank" rel="noopener noreferrer"
                         class="font-mono text-[11px] text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[14px]">query_stats</span>
-                        Traffic Intelligence
-                    </button>
+                        <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+                        Company Website
+                    </a>
                     {% endif %}
                 </div>
 
@@ -408,14 +438,20 @@
                     <div>
                         <h3 class="text-[15px] font-bold text-slate-900 dark:text-slate-100">{{ job.company }}</h3>
                         <p class="text-[12.5px] text-slate-500 dark:text-slate-400 mt-0.5">
-                            Technology, Software & Cloud Services · {{ job.location or 'Global / Remote' }}
+                            {% if company_profile and company_profile.get('industry') %}{{ company_profile.industry }} · {% endif %}{{ job.location or 'Location not specified' }}
                         </p>
                     </div>
                 </div>
 
+                {% if company_profile and company_profile.get('description') %}
                 <p class="text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
-                    {{ job.company }} is hiring for the {{ job.title }} team. Verified requisition scanned from open industry career feeds and ATS platforms.
+                    {{ company_profile.description }}
                 </p>
+                {% else %}
+                <p class="text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
+                    Hiring for {{ job.title }}. Sourced via {{ job.source or 'live job feed' }}.
+                </p>
+                {% endif %}
             </section>
 
         </main>
@@ -463,7 +499,7 @@
                     <h3 class="font-mono text-[11px] text-slate-400 uppercase tracking-widest font-bold">
                         Pipeline Status
                     </h3>
-                    <span class="font-mono text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 uppercase font-semibold">
+                    <span id="sidebar-status-badge" class="font-mono text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 uppercase font-semibold">
                         {{ job.status_text or job.status or 'New' }}
                     </span>
                 </div>
@@ -585,7 +621,10 @@
 
         <!-- Actions Footer -->
         <div class="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-            <a id="assisted-modal-portal-link" href="{{ job.link }}" target="_blank"
+            <a id="assisted-modal-portal-link" href="{{ job.link }}" target="_blank" rel="noopener noreferrer"
+                data-external-apply-job-id="{{ job.id }}"
+                data-external-apply-title="{{ job.title }}"
+                data-external-apply-company="{{ job.company }}"
                 class="px-3.5 py-2 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-300 text-[12px] font-semibold rounded-xl transition-colors flex items-center gap-1.5">
                 <span class="material-symbols-outlined text-[15px]">open_in_new</span>
                 <span>Apply on Portal Directly</span>
@@ -1418,6 +1457,194 @@ html.dark #job-details-page #btn-applied-state {
             }
         }
     };
+
+    // External Apply Return Check-In: ask user if they applied and update Pipeline Status -> Applied
+    (function setupExternalApplyCheckIn() {
+        let pendingApply = null;
+        let promptShowing = false;
+        let fallbackTimer = null;
+
+        function clearPending() {
+            pendingApply = null;
+            if (fallbackTimer) {
+                clearTimeout(fallbackTimer);
+                fallbackTimer = null;
+            }
+        }
+
+        function applyUpdatedPipelineUi() {
+            const portalBtn = document.getElementById('btn-apply-portal');
+            if (portalBtn) {
+                portalBtn.outerHTML = `
+                    <button type="button" disabled id="btn-applied-state"
+                        class="px-5 py-2.5 min-h-[44px] bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-[#19D889] font-bold text-[13.5px] rounded-xl flex items-center justify-center gap-2 cursor-default shadow-xs flex-1 sm:flex-initial">
+                        <span class="material-symbols-outlined text-[19px]">check_circle</span>
+                        <span>Applied to Role</span>
+                    </button>
+                `;
+            }
+            const assistedBtn = document.getElementById('btn-assisted-apply');
+            if (assistedBtn) assistedBtn.classList.add('hidden');
+
+            const breadcrumbBadge = document.getElementById('breadcrumb-status-badge');
+            if (breadcrumbBadge) breadcrumbBadge.textContent = 'Applied';
+
+            const sidebarBadge = document.getElementById('sidebar-status-badge');
+            if (sidebarBadge) sidebarBadge.textContent = 'Applied';
+
+            const statusSelect = document.getElementById('sidebar-status-select');
+            if (statusSelect) {
+                statusSelect.value = 'applied';
+                statusSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+
+        async function markJobAsApplied(jobInfo) {
+            const notesEl = document.getElementById('sidebar-notes');
+            const existingNotes = notesEl ? notesEl.value : '';
+            const body = new URLSearchParams({
+                job_id: String(jobInfo.jobId),
+                status: 'applied',
+                notes: existingNotes
+            }).toString();
+
+            try {
+                const res = await fetch(`/update_job_status/${jobInfo.jobId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'application/json'
+                    },
+                    body
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.success) {
+                    applyUpdatedPipelineUi();
+                    if (window.snapyToast) {
+                        window.snapyToast(
+                            `Moved "${jobInfo.title}" at ${jobInfo.company} to Applied in your pipeline!`,
+                            { mood: 'happy', title: 'Pipeline Updated' }
+                        );
+                    }
+                } else {
+                    if (window.snapyToast) {
+                        window.snapyToast(
+                            data.error || 'Could not update pipeline status automatically. You can update it in the sidebar.',
+                            { mood: 'error', title: 'Update Failed' }
+                        );
+                    }
+                }
+            } catch (err) {
+                if (window.snapyToast) {
+                    window.snapyToast(
+                        'Network error updating pipeline status. Please try again in the sidebar.',
+                        { mood: 'error', title: 'Network Error' }
+                    );
+                }
+            }
+        }
+
+        async function promptDidYouApply() {
+            if (!pendingApply || promptShowing) return;
+            const pageEl = document.getElementById('job-details-page');
+            if (!pageEl || !document.contains(pageEl)) {
+                clearPending();
+                return;
+            }
+            // Don't prompt if already marked applied
+            const statusSelect = document.getElementById('sidebar-status-select');
+            if (document.getElementById('btn-applied-state') || (statusSelect && statusSelect.value === 'applied')) {
+                clearPending();
+                return;
+            }
+
+            const info = pendingApply;
+            clearPending();
+            promptShowing = true;
+
+            try {
+                const confirmed = typeof window.snapyConfirm === 'function'
+                    ? await window.snapyConfirm(
+                        `Did you apply to ${info.title}${info.company ? ' at ' + info.company : ''}?`,
+                        {
+                            mood: 'info',
+                            title: 'Snapy · Application Check-In',
+                            subtext: 'If you finished applying on the company website, Snapy will update your Pipeline Status to Applied.',
+                            confirmText: 'Yes, I Applied!',
+                            cancelText: 'Not Yet',
+                            destructive: false
+                        }
+                    )
+                    : window.confirm(`Did you apply to ${info.title}? Click OK to update your pipeline status to Applied.`);
+
+                if (confirmed) {
+                    await markJobAsApplied(info);
+                } else if (window.snapyToast) {
+                    window.snapyToast('Got it! Keeping this role in your current pipeline stage.', {
+                        mood: 'info',
+                        title: 'Pipeline Unchanged',
+                        duration: 3200
+                    });
+                }
+            } finally {
+                promptShowing = false;
+            }
+        }
+
+        function onExternalApplyClick(e) {
+            const el = e.currentTarget;
+            const jobId = el.getAttribute('data-external-apply-job-id');
+            if (!jobId) return;
+            const statusSelect = document.getElementById('sidebar-status-select');
+            if (statusSelect && statusSelect.value === 'applied') return;
+
+            pendingApply = {
+                jobId: Number(jobId),
+                title: el.getAttribute('data-external-apply-title') || 'this role',
+                company: el.getAttribute('data-external-apply-company') || ''
+            };
+
+            // If user clicked from inside the Assisted Apply modal, close it cleanly
+            const applyModal = document.getElementById('apply-modal');
+            if (applyModal && !applyModal.classList.contains('hidden')) {
+                applyModal.classList.add('hidden');
+            }
+
+            // Fallback in case the external tab opened in background and focus never left this tab
+            if (fallbackTimer) clearTimeout(fallbackTimer);
+            fallbackTimer = setTimeout(() => {
+                if (pendingApply && document.visibilityState === 'visible') {
+                    promptDidYouApply();
+                }
+            }, 2200);
+        }
+
+        document.querySelectorAll('[data-external-apply-job-id]').forEach((link) => {
+            link.addEventListener('click', onExternalApplyClick);
+        });
+
+        // Deduplicate global return-to-tab listeners across SPA navigations
+        if (window.__externalApplyVisibilityHandler) {
+            document.removeEventListener('visibilitychange', window.__externalApplyVisibilityHandler);
+        }
+        if (window.__externalApplyFocusHandler) {
+            window.removeEventListener('focus', window.__externalApplyFocusHandler);
+        }
+
+        window.__externalApplyVisibilityHandler = () => {
+            if (document.visibilityState === 'visible' && pendingApply) {
+                setTimeout(promptDidYouApply, 250);
+            }
+        };
+        window.__externalApplyFocusHandler = () => {
+            if (pendingApply) {
+                setTimeout(promptDidYouApply, 250);
+            }
+        };
+
+        document.addEventListener('visibilitychange', window.__externalApplyVisibilityHandler);
+        window.addEventListener('focus', window.__externalApplyFocusHandler);
+    })();
 })();
 </script>
 {% endblock %}

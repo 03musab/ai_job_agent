@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "src": "assets/audio/sfx.wav",
+  "sha": "40e2cd12678181c3d7020b29168ca5d0668ada7662f8c03b89df5146434134c6",
+  "engine": "scribe",
+  "model": "scribe-v2",
+  "detectedLanguage": "en",
+  "words": [],
+  "language": "auto",
+  "generatedWordsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "createdAt": "2026-11-24T15:34:21.278Z"
+}

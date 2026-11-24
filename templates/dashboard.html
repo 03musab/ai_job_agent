@@ -246,7 +246,7 @@
 
                                                 <!-- Skill Gap Bridge (Click to open personalized roadmap for this missing skill) -->
                                                 {% if job.missing_skills %}
-                                                <a href="{{ url_for('learning_path') }}?skill={{ job.missing_skills[0] | urlencode }}"
+                                                <a href="{{ url_for('learning_path') }}?skill={{ job.missing_skills[0] | urlencode }}{% if job.company %}&company={{ job.company | urlencode }}{% endif %}"
                                                    class="font-data-mono text-[10.5px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/20 flex items-center gap-1 transition-colors"
                                                    title="Generate learning roadmap for {{ job.missing_skills[0] }}">
                                                     <span class="material-symbols-outlined text-[12px]">school</span>
@@ -746,14 +746,8 @@
             if (percent >= 100) m.report.className = 'w-1.5 h-1.5 rounded-full bg-secondary';
         }
 
-        function redirectToFilteredDashboard(terms, loc) {
+        function redirectToFreshDashboard() {
             const targetUrl = new URL("{{ url_for('dashboard') }}", window.location.origin);
-            if (terms && terms.trim()) {
-                targetUrl.searchParams.set('search_query', terms.trim());
-            }
-            if (loc && loc.trim()) {
-                targetUrl.searchParams.set('location_filter', loc.trim());
-            }
             targetUrl.searchParams.set('sort_by', 'found_date');
             targetUrl.searchParams.set('sort_order', 'DESC');
             window.location.href = targetUrl.toString();
@@ -789,7 +783,7 @@
                             if (d.state === 'SUCCESS') {
                                 els.progress.status.textContent = 'Complete! Refreshing...';
                                 eventSource.close();
-                                setTimeout(() => redirectToFilteredDashboard(window._activeScanSearchTerms, window._activeScanLocation), 300);
+                                setTimeout(() => redirectToFreshDashboard(), 300);
                             } else if (d.state === 'FAILURE') {
                                 handleSearchError(d.message || 'Error occurred');
                             }
@@ -820,7 +814,7 @@
         }
 
         if (els.saveProfileBtn) {
-            els.saveProfileBtn.addEventListener('click', (e) => {
+            els.saveProfileBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 const fields = ['search_terms', 'location', 'experience', 'job_type'];
                 const values = fields.map(id => document.getElementById(id) ? document.getElementById(id).value.trim() : '');
@@ -830,25 +824,46 @@
                     return;
                 }
 
-                const profileName = prompt('Enter a profile name:');
+                const suggestedName = values[1] ? `${values[0]} · ${values[1]}` : values[0];
+                const profileName = typeof window.snapyPrompt === 'function'
+                    ? await window.snapyPrompt('Name your saved search preset', {
+                        mood: 'happy',
+                        title: 'Snapy · Save Preset',
+                        subtext: 'Reuse these scraper keywords & location filters in one click anytime.',
+                        placeholder: 'e.g. React Roles · Mumbai',
+                        defaultValue: suggestedName.slice(0, 60),
+                        confirmText: 'Save Preset',
+                        cancelText: 'Cancel',
+                        requiredMessage: 'Please enter a preset name so Snapy can save it.'
+                    })
+                    : prompt('Enter a profile name:', suggestedName);
+
                 if (!profileName || !profileName.trim()) return;
 
-                const formData = new FormData();
-                formData.append('profile_name', profileName.trim());
-                fields.forEach((f, i) => formData.append(f, values[i]));
-
-                fetch('/save_profile', { method: 'POST', body: formData })
-                    .then(r => {
-                        if (r.ok) {
-                            if (window.snapyToast) window.snapyToast('Search preset saved!', { mood: 'happy', title: 'Preset Saved' });
-                            setTimeout(() => window.location.reload(), 650);
-                        } else if (window.snapyToast) {
-                            window.snapyToast('Failed to save search preset.', { mood: 'error', title: 'Save Failed' });
-                        }
-                    })
-                    .catch(() => {
-                        if (window.snapyToast) window.snapyToast('Error saving search preset.', { mood: 'error', title: 'Network Error' });
+                try {
+                    const r = await fetch('/save_profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                        body: JSON.stringify({
+                            profile_name: profileName.trim(),
+                            search_terms: values[0],
+                            location: values[1],
+                            experience: values[2],
+                            job_type: values[3]
+                        })
                     });
+                    const data = await r.json().catch(() => ({}));
+                    if (r.ok && data.success !== false) {
+                        if (window.snapyToast) {
+                            window.snapyToast(data.message || `Saved preset "${profileName.trim()}"!`, { mood: 'happy', title: 'Preset Saved' });
+                        }
+                        setTimeout(() => window.location.reload(), 700);
+                    } else if (window.snapyToast) {
+                        window.snapyToast(data.error || 'Failed to save search preset.', { mood: 'error', title: 'Save Failed' });
+                    }
+                } catch (err) {
+                    if (window.snapyToast) window.snapyToast('Network error saving search preset.', { mood: 'error', title: 'Network Error' });
+                }
             });
         }
 
@@ -1067,10 +1082,8 @@
                 (sidebarLoc && sidebarLoc.value.trim()) ||
                 '';
 
-            if (filterTerms) filterTerms.value = searchKeywords;
             if (sidebarTerms) sidebarTerms.value = searchKeywords;
             if (heroTerms) heroTerms.value = searchKeywords;
-            if (filterLoc) filterLoc.value = searchLoc;
             if (heroLoc) heroLoc.value = searchLoc;
             if (sidebarLoc) sidebarLoc.value = searchLoc;
             if (scanModeInput) scanModeInput.value = mode;
@@ -1124,7 +1137,7 @@
                         if (d.state === 'SUCCESS') {
                             if (heroStatus) heroStatus.textContent = 'Scan completed! Refreshing matches...';
                             es.close();
-                            setTimeout(() => redirectToFilteredDashboard(window._activeScanSearchTerms, window._activeScanLocation), 1100);
+                            setTimeout(() => redirectToFreshDashboard(), 1100);
                         } else if (d.state === 'FAILURE') {
                             if (heroErr) {
                                 heroErr.textContent = d.message || 'Error occurred';
@@ -1153,6 +1166,151 @@
                 }
             }
         };
+
+        // Google Calendar Sync: Events & Refresh controls in sidebar
+        (function initCalendarEventsControls() {
+            const loadBtn = document.getElementById('load-events-btn');
+            const refreshBtn = document.getElementById('refresh-events-btn');
+            const container = document.getElementById('calendar-events-container');
+            const listEl = document.getElementById('events-list');
+            const emptyEl = document.getElementById('no-events');
+            const loadingEl = document.getElementById('events-loading');
+            if (!loadBtn || !refreshBtn || !container || loadBtn.dataset.calBound === '1') return;
+
+            loadBtn.dataset.calBound = '1';
+            refreshBtn.dataset.calBound = '1';
+            let hasLoadedOnce = false;
+            let isFetching = false;
+
+            function escapeCalHtml(str) {
+                return String(str || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+
+            async function fetchCalendarEvents(showFeedbackToast) {
+                if (isFetching) return;
+                isFetching = true;
+                container.classList.remove('hidden');
+                if (loadingEl) loadingEl.classList.remove('hidden');
+                if (emptyEl) emptyEl.classList.add('hidden');
+                if (listEl) listEl.innerHTML = '';
+                refreshBtn.disabled = true;
+                const origRefreshText = refreshBtn.textContent;
+                refreshBtn.textContent = '...';
+
+                try {
+                    const res = await fetch('/calendar_events', {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (loadingEl) loadingEl.classList.add('hidden');
+
+                    if (!res.ok || data.error) {
+                        const errMsg = data.error || `Could not load calendar events (${res.status}).`;
+                        if (listEl) {
+                            listEl.innerHTML = `<div class="p-2 rounded-lg text-[10.5px] font-medium" style="color: #e11d48;">${escapeCalHtml(errMsg)}</div>`;
+                        }
+                        if (window.snapyToast) {
+                            window.snapyToast(errMsg, { mood: 'error', title: 'Google Calendar' });
+                        }
+                        return;
+                    }
+
+                    hasLoadedOnce = true;
+                    const events = Array.isArray(data.events) ? data.events : [];
+                    if (events.length === 0) {
+                        if (emptyEl) emptyEl.classList.remove('hidden');
+                        if (showFeedbackToast && window.snapyToast) {
+                            window.snapyToast('Calendar refreshed - no upcoming job events found.', { mood: 'info', title: 'Google Calendar' });
+                        }
+                        return;
+                    }
+
+                    if (listEl) {
+                        listEl.innerHTML = events.map((ev) => {
+                            const safeUrl = (ev.htmlLink && /^https?:\/\//i.test(ev.htmlLink)) ? ev.htmlLink : '';
+                            const titleHtml = safeUrl
+                                ? `<a href="${escapeCalHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" class="font-semibold text-on-surface hover:text-primary truncate block">${escapeCalHtml(ev.summary)}</a>`
+                                : `<span class="font-semibold text-on-surface truncate block">${escapeCalHtml(ev.summary)}</span>`;
+                            return `
+                                <div class="flex items-start justify-between gap-1.5 p-1.5 rounded-lg bg-surface border border-outline-variant/70">
+                                    <div class="min-w-0 flex-1">
+                                        ${titleHtml}
+                                        <span class="font-data-mono text-[9.5px] text-on-surface-variant block">${escapeCalHtml(ev.start || '')}</span>
+                                    </div>
+                                    <button type="button" data-del-cal-event="${escapeCalHtml(ev.id)}" title="Remove event from Google Calendar"
+                                        class="text-on-surface-variant hover:text-rose-500 p-0.5 rounded cursor-pointer shrink-0">
+                                        <span class="material-symbols-outlined text-[14px]">close</span>
+                                    </button>
+                                </div>
+                            `;
+                        }).join('');
+
+                        listEl.querySelectorAll('[data-del-cal-event]').forEach((delBtn) => {
+                            delBtn.addEventListener('click', async () => {
+                                const eventId = delBtn.getAttribute('data-del-cal-event');
+                                if (!eventId) return;
+                                const confirmed = typeof window.snapyConfirm === 'function'
+                                    ? await window.snapyConfirm('Delete this event from Google Calendar?', {
+                                        mood: 'sad',
+                                        title: 'Snapy · Remove Event',
+                                        subtext: 'This will remove the event from your synced Job Alerts calendar.',
+                                        confirmText: 'Delete Event',
+                                        cancelText: 'Keep It',
+                                        destructive: true
+                                    })
+                                    : window.confirm('Delete this event from Google Calendar?');
+                                if (!confirmed) return;
+
+                                try {
+                                    const delRes = await fetch(`/delete_calendar_event/${encodeURIComponent(eventId)}`, { method: 'DELETE' });
+                                    const delData = await delRes.json().catch(() => ({}));
+                                    if (delRes.ok && delData.success) {
+                                        if (window.snapyToast) window.snapyToast('Calendar event removed.', { mood: 'happy', title: 'Deleted' });
+                                        fetchCalendarEvents(false);
+                                    } else if (window.snapyToast) {
+                                        window.snapyToast(delData.error || 'Failed to delete calendar event.', { mood: 'error', title: 'Google Calendar' });
+                                    }
+                                } catch (e) {
+                                    if (window.snapyToast) window.snapyToast('Network error deleting event.', { mood: 'error', title: 'Google Calendar' });
+                                }
+                            });
+                        });
+                    }
+
+                    if (showFeedbackToast && window.snapyToast) {
+                        window.snapyToast(`Loaded ${events.length} calendar event${events.length === 1 ? '' : 's'}.`, { mood: 'happy', title: 'Calendar Refreshed' });
+                    }
+                } catch (err) {
+                    if (loadingEl) loadingEl.classList.add('hidden');
+                    if (listEl) {
+                        listEl.innerHTML = '<div class="p-2 rounded-lg text-[10.5px] font-medium" style="color: #e11d48;">Network error loading calendar events.</div>';
+                    }
+                    if (window.snapyToast) {
+                        window.snapyToast('Network error loading Google Calendar events.', { mood: 'error', title: 'Google Calendar' });
+                    }
+                } finally {
+                    isFetching = false;
+                    refreshBtn.disabled = false;
+                    refreshBtn.textContent = origRefreshText;
+                }
+            }
+
+            loadBtn.addEventListener('click', () => {
+                if (!container.classList.contains('hidden') && hasLoadedOnce) {
+                    container.classList.add('hidden');
+                } else {
+                    fetchCalendarEvents(false);
+                }
+            });
+
+            refreshBtn.addEventListener('click', () => {
+                fetchCalendarEvents(true);
+            });
+        })();
     }
 
     // Floating Detachable Pagination Pill Controller

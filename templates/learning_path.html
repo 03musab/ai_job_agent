@@ -4,8 +4,8 @@
 {% block content %}
 <div class="max-w-[1400px] mx-auto px-container-padding py-6 flex-1 flex flex-col gap-4 w-full" x-data="learningPath()">
 
-    <!-- Toast Notifications -->
-    <div class="fixed bottom-4 sm:bottom-6 left-3 right-3 sm:left-auto sm:right-6 z-50 space-y-2 pointer-events-none">
+    <!-- Fallback Toast Notifications (used only if global Snapy Toast is unavailable) -->
+    <div x-show="toasts.length > 0" class="fixed bottom-4 sm:bottom-6 left-3 right-3 sm:left-auto sm:right-6 z-50 space-y-2 pointer-events-none" style="display: none;">
         <template x-for="toast in toasts" :key="toast.id">
             <div x-show="toast.visible" x-transition
                 class="px-4 py-2.5 rounded-xl border flex items-center gap-2.5 text-[12.5px] shadow-2xl pointer-events-auto backdrop-blur-md bg-surface border-outline-variant text-on-surface"
@@ -385,136 +385,978 @@
 
             <!-- Generate Personalized Roadmap Trigger -->
             <div class="flex justify-center pt-2 pb-6">
-                <button @click="generateRoadmap" :disabled="roadmapLoading"
+                <button type="button" @click="openSnapyInterview()" :disabled="roadmapLoading"
                     class="w-full sm:w-auto justify-center px-6 sm:px-8 py-3 min-h-[44px] bg-primary text-on-primary font-semibold rounded-2xl hover:bg-emerald-600 disabled:opacity-50 transition-all flex items-center gap-2 shadow-xs text-[13px] cursor-pointer">
                     <span x-show="roadmapLoading" class="w-4 h-4 border-2 border-on-primary/20 border-t-on-primary rounded-full animate-spin"></span>
                     <span class="material-symbols-outlined text-[18px]" x-show="!roadmapLoading">auto_awesome</span>
-                    <span x-text="roadmapLoading ? 'Synthesizing Step-by-Step Curriculum...' : 'Generate Step-by-Step Learning Roadmap'"></span>
+                    <span x-text="roadmapLoading ? 'Snapy is crafting your roadmap...' : 'Generate Step-by-Step Learning Roadmap'"></span>
                 </button>
             </div>
         </div>
 
-        <!-- Generated Roadmap Workspace -->
-        <div x-show="roadmap" x-ref="roadmapContainer" x-transition class="space-y-4 pb-12" style="display: none;">
-            
-            <!-- Roadmap Controls & Progress Header -->
-            <div class="border border-outline-variant rounded-2xl p-4 sm:p-5 bg-surface shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <div class="flex flex-wrap items-center gap-2 mb-1">
-                        <span class="font-data-mono text-[10px] text-primary uppercase tracking-widest font-bold" x-text="targetRole + ' Roadmap'"></span>
-                        <span class="font-data-mono text-[10.5px] px-2 py-0.5 rounded-md bg-surface-container border border-outline-variant text-on-surface-variant font-bold" x-text="roadmap?.total_weeks + ' Weeks'"></span>
+        <!-- Snapy Cute Pre-Roadmap Interview Modal -->
+        <style>
+            @keyframes snapyQuizBackdropIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes snapyQuizCardIn {
+                0% { opacity: 0; transform: translateY(18px) scale(0.94); }
+                70% { opacity: 1; transform: translateY(-3px) scale(1.01); }
+                100% { opacity: 1; transform: translateY(0) scale(1); }
+            }
+            @keyframes snapyBounce {
+                0%, 100% { transform: translateY(0px) rotate(0deg); }
+                50% { transform: translateY(-6px) rotate(1.5deg); }
+            }
+            @keyframes snapyExcitedBounce {
+                0%, 100% { transform: translateY(0px) scale(1); }
+                35% { transform: translateY(-9px) scale(1.04, 0.97); }
+                70% { transform: translateY(0px) scale(0.97, 1.03); }
+            }
+            @keyframes snapyAntennaPulse {
+                0%, 100% { transform: scale(1); opacity: 0.92; }
+                50% { transform: scale(1.25); opacity: 1; }
+            }
+            @keyframes snapySparkleTwinkle {
+                0%, 100% { opacity: 0.3; transform: scale(0.75) rotate(0deg); }
+                50% { opacity: 1; transform: scale(1.15) rotate(22deg); }
+            }
+            @keyframes snapyBubblePop {
+                0% { opacity: 0; transform: translateY(6px) scale(0.96); }
+                100% { opacity: 1; transform: translateY(0) scale(1); }
+            }
+            .snapy-quiz-overlay {
+                position: fixed;
+                inset: 0;
+                z-index: 99990;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 16px;
+                background: rgba(9, 10, 15, 0.62);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                animation: snapyQuizBackdropIn 180ms ease-out both;
+            }
+            .snapy-quiz-card {
+                width: 100%;
+                max-width: 560px;
+                border-radius: 24px;
+                background: var(--bg-surface, #ffffff);
+                border: 1.5px solid var(--border-outline-variant, #e2e8f0);
+                box-shadow: 0 28px 70px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(16, 185, 129, 0.14);
+                overflow: hidden;
+                color: var(--text-on-surface, #0f172a);
+                animation: snapyQuizCardIn 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+            }
+            .snapy-quiz-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 14px 18px;
+                border-bottom: 1px solid var(--border-outline-variant, #e2e8f0);
+                background: var(--bg-surface-container, #f8fafc);
+            }
+            .snapy-quiz-dots {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .snapy-quiz-dot {
+                height: 7px;
+                width: 7px;
+                border-radius: 999px;
+                background: var(--border-outline, #cbd5e1);
+                transition: all 240ms cubic-bezier(0.22, 1, 0.36, 1);
+            }
+            .snapy-quiz-dot.is-done {
+                background: #10b981;
+            }
+            .snapy-quiz-dot.is-active {
+                width: 24px;
+                background: #10b981;
+                box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+            }
+            .snapy-mascot-stage {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                padding: 20px 22px 10px;
+            }
+            .snapy-avatar-wrap {
+                position: relative;
+                width: 86px;
+                height: 86px;
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 22px;
+                background: radial-gradient(circle at 50% 45%, rgba(16, 185, 129, 0.18), rgba(16, 185, 129, 0.03) 72%);
+                border: 1px solid rgba(16, 185, 129, 0.28);
+            }
+            .snapy-svg-idle {
+                animation: snapyBounce 2.4s ease-in-out infinite;
+            }
+            .snapy-svg-excited {
+                animation: snapyExcitedBounce 0.9s ease-in-out infinite;
+            }
+            .snapy-sparkle {
+                position: absolute;
+                pointer-events: none;
+                animation: snapySparkleTwinkle 1.8s ease-in-out infinite;
+            }
+            .snapy-speech-bubble {
+                position: relative;
+                flex: 1;
+                min-width: 0;
+                padding: 13px 16px;
+                border-radius: 18px;
+                background: var(--bg-surface-container, #f8fafc);
+                border: 1.5px solid var(--border-outline-variant, #e2e8f0);
+                animation: snapyBubblePop 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+            }
+            .snapy-speech-bubble::before {
+                content: '';
+                position: absolute;
+                left: -7px;
+                top: 26px;
+                width: 12px;
+                height: 12px;
+                background: var(--bg-surface-container, #f8fafc);
+                border-left: 1.5px solid var(--border-outline-variant, #e2e8f0);
+                border-bottom: 1.5px solid var(--border-outline-variant, #e2e8f0);
+                transform: rotate(45deg);
+            }
+            .snapy-opt-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 10px;
+                padding: 12px 22px 18px;
+            }
+            @media (max-width: 520px) {
+                .snapy-opt-grid { grid-template-columns: 1fr; }
+                .snapy-mascot-stage { flex-direction: column; text-align: center; }
+                .snapy-speech-bubble::before { display: none; }
+            }
+            .snapy-opt-btn {
+                display: flex;
+                align-items: flex-start;
+                gap: 11px;
+                width: 100%;
+                text-align: left;
+                padding: 12px 13px;
+                border-radius: 16px;
+                background: var(--bg-surface-container, #f8fafc);
+                border: 1.5px solid var(--border-outline-variant, #e2e8f0);
+                color: var(--text-on-surface, #0f172a);
+                cursor: pointer;
+                transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+            }
+            .snapy-opt-btn:hover {
+                transform: translateY(-2px);
+                border-color: rgba(16, 185, 129, 0.65);
+                box-shadow: 0 8px 20px rgba(16, 185, 129, 0.14);
+            }
+            .snapy-opt-btn:active {
+                transform: scale(0.98);
+            }
+            .snapy-opt-btn.is-selected {
+                border-color: #10b981;
+                background: rgba(16, 185, 129, 0.12);
+                box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.22);
+            }
+            .snapy-opt-icon {
+                width: 34px;
+                height: 34px;
+                border-radius: 11px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                background: var(--bg-surface, #ffffff);
+                border: 1px solid var(--border-outline-variant, #e2e8f0);
+                color: #10b981;
+            }
+            .snapy-opt-btn.is-selected .snapy-opt-icon {
+                background: #10b981;
+                color: #ffffff;
+                border-color: #059669;
+            }
+            .snapy-quiz-footer {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                padding: 13px 22px 16px;
+                border-top: 1px solid var(--border-outline-variant, #e2e8f0);
+                background: var(--bg-surface-container, #f8fafc);
+            }
+            .snapy-sound-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                padding: 5px 10px;
+                border-radius: 999px;
+                font-size: 11px;
+                font-weight: 700;
+                border: 1px solid var(--border-outline-variant, #e2e8f0);
+                background: var(--bg-surface, #ffffff);
+                color: var(--text-on-surface-variant, #475569);
+                cursor: pointer;
+                transition: all 140ms ease;
+            }
+            .snapy-sound-pill.is-on {
+                border-color: rgba(16, 185, 129, 0.45);
+                color: #10b981;
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .snapy-quiz-overlay, .snapy-quiz-card, .snapy-svg-idle, .snapy-svg-excited, .snapy-sparkle, .snapy-speech-bubble {
+                    animation: none !important;
+                }
+            }
+        </style>
+
+        <div x-show="snapyQuizOpen"
+             @keydown.escape.window="if (snapyQuizOpen && !roadmapLoading) closeSnapyInterview()"
+             class="snapy-quiz-overlay"
+             style="display: none;"
+             role="dialog"
+             aria-modal="true"
+             aria-label="Snapy Roadmap Setup">
+            <div class="snapy-quiz-card" @click.stop>
+                <!-- Header with step dots, sound toggle & close -->
+                <div class="snapy-quiz-header">
+                    <div class="flex items-center gap-2.5">
+                        <span class="font-data-mono text-[10.5px] uppercase tracking-widest font-bold text-primary">
+                            Snapy Setup
+                        </span>
+                        <div class="snapy-quiz-dots" aria-hidden="true">
+                            <template x-for="stepIdx in [0, 1, 2, 3]" :key="stepIdx">
+                                <span class="snapy-quiz-dot"
+                                      :class="roadmapLoading || snapyQuizStep > stepIdx ? 'is-done' : (snapyQuizStep === stepIdx ? 'is-active' : '')"></span>
+                            </template>
+                        </div>
+                        <span class="font-data-mono text-[10px] text-on-surface-variant"
+                              x-text="roadmapLoading ? 'Building...' : ('Q' + (snapyQuizStep + 1) + ' of 4')"></span>
                     </div>
-                    <h2 class="font-headline-lg text-on-surface text-[18px] font-bold">Your Custom Curriculum Roadmap</h2>
+
+                    <div class="flex items-center gap-1.5">
+                        <button type="button"
+                                @click="toggleSnapySound()"
+                                class="snapy-sound-pill"
+                                :class="snapySoundOn ? 'is-on' : ''"
+                                :title="snapySoundOn ? 'Mute Snapy sound effects' : 'Enable Snapy sound effects'">
+                            <span class="material-symbols-outlined text-[15px]" x-text="snapySoundOn ? 'volume_up' : 'volume_off'"></span>
+                            <span x-text="snapySoundOn ? 'SFX On' : 'Muted'"></span>
+                        </button>
+                        <button type="button"
+                                x-show="!roadmapLoading"
+                                @click="closeSnapyInterview()"
+                                class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
+                                aria-label="Close">
+                            <span class="material-symbols-outlined text-[18px]">close</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="w-full sm:w-auto flex flex-wrap items-center gap-3">
-                    <!-- Progress Telemetry -->
-                    <div class="w-full sm:w-auto flex flex-col items-start sm:items-end mr-0 sm:mr-1">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="font-data-mono text-[10px] text-on-surface-variant uppercase">Mastery</span>
-                            <span class="font-data-mono text-[11px] font-bold text-primary" x-text="progress + '%'"></span>
+                <!-- Snapy Character + Speech Bubble -->
+                <div class="snapy-mascot-stage">
+                    <div class="snapy-avatar-wrap">
+                        <!-- Floating cute sparkles -->
+                        <svg class="snapy-sparkle" style="top: 6px; right: 6px; width: 14px; height: 14px;" viewBox="0 0 24 24" fill="#f59e0b" aria-hidden="true">
+                            <path d="M12 2l2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2L12 2z"/>
+                        </svg>
+                        <svg class="snapy-sparkle" style="bottom: 8px; left: 6px; width: 11px; height: 11px; animation-delay: 0.7s;" viewBox="0 0 24 24" fill="#10b981" aria-hidden="true">
+                            <path d="M12 2l2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2L12 2z"/>
+                        </svg>
+
+                        <!-- Cute Expressive Snapy Mascot SVG -->
+                        <svg width="74" height="74" viewBox="0 0 84 84" fill="none"
+                             :class="(roadmapLoading || snapyQuizStep === 3 || snapyReaction) ? 'snapy-svg-excited' : 'snapy-svg-idle'"
+                             aria-hidden="true">
+                            <!-- Soft shadow -->
+                            <ellipse cx="42" cy="76" rx="18" ry="3.5" fill="#10b981" opacity="0.24"/>
+                            <!-- Little bouncy arms -->
+                            <path x-show="snapyQuizStep === 3 || roadmapLoading"
+                                  d="M21 44c-5-4-8-9-6-13" stroke="#10b981" stroke-width="4.5" stroke-linecap="round"/>
+                            <path x-show="snapyQuizStep === 3 || roadmapLoading"
+                                  d="M63 44c5-4 8-9 6-13" stroke="#10b981" stroke-width="4.5" stroke-linecap="round"/>
+                            <path x-show="snapyQuizStep < 3 && !roadmapLoading"
+                                  d="M20 47c-4 1-6 4-5 7" stroke="#10b981" stroke-width="4.5" stroke-linecap="round"/>
+                            <path x-show="snapyQuizStep < 3 && !roadmapLoading"
+                                  d="M64 47c4-2 7-6 6-10" stroke="#10b981" stroke-width="4.5" stroke-linecap="round"/>
+                            <!-- Antenna -->
+                            <line x1="42" y1="24" x2="42" y2="14" stroke="#cbd5e1" stroke-width="2.6" stroke-linecap="round"/>
+                            <circle cx="42" cy="11.5" r="4.4" :fill="roadmapLoading ? '#38bdf8' : '#f59e0b'" stroke="#0f172a" stroke-width="2"/>
+                            <circle cx="40.8" cy="10.2" r="1.2" fill="#ffffff"/>
+                            <!-- Emerald body -->
+                            <rect x="21" y="24" width="42" height="44" rx="18" fill="#10b981" stroke="#0f172a" stroke-width="2.5"/>
+                            <!-- Belly shine -->
+                            <path d="M29 59c3.5 2.4 9 3.2 14 2.4" stroke="#6ee7b7" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+                            <!-- Cream visor -->
+                            <rect x="27.5" y="33" width="29" height="18" rx="9" fill="#faf8f5" stroke="#0f172a" stroke-width="2.1"/>
+
+                            <!-- Eyes per step/mood -->
+                            <!-- Step 0: Curious glossy puppy eyes -->
+                            <g x-show="!roadmapLoading && snapyQuizStep === 0 && !snapyReaction">
+                                <circle cx="36" cy="41.5" r="2.8" fill="#0f172a"/>
+                                <circle cx="35.1" cy="40.5" r="1" fill="#ffffff"/>
+                                <circle cx="48" cy="41.5" r="2.8" fill="#0f172a"/>
+                                <circle cx="47.1" cy="40.5" r="1" fill="#ffffff"/>
+                                <path d="M39 46.2c1.6 1.7 4.4 1.7 6 0" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+                            </g>
+
+                            <!-- Step 1: Wink / excited happy eyes -->
+                            <g x-show="!roadmapLoading && snapyQuizStep === 1 && !snapyReaction">
+                                <circle cx="36" cy="41.5" r="2.7" fill="#0f172a"/>
+                                <circle cx="35.1" cy="40.5" r="1" fill="#ffffff"/>
+                                <path d="M45 41.8c1.4-2.2 4.2-2.2 5.6 0" stroke="#0f172a" stroke-width="2.3" stroke-linecap="round"/>
+                                <path d="M38.5 45.8c2 2.4 5 2.4 7 0" stroke="#10b981" stroke-width="2.1" stroke-linecap="round"/>
+                            </g>
+
+                            <!-- Step 2: Starry-eyed learning mood -->
+                            <g x-show="!roadmapLoading && snapyQuizStep === 2 && !snapyReaction">
+                                <circle cx="36" cy="41.5" r="3" fill="#0f172a"/>
+                                <path d="M36 39.3l.5 1.4 1.4.5-1.4.5-.5 1.4-.5-1.4-1.4-.5 1.4-.5z" fill="#fde047"/>
+                                <circle cx="48" cy="41.5" r="3" fill="#0f172a"/>
+                                <path d="M48 39.3l.5 1.4 1.4.5-1.4.5-.5 1.4-.5-1.4-1.4-.5 1.4-.5z" fill="#fde047"/>
+                                <path d="M38.5 46c1.8 2.1 5.2 2.1 7 0" stroke="#10b981" stroke-width="2.1" stroke-linecap="round"/>
+                            </g>
+
+                            <!-- Step 3 / Reaction / Crafting: Super happy curved smiling eyes -->
+                            <g x-show="roadmapLoading || snapyQuizStep === 3 || snapyReaction">
+                                <path d="M33 42c1.4-2.5 4.2-2.5 5.6 0" stroke="#0f172a" stroke-width="2.4" stroke-linecap="round"/>
+                                <path d="M45.4 42c1.4-2.5 4.2-2.5 5.6 0" stroke="#0f172a" stroke-width="2.4" stroke-linecap="round"/>
+                                <path d="M37.5 45.4c2.2 3.2 6.8 3.2 9 0" stroke="#10b981" stroke-width="2.3" stroke-linecap="round"/>
+                            </g>
+
+                            <!-- Cute rosy cheeks -->
+                            <ellipse cx="32.2" cy="45.2" rx="2.4" ry="1.3" fill="#fb7185" opacity="0.52"/>
+                            <ellipse cx="51.8" cy="45.2" rx="2.4" ry="1.3" fill="#fb7185" opacity="0.52"/>
+                        </svg>
+                    </div>
+
+                    <!-- Speech Bubble -->
+                    <div class="snapy-speech-bubble" :key="snapyQuizStep + '-' + (snapyReaction ? 'r' : 'q') + '-' + (roadmapLoading ? 'l' : 'i')">
+                        <div class="flex items-center gap-1.5 mb-1">
+                            <span class="font-data-mono text-[10px] font-bold uppercase tracking-wider text-primary">Snapy says</span>
+                            <span class="text-[11px]" x-show="snapyReaction || roadmapLoading">✨</span>
                         </div>
-                        <div class="w-full sm:w-36 h-2 bg-surface-container rounded-full overflow-hidden border border-outline-variant/60">
-                            <div class="h-full bg-primary transition-all duration-500 rounded-full" :style="'width: ' + progress + '%'"></div>
+                        <p class="text-[13.5px] sm:text-[14px] font-bold text-on-surface leading-snug"
+                           x-text="getSnapyPrompt()"></p>
+                        <p class="text-[11.5px] text-on-surface-variant mt-1 leading-relaxed"
+                           x-text="getSnapySubtext()"></p>
+                    </div>
+                </div>
+
+                <!-- Question Options (hidden while crafting) -->
+                <div x-show="!roadmapLoading">
+                    <!-- Q1: Current Skill Level -->
+                    <div x-show="snapyQuizStep === 0" class="snapy-opt-grid" style="grid-template-columns: 1fr;">
+                        <template x-for="opt in snapyLevelOptions" :key="opt.value">
+                            <button type="button"
+                                    @click="selectSnapyOption('level', opt)"
+                                    class="snapy-opt-btn"
+                                    :class="quizLevel === opt.value ? 'is-selected' : ''">
+                                <div class="snapy-opt-icon">
+                                    <span class="material-symbols-outlined text-[19px]" x-text="opt.icon"></span>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-[13px] font-bold text-on-surface leading-tight" x-text="opt.label"></div>
+                                    <div class="text-[11.5px] text-on-surface-variant mt-0.5 leading-snug" x-text="opt.desc"></div>
+                                </div>
+                                <span class="material-symbols-outlined text-[17px] text-primary self-center shrink-0"
+                                      x-show="quizLevel === opt.value">check_circle</span>
+                            </button>
+                        </template>
+                    </div>
+
+                    <!-- Q2: Weekly Hours -->
+                    <div x-show="snapyQuizStep === 1" class="snapy-opt-grid">
+                        <template x-for="opt in snapyHoursOptions" :key="opt.value">
+                            <button type="button"
+                                    @click="selectSnapyOption('hours', opt)"
+                                    class="snapy-opt-btn"
+                                    :class="quizHours === opt.value ? 'is-selected' : ''">
+                                <div class="snapy-opt-icon">
+                                    <span class="material-symbols-outlined text-[19px]" x-text="opt.icon"></span>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-[13px] font-bold text-on-surface leading-tight" x-text="opt.label"></div>
+                                    <div class="text-[11px] text-on-surface-variant mt-0.5 leading-snug" x-text="opt.desc"></div>
+                                </div>
+                            </button>
+                        </template>
+                    </div>
+
+                    <!-- Q3: Learning Style -->
+                    <div x-show="snapyQuizStep === 2" class="snapy-opt-grid">
+                        <template x-for="opt in snapyStyleOptions" :key="opt.value">
+                            <button type="button"
+                                    @click="selectSnapyOption('style', opt)"
+                                    class="snapy-opt-btn"
+                                    :class="quizStyle === opt.value ? 'is-selected' : ''">
+                                <div class="snapy-opt-icon">
+                                    <span class="material-symbols-outlined text-[19px]" x-text="opt.icon"></span>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-[13px] font-bold text-on-surface leading-tight" x-text="opt.label"></div>
+                                    <div class="text-[11px] text-on-surface-variant mt-0.5 leading-snug" x-text="opt.desc"></div>
+                                </div>
+                            </button>
+                        </template>
+                    </div>
+
+                    <!-- Q4: Primary Goal -->
+                    <div x-show="snapyQuizStep === 3" class="snapy-opt-grid">
+                        <template x-for="opt in snapyGoalOptions" :key="opt.value">
+                            <button type="button"
+                                    @click="selectSnapyOption('goal', opt)"
+                                    class="snapy-opt-btn"
+                                    :class="quizGoal === opt.value ? 'is-selected' : ''">
+                                <div class="snapy-opt-icon">
+                                    <span class="material-symbols-outlined text-[19px]" x-text="opt.icon"></span>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-[13px] font-bold text-on-surface leading-tight" x-text="opt.label"></div>
+                                    <div class="text-[11px] text-on-surface-variant mt-0.5 leading-snug" x-text="opt.desc"></div>
+                                </div>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Crafting State -->
+                <div x-show="roadmapLoading" class="px-6 pb-6 pt-2 text-center space-y-3" style="display: none;">
+                    <div class="flex flex-wrap justify-center gap-1.5">
+                        <span class="font-data-mono text-[10.5px] px-2.5 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary font-semibold" x-text="quizLevel"></span>
+                        <span class="font-data-mono text-[10.5px] px-2.5 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary font-semibold" x-text="quizHours + ' hrs/wk'"></span>
+                        <span class="font-data-mono text-[10.5px] px-2.5 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary font-semibold" x-text="quizStyle"></span>
+                        <span class="font-data-mono text-[10.5px] px-2.5 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary font-semibold" x-text="quizGoal"></span>
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-surface-container overflow-hidden border border-outline-variant">
+                        <div class="h-full bg-primary rounded-full animate-pulse" style="width: 78%;"></div>
+                    </div>
+                </div>
+
+                <!-- Footer Controls -->
+                <div x-show="!roadmapLoading" class="snapy-quiz-footer">
+                    <div class="flex items-center gap-2">
+                        <button type="button"
+                                x-show="snapyQuizStep > 0"
+                                @click="prevSnapyStep()"
+                                class="px-3 py-1.5 rounded-xl border border-outline-variant text-on-surface-variant hover:text-on-surface text-[12px] font-semibold flex items-center gap-1 cursor-pointer transition-colors">
+                            <span class="material-symbols-outlined text-[15px]">arrow_back</span>
+                            <span>Back</span>
+                        </button>
+                        <button type="button"
+                                @click="skipSnapyAndGenerate()"
+                                class="px-2.5 py-1.5 rounded-xl text-on-surface-variant hover:text-primary text-[11.5px] font-medium cursor-pointer transition-colors">
+                            Skip & Quick Generate
+                        </button>
+                    </div>
+
+                    <button type="button"
+                            x-show="snapyQuizStep === 3"
+                            @click="launchRoadmapFromSnapy()"
+                            class="px-5 py-2 rounded-xl bg-primary hover:bg-emerald-600 text-on-primary font-bold text-[12.5px] shadow-xs flex items-center gap-1.5 cursor-pointer transition-all">
+                        <span class="material-symbols-outlined text-[16px]">auto_awesome</span>
+                        <span>Build My Roadmap!</span>
+                    </button>
+
+                    <button type="button"
+                            x-show="snapyQuizStep < 3"
+                            @click="nextSnapyStep()"
+                            class="px-4 py-1.5 rounded-xl bg-primary/15 hover:bg-primary/25 text-primary border border-primary/30 font-bold text-[12px] flex items-center gap-1 cursor-pointer transition-all">
+                        <span>Next</span>
+                        <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generated Roadmap Workspace -->
+        <style>
+            .roadmap-tracker-card {
+                border: 1.5px solid var(--border-outline-variant, #e2e8f0);
+                border-radius: 20px;
+                background: var(--bg-surface, #ffffff);
+                padding: 18px 20px;
+            }
+            .roadmap-tracker-body {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: space-between;
+                gap: 20px;
+            }
+            .roadmap-summary-col {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                flex: 1 1 320px;
+                min-width: 260px;
+            }
+            .roadmap-journey-col {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                flex: 1.35 1 460px;
+                min-width: 0;
+                max-width: 100%;
+            }
+            .roadmap-stepper-track {
+                display: flex;
+                align-items: center;
+                gap: 0;
+                overflow-x: auto;
+                padding: 6px 2px 6px;
+                scrollbar-width: thin;
+            }
+            .roadmap-step-item {
+                display: flex;
+                align-items: center;
+                flex-shrink: 0;
+            }
+            .roadmap-step-node {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 5px;
+                background: transparent;
+                border: none;
+                cursor: pointer;
+                padding: 4px 6px;
+                border-radius: 12px;
+                transition: transform 140ms ease;
+            }
+            .roadmap-step-node:hover {
+                transform: translateY(-2px);
+            }
+            .roadmap-step-circle {
+                width: 36px;
+                height: 36px;
+                border-radius: 999px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 11px;
+                font-weight: 800;
+                border: 2px solid var(--border-outline, #cbd5e1);
+                background: var(--bg-surface-container, #f8fafc);
+                color: var(--text-on-surface-variant, #64748b);
+                transition: all 200ms ease;
+            }
+            .roadmap-step-circle.is-active {
+                border-color: #10b981;
+                color: #10b981;
+                background: rgba(16, 185, 129, 0.12);
+                box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.14);
+            }
+            .roadmap-step-circle.is-done {
+                border-color: #10b981;
+                background: #10b981;
+                color: #ffffff;
+            }
+            .roadmap-step-circle.is-cert-locked {
+                border-color: rgba(245, 158, 11, 0.45);
+                background: rgba(245, 158, 11, 0.10);
+                color: #d97706;
+            }
+            .roadmap-step-circle.is-cert-ready {
+                border-color: #f59e0b;
+                background: linear-gradient(135deg, #f59e0b, #d97706);
+                color: #ffffff;
+                box-shadow: 0 0 18px rgba(245, 158, 11, 0.48);
+            }
+            .roadmap-step-connector {
+                width: 28px;
+                height: 3px;
+                border-radius: 999px;
+                background: var(--border-outline-variant, #e2e8f0);
+                margin-bottom: 18px;
+                transition: background-color 250ms ease;
+            }
+            .roadmap-step-connector.is-done {
+                background: #10b981;
+            }
+            .roadmap-cert-btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 7px;
+                padding: 9px 15px;
+                border-radius: 13px;
+                font-size: 12px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 160ms ease;
+                text-decoration: none;
+            }
+            .roadmap-cert-btn.is-locked {
+                border: 1.5px dashed rgba(245, 158, 11, 0.55);
+                background: rgba(245, 158, 11, 0.10);
+                color: #d97706;
+            }
+            html.dark .roadmap-cert-btn.is-locked {
+                color: #fbbf24;
+                border-color: rgba(251, 191, 36, 0.45);
+                background: rgba(245, 158, 11, 0.14);
+            }
+            .roadmap-cert-btn.is-locked:hover {
+                border-style: solid;
+                background: rgba(245, 158, 11, 0.18);
+            }
+            .roadmap-cert-btn.is-unlocked {
+                border: 1.5px solid #d97706;
+                background: linear-gradient(135deg, #f59e0b, #d97706);
+                color: #ffffff;
+                box-shadow: 0 8px 22px rgba(245, 158, 11, 0.34);
+            }
+            .roadmap-cert-btn.is-unlocked:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 12px 26px rgba(245, 158, 11, 0.44);
+            }
+            .roadmap-topic-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                width: 100%;
+                padding: 10px 13px;
+                border-radius: 13px;
+                border: 1.5px solid var(--border-outline-variant, #e2e8f0);
+                background: var(--bg-surface-container, #f8fafc);
+                color: var(--text-on-surface, #0f172a);
+                text-align: left;
+                cursor: pointer;
+                transition: all 150ms ease;
+            }
+            .roadmap-topic-row:hover {
+                border-color: rgba(16, 185, 129, 0.55);
+            }
+            .roadmap-topic-row.is-done {
+                border-color: rgba(16, 185, 129, 0.45);
+                background: rgba(16, 185, 129, 0.08);
+            }
+            .roadmap-status-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                padding: 3px 9px;
+                border-radius: 999px;
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.04em;
+                text-transform: uppercase;
+                flex-shrink: 0;
+            }
+            .roadmap-status-badge.is-done {
+                background: rgba(16, 185, 129, 0.16);
+                color: #059669;
+                border: 1px solid rgba(16, 185, 129, 0.35);
+            }
+            html.dark .roadmap-status-badge.is-done {
+                color: #34d399;
+            }
+            .roadmap-status-badge.is-todo {
+                background: var(--bg-surface, #ffffff);
+                color: var(--text-on-surface-variant, #64748b);
+                border: 1px solid var(--border-outline-variant, #cbd5e1);
+            }
+            .roadmap-status-badge.is-progress {
+                background: rgba(245, 158, 11, 0.14);
+                color: #d97706;
+                border: 1px solid rgba(245, 158, 11, 0.35);
+            }
+            html.dark .roadmap-status-badge.is-progress {
+                color: #fbbf24;
+            }
+        </style>
+
+        <div x-show="roadmap" x-ref="roadmapContainer" x-transition class="space-y-4 pb-12" style="display: none;">
+            
+            <!-- Visual Mastery & Certificate Journey Tracker -->
+            <div class="roadmap-tracker-card shadow-xs space-y-4">
+                <!-- Top Row: Title + Action Buttons (Certificate ALWAYS Visible!) -->
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 pb-3.5 border-b border-outline-variant/60">
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2 mb-1">
+                            <span class="font-data-mono text-[10px] text-primary uppercase tracking-widest font-bold" x-text="targetRole + ' Roadmap'"></span>
+                            <span class="font-data-mono text-[10.5px] px-2 py-0.5 rounded-md bg-surface-container border border-outline-variant text-on-surface-variant font-bold" x-text="(roadmap?.total_weeks || roadmap?.weekly_breakdown?.length || 0) + ' Weeks'"></span>
+                            <span x-show="saved" class="font-data-mono text-[10px] text-primary border border-primary/30 bg-primary/10 px-2 py-0.5 rounded-md inline-flex items-center gap-1 font-semibold">
+                                <span class="material-symbols-outlined text-[12px]">cloud_done</span>
+                                Saved
+                            </span>
+                        </div>
+                        <h2 class="font-headline-lg text-on-surface text-[18px] font-bold">Your Custom Curriculum Roadmap</h2>
+                    </div>
+
+                    <div class="w-full lg:w-auto flex flex-wrap items-center gap-2">
+                        <!-- Save Roadmap Button (when unsaved) -->
+                        <button x-show="!saved" type="button" @click="confirmSaveRoadmap" :disabled="isSaving"
+                            class="px-3.5 py-2 bg-primary text-on-primary font-semibold rounded-xl hover:bg-emerald-600 disabled:opacity-50 transition-all flex items-center gap-1.5 text-[11.5px] shadow-xs cursor-pointer">
+                            <span x-show="isSaving" class="w-3.5 h-3.5 border-2 border-on-primary/20 border-t-on-primary rounded-full animate-spin"></span>
+                            <span class="material-symbols-outlined text-[15px]" x-show="!isSaving">bookmark_add</span>
+                            <span x-text="isSaving ? 'Saving...' : 'Save Roadmap'"></span>
+                        </button>
+
+                        <!-- Always-Visible Get Certificate Button (Locked -> Unlocked at 100%) -->
+                        <button type="button"
+                            @click="handleCertificateClick()"
+                            :disabled="isSaving"
+                            class="roadmap-cert-btn"
+                            :class="progress === 100 ? 'is-unlocked' : 'is-locked'"
+                            :title="progress === 100 ? 'Download your Verified Certificate of Completion' : 'Complete all weekly milestones to unlock your Verified Certificate'">
+                            <span class="material-symbols-outlined text-[17px]" x-text="progress === 100 ? 'workspace_premium' : 'lock'"></span>
+                            <span x-text="progress === 100 ? 'Get Certificate' : ('Certificate · ' + progress + '%')"></span>
+                        </button>
+
+                        <!-- Export PDF Button -->
+                        <a x-show="saved && pathId" :href="'/learning-path/' + pathId + '/export?format=pdf'" target="_blank"
+                            class="px-3.5 py-2 border border-outline-variant bg-surface text-on-surface font-semibold rounded-xl hover:border-primary hover:text-primary transition-colors flex items-center gap-1 text-[11.5px] shadow-2xs">
+                            <span class="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+                            Export PDF
+                        </a>
+
+                        <button type="button" @click="startNewPath" class="px-3.5 py-2 border border-outline-variant text-on-surface-variant hover:text-on-surface rounded-xl font-data-mono text-[11px] hover:bg-surface-container transition-colors cursor-pointer">
+                            New Analysis
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Middle Row: Circular Progress Ring + Breakdown Stats + Next Action -->
+                <div class="roadmap-tracker-body">
+                    <!-- Circular Ring & Status Summary -->
+                    <div class="roadmap-summary-col">
+                        <div class="relative shrink-0" style="width: 74px; height: 74px;">
+                            <svg width="74" height="74" viewBox="0 0 74 74" style="transform: rotate(-90deg);">
+                                <circle cx="37" cy="37" r="30" stroke="var(--border-outline-variant, #e2e8f0)" stroke-width="6.5" fill="transparent"/>
+                                <circle cx="37" cy="37" r="30"
+                                    :stroke="progress === 100 ? '#f59e0b' : '#10b981'"
+                                    stroke-width="6.5"
+                                    stroke-linecap="round"
+                                    fill="transparent"
+                                    stroke-dasharray="188.5"
+                                    :stroke-dashoffset="188.5 - (188.5 * progress / 100)"
+                                    style="transition: stroke-dashoffset 450ms ease, stroke 300ms ease;"/>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="font-data-mono text-[15px] font-extrabold text-on-surface leading-none" x-text="progress + '%'"></span>
+                                <span class="font-data-mono text-[8.5px] uppercase text-on-surface-variant mt-0.5">Done</span>
+                            </div>
+                        </div>
+
+                        <div class="min-w-0 space-y-1.5">
+                            <div class="text-[13.5px] font-bold text-on-surface leading-snug" x-text="getCompletionHeadline()"></div>
+                            <div class="flex flex-wrap items-center gap-1.5 font-data-mono text-[10.5px]">
+                                <span class="px-2 py-0.5 rounded-md bg-surface-container border border-outline-variant text-on-surface-variant">
+                                    Concepts: <strong class="text-on-surface" x-text="getCompletionStats().doneTopics + '/' + getCompletionStats().totalTopics"></strong>
+                                </span>
+                                <span class="px-2 py-0.5 rounded-md bg-surface-container border border-outline-variant text-on-surface-variant">
+                                    Projects: <strong class="text-on-surface" x-text="getCompletionStats().doneProjects + '/' + getCompletionStats().totalProjects"></strong>
+                                </span>
+                                <span class="px-2 py-0.5 rounded-md bg-surface-container border border-outline-variant text-on-surface-variant">
+                                    Weeks: <strong class="text-on-surface" x-text="getCompletionStats().doneWeeks + '/' + getCompletionStats().totalWeeks"></strong>
+                                </span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Unsaved / Save Action Button -->
-                    <button x-show="!saved" type="button" @click="confirmSaveRoadmap" :disabled="isSaving"
-                        class="px-4 py-2 bg-primary text-on-primary font-semibold rounded-xl hover:bg-emerald-600 disabled:opacity-50 transition-all flex items-center gap-1.5 text-[11.5px] shadow-xs cursor-pointer">
-                        <span x-show="isSaving" class="w-3.5 h-3.5 border-2 border-on-primary/20 border-t-on-primary rounded-full animate-spin"></span>
-                        <span class="material-symbols-outlined text-[15px]" x-show="!isSaving">bookmark_add</span>
-                        <span x-text="isSaving ? 'Saving...' : 'Save Roadmap'"></span>
-                    </button>
+                    <!-- Interactive Week-by-Week Milestone Journey + Certificate Node -->
+                    <div class="roadmap-journey-col">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="font-data-mono text-[10px] uppercase tracking-wider font-bold text-on-surface-variant whitespace-nowrap">
+                                Mastery Journey · Click any week to jump
+                            </span>
+                            <button type="button"
+                                x-show="progress < 100"
+                                @click="scrollToNextUnfinished()"
+                                class="font-data-mono text-[10.5px] font-bold text-primary hover:underline inline-flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                                <span>Jump to Next Task</span>
+                                <span class="material-symbols-outlined text-[14px]">arrow_downward</span>
+                            </button>
+                        </div>
 
-                    <!-- Saved to Profile Badge -->
-                    <span x-show="saved" class="font-data-mono text-[10.5px] text-primary border border-primary/30 bg-primary/10 px-3 py-1.5 rounded-xl flex items-center gap-1 font-semibold">
-                        <span class="material-symbols-outlined text-[14px]">cloud_done</span>
-                        Saved to Profile
-                    </span>
+                        <div class="roadmap-stepper-track">
+                            <template x-for="(week, wIdx) in (roadmap?.weekly_breakdown || [])" :key="'step-' + wIdx">
+                                <div class="roadmap-step-item">
+                                    <button type="button"
+                                        @click="scrollToWeek(wIdx)"
+                                        class="roadmap-step-node"
+                                        :title="'Week ' + (week.week_number || (wIdx + 1)) + ': ' + getWeekStats(week).done + ' of ' + getWeekStats(week).total + ' tasks completed'">
+                                        <div class="roadmap-step-circle"
+                                            :class="getWeekStats(week).isDone ? 'is-done' : (getWeekStats(week).done > 0 ? 'is-active' : '')">
+                                            <span x-show="getWeekStats(week).isDone" class="material-symbols-outlined text-[18px]">check</span>
+                                            <span x-show="!getWeekStats(week).isDone" x-text="'W' + (week.week_number || (wIdx + 1))"></span>
+                                        </div>
+                                        <span class="font-data-mono text-[9.5px] font-semibold"
+                                            :class="getWeekStats(week).isDone ? 'text-primary' : 'text-on-surface-variant'"
+                                            x-text="getWeekStats(week).done + '/' + getWeekStats(week).total"></span>
+                                    </button>
+                                    <div class="roadmap-step-connector"
+                                        :class="getWeekStats(week).isDone ? 'is-done' : ''"></div>
+                                </div>
+                            </template>
 
-                    <!-- Certificate Button (if 100% complete) -->
-                    <a x-show="saved && pathId && progress === 100"
-                        :href="'/learning-path/' + pathId + '/export?format=certificate'" target="_blank"
-                        class="px-3.5 py-1.5 bg-tertiary text-on-tertiary font-semibold rounded-xl hover:opacity-90 transition-colors flex items-center gap-1 text-[11px] shadow-2xs">
-                        <span class="material-symbols-outlined text-[16px]">workspace_premium</span>
-                        Get Certificate
-                    </a>
+                            <!-- Final Trophy / Certificate Milestone Node -->
+                            <div class="roadmap-step-item">
+                                <button type="button"
+                                    @click="handleCertificateClick()"
+                                    class="roadmap-step-node"
+                                    :title="progress === 100 ? 'Certificate unlocked! Click to download' : 'Complete 100% to unlock your Verified Certificate'">
+                                    <div class="roadmap-step-circle"
+                                        :class="progress === 100 ? 'is-cert-ready' : 'is-cert-locked'">
+                                        <span class="material-symbols-outlined text-[18px]">workspace_premium</span>
+                                    </div>
+                                    <span class="font-data-mono text-[9.5px] font-bold"
+                                        :style="progress === 100 ? 'color: #f59e0b;' : ''"
+                                        :class="progress === 100 ? '' : 'text-on-surface-variant'"
+                                        x-text="progress === 100 ? 'Unlocked!' : 'Cert'"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                    <!-- Export PDF Button -->
-                    <a x-show="saved && pathId" :href="'/learning-path/' + pathId + '/export?format=pdf'" target="_blank"
-                        class="px-3.5 py-1.5 border border-outline-variant bg-surface text-on-surface font-semibold rounded-xl hover:border-primary hover:text-primary transition-colors flex items-center gap-1 text-[11px] shadow-2xs">
-                        <span class="material-symbols-outlined text-[16px]">picture_as_pdf</span>
-                        Export PDF
-                    </a>
-
-                    <button type="button" @click="startNewPath" class="px-3.5 py-1.5 border border-outline-variant text-on-surface-variant hover:text-on-surface rounded-xl font-data-mono text-[11px] hover:bg-surface-container transition-colors cursor-pointer">
-                        New Analysis
+                <!-- 100% Unlocked Celebration Banner -->
+                <div x-show="progress === 100"
+                     x-transition
+                     style="display: none; border: 1.5px solid rgba(245, 158, 11, 0.55); background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(16, 185, 129, 0.12)); border-radius: 16px; padding: 14px 16px;"
+                     class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                             style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #ffffff;">
+                            <span class="material-symbols-outlined text-[22px]">workspace_premium</span>
+                        </div>
+                        <div>
+                            <div class="text-[13.5px] font-bold text-on-surface">
+                                Congratulations! Your Verified Certificate is Ready
+                            </div>
+                            <p class="text-[11.5px] text-on-surface-variant">
+                                You completed 100% of <strong class="text-on-surface" x-text="targetRole"></strong> - download your signed PDF certificate now.
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button"
+                        @click="handleCertificateClick()"
+                        :disabled="isSaving"
+                        class="roadmap-cert-btn is-unlocked shrink-0">
+                        <span class="material-symbols-outlined text-[17px]">download</span>
+                        <span x-text="isSaving ? 'Preparing...' : 'Download Verified Certificate'"></span>
                     </button>
                 </div>
             </div>
 
             <!-- Weekly Modules List -->
             <div class="space-y-4">
-                <template x-for="(week, wIndex) in roadmap?.weekly_breakdown" :key="week.week_number">
-                    <div class="border border-outline-variant rounded-2xl p-5 bg-surface space-y-4 shadow-xs">
+                <template x-for="(week, wIndex) in (roadmap?.weekly_breakdown || [])" :key="'week-' + wIndex">
+                    <div :id="'roadmap-week-' + wIndex"
+                         class="border rounded-2xl p-5 bg-surface space-y-4 shadow-xs transition-colors"
+                         :class="getWeekStats(week).isDone ? 'border-primary/50' : 'border-outline-variant'">
                         
-                        <!-- Module Title & Topic Badges -->
-                        <div class="flex flex-col md:flex-row md:items-center justify-between pb-3 border-b border-outline-variant/60 gap-3">
-                            <div class="flex items-center gap-2.5">
-                                <span class="font-data-mono text-[11px] px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/25 text-primary font-bold" x-text="'WEEK ' + week.week_number"></span>
-                                <h3 class="font-headline-md text-on-surface text-[15px] font-bold">Focus Modules & Competencies</h3>
+                        <!-- Module Header with Clear Per-Week Progress Bar & Complete Week Toggle -->
+                        <div class="pb-3.5 border-b border-outline-variant/60 space-y-3">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div class="flex flex-wrap items-center gap-2.5">
+                                    <span class="font-data-mono text-[11px] px-2.5 py-1 rounded-lg font-bold"
+                                          :class="getWeekStats(week).isDone ? 'bg-primary text-on-primary' : 'bg-primary/10 border border-primary/25 text-primary'"
+                                          x-text="'WEEK ' + (week.week_number || (wIndex + 1))"></span>
+                                    <h3 class="font-headline-md text-on-surface text-[15.5px] font-bold"
+                                        x-text="week.focus_topics && week.focus_topics.length ? week.focus_topics[0].title : 'Focus Modules & Competencies'"></h3>
+                                    <span class="roadmap-status-badge"
+                                          :class="getWeekStats(week).isDone ? 'is-done' : (getWeekStats(week).done > 0 ? 'is-progress' : 'is-todo')">
+                                        <span class="material-symbols-outlined text-[12px]"
+                                              x-text="getWeekStats(week).isDone ? 'check_circle' : (getWeekStats(week).done > 0 ? 'timelapse' : 'radio_button_unchecked')"></span>
+                                        <span x-text="getWeekStats(week).isDone ? 'Week Complete' : (getWeekStats(week).done > 0 ? (getWeekStats(week).done + ' of ' + getWeekStats(week).total + ' done') : 'Not Started')"></span>
+                                    </span>
+                                </div>
+
+                                <button type="button"
+                                    @click="toggleWholeWeek(wIndex)"
+                                    class="px-3 py-1.5 rounded-xl text-[11.5px] font-semibold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 self-start sm:self-auto"
+                                    :class="getWeekStats(week).isDone
+                                        ? 'bg-primary/15 text-primary border border-primary/40 hover:bg-primary/25'
+                                        : 'bg-surface-container text-on-surface border border-outline-variant hover:border-primary hover:text-primary'">
+                                    <span class="material-symbols-outlined text-[15px]"
+                                          x-text="getWeekStats(week).isDone ? 'verified' : 'done_all'"></span>
+                                    <span x-text="getWeekStats(week).isDone ? 'Completed' : 'Mark Week Complete'"></span>
+                                </button>
                             </div>
 
-                            <!-- Interactive Topics Chips (Toggleable) -->
-                            <div class="flex flex-wrap gap-1.5">
-                                <template x-for="(topic, tIndex) in week.focus_topics" :key="tIndex">
-                                    <button type="button" @click="toggleTopic(wIndex, tIndex)"
-                                        class="font-data-mono text-[10.5px] px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                                        :class="topic.completed ? 'bg-primary/15 border-primary text-primary font-bold' : 'bg-surface-container border-outline-variant text-on-surface hover:border-primary/50'">
-                                        <span class="material-symbols-outlined text-[14px]" x-text="topic.completed ? 'check_box' : 'check_box_outline_blank'"></span>
-                                        <span x-text="topic.title"></span>
-                                    </button>
-                                </template>
+                            <!-- Live Per-Week Progress Bar -->
+                            <div class="flex items-center gap-3">
+                                <div class="flex-1 h-2 bg-surface-container rounded-full overflow-hidden border border-outline-variant/60">
+                                    <div class="h-full bg-primary transition-all duration-300 rounded-full"
+                                         :style="'width: ' + getWeekStats(week).pct + '%'"></div>
+                                </div>
+                                <span class="font-data-mono text-[10.5px] font-bold text-on-surface-variant shrink-0"
+                                      x-text="getWeekStats(week).pct + '% (' + getWeekStats(week).done + '/' + getWeekStats(week).total + ')'"></span>
                             </div>
                         </div>
 
-                        <!-- 2-Column Module Details: Why It Matters + Video Tutorials & Mini Project -->
+                        <!-- 2-Column Structured Learning Steps -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                             
-                            <!-- Left: Why this matters & Embedded Video Resources -->
-                            <div class="space-y-3">
+                            <!-- Step 1: Core Concepts Checklist + Video Guides -->
+                            <div class="space-y-3.5">
                                 <div>
-                                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-wider block mb-1 font-semibold">Real-World Application:</span>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="font-data-mono text-[10px] text-primary uppercase tracking-wider font-bold">
+                                            Step 1 · Core Concepts to Master
+                                        </span>
+                                        <span class="font-data-mono text-[10px] text-on-surface-variant">Click a concept when finished</span>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <template x-for="(topic, tIndex) in week.focus_topics" :key="tIndex">
+                                            <button type="button"
+                                                @click="toggleTopic(wIndex, tIndex)"
+                                                class="roadmap-topic-row"
+                                                :class="topic.completed ? 'is-done' : ''">
+                                                <div class="flex items-center gap-2.5 min-w-0">
+                                                    <span class="material-symbols-outlined text-[19px] shrink-0"
+                                                          :class="topic.completed ? 'text-primary' : 'text-on-surface-variant'"
+                                                          x-text="topic.completed ? 'check_circle' : 'radio_button_unchecked'"></span>
+                                                    <span class="text-[12.5px] font-semibold leading-snug"
+                                                          :class="topic.completed ? 'line-through opacity-75 text-on-surface-variant' : 'text-on-surface'"
+                                                          x-text="topic.title"></span>
+                                                </div>
+                                                <span class="roadmap-status-badge"
+                                                      :class="topic.completed ? 'is-done' : 'is-todo'"
+                                                      x-text="topic.completed ? 'Done' : 'To Do'"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-wider block mb-1 font-semibold">Why This Week Matters:</span>
                                     <p class="font-body-sm text-[12.5px] text-on-surface leading-relaxed bg-surface-container-low p-3.5 rounded-xl border border-outline-variant/50" x-text="week.why_this_matters"></p>
                                 </div>
 
                                 <!-- Learning Video Resources -->
                                 <div>
-                                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-wider block mb-1.5 font-semibold">Curated Video Tutorials:</span>
+                                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-wider block mb-1.5 font-semibold">Study Resources & Video Searches:</span>
                                     <div class="space-y-2">
                                         <template x-for="(topic, idx) in week.focus_topics" :key="'resource-' + wIndex + '-' + idx">
-                                            <div x-data="{ videoExpanded: false }" class="border border-outline-variant rounded-xl overflow-hidden bg-surface-container-low">
-                                                <button type="button" @click="videoExpanded = !videoExpanded"
-                                                    class="w-full px-3 py-2 flex items-center justify-between hover:bg-surface-container transition-colors text-left cursor-pointer">
-                                                    <div class="flex items-center gap-2">
-                                                        <span class="material-symbols-outlined text-[16px] text-rose-500">smart_display</span>
-                                                        <span class="font-data-mono text-[11px] text-on-surface" x-text="topic.title + ' - Video Guide'"></span>
-                                                    </div>
-                                                    <span class="material-symbols-outlined text-[16px] text-on-surface-variant transition-transform" :class="{'rotate-180': videoExpanded}">expand_more</span>
-                                                </button>
-                                                <div x-show="videoExpanded" x-transition class="p-3 bg-surface border-t border-outline-variant/60 space-y-2">
-                                                    <div class="aspect-video w-full rounded-xl overflow-hidden border border-outline-variant">
-                                                        <iframe :src="'https://www.youtube-nocookie.com/embed/' + getVideoId(topic.title)"
-                                                            frameborder="0" allowfullscreen class="w-full h-48 sm:h-56"></iframe>
-                                                    </div>
-                                                    <div class="flex justify-between items-center pt-1">
-                                                        <span class="font-data-mono text-[10px] text-on-surface-variant">Recommended stream</span>
-                                                        <a :href="'https://www.youtube.com/results?search_query=' + encodeURIComponent(topic.title + ' tutorial')"
-                                                            target="_blank" class="font-data-mono text-[10px] text-primary hover:underline flex items-center gap-0.5">
-                                                            More Videos ↗
-                                                        </a>
-                                                    </div>
+                                            <div class="border border-outline-variant rounded-xl px-3 py-2.5 bg-surface-container-low flex flex-wrap items-center justify-between gap-2">
+                                                <div class="flex items-center gap-2 min-w-0">
+                                                    <span class="material-symbols-outlined text-[16px] text-rose-500 shrink-0">smart_display</span>
+                                                    <span class="font-data-mono text-[11px] text-on-surface truncate" x-text="topic.title"></span>
+                                                </div>
+                                                <div class="flex items-center gap-2 shrink-0">
+                                                    <a :href="'https://www.youtube.com/results?search_query=' + encodeURIComponent((topic.title || '') + ' tutorial')"
+                                                       target="_blank" rel="noopener noreferrer"
+                                                       class="font-data-mono text-[10px] px-2 py-1 rounded-md border border-outline-variant bg-surface text-primary hover:border-primary transition-colors inline-flex items-center gap-1">
+                                                        YouTube ↗
+                                                    </a>
+                                                    <a :href="'https://www.google.com/search?q=' + encodeURIComponent((topic.title || '') + ' official documentation')"
+                                                       target="_blank" rel="noopener noreferrer"
+                                                       class="font-data-mono text-[10px] px-2 py-1 rounded-md border border-outline-variant bg-surface text-on-surface-variant hover:text-on-surface hover:border-outline transition-colors inline-flex items-center gap-1">
+                                                        Docs ↗
+                                                    </a>
                                                 </div>
                                             </div>
                                         </template>
@@ -522,15 +1364,32 @@
                                 </div>
                             </div>
 
-                            <!-- Right: Practical Milestone & AI Step-by-Step Guide -->
-                            <div class="space-y-3">
+                            <!-- Step 2: Weekly Capstone Project & AI Step-by-Step Guide -->
+                            <div class="space-y-3.5">
                                 <div>
-                                    <span class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-wider block mb-1 font-semibold">Practical Milestone / Task:</span>
-                                    <div @click="toggleProject(wIndex)"
-                                        class="p-3.5 rounded-xl border cursor-pointer transition-all flex items-center gap-3 shadow-2xs"
-                                        :class="week.mini_project.completed ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-surface-container-low border-outline-variant hover:border-primary/50'">
-                                        <span class="material-symbols-outlined text-[20px]" x-text="week.mini_project.completed ? 'check_circle' : 'radio_button_unchecked'"></span>
-                                        <span class="font-body-sm text-[13px] font-semibold" :class="week.mini_project.completed ? 'line-through opacity-80' : 'text-on-surface'" x-text="week.mini_project.title"></span>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="font-data-mono text-[10px] text-primary uppercase tracking-wider font-bold">
+                                            Step 2 · Weekly Capstone Project
+                                        </span>
+                                        <span class="roadmap-status-badge"
+                                              :class="week.mini_project.completed ? 'is-done' : 'is-todo'"
+                                              x-text="week.mini_project.completed ? 'Completed' : 'Pending'"></span>
+                                    </div>
+                                    <div class="p-4 rounded-xl border transition-all space-y-3 shadow-2xs"
+                                         :class="week.mini_project.completed ? 'bg-primary/10 border-primary/40' : 'bg-surface-container-low border-outline-variant'">
+                                        <p class="font-body-sm text-[13px] font-semibold leading-relaxed"
+                                           :class="week.mini_project.completed ? 'line-through opacity-80 text-on-surface-variant' : 'text-on-surface'"
+                                           x-text="week.mini_project.title"></p>
+                                        <button type="button"
+                                            @click="toggleProject(wIndex)"
+                                            class="w-full py-2 px-3.5 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                                            :class="week.mini_project.completed
+                                                ? 'bg-primary text-on-primary shadow-2xs'
+                                                : 'bg-surface border border-outline-variant text-on-surface hover:border-primary hover:text-primary'">
+                                            <span class="material-symbols-outlined text-[16px]"
+                                                  x-text="week.mini_project.completed ? 'check_circle' : 'task_alt'"></span>
+                                            <span x-text="week.mini_project.completed ? 'Project Completed ✓' : 'Mark Project Complete'"></span>
+                                        </button>
                                     </div>
                                 </div>
 
@@ -559,21 +1418,24 @@
                                                     headers: { 'Content-Type': 'application/json' },
                                                     body: JSON.stringify({ project_title: week.mini_project.title })
                                                 })
-                                                .then(res => res.json())
-                                                .then(data => {
-                                                    if (data.success) {
+                                                .then(async res => {
+                                                    const data = await res.json().catch(() => ({}));
+                                                    if (res.ok && data.success) {
                                                         pdfUrl = data.pdf_url;
                                                         if (week.mini_project) {
                                                             week.mini_project.pdf_url = data.pdf_url;
                                                         }
                                                         saveRoadmap();
+                                                        showToast('Project guide PDF is ready!', 'success', 'Guide Ready');
                                                     } else {
-                                                        pdfError = data.error || 'Failed to generate PDF';
+                                                        pdfError = data.error || 'Failed to generate PDF guide.';
+                                                        showToast(pdfError, 'error', 'PDF Guide Error');
                                                     }
                                                     pdfLoading = false;
                                                 })
                                                 .catch(err => {
-                                                    pdfError = 'Network error generating guide';
+                                                    pdfError = 'Network error generating guide. Please try again.';
+                                                    showToast(pdfError, 'error', 'PDF Guide Error');
                                                     pdfLoading = false;
                                                 });
                                             "
@@ -651,6 +1513,15 @@
                             class="p-1.5 text-on-surface-variant/70 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer" title="Delete Roadmap">
                             <span class="material-symbols-outlined text-[16px]">delete</span>
                         </button>
+                        <a x-show="path.is_completed"
+                           :href="'/learning-path/' + path.path_id + '/export?format=certificate'"
+                           target="_blank"
+                           class="roadmap-cert-btn is-unlocked"
+                           style="padding: 6px 11px; font-size: 11px; border-radius: 10px;"
+                           title="Download Verified Certificate">
+                            <span class="material-symbols-outlined text-[15px]">workspace_premium</span>
+                            <span>Certificate</span>
+                        </a>
                         <button type="button" @click="resumePath(path.path_id)"
                             class="px-3.5 py-1.5 bg-primary text-on-primary font-semibold rounded-xl hover:bg-emerald-600 transition-colors text-[11.5px] shadow-2xs cursor-pointer">
                             Resume Roadmap
@@ -690,6 +1561,247 @@ window.learningPath = function() {
         viewMode: 'generate', // 'generate' or 'list'
         savedPaths: [],
         loadingPaths: false,
+
+        // Snapy Pre-Roadmap Interview State
+        snapyQuizOpen: false,
+        snapyQuizStep: 0,
+        snapyReaction: '',
+        snapyReactionTimer: null,
+        snapySoundOn: (function () {
+            try { return localStorage.getItem('snapy_sfx_muted') !== '1'; } catch (e) { return true; }
+        })(),
+        _snapyAudioCtx: null,
+        quizLevel: 'Beginner',
+        quizHours: 10,
+        quizStyle: 'Project-based',
+        quizGoal: 'Crack Technical Interviews',
+
+        snapyLevelOptions: [
+            { value: 'Beginner', label: 'Beginner · Fresh Start', desc: 'Guide me step-by-step from the core fundamentals.', icon: 'eco', quip: 'Awesome! We will build rock-solid fundamentals together!' },
+            { value: 'Intermediate', label: 'Intermediate · Know the Basics', desc: 'Skip intro fluff - focus on real patterns and projects.', icon: 'bolt', quip: 'Nice! Let us level up straight into practical architecture!' },
+            { value: 'Advanced', label: 'Advanced · Deep Mastery', desc: 'Challenge me with production scale, internals & edge cases.', icon: 'rocket_launch', quip: 'Whoa, pro mode! I will make it sharp and production-grade!' }
+        ],
+        snapyHoursOptions: [
+            { value: 5, label: '5 hrs / week', desc: 'Chill & steady rhythm', icon: 'coffee', quip: '5 hrs/wk is super sustainable - zero burnout!' },
+            { value: 10, label: '10 hrs / week', desc: 'Balanced career sprint', icon: 'schedule', quip: '10 hrs/wk is the sweet spot for steady momentum!' },
+            { value: 18, label: '18 hrs / week', desc: 'Deep focus accelerator', icon: 'local_fire_department', quip: 'Love that energy! We will cover serious ground fast!' },
+            { value: 30, label: '30 hrs / week', desc: 'Full-time turbo mode', icon: 'speed', quip: 'Turbo mode engaged! Buckle up for rapid mastery!' }
+        ],
+        snapyStyleOptions: [
+            { value: 'Project-based', label: 'Build Real Projects', desc: 'Learn by shipping mini-apps', icon: 'construction', quip: 'Hands-on building! Nothing beats shipping real code!' },
+            { value: 'Hands-on Labs', label: 'Drills & Labs', desc: 'Practice challenges & debugging', icon: 'terminal', quip: 'Ooh, lab mode! Great for muscle memory!' },
+            { value: 'Concept-first', label: 'Deep Theory & Docs', desc: 'Mental models & system internals', icon: 'menu_book', quip: 'A deep thinker! Clear mental models make everything click!' },
+            { value: 'Video & Guided', label: 'Guided Walkthroughs', desc: 'Structured lessons & recaps', icon: 'play_circle', quip: 'Guided tracks coming right up - super easy to follow!' }
+        ],
+        snapyGoalOptions: [
+            { value: 'Crack Technical Interviews', label: 'Crack Interviews', desc: 'Interview patterns & crisp answers', icon: 'psychology', quip: 'Interview-ready mode! Let us make you shine!' },
+            { value: 'Build Portfolio Projects', label: 'Portfolio Projects', desc: 'Standout builds recruiters love', icon: 'work', quip: 'Portfolio gold! Recruiters are going to love this!' },
+            { value: 'Production & Job Readiness', label: 'Production Ready', desc: 'Real-world scaling & best practices', icon: 'cloud_done', quip: 'Production-grade mastery! Ready for day one!' },
+            { value: 'Master Core Foundations', label: 'Core Foundations', desc: 'Deep mastery from the ground up', icon: 'school', quip: 'Solid foundations last a whole career!' }
+        ],
+
+        _getAudioCtx() {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!Ctx) return null;
+            if (!this._snapyAudioCtx) {
+                this._snapyAudioCtx = new Ctx();
+            }
+            if (this._snapyAudioCtx.state === 'suspended') {
+                this._snapyAudioCtx.resume().catch(() => {});
+            }
+            return this._snapyAudioCtx;
+        },
+
+        playSnapySound(kind) {
+            if (!this.snapySoundOn) return;
+            try {
+                const ctx = this._getAudioCtx();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+
+                const playTone = (freq, startOffset, duration, type = 'sine', peakGain = 0.11, slideTo = null) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = type;
+                    const t0 = now + startOffset;
+                    osc.frequency.setValueAtTime(freq, t0);
+                    if (slideTo) {
+                        osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + duration);
+                    }
+                    gain.gain.setValueAtTime(0.0001, t0);
+                    gain.gain.exponentialRampToValueAtTime(peakGain, t0 + 0.016);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(t0);
+                    osc.stop(t0 + duration + 0.02);
+                };
+
+                if (kind === 'open') {
+                    // Bubbly Snapy hello chirp: C5 -> E5 -> G5
+                    playTone(523.25, 0.00, 0.11, 'sine', 0.10, 587.33);
+                    playTone(659.25, 0.07, 0.13, 'triangle', 0.09);
+                    playTone(783.99, 0.14, 0.18, 'sine', 0.10);
+                } else if (kind === 'select') {
+                    // Cute marimba plink: E5 -> A5
+                    playTone(659.25, 0.00, 0.09, 'triangle', 0.10);
+                    playTone(880.00, 0.055, 0.15, 'sine', 0.11);
+                } else if (kind === 'back') {
+                    // Soft descending bloop: G5 -> D5
+                    playTone(783.99, 0.00, 0.08, 'sine', 0.08, 587.33);
+                } else if (kind === 'next') {
+                    // Light upward hop
+                    playTone(587.33, 0.00, 0.09, 'sine', 0.08, 783.99);
+                } else if (kind === 'sparkle') {
+                    // Joyful 4-note launch chime: C5 -> E5 -> G5 -> C6
+                    playTone(523.25, 0.00, 0.14, 'triangle', 0.09);
+                    playTone(659.25, 0.07, 0.14, 'triangle', 0.09);
+                    playTone(783.99, 0.14, 0.16, 'sine', 0.10);
+                    playTone(1046.50, 0.21, 0.28, 'sine', 0.11);
+                } else if (kind === 'celebrate') {
+                    // Cute completion fanfare chord
+                    playTone(523.25, 0.00, 0.16, 'triangle', 0.09);
+                    playTone(659.25, 0.07, 0.16, 'triangle', 0.09);
+                    playTone(783.99, 0.14, 0.18, 'sine', 0.10);
+                    playTone(1046.50, 0.21, 0.34, 'sine', 0.11);
+                    playTone(1318.51, 0.26, 0.36, 'sine', 0.08);
+                } else if (kind === 'oops') {
+                    // Soft sad boop
+                    playTone(392.00, 0.00, 0.13, 'sine', 0.09, 311.13);
+                    playTone(293.66, 0.12, 0.18, 'sine', 0.08, 246.94);
+                } else if (kind === 'toggle') {
+                    playTone(740.00, 0.00, 0.09, 'sine', 0.08);
+                }
+            } catch (e) {
+                // Ignore Web Audio restrictions gracefully
+            }
+        },
+
+        toggleSnapySound() {
+            this.snapySoundOn = !this.snapySoundOn;
+            try {
+                localStorage.setItem('snapy_sfx_muted', this.snapySoundOn ? '0' : '1');
+            } catch (e) {}
+            if (this.snapySoundOn) {
+                this.playSnapySound('toggle');
+            }
+        },
+
+        openSnapyInterview() {
+            if (!this.analysis || !this.analysis.missing_skills || this.analysis.missing_skills.length === 0) {
+                this.playSnapySound('oops');
+                this.showToast('No missing skills found to build a roadmap for.', 'warning', 'Nothing to Bridge');
+                return;
+            }
+            if (this.snapyReactionTimer) clearTimeout(this.snapyReactionTimer);
+            this.snapyReaction = '';
+            this.snapyQuizStep = 0;
+            this.snapyQuizOpen = true;
+            this.playSnapySound('open');
+        },
+
+        closeSnapyInterview() {
+            if (this.snapyReactionTimer) clearTimeout(this.snapyReactionTimer);
+            this.snapyReaction = '';
+            this.snapyQuizOpen = false;
+            this.playSnapySound('back');
+        },
+
+        getSnapyPrompt() {
+            const role = (this.targetRole || 'your target role').trim();
+            if (this.roadmapLoading) {
+                return `Brewing your personalized ${role} roadmap!`;
+            }
+            if (this.snapyReaction) {
+                return this.snapyReaction;
+            }
+            if (this.snapyQuizStep === 0) {
+                return `Hey! Before I build your ${role} roadmap, where are you starting from?`;
+            }
+            if (this.snapyQuizStep === 1) {
+                return `How many hours a week can we study together?`;
+            }
+            if (this.snapyQuizStep === 2) {
+                return `How does your brain love learning best?`;
+            }
+            return `Last question! What's your #1 goal for ${role}?`;
+        },
+
+        getSnapySubtext() {
+            if (this.roadmapLoading) {
+                return 'Mixing weekly milestones, hands-on projects, and resources just for you...';
+            }
+            if (this.snapyReaction) {
+                return 'Noted! Tailoring your curriculum...';
+            }
+            if (this.snapyQuizStep === 0) {
+                return 'Pick your comfort level so I never make it too easy or too overwhelming.';
+            }
+            if (this.snapyQuizStep === 1) {
+                return 'I will size every weekly milestone to fit your real schedule.';
+            }
+            if (this.snapyQuizStep === 2) {
+                return 'I will shape your tasks and mini-projects around your favorite style.';
+            }
+            return 'Pick your goal, then hit Build My Roadmap!';
+        },
+
+        selectSnapyOption(field, opt) {
+            if (field === 'level') this.quizLevel = opt.value;
+            else if (field === 'hours') this.quizHours = opt.value;
+            else if (field === 'style') this.quizStyle = opt.value;
+            else if (field === 'goal') this.quizGoal = opt.value;
+
+            this.playSnapySound('select');
+            if (this.snapyReactionTimer) clearTimeout(this.snapyReactionTimer);
+            this.snapyReaction = opt.quip || '';
+
+            if (this.snapyQuizStep < 3) {
+                const currentStep = this.snapyQuizStep;
+                this.snapyReactionTimer = setTimeout(() => {
+                    this.snapyReaction = '';
+                    if (this.snapyQuizOpen && this.snapyQuizStep === currentStep) {
+                        this.snapyQuizStep = currentStep + 1;
+                    }
+                }, 460);
+            } else {
+                this.snapyReactionTimer = setTimeout(() => {
+                    this.snapyReaction = '';
+                }, 1400);
+            }
+        },
+
+        nextSnapyStep() {
+            if (this.snapyReactionTimer) clearTimeout(this.snapyReactionTimer);
+            this.snapyReaction = '';
+            if (this.snapyQuizStep < 3) {
+                this.snapyQuizStep += 1;
+                this.playSnapySound('next');
+            }
+        },
+
+        prevSnapyStep() {
+            if (this.snapyReactionTimer) clearTimeout(this.snapyReactionTimer);
+            this.snapyReaction = '';
+            if (this.snapyQuizStep > 0) {
+                this.snapyQuizStep -= 1;
+                this.playSnapySound('back');
+            }
+        },
+
+        skipSnapyAndGenerate() {
+            if (this.snapyReactionTimer) clearTimeout(this.snapyReactionTimer);
+            this.snapyReaction = '';
+            this.playSnapySound('sparkle');
+            this.generateRoadmap();
+        },
+
+        launchRoadmapFromSnapy() {
+            if (this.snapyReactionTimer) clearTimeout(this.snapyReactionTimer);
+            this.snapyReaction = '';
+            this.playSnapySound('sparkle');
+            this.generateRoadmap();
+        },
 
         getCompanyLogo(company) {
             if (!company) return '';
@@ -756,21 +1868,66 @@ window.learningPath = function() {
             return map[s] || null;
         },
 
-        init() {
-            this.restoreSessionState();
+        formatSkillLabel(raw) {
+            const clean = String(raw || '').trim();
+            if (!clean) return '';
+            const acronyms = {
+                'aws': 'AWS', 'gcp': 'GCP', 'sql': 'SQL', 'nosql': 'NoSQL', 'api': 'API',
+                'rest': 'REST', 'ci/cd': 'CI/CD', 'css': 'CSS', 'html': 'HTML', 'ai': 'AI',
+                'ml': 'ML', 'llm': 'LLM', 'nlp': 'NLP', 'ui/ux': 'UI/UX', 'ios': 'iOS',
+                'devops': 'DevOps', 'graphql': 'GraphQL', 'nodejs': 'Node.js', 'node.js': 'Node.js',
+                'nextjs': 'Next.js', 'next.js': 'Next.js', 'typescript': 'TypeScript',
+                'javascript': 'JavaScript', 'postgresql': 'PostgreSQL', 'mongodb': 'MongoDB',
+                'fastapi': 'FastAPI', 'pytorch': 'PyTorch', 'tensorflow': 'TensorFlow',
+            };
+            const low = clean.toLowerCase();
+            if (acronyms[low]) return acronyms[low];
+            // Preserve mixed-case user/role strings; title-case all-lowercase skills like "kubernetes"
+            if (clean === low) {
+                return clean.split(/\s+/).map(w => acronyms[w] || (w.charAt(0).toUpperCase() + w.slice(1))).join(' ');
+            }
+            return clean;
+        },
 
-            // Handle URL parameters from Job Matches feed (?skill=... or ?role=...)
-            const urlParams = new URLSearchParams(window.location.search);
+        applyUrlParams(searchStr) {
+            const urlParams = new URLSearchParams(searchStr !== undefined ? searchStr : window.location.search);
             const skillParam = urlParams.get('skill');
             const roleParam = urlParams.get('role');
-            if (roleParam && roleParam.trim()) {
-                this.targetRole = decodeURIComponent(roleParam.trim());
-            } else if (skillParam && skillParam.trim()) {
-                const s = decodeURIComponent(skillParam.trim());
-                const options = ["Frontend Developer", "Backend Developer", "Full Stack Developer", "Data Scientist", "DevOps Engineer", "Mobile Developer (iOS/Android)"];
-                const matchedOption = options.find(o => o.toLowerCase().includes(s.toLowerCase()));
-                this.targetRole = matchedOption || `${s} Specialist`;
+            const companyParam = urlParams.get('company');
+
+            if ((roleParam && roleParam.trim()) || (skillParam && skillParam.trim())) {
+                // Switch to Generate view and reveal the Target Benchmark Role input cleanly
+                this.viewMode = 'generate';
+                this.roadmap = null;
+                this.analysis = null;
+                this.showSavePrompt = false;
+
+                if (roleParam && roleParam.trim()) {
+                    this.targetRole = this.formatSkillLabel(roleParam);
+                } else if (skillParam && skillParam.trim()) {
+                    this.targetRole = this.formatSkillLabel(skillParam);
+                }
+
+                if (companyParam && companyParam.trim()) {
+                    this.targetCompany = companyParam.trim();
+                }
+
+                this.persistSessionState();
+                this.$nextTick(() => {
+                    const input = document.getElementById('target-benchmark-role-input');
+                    if (input) {
+                        input.value = this.targetRole;
+                        input.focus();
+                    }
+                });
+                return true;
             }
+            return false;
+        },
+
+        init() {
+            this.restoreSessionState();
+            this.applyUrlParams(window.location.search);
 
             // Watch reactive state to persist across navigation and reloads
             if (this.$watch) {
@@ -784,10 +1941,25 @@ window.learningPath = function() {
                 this.$watch('viewMode', () => this.persistSessionState());
             }
 
-            // Sync with browser back/forward history popstate
-            window.addEventListener('popstate', () => {
-                this.restoreSessionState();
-            });
+            // Sync with SPA page loads & browser back/forward history popstate (deduplicated across SPA navigations)
+            if (window.__learningPathPageLoadedHandler) {
+                window.removeEventListener('page:loaded', window.__learningPathPageLoadedHandler);
+            }
+            if (window.__learningPathPopstateHandler) {
+                window.removeEventListener('popstate', window.__learningPathPopstateHandler);
+            }
+            window.__learningPathPageLoadedHandler = () => {
+                if (this.$el && !document.contains(this.$el)) return;
+                this.applyUrlParams(window.location.search);
+            };
+            window.__learningPathPopstateHandler = () => {
+                if (this.$el && !document.contains(this.$el)) return;
+                if (!this.applyUrlParams(window.location.search)) {
+                    this.restoreSessionState();
+                }
+            };
+            window.addEventListener('page:loaded', window.__learningPathPageLoadedHandler);
+            window.addEventListener('popstate', window.__learningPathPopstateHandler);
         },
 
         persistSessionState() {
@@ -816,7 +1988,7 @@ window.learningPath = function() {
                 if (state.targetRole) this.targetRole = state.targetRole;
                 if (state.targetCompany) this.targetCompany = state.targetCompany;
                 if (state.analysis) this.analysis = state.analysis;
-                if (state.roadmap) this.roadmap = state.roadmap;
+                if (state.roadmap) this.roadmap = this.processRoadmapData(state.roadmap);
                 if (typeof state.progress === 'number') this.progress = state.progress;
                 if (typeof state.saved === 'boolean') this.saved = state.saved;
                 if (state.pathId) this.pathId = state.pathId;
@@ -826,11 +1998,19 @@ window.learningPath = function() {
             }
         },
 
-        startNewPath(force = false) {
+        async startNewPath(force = false) {
             if (!force && (this.analysis || this.roadmap)) {
-                if (!confirm('Start a new analysis? Current in-memory roadmap will be cleared.')) {
-                    return;
-                }
+                const confirmed = typeof window.snapyConfirm === 'function'
+                    ? await window.snapyConfirm('Start a new skill gap analysis?', {
+                        mood: 'warning',
+                        title: 'Snapy · Start Fresh',
+                        subtext: 'Your current unsaved in-memory analysis/roadmap will be cleared.',
+                        confirmText: 'Start New',
+                        cancelText: 'Keep Current',
+                        destructive: false
+                    })
+                    : confirm('Start a new analysis? Current in-memory roadmap will be cleared.');
+                if (!confirmed) return;
             }
             this.viewMode = 'generate';
             this.roadmap = null;
@@ -857,7 +2037,11 @@ window.learningPath = function() {
         },
 
         async analyzeGap() {
-            if (!this.targetRole) return;
+            const role = (this.targetRole || '').trim();
+            if (!role) {
+                this.showToast('Please enter or select a Target Benchmark Role first.', 'warning', 'Missing Role');
+                return;
+            }
             this.loading = true;
             this.analysis = null;
 
@@ -866,30 +2050,50 @@ window.learningPath = function() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        target_role: this.targetRole,
-                        target_company: this.targetCompany
+                        target_role: role,
+                        target_company: (this.targetCompany || '').trim()
                     })
                 });
+
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    if (response.status === 401 || response.status === 403 || response.redirected) {
+                        throw new Error('Your session expired. Please sign in again and retry.');
+                    }
+                    throw new Error(`Unexpected server response (${response.status}). Please try again.`);
+                }
 
                 let data;
                 try {
                     data = await response.json();
                 } catch (e) {
-                    throw new Error(`Server Error: ${response.status}`);
+                    throw new Error(`Invalid response from analysis engine (${response.status}).`);
                 }
 
-                if (!response.ok) {
-                    throw new Error(data.error || 'Evaluation failed');
+                if (!response.ok || (data && data.error)) {
+                    throw new Error((data && data.error) || `Skill gap analysis failed (${response.status}).`);
+                }
+
+                if (!data || typeof data !== 'object' || (
+                    typeof data.readiness_score !== 'number' &&
+                    !Array.isArray(data.strong_skills) &&
+                    !Array.isArray(data.missing_skills)
+                )) {
+                    throw new Error('The AI engine returned an incomplete analysis. Please try again.');
                 }
 
                 this.analysis = data;
                 this.roadmap = null;
                 this.showSavePrompt = false;
                 this.persistSessionState();
-                this.showToast('Skill gap analysis complete!', 'success');
+                this.showToast(`Skill gap analysis ready for ${role}!`, 'success', 'Analysis Complete');
             } catch (error) {
-                console.error('Error:', error);
-                this.showToast(error.message || 'Failed to connect to analysis engine.', 'error');
+                console.error('Skill gap analysis error:', error);
+                const rawMsg = (error && error.message) ? error.message : 'Failed to connect to the skill analysis engine.';
+                const friendlyMsg = rawMsg === 'Failed to fetch'
+                    ? 'Could not reach the server. Please check your connection and try again.'
+                    : rawMsg;
+                this.showToast(friendlyMsg, 'error', 'Skill Gap Error');
             } finally {
                 this.loading = false;
             }
@@ -897,7 +2101,8 @@ window.learningPath = function() {
 
         async generateRoadmap() {
             if (!this.analysis || !this.analysis.missing_skills || this.analysis.missing_skills.length === 0) {
-                this.showToast('No missing competencies identified for roadmap generation.', 'error');
+                this.playSnapySound('oops');
+                this.showToast('No missing skills found to build a roadmap for.', 'warning', 'Nothing to Bridge');
                 return;
             }
 
@@ -909,28 +2114,36 @@ window.learningPath = function() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        target_role: this.targetRole,
+                        target_role: (this.targetRole || '').trim(),
                         missing_skills: this.analysis.missing_skills,
-                        availability_hours: 10,
-                        learning_style: 'Project-based'
+                        current_skill_level: this.quizLevel || 'Beginner',
+                        availability_hours: Number(this.quizHours) || 10,
+                        learning_style: this.quizStyle || 'Project-based',
+                        goal_focus: this.quizGoal || ''
                     })
                 });
 
-                const data = await response.json();
-                if (response.ok) {
+                const data = await response.json().catch(() => ({}));
+                if (response.ok && data && !data.error && Array.isArray(data.weekly_breakdown)) {
                     this.roadmap = this.processRoadmapData(data);
                     this.calculateProgress();
                     this.saved = false;
                     this.pathId = null;
+                    this.snapyQuizOpen = false;
                     this.showSavePrompt = true;
                     this.persistSessionState();
-                    this.showToast('Roadmap generated! Review it below.', 'success');
+                    this.playSnapySound('celebrate');
+                    this.showToast('Snapy built your personalized roadmap! Review it below.', 'success', 'Roadmap Ready');
                 } else {
-                    this.showToast('Failed to generate plan: ' + (data.error || 'Unknown error'), 'error');
+                    this.snapyQuizOpen = false;
+                    this.playSnapySound('oops');
+                    this.showToast((data && data.error) || `Failed to generate learning roadmap (${response.status}).`, 'error', 'Roadmap Error');
                 }
             } catch (error) {
-                console.error('Error:', error);
-                this.showToast('Network error during roadmap generation.', 'error');
+                console.error('Roadmap generation error:', error);
+                this.snapyQuizOpen = false;
+                this.playSnapySound('oops');
+                this.showToast('Network error while generating your roadmap. Please try again.', 'error', 'Roadmap Error');
             } finally {
                 this.roadmapLoading = false;
             }
@@ -955,6 +2168,7 @@ window.learningPath = function() {
             const processed = JSON.parse(JSON.stringify(data));
 
             processed.weekly_breakdown.forEach((week, wIndex) => {
+                week.week_number = week.week_number || (wIndex + 1);
                 if (Array.isArray(week.focus_topics)) {
                     week.focus_topics = week.focus_topics.map(topic => {
                         if (typeof topic === 'string') {
@@ -979,23 +2193,179 @@ window.learningPath = function() {
             return processed;
         },
 
-        toggleTopic(weekIndex, topicIndex) {
-            if (!this.roadmap || !this.roadmap.weekly_breakdown[weekIndex]) return;
-            const topic = this.roadmap.weekly_breakdown[weekIndex].focus_topics[topicIndex];
-            topic.completed = !topic.completed;
+        getWeekStats(week) {
+            if (!week) return { done: 0, total: 0, pct: 0, isDone: false };
+            let total = 0;
+            let done = 0;
+            if (Array.isArray(week.focus_topics)) {
+                week.focus_topics.forEach(t => {
+                    total++;
+                    if (t && t.completed) done++;
+                });
+            }
+            if (week.mini_project) {
+                total++;
+                if (week.mini_project.completed) done++;
+            }
+            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+            return { done, total, pct, isDone: total > 0 && done === total };
+        },
+
+        getCompletionStats() {
+            const weeks = (this.roadmap && Array.isArray(this.roadmap.weekly_breakdown)) ? this.roadmap.weekly_breakdown : [];
+            let totalTopics = 0, doneTopics = 0, totalProjects = 0, doneProjects = 0, doneWeeks = 0;
+            weeks.forEach(w => {
+                if (Array.isArray(w.focus_topics)) {
+                    w.focus_topics.forEach(t => {
+                        totalTopics++;
+                        if (t && t.completed) doneTopics++;
+                    });
+                }
+                if (w.mini_project) {
+                    totalProjects++;
+                    if (w.mini_project.completed) doneProjects++;
+                }
+                if (this.getWeekStats(w).isDone) doneWeeks++;
+            });
+            const totalItems = totalTopics + totalProjects;
+            const doneItems = doneTopics + doneProjects;
+            return {
+                totalTopics, doneTopics,
+                totalProjects, doneProjects,
+                totalWeeks: weeks.length, doneWeeks,
+                totalItems, doneItems,
+                remaining: Math.max(0, totalItems - doneItems)
+            };
+        },
+
+        getCompletionHeadline() {
+            const st = this.getCompletionStats();
+            if (st.totalItems === 0) return 'Ready to start your roadmap!';
+            if (this.progress === 100) return 'All milestones mastered - Certificate unlocked!';
+            if (st.doneItems === 0) return `${st.totalItems} milestones across ${st.totalWeeks} weeks to earn your certificate`;
+            return `${st.doneItems} of ${st.totalItems} milestones complete · ${st.remaining} left for Certificate`;
+        },
+
+        scrollToWeek(wIndex) {
+            const el = document.getElementById('roadmap-week-' + wIndex);
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            const currentScroll = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+            const targetTop = Math.max(0, currentScroll + rect.top - 78);
+            window.scrollTo({ top: targetTop, behavior: 'smooth' });
+            // Visual arrival highlight so the jump is unmistakable
+            el.style.transition = 'box-shadow 220ms ease, border-color 220ms ease';
+            el.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.45)';
+            setTimeout(() => {
+                el.style.boxShadow = '';
+            }, 1300);
+        },
+
+        scrollToNextUnfinished() {
+            const weeks = (this.roadmap && Array.isArray(this.roadmap.weekly_breakdown)) ? this.roadmap.weekly_breakdown : [];
+            const idx = weeks.findIndex(w => !this.getWeekStats(w).isDone);
+            if (idx >= 0) {
+                this.scrollToWeek(idx);
+            }
+        },
+
+        _afterProgressMutation(wasComplete, becameTrue) {
             this.calculateProgress();
+            this.persistSessionState();
+            if (this.progress === 100 && !wasComplete) {
+                this.playSnapySound('celebrate');
+                this.showToast('100% complete! Your Verified Certificate is now unlocked!', 'success', 'Certificate Unlocked');
+            } else if (becameTrue) {
+                this.playSnapySound('select');
+            }
             if (this.saved) {
                 this.saveRoadmap();
             }
         },
 
+        toggleTopic(weekIndex, topicIndex) {
+            if (!this.roadmap || !this.roadmap.weekly_breakdown[weekIndex]) return;
+            const wasComplete = this.progress === 100;
+            const topic = this.roadmap.weekly_breakdown[weekIndex].focus_topics[topicIndex];
+            topic.completed = !topic.completed;
+            this._afterProgressMutation(wasComplete, topic.completed);
+        },
+
         toggleProject(weekIndex) {
             if (!this.roadmap || !this.roadmap.weekly_breakdown[weekIndex]) return;
+            const wasComplete = this.progress === 100;
             const proj = this.roadmap.weekly_breakdown[weekIndex].mini_project;
             proj.completed = !proj.completed;
-            this.calculateProgress();
-            if (this.saved) {
-                this.saveRoadmap();
+            this._afterProgressMutation(wasComplete, proj.completed);
+        },
+
+        toggleWholeWeek(weekIndex) {
+            if (!this.roadmap || !this.roadmap.weekly_breakdown[weekIndex]) return;
+            const wasComplete = this.progress === 100;
+            const week = this.roadmap.weekly_breakdown[weekIndex];
+            const markAsDone = !this.getWeekStats(week).isDone;
+            if (Array.isArray(week.focus_topics)) {
+                week.focus_topics.forEach(t => { t.completed = markAsDone; });
+            }
+            if (week.mini_project) {
+                week.mini_project.completed = markAsDone;
+            }
+            this._afterProgressMutation(wasComplete, markAsDone);
+        },
+
+        async handleCertificateClick() {
+            const st = this.getCompletionStats();
+            if (this.progress < 100) {
+                this.playSnapySound('oops');
+                this.showToast(
+                    `Complete ${st.remaining} more milestone${st.remaining === 1 ? '' : 's'} (concepts + weekly projects) to unlock your Verified Certificate!`,
+                    'warning',
+                    'Certificate Locked'
+                );
+                this.scrollToNextUnfinished();
+                return;
+            }
+
+            // Ensure the 100% completed roadmap is saved in DB so the backend certificate route succeeds
+            const ok = await this.saveRoadmap();
+            if (!ok || !this.pathId) {
+                this.playSnapySound('oops');
+                this.showToast('Could not save your completed roadmap to generate the certificate. Please try again.', 'error', 'Certificate Error');
+                return;
+            }
+            this.showSavePrompt = false;
+            this.playSnapySound('sparkle');
+
+            const certUrl = `/learning-path/${this.pathId}/export?format=certificate`;
+            try {
+                const res = await fetch(certUrl, { credentials: 'same-origin' });
+                const contentType = (res.headers.get('content-type') || '').toLowerCase();
+                if (!res.ok || contentType.includes('application/json')) {
+                    const errData = await res.json().catch(() => ({}));
+                    this.playSnapySound('oops');
+                    this.showToast(
+                        errData.error || `Could not generate certificate (HTTP ${res.status}).`,
+                        'error',
+                        'Certificate Error'
+                    );
+                    return;
+                }
+
+                const blob = await res.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const safeRole = (this.targetRole || 'Career_Roadmap').replace(/[^a-zA-Z0-9_-]+/g, '_').slice(0, 40);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = `AI_JobSnap_Certificate_${safeRole}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+                this.showToast('Your Verified Certificate PDF is downloading!', 'success', 'Certificate Downloaded');
+            } catch (err) {
+                console.error('Certificate download failed:', err);
+                this.playSnapySound('oops');
+                this.showToast('Failed to download certificate. Please try again.', 'error', 'Certificate Error');
             }
         },
 
@@ -1025,41 +2395,49 @@ window.learningPath = function() {
         },
 
         async saveRoadmap() {
-            if (!this.roadmap || this.isSaving) return false;
+            if (!this.roadmap) return false;
+            if (this._inFlightSave) {
+                try { await this._inFlightSave; } catch (e) {}
+            }
             this.isSaving = true;
 
-            try {
-                const payload = {
-                    target_role: this.targetRole,
-                    total_weeks: this.roadmap.total_weeks,
-                    roadmap_data: this.roadmap,
-                    path_id: this.pathId,
-                    progress: this.progress
-                };
+            this._inFlightSave = (async () => {
+                try {
+                    const payload = {
+                        target_role: this.targetRole,
+                        total_weeks: this.roadmap.total_weeks,
+                        roadmap_data: this.roadmap,
+                        path_id: this.pathId,
+                        progress: this.progress
+                    };
 
-                const response = await fetch('/learning-path/save', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                    const response = await fetch('/learning-path/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
 
-                const data = await response.json();
-                if (response.ok && data.success) {
-                    this.saved = true;
-                    this.pathId = data.path_id;
-                    this.persistSessionState();
-                    return true;
-                } else {
-                    this.showToast('Failed to save: ' + (data.error || 'Unknown error'), 'error');
+                    const data = await response.json().catch(() => ({}));
+                    if (response.ok && data.success) {
+                        this.saved = true;
+                        this.pathId = data.path_id;
+                        this.persistSessionState();
+                        return true;
+                    } else {
+                        this.showToast('Failed to save: ' + (data.error || 'Unknown error'), 'error', 'Save Error');
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('Error saving roadmap:', error);
+                    this.showToast('Network error saving roadmap.', 'error', 'Save Error');
                     return false;
+                } finally {
+                    this.isSaving = false;
+                    this._inFlightSave = null;
                 }
-            } catch (error) {
-                console.error('Error saving roadmap:', error);
-                this.showToast('Network error saving roadmap.', 'error');
-                return false;
-            } finally {
-                this.isSaving = false;
-            }
+            })();
+
+            return await this._inFlightSave;
         },
 
         async loadMyPaths() {
@@ -1086,11 +2464,17 @@ window.learningPath = function() {
                 if (response.ok) {
                     const data = await response.json();
 
-                    this.roadmap = {
+                    const rawRoadmap = {
                         total_weeks: data.modules.length,
                         weekly_breakdown: data.modules.map((mod, index) => {
                             if (mod.topics_data) {
-                                return mod.topics_data;
+                                let td = mod.topics_data;
+                                if (typeof td === 'string') {
+                                    try { td = JSON.parse(td); } catch (e) { td = {}; }
+                                }
+                                return Object.assign({}, td, {
+                                    week_number: (td && td.week_number) ? td.week_number : (index + 1)
+                                });
                             }
 
                             let desc = mod.description || '';
@@ -1122,6 +2506,7 @@ window.learningPath = function() {
                             };
                         })
                     };
+                    this.roadmap = this.processRoadmapData(rawRoadmap);
                     this.targetRole = data.target_role;
                     this.pathId = data.path_id;
                     this.saved = true;
@@ -1130,51 +2515,85 @@ window.learningPath = function() {
                     this.viewMode = 'generate';
                     this.analysis = null;
                     this.persistSessionState();
+                } else {
+                    const errData = await response.json().catch(() => ({}));
+                    this.showToast(errData.error || `Could not open saved roadmap (${response.status}).`, 'error', 'Load Error');
                 }
             } catch (error) {
                 console.error('Error resuming path:', error);
-                this.showToast('Failed to resume learning path', 'error');
+                this.showToast('Failed to resume learning path. Please try again.', 'error', 'Load Error');
             }
         },
 
         async deletePath(pathId) {
-            if (!confirm('Permanently delete this learning roadmap?')) return;
+            const confirmed = typeof window.snapyConfirm === 'function'
+                ? await window.snapyConfirm('Permanently delete this learning roadmap?', {
+                    mood: 'sad',
+                    title: 'Snapy · Delete Roadmap',
+                    subtext: "This saved roadmap and its progress can't be recovered.",
+                    confirmText: 'Yes, Delete',
+                    cancelText: 'Keep It',
+                    destructive: true
+                })
+                : confirm('Permanently delete this learning roadmap?');
+            if (!confirmed) return;
 
             try {
                 const response = await fetch(`/learning-path/${pathId}`, { method: 'DELETE' });
                 if (response.ok) {
-                    this.showToast('Roadmap deleted', 'success');
+                    this.showToast('Roadmap deleted.', 'success', 'Deleted');
                     this.loadMyPaths();
                 } else {
-                    this.showToast('Failed to delete roadmap', 'error');
+                    const data = await response.json().catch(() => ({}));
+                    this.showToast(data.error || 'Failed to delete roadmap.', 'error', 'Delete Error');
                 }
             } catch (error) {
-                this.showToast('Network error deleting roadmap', 'error');
+                this.showToast('Network error deleting roadmap.', 'error', 'Delete Error');
             }
         },
 
-        showToast(message, type = 'success') {
+        showToast(message, type = 'success', title = null) {
+            if (typeof window.snapyToast === 'function') {
+                const moodMap = {
+                    success: 'happy',
+                    happy: 'happy',
+                    error: 'error',
+                    danger: 'error',
+                    warning: 'warning',
+                    sad: 'sad',
+                    info: 'info'
+                };
+                const defaultTitles = {
+                    success: 'Snapy',
+                    happy: 'Snapy',
+                    error: 'Oops!',
+                    danger: 'Oops!',
+                    warning: 'Heads Up',
+                    sad: 'Snapy',
+                    info: 'Snapy'
+                };
+                const mood = moodMap[type] || 'info';
+                const duration = (mood === 'error' || mood === 'warning') ? 5500 : 4000;
+                window.snapyToast(message, {
+                    mood,
+                    title: title || defaultTitles[type] || 'Snapy',
+                    duration
+                });
+                return;
+            }
+
             const id = Date.now();
             this.toasts.push({ id, message, type, visible: true });
             setTimeout(() => {
                 const index = this.toasts.findIndex(t => t.id === id);
                 if (index > -1) this.toasts.splice(index, 1);
-            }, 3000);
+            }, 3500);
         },
 
         getReadinessText(score) {
             if (score >= 80) return 'Job Ready! Prepared for technical interview rounds.';
             if (score >= 50) return 'Good foundation. Bridge target competencies below.';
             return 'Skill delta identified. Follow the roadmap below.';
-        },
-
-        getVideoId(topicTitle) {
-            const hash = (topicTitle || '').split('').reduce((acc, char) => ((acc << 5) - acc) + char.charCodeAt(0), 0);
-            const videoIds = [
-                'Hl-zzrqQoSE', 'rfscVS0vtbw', 'W6NZfCO5SIk', '2JYT5f2isg4',
-                'PkZNo7MFNFg', 'SqcY0GlETPk', 'HXV3zeQKqGY', '2ji0qw_JNFo'
-            ];
-            return videoIds[Math.abs(hash) % videoIds.length];
         }
     };
 };

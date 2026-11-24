@@ -1,0 +1,381 @@
+<template>
+  <style>
+    /* JOBSNAP LUMINOUS GLASS ENGINE (Zelios / LangEase Style — 1920x1080, 32.5s)
+       Pure luminous cool-white canvas (#F8FAFF), weight 400–500 geometric sans,
+       blur-slide typography, frosted 3D glass folder, 4-phone radial surround,
+       luminous ribbon-to-progress bar, glass checkmark + confetti, 3D dashboard fly-over,
+       4-corner card orbit, macro row + gradient CTA click, 4-point sparkle lockup. */
+    #root { position: absolute; inset: 0; overflow: hidden; background: #F8FAFF; }
+    #f-all {
+      position: absolute; inset: 0; overflow: hidden;
+      background: #F8FAFF;
+      color: #0F172A;
+      font-family: "{{FONT_TEXT}}", "Plus Jakarta Sans", "Inter", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    #f-all *, #f-all *::before, #f-all *::after { box-sizing: border-box; }
+    .abs { position: absolute; }
+    #bg {
+      position: absolute; inset: 0;
+      background: #090D16;
+      overflow: hidden;
+    }
+    .bg-wash {
+      position: absolute; inset: -8%;
+      width: 116%; height: 116%;
+      opacity: 0;
+      pointer-events: none;
+      will-change: opacity, transform;
+    }
+    /* Fine photographic film-grain overlay (zero Excel/grid lines!) */
+    #bg-grain {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      opacity: 0.065;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 220px 220px;
+      z-index: 2;
+    }
+    .sc {
+      position: absolute; inset: 0;
+      display: none; overflow: hidden;
+      perspective: 1600px;
+    }
+
+    /* Typography — airy regular/medium weight like reference */
+    .lt {
+      position: absolute;
+      font-weight: 500;
+      letter-spacing: -0.03em;
+      line-height: 1.12;
+      color: #0F172A;
+      white-space: nowrap;
+    }
+    .lt-blue { color: #2563EB; }
+    .lt-sky  { color: #38BDF8; }
+    .lt-em   { color: #059669; }
+    .lt-grad {
+      background: linear-gradient(90deg, #2563EB 0%, #0EA5E9 55%, #10B981 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .mono { font-family: "JetBrains Mono", monospace; }
+
+    /* Frosted 3D Glass Folder */
+    .g-folder {
+      position: absolute;
+      width: 310px; height: 244px;
+      transform-style: preserve-3d;
+      filter: drop-shadow(0 30px 48px rgba(37, 99, 235, 0.28));
+    }
+    .g-folder-back {
+      position: absolute; inset: 0;
+      background: linear-gradient(155deg, #60A5FA 0%, #2563EB 100%);
+      border-radius: 26px;
+    }
+    .g-folder-tab {
+      position: absolute; left: 0; top: -22px; width: 122px; height: 38px;
+      background: linear-gradient(155deg, #60A5FA 0%, #3B82F6 100%);
+      border-radius: 16px 16px 0 0;
+    }
+    .g-folder-doc {
+      position: absolute; background: #FFFFFF;
+      border-radius: 14px; border: 1.5px solid rgba(15, 23, 42, 0.08);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+      padding: 14px;
+    }
+    .g-folder-front {
+      position: absolute; left: 0; right: 0; bottom: 0; height: 176px;
+      background: linear-gradient(160deg, rgba(147, 197, 253, 0.72) 0%, rgba(59, 130, 246, 0.88) 55%, rgba(37, 99, 235, 0.95) 100%);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-radius: 24px;
+      border-top: 2px solid rgba(255, 255, 255, 0.65);
+      padding: 24px;
+      color: #FFFFFF;
+      display: flex; flex-direction: column; justify-content: flex-end;
+    }
+
+    /* Sleek iPhone Mockup (radial surround) */
+    .iphone {
+      position: absolute;
+      width: 440px; height: 860px;
+      background: #0F172A;
+      border-radius: 58px;
+      padding: 14px;
+      box-shadow: 0 36px 80px rgba(15, 23, 42, 0.16), 0 0 0 1px rgba(15,23,42,0.08);
+    }
+    .iphone-scr {
+      width: 100%; height: 100%;
+      background: #FFFFFF;
+      border-radius: 46px;
+      overflow: hidden;
+      position: relative;
+      padding: 58px 26px 26px;
+    }
+    .iphone-island {
+      position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+      width: 118px; height: 28px; border-radius: 999px; background: #0F172A; z-index: 5;
+    }
+
+    /* Clean Light SaaS Card */
+    .saas-card {
+      background: #FFFFFF;
+      border: 1.5px solid rgba(37, 99, 235, 0.16);
+      border-radius: 20px;
+      box-shadow: 0 14px 36px rgba(37, 99, 235, 0.09);
+      overflow: hidden;
+    }
+    .saas-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 999px;
+      font-size: 13px; font-weight: 600;
+    }
+
+    /* Luminous Progress Bar */
+    .prog-track {
+      position: absolute;
+      left: -60px; top: 484px; width: 1620px; height: 118px;
+      border-radius: 999px;
+      background: #EEF2FF;
+      overflow: hidden;
+      box-shadow: 0 28px 70px rgba(59, 130, 246, 0.24);
+    }
+    .prog-fill {
+      height: 100%; width: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #E0E7FF 0%, #6366F1 24%, #3B82F6 62%, #38BDF8 86%, #34D399 100%);
+      transform-origin: left center;
+    }
+
+    /* Cursor Pointer */
+    .hand-cur {
+      position: absolute; width: 64px; height: 64px; z-index: 60;
+      pointer-events: none;
+      filter: drop-shadow(0 10px 18px rgba(15, 23, 42, 0.22));
+    }
+    .click-ring {
+      position: absolute; width: 56px; height: 56px; border-radius: 50%;
+      border: 3px solid #3B82F6; pointer-events: none; z-index: 59; opacity: 0;
+    }
+    svg.ic { position: absolute; overflow: visible; pointer-events: none; }
+  </style>
+
+  <div data-hf-id="hf-twt9" id="root" data-composition-id="film" data-width="{{W}}" data-height="{{H}}">
+    <div data-hf-id="hf-qj6z" id="f-all">
+      <div data-hf-id="hf-2xc0" id="bg"><div data-hf-id="hf-le7u" id="bg-grain"></div></div>
+      <div data-hf-id="hf-yqe0" id="f-scenes" class="abs" style="inset: 0; z-index: 4;"></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      /*__DATA__*/
+      const $ = (s) => document.querySelector(s);
+      const NS = "http://www.w3.org/2000/svg";
+      const VW = SIZE[0], VH = SIZE[1];
+
+      function build() {
+        const rootTl = gsap.timeline({ paused: true });
+        const tl = gsap.timeline();
+        rootTl.add(tl, 0);
+
+        const W = WORDS.map((q) => q[1]);
+        const WE = WORDS.map((q) => q[2]);
+        const TX = WORDS.map((q) => q[0]);
+        const ticks = [];
+        const P0 = (t) => Math.max(0, t);
+        const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+        const hash = (n) => {
+          let q = Math.imul((n | 0) ^ 0x9e3779b9, 0x85ebca6b);
+          q ^= q >>> 13; q = Math.imul(q, 0xc2b2ae35); q ^= q >>> 16;
+          return (q >>> 0) / 4294967296;
+        };
+        const mk = (parent, cls = "abs", css = "", html = "") => {
+          const e = document.createElement("div");
+          e.className = cls;
+          if (css) e.style.cssText = css;
+          if (html) e.innerHTML = html;
+          parent.appendChild(e);
+          return e;
+        };
+        const svgEl = (parent, x, y, w, h, inner) => {
+          const s = document.createElementNS(NS, "svg");
+          s.setAttribute("class", "ic");
+          s.setAttribute("width", w); s.setAttribute("height", h);
+          s.setAttribute("viewBox", `0 0 ${w} ${h}`);
+          s.style.left = x + "px"; s.style.top = y + "px";
+          s.innerHTML = inner;
+          parent.appendChild(s);
+          return s;
+        };
+
+        const SC = {};
+        function scene(id, t0, t1) {
+          const e = mk($("#f-scenes"), "sc");
+          SC[id] = e;
+          tl.set(e, { display: "block" }, P0(t0));
+          if (t1 != null) tl.set(e, { display: "none" }, t1);
+          return e;
+        }
+
+        /* 11 Rich, Film-Grained Editorial Color-Field Backgrounds (Zero Grids!)
+           Inspired directly by the user's mesh-gradient reference board — transitioning every 2–4s */
+        const bgRoot = $("#bg");
+        const BG_THEMES = [
+          /* 0: 0.0–2.45s — Swirling Warm Peach-Coral & Soft Lilac-Cream ("Turn your resume into interviews") */
+          { at: 0.0,  dur: 0.01, css: "background: radial-gradient(ellipse 68% 64% at 18% 22%, #FB923C 0%, rgba(251,146,60,0.45) 38%, transparent 70%), radial-gradient(ellipse 65% 65% at 86% 78%, #FDBA74 0%, rgba(253,186,116,0.5) 40%, transparent 70%), radial-gradient(ellipse 60% 58% at 54% 48%, #EDE9FE 0%, #DDD6FE 48%, #F5F3FF 100%);" },
+          /* 1: 2.38–4.30s — Burnt Tangerine melting into Cool Silver-Pearl ("for any role, instantly") */
+          { at: 2.38, dur: 0.45, css: "background: radial-gradient(ellipse 74% 110% at 14% 52%, #EA580C 0%, #F97316 42%, rgba(251,146,60,0.22) 66%, transparent 78%), linear-gradient(100deg, #F97316 0%, #FB923C 28%, #E2E8F0 64%, #CBD5E1 100%);" },
+          /* 2: 4.28–6.00s — Editorial Noir with Sculptural Silver Light-Beam ("Just drop it into JobSnap") */
+          { at: 4.28, dur: 0.45, css: "background: radial-gradient(ellipse 46% 62% at 32% 48%, #F8FAFC 0%, #CBD5E1 26%, rgba(148,163,184,0.38) 50%, transparent 72%), radial-gradient(ellipse 55% 42% at 12% 28%, rgba(255,255,255,0.85) 0%, transparent 60%), radial-gradient(circle at 75% 55%, #050507 0%, #090A0F 100%); background-color:#050507;" },
+          /* 3: 6.00–10.65s — Electric Magenta, Warm Gold, Deep Teal & Violet Aurora ("Jobs, match scores... all in one platform") */
+          { at: 6.00, dur: 0.52, css: "background: radial-gradient(ellipse 62% 72% at 15% 45%, #EC4899 0%, rgba(236,72,153,0.65) 42%, transparent 72%), radial-gradient(ellipse 44% 78% at 38% 36%, #F59E0B 0%, rgba(251,191,36,0.5) 36%, transparent 66%), radial-gradient(ellipse 56% 74% at 62% 68%, #0F766E 0%, rgba(13,148,136,0.75) 45%, transparent 74%), radial-gradient(ellipse 64% 76% at 88% 72%, #7C3AED 0%, #4C1D95 55%, #1E1B4B 100%); background-color:#130F26;" },
+          /* 4: 10.65–14.65s — Deep Cobalt-Sapphire & Luminous Cyan-Emerald Ocean ("Our AI scans live roles and scores your fit in seconds") */
+          { at: 10.65, dur: 0.48, css: "background: radial-gradient(ellipse 62% 68% at 20% 42%, #2563EB 0%, rgba(37,99,235,0.45) 44%, transparent 74%), radial-gradient(ellipse 60% 66% at 84% 58%, #059669 0%, rgba(16,185,129,0.42) 42%, transparent 72%), radial-gradient(ellipse 55% 55% at 54% 18%, rgba(56,189,248,0.34) 0%, transparent 68%), #070B19;" },
+          /* 5: 14.65–15.80s — Radiant Mint, Soft Sky & Warm Apricot Silk ("Done.") */
+          { at: 14.65, dur: 0.36, css: "background: radial-gradient(ellipse 64% 64% at 22% 24%, #6EE7B7 0%, rgba(110,231,183,0.4) 44%, transparent 74%), radial-gradient(ellipse 64% 64% at 82% 76%, #FDBA74 0%, rgba(253,186,116,0.42) 44%, transparent 74%), radial-gradient(ellipse 70% 70% at 50% 50%, #F0F9FF 0%, #E0F2FE 65%, #ECFEFF 100%);" },
+          /* 6: 15.80–18.55s — Luminous Periwinkle-Violet & Aqua Cloud Wash ("Every matched role across LinkedIn, Naukri, and direct portals") */
+          { at: 15.80, dur: 0.45, css: "background: radial-gradient(ellipse 68% 68% at 16% 20%, #A5B4FC 0%, rgba(165,180,252,0.45) 42%, transparent 72%), radial-gradient(ellipse 62% 64% at 86% 80%, #99F6E4 0%, rgba(153,246,228,0.48) 42%, transparent 72%), linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 52%, #F0FDFA 100%);" },
+          /* 7: 18.55–21.35s — Warm Coral-Blush & Powder Sky Swirl ("ranked in one clean dashboard" / Multiple Sources) */
+          { at: 18.55, dur: 0.48, css: "background: radial-gradient(ellipse 64% 66% at 18% 76%, #FDA4AF 0%, rgba(253,164,175,0.48) 42%, transparent 72%), radial-gradient(ellipse 64% 66% at 82% 22%, #FDBA74 0%, rgba(253,186,116,0.48) 42%, transparent 72%), radial-gradient(ellipse 65% 65% at 50% 50%, #EFF6FF 0%, #DBEAFE 70%, #F5F3FF 100%);" },
+          /* 8: 21.35–25.15s — Midnight Obsidian with Glowing Emerald & Indigo Horizon ("Pick your top match, hit one-click ATS fill, and you're applied") */
+          { at: 21.35, dur: 0.48, css: "background: radial-gradient(ellipse 66% 58% at 78% 28%, rgba(16,185,129,0.52) 0%, rgba(16,185,129,0.16) 46%, transparent 74%), radial-gradient(ellipse 68% 62% at 22% 76%, rgba(99,102,241,0.56) 0%, rgba(79,70,229,0.18) 48%, transparent 74%), #070A13;" },
+          /* 9: 25.15–27.45s — Sculptural Noir Spotlight & Electric Sky Glow ("Match. Fill. Land.") */
+          { at: 25.15, dur: 0.42, css: "background: radial-gradient(ellipse 52% 64% at 52% 48%, rgba(56,189,248,0.34) 0%, rgba(59,130,246,0.14) 42%, transparent 72%), radial-gradient(ellipse 46% 54% at 24% 34%, rgba(226,232,240,0.42) 0%, transparent 62%), #05060A;" },
+          /* 10: 27.45–32.00s — Velvety Editorial Warm Pearl, Soft Peach & Mint Halo Finale ("JobSnap — at jobsnap.me") */
+          { at: 27.45, dur: 0.55, css: "background: radial-gradient(ellipse 58% 60% at 14% 20%, rgba(253,186,116,0.55) 0%, transparent 68%), radial-gradient(ellipse 58% 60% at 88% 82%, rgba(110,231,183,0.52) 0%, transparent 68%), radial-gradient(ellipse 64% 64% at 82% 18%, rgba(196,181,253,0.42) 0%, transparent 68%), #FAF8FF;" }
+        ];
+        const bgEls = BG_THEMES.map((b, idx) => {
+          const el = mk(bgRoot, "bg-wash", b.css + ` z-index:1;`);
+          if (idx === 0) gsap.set(el, { opacity: 1 });
+          else tl.to(el, { opacity: 1, duration: b.dur, ease: "power2.inOut" }, P0(b.at));
+          return el;
+        });
+        /* Fade older layers out cleanly once covered so compositing stays crisp & fast */
+        for (let i = 0; i < bgEls.length - 1; i++) {
+          const next = BG_THEMES[i + 1];
+          tl.set(bgEls[i], { opacity: 0 }, P0(next.at + next.dur + 0.04));
+        }
+        /* Subtle organic fluid drift across every colored mesh background (seek-safe!) */
+        ticks.push((T) => {
+          const dx = Math.sin(T * 0.45) * 32;
+          const dy = Math.cos(T * 0.36) * 24;
+          const sc = 1.03 + Math.sin(T * 0.28) * 0.025;
+          for (let i = 0; i < bgEls.length; i++) {
+            bgEls[i].style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${sc.toFixed(3)})`;
+          }
+        });
+
+        /* Signature Zelios airy blur-in & blur-out moves */
+        const blurIn = (el, t, d = 0.45, o = {}) =>
+          tl.fromTo(
+            el,
+            { opacity: 0, x: o.x || 0, y: o.y || 0, scale: o.scale != null ? o.scale : 0.96, filter: `blur(${o.blur != null ? o.blur : 14}px)` },
+            { opacity: 1, x: 0, y: 0, scale: 1, filter: "blur(0px)", duration: d, ease: o.ease || "power3.out", immediateRender: o.imm !== false },
+            P0(t)
+          );
+        const blurOut = (el, t, d = 0.34, o = {}) =>
+          tl.to(
+            el,
+            { opacity: 0, x: o.x || 0, y: o.y || 0, scale: o.scale != null ? o.scale : 1.04, filter: `blur(${o.blur != null ? o.blur : 14}px)`, duration: d, ease: "power2.in" },
+            P0(t)
+          );
+
+        function stroke(p, t, d = 0.52, ease = "power2.inOut") {
+          const L = (p.getTotalLength ? p.getTotalLength() : 600) + 2;
+          gsap.set(p, { opacity: 0, attr: { "stroke-dasharray": L, "stroke-dashoffset": L } });
+          tl.set(p, { opacity: 1 }, P0(t));
+          tl.to(p, { attr: { "stroke-dashoffset": 0 }, duration: d, ease }, P0(t));
+          return p;
+        }
+
+        function counter(el, from, to, t0, dur, fmt) {
+          const fn = gsap.parseEase("power2.out");
+          ticks.push((T) => {
+            if (T < t0) { el.textContent = fmt(from); return; }
+            el.textContent = fmt(from + (to - from) * fn(clamp((T - t0) / Math.max(0.01, dur))));
+          });
+        }
+
+        /* Crisp macOS hand pointer SVG + click ripple helper */
+        const HAND_SVG = `<svg viewBox="0 0 64 64" width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+          <path d="M24 10 C24 7 29 7 29 10 L29 26 L31 26 C31 23 36 23 36 26 L36 28 L38 28 C38 25 43 25 43 28 L43 31 L45 31 C45 28 50 28 50 32 L50 43 C50 52 43 57 34 57 C25 57 20 51 16 44 L11 35 C9 32 13 28 17 31 L24 36 Z" fill="#FFFFFF" stroke="#0F172A" stroke-width="3.2" stroke-linejoin="round"/>
+          <line x1="29" y1="32" x2="29" y2="45" stroke="#0F172A" stroke-width="2.4" stroke-linecap="round"/>
+          <line x1="36" y1="33" x2="36" y2="45" stroke="#0F172A" stroke-width="2.4" stroke-linecap="round"/>
+          <line x1="43" y1="35" x2="43" y2="45" stroke="#0F172A" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>`;
+
+        function pointerClick(parent, fromX, fromY, toX, toY, arriveAt, clickAt, exitAt) {
+          const cur = mk(parent, "hand-cur", `left:${fromX}px; top:${fromY}px; opacity:0;`, HAND_SVG);
+          const ring = mk(parent, "click-ring", `left:${toX - 4}px; top:${toY - 12}px; opacity:0;`);
+          gsap.set(ring, { opacity: 0, scale: 0.35 });
+          tl.to(cur, { opacity: 1, duration: 0.22 }, P0(arriveAt));
+          tl.to(cur, { left: toX, top: toY, duration: Math.max(0.25, clickAt - arriveAt), ease: "power3.inOut" }, P0(arriveAt));
+          tl.to(cur, { scale: 0.84, duration: 0.11, ease: "power2.in" }, P0(clickAt));
+          tl.to(cur, { scale: 1.0, duration: 0.18, ease: "back.out(2)" }, P0(clickAt + 0.11));
+          tl.fromTo(ring, { scale: 0.4, opacity: 0.85 }, { scale: 1.8, opacity: 0, duration: 0.45, ease: "power2.out", immediateRender: false }, P0(clickAt + 0.04));
+          if (exitAt != null) tl.to(cur, { opacity: 0, y: 24, duration: 0.24 }, P0(exitAt));
+          return cur;
+        }
+
+        /* Authentic JobSnap Emerald-Bolt SVG Logo (unique gradient ID per instance so display:none scenes never break url(#id)) */
+        let _svgUid = 0;
+        const LOGO_SVG = (size = 64) => {
+          const gid = "jsLumG_" + (++_svgUid);
+          return `
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="${size}" height="${size}" style="display:block;flex-shrink:0">
+            <defs>
+              <linearGradient id="${gid}" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#10b981"/>
+                <stop offset="100%" stop-color="#047857"/>
+              </linearGradient>
+            </defs>
+            <rect width="120" height="120" rx="28" fill="url(#${gid})"/>
+            <polygon points="68.4,22.2 34.8,67.8 58.8,67.8 51.6,103.8 85.2,58.2 61.2,58.2" fill="#022c22" opacity="0.18"/>
+            <polygon points="68.4,19.2 34.8,64.8 58.8,64.8 51.6,100.8 85.2,55.2 61.2,55.2" fill="#ffffff"/>
+          </svg>`;
+        };
+
+        /* 4-point luminous sparkle SVG (unique gradient ID per instance) */
+        const SPARKLE_SVG = (size = 96) => {
+          const sid = "spGrad_" + (++_svgUid);
+          return `
+          <svg viewBox="0 0 100 100" width="${size}" height="${size}" style="display:block;overflow:visible;">
+            <defs>
+              <linearGradient id="${sid}" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#60A5FA"/>
+                <stop offset="55%" stop-color="#3B82F6"/>
+                <stop offset="100%" stop-color="#10B981"/>
+              </linearGradient>
+            </defs>
+            <path d="M50 4 C54 34, 66 46, 96 50 C66 54, 54 66, 50 96 C46 66, 34 54, 4 50 C34 46, 46 34, 50 4 Z" fill="url(#${sid})" />
+          </svg>`;
+        };
+
+        /*__SCENES__*/
+
+        const clock = { _t: 0 };
+        Object.defineProperty(clock, "t", {
+          get() { return this._t; },
+          set(v) { this._t = v; for (const f of ticks) f(v); }
+        });
+        rootTl.to(clock, { t: DUR, duration: DUR, ease: "none" }, 0);
+        for (const f of ticks) f(0);
+
+        window.__timelines = window.__timelines || {};
+        window.__timelines["film"] = rootTl;
+      }
+
+      const ready = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+      Promise.all([
+        ready,
+        document.fonts.load('400 72px "Plus Jakarta Sans"'),
+        document.fonts.load('500 84px "Plus Jakarta Sans"'),
+        document.fonts.load('600 40px "Plus Jakarta Sans"'),
+        document.fonts.load('500 24px "JetBrains Mono"')
+      ]).then(build, build);
+    })();
+  </script>
+</template>

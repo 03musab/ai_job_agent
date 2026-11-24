@@ -60,11 +60,11 @@
         left: 50%;
         transform: translateX(-50%);
         width: min(1160px, calc(100vw - 32px));
-        background: rgba(12, 46, 32, 0.94);
-        border: 1px solid rgba(16, 185, 129, 0.55);
+        background: rgba(11, 16, 26, 0.96);
+        border: 1px solid rgba(16, 185, 129, 0.45);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
-        border-radius: 10px;
+        border-radius: 0;
         padding: 9px 14px;
         display: none;
         align-items: center;
@@ -72,7 +72,7 @@
         gap: 12px;
         z-index: 99997;
         pointer-events: auto;
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55);
         opacity: 1;
         transition: opacity 0.25s ease, transform 0.25s ease;
     }
@@ -141,36 +141,50 @@
         filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.75));
     }
 
-    /* Consistent, High-Contrast Structured Coach-Mark Card with Snap Companion */
+    /* Consistent, High-Contrast Architectural Coach-Mark Card with Snap Companion */
     #spotlightCalloutBox {
         position: fixed;
         top: 0;
         left: 0;
         z-index: 99995;
-        width: min(470px, calc(100vw - 24px));
-        background: rgba(13, 17, 26, 0.96);
-        border: 1px solid rgba(16, 185, 129, 0.45);
-        border-radius: 16px;
-        padding: 18px 20px;
+        width: min(468px, calc(100vw - 24px));
+        background: rgba(11, 14, 22, 0.97);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        border-radius: 0;
+        padding: 0;
         pointer-events: none;
         box-shadow:
-            0 24px 60px rgba(0, 0, 0, 0.85),
-            0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+            0 24px 60px rgba(0, 0, 0, 0.82),
+            0 0 0 1px rgba(255, 255, 255, 0.05) inset;
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
         will-change: top, left;
         overflow: hidden;
     }
 
-    /* Top Accent Line on Coach-Mark Card */
-    #spotlightCalloutBox::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2.5px;
-        background: linear-gradient(90deg, #10b981 0%, #f59e0b 60%, transparent 100%);
+    .spotlight-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 16px;
+        background: rgba(255, 255, 255, 0.025);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+    }
+
+    .spotlight-card-body {
+        padding: 16px 16px 14px;
+    }
+
+    .spotlight-card-footer {
+        padding: 11px 16px;
+        background: rgba(255, 255, 255, 0.018);
+        border-top: 1px solid rgba(148, 163, 184, 0.16);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
     }
 
     .spotlight-snap-shell {
@@ -180,11 +194,11 @@
     }
 
     .spotlight-snap-avatar {
-        width: 56px;
-        height: 56px;
-        border-radius: 14px;
-        background: rgba(16, 185, 129, 0.10);
-        border: 1px solid rgba(16, 185, 129, 0.35);
+        width: 52px;
+        height: 52px;
+        border-radius: 0;
+        background: rgba(16, 185, 129, 0.08);
+        border: 1px solid rgba(16, 185, 129, 0.32);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -241,18 +255,19 @@
     }
 
     #spotlightBannerEndBtn {
-        background: rgba(244, 63, 94, 0.28);
-        border: 1px solid rgba(251, 113, 133, 0.65);
+        background: rgba(244, 63, 94, 0.2);
+        border: 1px solid rgba(251, 113, 133, 0.55);
         color: #ffe4e6 !important;
         padding: 4px 10px;
-        border-radius: 6px;
+        border-radius: 0;
         font-size: 11px;
         font-weight: 700;
         cursor: pointer;
+        transition: background-color 0.15s ease, color 0.15s ease;
     }
 
     #spotlightBannerEndBtn:hover {
-        background: rgba(244, 63, 94, 0.45);
+        background: rgba(244, 63, 94, 0.36);
         color: #ffffff !important;
     }
 
@@ -271,40 +286,78 @@
     }
 
     #spotlightStepCounter {
-        background: rgba(16, 185, 129, 0.18);
-        color: #6ee7b7 !important;
-        border: 1px solid rgba(52, 211, 153, 0.45);
-    }
-
-    #spotlightFeatureTag {
-        background: rgba(30, 41, 59, 0.94);
-        color: #e2e8f0 !important;
-        border: 1px solid rgba(100, 116, 139, 0.5);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 8px;
+        border-radius: 0;
+        background: rgba(16, 185, 129, 0.12);
+        color: #4edea3 !important;
+        border: 1px solid rgba(16, 185, 129, 0.38);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        flex-shrink: 0;
     }
 
     #spotlightPagePill {
-        background: rgba(16, 185, 129, 0.16);
-        color: #a7f3d0 !important;
-        border: 1px solid rgba(52, 211, 153, 0.45);
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 8px;
+        border-radius: 0;
+        background: rgba(30, 41, 59, 0.78);
+        color: #cbd5e1 !important;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        max-width: 52%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex-shrink: 1;
+    }
+
+    #spotlightFeatureTag {
+        display: inline-block;
+        margin-bottom: 5px;
+        padding: 2px 6px;
+        border-radius: 0;
+        background: rgba(16, 185, 129, 0.08);
+        color: #6ee7b7 !important;
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 9.5px;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .spotlight-card-title {
         font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 15.5px;
+        font-size: 15px;
         font-weight: 700;
-        line-height: 1.38;
+        line-height: 1.36;
         color: #f8fafc;
-        letter-spacing: -0.01em;
+        letter-spacing: -0.015em;
         margin: 0;
     }
 
     .spotlight-card-sub {
-        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         font-size: 12.5px;
         font-weight: 400;
-        color: #cbd5e1;
-        margin-top: 5px;
-        line-height: 1.52;
+        color: #b6c2d6;
+        margin-top: 6px;
+        line-height: 1.54;
     }
 
     /* End Tour Button (Permanently stops tour even across refreshes) */
@@ -312,49 +365,49 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 5px;
-        height: 34px;
+        gap: 6px;
+        height: 32px;
         padding: 0 11px;
-        border-radius: 8px;
-        border: 1.5px solid rgba(244, 63, 94, 0.55);
-        background: rgba(244, 63, 94, 0.12);
+        border-radius: 0;
+        border: 1px solid rgba(244, 63, 94, 0.42);
+        background: rgba(244, 63, 94, 0.08);
         color: #fda4af;
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 600;
         cursor: pointer;
-        transition: all 0.16s ease;
+        transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
         white-space: nowrap;
         flex-shrink: 0;
     }
     .spotlight-btn-end:hover {
-        background: rgba(244, 63, 94, 0.24);
-        border-color: #fb7185;
-        color: #ffe4e6;
+        background: rgba(244, 63, 94, 0.2);
+        border-color: rgba(251, 113, 133, 0.8);
+        color: #fff1f2;
     }
 
     .spotlight-btn-prev {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 4px;
-        height: 34px;
+        gap: 5px;
+        height: 32px;
         padding: 0 11px;
-        border-radius: 8px;
-        border: 1px solid rgba(148, 163, 184, 0.32);
-        background: rgba(30, 41, 59, 0.65);
+        border-radius: 0;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        background: rgba(30, 41, 59, 0.55);
         color: #e2e8f0;
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
         font-size: 12px;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.16s ease;
+        transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
         white-space: nowrap;
         flex-shrink: 0;
     }
     .spotlight-btn-prev:hover {
-        border-color: rgba(255, 255, 255, 0.45);
-        background: rgba(51, 65, 85, 0.8);
+        border-color: rgba(226, 232, 240, 0.55);
+        background: rgba(51, 65, 85, 0.78);
         color: #ffffff;
     }
 
@@ -362,42 +415,55 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 5px;
-        height: 34px;
-        padding: 0 13px;
-        border-radius: 8px;
-        border: 1px solid #10b981;
-        background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-        color: #ffffff;
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        gap: 6px;
+        height: 32px;
+        padding: 0 14px;
+        border-radius: 0;
+        border: 1px solid #34d399;
+        background: #10b981;
+        color: #032219;
+        font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
         font-size: 12px;
         font-weight: 700;
         cursor: pointer;
-        transition: all 0.16s ease;
-        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.32);
+        transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
         white-space: nowrap;
         flex-shrink: 0;
     }
     .spotlight-btn-next:hover {
-        filter: brightness(1.08);
+        background: #34d399;
+        border-color: #6ee7b7;
         transform: translateY(-1px);
     }
 
+    #spotlightDotsContainer {
+        margin-top: 14px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
     .spotlight-dot {
-        width: 5.5px;
-        height: 5.5px;
-        border-radius: 999px;
-        background: rgba(148, 163, 184, 0.30);
+        flex: 1;
+        max-width: 24px;
+        height: 3px;
+        border-radius: 0;
+        background: rgba(148, 163, 184, 0.22);
         border: none;
         padding: 0;
         cursor: pointer;
-        transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+        transition: background-color 0.2s ease, transform 0.2s ease;
     }
     .spotlight-dot:hover {
-        background: rgba(148, 163, 184, 0.65);
+        background: rgba(148, 163, 184, 0.58);
+    }
+    .spotlight-dot.completed {
+        background: rgba(16, 185, 129, 0.45);
     }
     .spotlight-dot.active {
-        width: 16px;
+        flex: 1.8;
+        max-width: 36px;
         background: #10b981;
     }
 
@@ -413,66 +479,23 @@
         }
         #spotlightCalloutBox {
             width: calc(100vw - 20px);
-            padding: 14px 15px;
-            border-radius: 14px;
+            border-radius: 0;
+        }
+        .spotlight-card-header {
+            padding: 8px 12px;
+            gap: 6px;
+        }
+        .spotlight-card-body {
+            padding: 13px 12px 12px;
+        }
+        .spotlight-card-footer {
+            padding: 9px 12px;
         }
         .spotlight-snap-avatar {
-            width: 46px;
-            height: 46px;
+            width: 44px;
+            height: 44px;
         }
-        #spotlightBannerText {
-        color: #ecfdf5 !important;
-    }
-
-    #spotlightBannerEndBtn {
-        background: rgba(244, 63, 94, 0.28);
-        border: 1px solid rgba(251, 113, 133, 0.65);
-        color: #ffe4e6 !important;
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: 700;
-        cursor: pointer;
-    }
-
-    #spotlightBannerEndBtn:hover {
-        background: rgba(244, 63, 94, 0.45);
-        color: #ffffff !important;
-    }
-
-    #spotlightBannerCloseBtn {
-        color: #d1fae5 !important;
-        background: transparent;
-        border: none;
-        font-size: 18px;
-        line-height: 1;
-        padding: 0 4px;
-        cursor: pointer;
-    }
-
-    #spotlightBannerCloseBtn:hover {
-        color: #ffffff !important;
-    }
-
-    #spotlightStepCounter {
-        background: rgba(16, 185, 129, 0.18);
-        color: #6ee7b7 !important;
-        border: 1px solid rgba(52, 211, 153, 0.45);
-    }
-
-    #spotlightFeatureTag {
-        background: rgba(30, 41, 59, 0.94);
-        color: #e2e8f0 !important;
-        border: 1px solid rgba(100, 116, 139, 0.5);
-    }
-
-    #spotlightPagePill {
-        background: rgba(16, 185, 129, 0.16);
-        color: #a7f3d0 !important;
-        border: 1px solid rgba(52, 211, 153, 0.45);
-    }
-
-    .spotlight-card-title {
+        .spotlight-card-title {
             font-size: 14px;
         }
         .spotlight-card-sub {
@@ -482,7 +505,7 @@
         .spotlight-btn-end,
         .spotlight-btn-prev,
         .spotlight-btn-next {
-            height: 36px;
+            height: 34px;
             font-size: 11.5px;
             padding: 0 10px;
         }
@@ -1053,55 +1076,53 @@
         <path id="spotlightArrowHead" d="M 0 0 L 0 0 L 0 0" />
     </svg>
 
-    <!-- 4. Structured, High-Contrast Coach-Mark Card with Snap Character -->
+    <!-- 4. Structured, High-Contrast Architectural Coach-Mark Card with Snap Character -->
     <div id="spotlightCalloutBox" role="dialog" aria-labelledby="spotlightCalloutText">
-        <!-- Card Header Row -->
-        <div class="mb-3 flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2 min-w-0">
-                <span id="spotlightStepCounter" class="font-data-mono text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-md font-bold shrink-0">
-                    SNAPY · STEP 1 / 14
-                </span>
-                <span id="spotlightFeatureTag" class="font-data-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md font-semibold truncate">
-                    DASHBOARD
-                </span>
-            </div>
-            <span id="spotlightPagePill" class="font-data-mono text-[10px] font-semibold px-2 py-0.5 rounded shrink-0">
+        <!-- Card Header Strip -->
+        <div class="spotlight-card-header">
+            <span id="spotlightStepCounter">
+                SNAPY · STEP 1 / 14
+            </span>
+            <span id="spotlightPagePill">
                 Page 1/4
             </span>
         </div>
 
-        <!-- Animated Snap Companion + Title/Description -->
-        <div class="spotlight-snap-shell">
-            <div id="spotlightSnapAvatar" class="spotlight-snap-avatar" aria-hidden="true">
-                <svg width="48" height="48" viewBox="0 0 80 80" fill="none">
-                    <g class="spotlight-snap-float">
-                        <ellipse cx="40" cy="72" rx="18" ry="3.5" fill="#10b981" opacity="0.22"/>
-                        <rect x="21" y="24" width="38" height="40" rx="16" fill="#10b981" stroke="#0f172a" stroke-width="2.4"/>
-                        <rect x="27" y="33" width="26" height="15" rx="7.5" fill="#faf8f5" stroke="#0f172a" stroke-width="2"/>
-                        <circle class="spotlight-snap-blink" cx="35" cy="40.5" r="2.3" fill="#0f172a"/>
-                        <circle class="spotlight-snap-blink" cx="45" cy="40.5" r="2.3" fill="#0f172a"/>
-                        <path d="M37 44.5c1.5 1.4 3.5 1.4 5 0" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
-                        <line x1="40" y1="24" x2="40" y2="15" stroke="#e2e8f0" stroke-width="2.2" stroke-linecap="round"/>
-                        <circle id="tourSnapBeacon" cx="40" cy="13" r="4" fill="#f59e0b" stroke="#0f172a" stroke-width="2"/>
-                        <path class="spotlight-snap-arm" d="M21 45c-6-2-9-7-8-12" stroke="#e2e8f0" stroke-width="3" stroke-linecap="round"/>
-                    </g>
-                </svg>
+        <!-- Card Body: Animated Snap Companion + Feature Eyebrow + Title/Description + Progress Track -->
+        <div class="spotlight-card-body">
+            <div class="spotlight-snap-shell">
+                <div id="spotlightSnapAvatar" class="spotlight-snap-avatar" aria-hidden="true">
+                    <svg width="44" height="44" viewBox="0 0 80 80" fill="none">
+                        <g class="spotlight-snap-float">
+                            <ellipse cx="40" cy="72" rx="18" ry="3.5" fill="#10b981" opacity="0.22"/>
+                            <rect x="21" y="24" width="38" height="40" rx="16" fill="#10b981" stroke="#0f172a" stroke-width="2.4"/>
+                            <rect x="27" y="33" width="26" height="15" rx="7.5" fill="#faf8f5" stroke="#0f172a" stroke-width="2"/>
+                            <circle class="spotlight-snap-blink" cx="35" cy="40.5" r="2.3" fill="#0f172a"/>
+                            <circle class="spotlight-snap-blink" cx="45" cy="40.5" r="2.3" fill="#0f172a"/>
+                            <path d="M37 44.5c1.5 1.4 3.5 1.4 5 0" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+                            <line x1="40" y1="24" x2="40" y2="15" stroke="#e2e8f0" stroke-width="2.2" stroke-linecap="round"/>
+                            <circle id="tourSnapBeacon" cx="40" cy="13" r="4" fill="#f59e0b" stroke="#0f172a" stroke-width="2"/>
+                            <path class="spotlight-snap-arm" d="M21 45c-6-2-9-7-8-12" stroke="#e2e8f0" stroke-width="3" stroke-linecap="round"/>
+                        </g>
+                    </svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <span id="spotlightFeatureTag">DASHBOARD</span>
+                    <h3 id="spotlightCalloutText" class="spotlight-card-title">
+                        Begin to set up your workspace-monitor Active Jobs, Applications, and Hires live.
+                    </h3>
+                    <p id="spotlightCalloutSub" class="spotlight-card-sub">
+                        Click Active Jobs or Applications metric cards to jump straight to those rosters, or click Next to explore your hiring funnel.
+                    </p>
+                </div>
             </div>
-            <div class="min-w-0 flex-1">
-                <h3 id="spotlightCalloutText" class="spotlight-card-title">
-                    Begin to set up your workspace-monitor Active Jobs, Applications, and Hires live.
-                </h3>
-                <p id="spotlightCalloutSub" class="spotlight-card-sub">
-                    Click Active Jobs or Applications metric cards to jump straight to those rosters, or click Next to explore your hiring funnel.
-                </p>
-            </div>
+
+            <!-- Progress Track -->
+            <div id="spotlightDotsContainer"></div>
         </div>
 
-        <!-- Progress Dots Row -->
-        <div id="spotlightDotsContainer" class="mt-3.5 flex items-center gap-1.5 flex-wrap"></div>
-
         <!-- Card Footer Row: End Tour + Back + Next -->
-        <div class="mt-3.5 pt-3 border-t border-slate-800/90 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+        <div class="spotlight-card-footer">
             <button type="button" id="spotlightEndTourBtn" onclick="window.endSpotlightTour()" class="spotlight-btn-end" title="End tour completely">
                 <span>✕</span>
                 <span>End Tour</span>
@@ -1923,7 +1944,7 @@
         steps.forEach((s, i) => {
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'spotlight-dot' + (i === currentIdx ? ' active' : '');
+            btn.className = 'spotlight-dot' + (i === currentIdx ? ' active' : (i < currentIdx ? ' completed' : ''));
             btn.title = `Step ${i + 1}: ${s.tag}`;
             btn.onclick = () => window.goToSpotlightStep(i);
             dotsContainer.appendChild(btn);

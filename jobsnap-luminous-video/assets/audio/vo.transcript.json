@@ -1,0 +1,408 @@
+{
+  "audio": "assets/audio/vo.wav",
+  "language": "en",
+  "words": [
+    {
+      "text": "Turn",
+      "start": 0.1,
+      "end": 0.3,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "your",
+      "start": 0.34,
+      "end": 0.46,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "resume",
+      "start": 0.52,
+      "end": 1.04,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "into",
+      "start": 1.12,
+      "end": 1.38,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "interviews",
+      "start": 1.46,
+      "end": 2.04,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "for",
+      "start": 2.3,
+      "end": 2.52,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "any",
+      "start": 2.62,
+      "end": 2.82,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "role",
+      "start": 2.9,
+      "end": 3.12,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "instantly.",
+      "start": 3.48,
+      "end": 4.019,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Just",
+      "start": 4.38,
+      "end": 4.54,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "drop",
+      "start": 4.6,
+      "end": 4.8,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "it",
+      "start": 4.84,
+      "end": 4.9,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "into",
+      "start": 4.94,
+      "end": 5.12,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "JobSnap.",
+      "start": 5.2,
+      "end": 5.76,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Jobs,",
+      "start": 6.2,
+      "end": 6.6,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "match",
+      "start": 6.84,
+      "end": 7.06,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "scores,",
+      "start": 7.14,
+      "end": 7.56,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "and",
+      "start": 7.72,
+      "end": 7.88,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "one-click",
+      "start": 8,
+      "end": 8.38,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "applications",
+      "start": 8.44,
+      "end": 9.14,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "all",
+      "start": 9.44,
+      "end": 9.68,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "in",
+      "start": 9.74,
+      "end": 9.9,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "one",
+      "start": 10,
+      "end": 10.14,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "platform.",
+      "start": 10.2,
+      "end": 10.76,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Our",
+      "start": 11.16,
+      "end": 11.3,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "AI",
+      "start": 11.4,
+      "end": 11.74,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "scans",
+      "start": 11.84,
+      "end": 12.12,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "live",
+      "start": 12.24,
+      "end": 12.5,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "roles",
+      "start": 12.56,
+      "end": 12.9,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "and",
+      "start": 12.96,
+      "end": 13.06,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "scores",
+      "start": 13.14,
+      "end": 13.4,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "your",
+      "start": 13.44,
+      "end": 13.56,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "fit",
+      "start": 13.64,
+      "end": 13.86,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "in",
+      "start": 13.92,
+      "end": 14.06,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "seconds.",
+      "start": 14.16,
+      "end": 14.62,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Done.",
+      "start": 14.94,
+      "end": 15.24,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Every",
+      "start": 15.7,
+      "end": 15.92,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "matched",
+      "start": 15.98,
+      "end": 16.28,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "role",
+      "start": 16.36,
+      "end": 16.56,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "across",
+      "start": 16.6,
+      "end": 16.96,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "LinkedIn,",
+      "start": 17.02,
+      "end": 17.48,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Naukri,",
+      "start": 17.7,
+      "end": 18.12,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "and",
+      "start": 18.34,
+      "end": 18.46,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "direct",
+      "start": 18.52,
+      "end": 18.84,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "portals",
+      "start": 18.9,
+      "end": 19.3,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "ranked",
+      "start": 19.58,
+      "end": 19.84,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "in",
+      "start": 19.9,
+      "end": 20.06,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "one",
+      "start": 20.2,
+      "end": 20.4,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "clean",
+      "start": 20.46,
+      "end": 20.72,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "dashboard.",
+      "start": 20.78,
+      "end": 21.32,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Pick",
+      "start": 21.64,
+      "end": 21.78,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "your",
+      "start": 21.82,
+      "end": 21.9,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "top",
+      "start": 21.96,
+      "end": 22.16,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "match,",
+      "start": 22.22,
+      "end": 22.54,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "hit",
+      "start": 22.8,
+      "end": 22.98,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "one-click",
+      "start": 23.08,
+      "end": 23.46,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "ATS",
+      "start": 23.52,
+      "end": 23.96,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "fill,",
+      "start": 24.02,
+      "end": 24.22,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "and",
+      "start": 24.5,
+      "end": 24.58,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "you're",
+      "start": 24.62,
+      "end": 24.7,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "applied.",
+      "start": 24.74,
+      "end": 25.2,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Match,",
+      "start": 25.62,
+      "end": 25.94,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "fill,",
+      "start": 26.26,
+      "end": 26.5,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "land.",
+      "start": 26.88,
+      "end": 27.24,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "JobSnap",
+      "start": 27.6,
+      "end": 28.4,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "at",
+      "start": 28.48,
+      "end": 28.6,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "jobsnap.me",
+      "start": 28.68,
+      "end": 29.78,
+      "speaker": "speaker_0"
+    }
+  ]
+}

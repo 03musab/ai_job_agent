@@ -1,0 +1,14 @@
+# JobSnap Luminous Glass — 32s Shot-by-Shot Storyboard
+
+Faithful motion grammar from the uploaded 32s reference video, mapped to **JobSnap (`jobsnap.me`)**:
+
+| Time | Shot / Beat | Copy on Screen | Choreography & Visual Action |
+|---|---|---|---|
+| **0.0–3.0s** | **S1 · Blur-Slide Hook** | `Turn Resumes` → `Interviews` → `Any Role` | Pure `#F8FAFF` canvas. Light-weight geometric words blur-glide smoothly across center (`Turn` in luminous blue, `Resumes` in graphite → morphs to `Interviews` → `Any`). |
+| **3.0–5.5s** | **S2 · 3D Glass Folder + Click** | `Any role` `[3D Glass Folder]` `Instantly` | Translucent frosted gradient glass folder (`Resume & Roles`) tilts in at center with white JobSnap role cards peeking out. Crisp macOS hand pointer clicks it → zooms/unfolds into a 3D perspective glass dashboard sheet. |
+| **5.5–9.8s** | **S3 · 4-Phone Radial Ring** | `Just drop and` → `Jobs. Match. Apply` → `All In One Platform` | Four sleek white-screen iPhones glide inward from all 4 frame edges at radial angles, framing centered luminous type that evolves from `Jobs.` → `Jobs. Match. Apply` → `All In One Platform`. |
+| **9.8–12.8s** | **S4 · Ribbon → Progress Bar** | `81/100` → `99/100` → `100/100` | Glowing blue-indigo-emerald ribbon sweeps off the left phone edge and resolves into an oversized luminous rounded progress bar filling smoothly while the clean tabular score ticks to `100/100`. |
+| **12.8–14.8s** | **S5 · Glass Check + Confetti** | `Done` | `"Done"` floats above a frosted luminous glass circle with an animated SVG checkmark stroke (`stroke()`) and deterministic flat geometric blue/emerald confetti shards bursting outward → circle morphs into a glowing rounded square. |
+| **14.8–19.8s** | **S6 · 3D Dashboard → 4-Corner Orbit** | `JobSnap BETA` Dashboard → `Multiple Sources` | Horizontal card carousel pulls back in 3D perspective to show the full JobSnap Dashboard (`Job Matches · All / LinkedIn / Naukri / Portals`). Pointer clicks `Senior Full-Stack · Stripe · 96%` → card fans into 4 tilted corner cards (`LinkedIn`, `Naukri`, `Internshala`, `Direct`) framing centered `"Multiple Sources"`. |
+| **19.8–24.8s** | **S7 · Macro List Row → Pill CTA Click** | `Senior Full-Stack · Stripe` → `1-Click ATS Fill` | Dashboard smoothly shifts to list view, zooms tightly into one floating white list row with luminous under-glow, pans right to the black pill `1-Click ATS Fill` → pointer clicks it → pill blooms into a luminous sky-emerald gradient pill `1-Click ATS Fill ✓`. |
+| **24.8–32.0s** | **S8 · Sparkle Arc → Brand Lockup** | `Match. Fill. Land ✦` → `[Logo] JobSnap` · `jobsnap.me` | Glowing button collapses into a 4-point luminous sparkle (`✦`) that sweeps in a light ribbon arc, revealing `"Match. Fill. Land ✦"`, then resolves cleanly into the authentic **JobSnap** logo + wordmark centered on luminous white with `jobsnap.me` below. |

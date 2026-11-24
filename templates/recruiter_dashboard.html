@@ -148,12 +148,12 @@
             get kpiRings() {
                 const s = this.stats;
                 return [
-                    { key: 'active_jobs', label: 'Active Jobs', count: s.active_jobs, color: '#c0c1ff', onClick: () => document.getElementById('active-jobs-section')?.scrollIntoView({behavior:'smooth'}) },
-                    { key: 'total_applications', label: 'Applications', count: s.total_applications, color: '#4edea3', onClick: () => document.getElementById('applications-section')?.scrollIntoView({behavior:'smooth'}) },
-                    { key: 'interviews_scheduled', label: 'Interviews', count: s.interviews_scheduled, color: '#ffb95f' },
-                    { key: 'hires_this_month', label: 'Hires', count: s.hires_this_month, color: '#4edea3' },
-                    { key: 'profile_views', label: 'Views', count: s.profile_views, color: '#c0c1ff' },
-                    { key: 'ai_score', label: 'AI Health', count: s.active_jobs > 0 ? '98%' : '100%', color: '#8083ff' },
+                    { key: 'active_jobs', label: 'Active Jobs', count: s.active_jobs || 0, color: '#c0c1ff', onClick: () => document.getElementById('active-jobs-section')?.scrollIntoView({behavior:'smooth'}) },
+                    { key: 'total_applications', label: 'Applications', count: s.total_applications || 0, color: '#4edea3', onClick: () => document.getElementById('applications-section')?.scrollIntoView({behavior:'smooth'}) },
+                    { key: 'shortlisted_count', label: 'Shortlisted', count: s.shortlisted_count || 0, color: '#c0c1ff' },
+                    { key: 'interviews_scheduled', label: 'Interviews', count: s.interviews_scheduled || 0, color: '#ffb95f' },
+                    { key: 'hires_this_month', label: 'Hires', count: s.hires_this_month || 0, color: '#4edea3' },
+                    { key: 'avg_match_score', label: 'Avg Fit', count: (s.avg_match_score !== null && s.avg_match_score !== undefined) ? (s.avg_match_score + '%') : '-', color: '#8083ff' },
                 ];
             },
 
@@ -209,8 +209,8 @@
                     applied_date: fallbackApp.applied_date || '',
                     ai_match_score: fallbackApp.ai_match_score || 0,
                     applicant_note: fallbackApp.notes || '',
-                    authorized_to_work: 'Authorized',
-                    willing_to_relocate: 'Open',
+                    authorized_to_work: '',
+                    willing_to_relocate: '',
                     skills: [],
                     experience: [],
                     summary: ''
@@ -326,14 +326,14 @@
             </template>
             <template x-if="!company || !company.logo">
                 <div class="w-12 h-12 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center text-primary font-headline-md text-[18px] font-bold shrink-0">
-                    <span x-text="'{{ current_user.username }}'.charAt(0).toUpperCase()"></span>
+                    <span>{{ (current_user.username or 'R')[0] | upper }}</span>
                 </div>
             </template>
 
             <div class="flex flex-col min-w-0 flex-1">
                 <span id="greeting-text" class="font-data-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Good day</span>
                 <div class="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0">
-                    <h1 class="font-headline-lg text-on-surface text-[18px] sm:text-[20px] font-bold truncate max-w-full" x-text="'{{ current_user.username }}'"></h1>
+                    <h1 class="font-headline-lg text-on-surface text-[18px] sm:text-[20px] font-bold truncate max-w-full">{{ current_user.username }}</h1>
                     <template x-if="companyName">
                         <span class="font-data-mono text-[10px] px-2 py-0.5 rounded border border-outline-variant bg-surface-container-high text-on-surface-variant truncate max-w-[200px]" x-text="companyName"></span>
                     </template>
@@ -720,41 +720,41 @@
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                             <div class="p-2 rounded-lg bg-surface-container border border-outline-variant/60 text-center">
                                 <span class="font-data-mono text-[8px] uppercase tracking-wider text-on-surface-variant block">Fit Score</span>
-                                <span class="font-data-mono text-[13px] font-bold text-secondary block mt-0.5" x-text="(selectedProfile.ai_match_score ? Math.round(selectedProfile.ai_match_score) : 65) + '%'"></span>
+                                <span class="font-data-mono text-[13px] font-bold text-secondary block mt-0.5" x-text="selectedProfile.ai_match_score ? (Math.round(selectedProfile.ai_match_score) + '%') : '-'"></span>
                             </div>
                             <div class="p-2 rounded-lg bg-surface-container border border-outline-variant/60 text-center">
                                 <span class="font-data-mono text-[8px] uppercase tracking-wider text-on-surface-variant block">Experience</span>
-                                <span class="font-body-sm text-[11.5px] font-semibold text-on-surface block mt-0.5 truncate" x-text="selectedProfile.experience_years || 'Experienced'"></span>
+                                <span class="font-body-sm text-[11.5px] font-semibold text-on-surface block mt-0.5 truncate" x-text="selectedProfile.experience_years || 'Not specified'"></span>
                             </div>
                             <div class="p-2 rounded-lg bg-surface-container border border-outline-variant/60 text-center">
                                 <span class="font-data-mono text-[8px] uppercase tracking-wider text-on-surface-variant block">Work Auth</span>
-                                <span class="font-body-sm text-[11.5px] font-semibold text-on-surface block mt-0.5 capitalize truncate" x-text="selectedProfile.authorized_to_work || 'Yes'"></span>
+                                <span class="font-body-sm text-[11.5px] font-semibold text-on-surface block mt-0.5 capitalize truncate" x-text="selectedProfile.authorized_to_work || 'Not specified'"></span>
                             </div>
                             <div class="p-2 rounded-lg bg-surface-container border border-outline-variant/60 text-center">
                                 <span class="font-data-mono text-[8px] uppercase tracking-wider text-on-surface-variant block">Relocate</span>
-                                <span class="font-body-sm text-[11.5px] font-semibold text-on-surface block mt-0.5 capitalize truncate" x-text="selectedProfile.willing_to_relocate || 'Open'"></span>
+                                <span class="font-body-sm text-[11.5px] font-semibold text-on-surface block mt-0.5 capitalize truncate" x-text="selectedProfile.willing_to_relocate || 'Not specified'"></span>
                             </div>
                         </div>
 
                         <!-- Professional Links (Compact) -->
                         <div x-show="selectedProfile.linkedin_url || selectedProfile.github_url || selectedProfile.portfolio_url"
                              class="flex items-center gap-1.5 flex-wrap">
-                            <template x-if="selectedProfile.linkedin_url">
-                                <a :href="selectedProfile.linkedin_url" target="_blank"
+                            <template x-if="selectedProfile.linkedin_url && /^https?:\/\//i.test(selectedProfile.linkedin_url)">
+                                <a :href="selectedProfile.linkedin_url" target="_blank" rel="noopener noreferrer"
                                    class="font-data-mono text-[10px] px-2 py-0.5 rounded-md border border-outline-variant bg-surface-container hover:border-primary text-primary transition-colors flex items-center gap-1">
                                     <span class="material-symbols-outlined text-[12px]">link</span>
                                     <span>LinkedIn ↗</span>
                                 </a>
                             </template>
-                            <template x-if="selectedProfile.github_url">
-                                <a :href="selectedProfile.github_url" target="_blank"
+                            <template x-if="selectedProfile.github_url && /^https?:\/\//i.test(selectedProfile.github_url)">
+                                <a :href="selectedProfile.github_url" target="_blank" rel="noopener noreferrer"
                                    class="font-data-mono text-[10px] px-2 py-0.5 rounded-md border border-outline-variant bg-surface-container hover:border-primary text-primary transition-colors flex items-center gap-1">
                                     <span class="material-symbols-outlined text-[12px]">code</span>
                                     <span>GitHub ↗</span>
                                 </a>
                             </template>
-                            <template x-if="selectedProfile.portfolio_url">
-                                <a :href="selectedProfile.portfolio_url" target="_blank"
+                            <template x-if="selectedProfile.portfolio_url && /^https?:\/\//i.test(selectedProfile.portfolio_url)">
+                                <a :href="selectedProfile.portfolio_url" target="_blank" rel="noopener noreferrer"
                                    class="font-data-mono text-[10px] px-2 py-0.5 rounded-md border border-outline-variant bg-surface-container hover:border-primary text-primary transition-colors flex items-center gap-1">
                                     <span class="material-symbols-outlined text-[12px]">language</span>
                                     <span>Portfolio ↗</span>

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <script src="assets/ae-motion.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #F8FAFF; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #F8FAFF; }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-iekx" id="root" data-composition-id="main" data-start="0" data-duration="32.0" data-width="1920" data-height="1080">
+      <div data-hf-id="hf-rt4w" id="film" data-composition-id="film" data-composition-src="compositions/film.html" data-start="0" data-duration="32.0" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <audio id="vo" class="clip" src="assets/audio/vo.wav" data-start="0" data-duration="32.0" data-track-index="2" data-volume="1"></audio>
+      <audio id="music" class="clip" src="assets/audio/music.wav" data-start="0" data-duration="32.0" data-track-index="3" data-volume="1"></audio>
+      <audio id="sfx" class="clip" src="assets/audio/sfx.wav" data-start="0" data-duration="32.0" data-track-index="4" data-volume="1"></audio>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>

@@ -71,9 +71,9 @@ class SkillGapService:
         Return JSON: {{ "strong_skills": [], "improving_skills": [], "missing_skills": [], "readiness_score": int }}
         """
 
-        # 3. Call OpenAI
+        # 3. Call AI (fastest available provider)
         try:
-            return safe_ai_request(system_prompt, user_prompt, model="gemini-3.6-flash")
+            return safe_ai_request(system_prompt, user_prompt, model="gemini-3.5-flash-lite")
 
         except Exception as e:
             logger.error(f"Skill gap analysis failed: {e}")

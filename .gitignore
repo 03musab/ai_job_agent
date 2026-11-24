@@ -4,26 +4,74 @@ venv/
 ENV/
 env/
 
-# Python cache
+# Python & Test Caches
 __pycache__/
 *.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Database files
+# Database & Flask Instance Files
 *.db
+*.db-wal
+*.db-shm
+*.sqlite
 *.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+instance/
 
-# Secrets and Credentials
+# Secrets, Credentials & Personal Data (PII)
 token.pickle
 credentials.json
 .env
+.env.*
+!.env.example
 token.json
+*.pem
+*.key
+jobsnap_waitlist_contacts.csv
+/*.csv
+!tests/**/*.csv
 
-# Log files
+# User Uploads, Generated Exports & Cached PDFs
+uploads/
+jobs_report_*.xlsx
+static/learning_resources/*.pdf
+
+# Logs & Celery Scheduler State
 *.log
 celerybeat-schedule*
 
 # Node.js
 node_modules/
+
+# Local AI Agent Skills, Editor & Tooling Folders
+.claude/
+.agents/
+.qodo/
+.xgrok/
+.vscode/
+.no-vibe/
+.kilo/
+.kilocode/
+*.skill
+
+# Marketing, Video Production, Design & Local Media (non-app)
+launch_video/
+youtube-channel/
+screenshots/
+design/
+*.mp4
+*.mov
+*.webm
+*.pptx
+*.ppt
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
 
 # Cloudflare & Ngrok binaries
 cloudflared.exe
@@ -34,5 +82,6 @@ ngrok.zip
 bandit_results.json
 pip_audit_results.json
 
-# Large media recordings
-*.mp4
+# OS Metadata
+.DS_Store
+Thumbs.db

@@ -1,0 +1,396 @@
+{
+  "audio": "work/My_voice.mp3",
+  "language": "en",
+  "words": [
+    {
+      "text": "AI",
+      "start": 1,
+      "end": 1.46,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Job",
+      "start": 1.8,
+      "end": 2.1,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Snap.",
+      "start": 2.46,
+      "end": 2.86,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Check",
+      "start": 3.24,
+      "end": 3.54,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "one,",
+      "start": 3.78,
+      "end": 4.019,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "two,",
+      "start": 4.18,
+      "end": 4.36,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "three.",
+      "start": 4.56,
+      "end": 4.8,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Powerful",
+      "start": 4.94,
+      "end": 5.44,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Flask-based",
+      "start": 5.62,
+      "end": 6.5,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "web",
+      "start": 6.64,
+      "end": 6.82,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "application",
+      "start": 6.88,
+      "end": 7.54,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "designed",
+      "start": 8.48,
+      "end": 8.96,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "to",
+      "start": 9.04,
+      "end": 9.22,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "automate",
+      "start": 9.42,
+      "end": 9.88,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "and",
+      "start": 10,
+      "end": 10.14,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "streamline",
+      "start": 10.2,
+      "end": 10.68,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "your",
+      "start": 10.72,
+      "end": 10.88,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "job",
+      "start": 10.96,
+      "end": 11.24,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "search.",
+      "start": 11.3,
+      "end": 11.62,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "It",
+      "start": 12.76,
+      "end": 12.88,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "aggregates",
+      "start": 12.94,
+      "end": 13.56,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "job",
+      "start": 13.8,
+      "end": 14.1,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "listings",
+      "start": 14.18,
+      "end": 14.58,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "from",
+      "start": 14.68,
+      "end": 14.94,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "multiple",
+      "start": 15.1,
+      "end": 15.48,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "sources,",
+      "start": 15.56,
+      "end": 16.1,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "scores",
+      "start": 16.76,
+      "end": 17.1,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "them",
+      "start": 17.14,
+      "end": 17.3,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "for",
+      "start": 17.36,
+      "end": 17.46,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "relevance,",
+      "start": 17.5,
+      "end": 17.88,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "and",
+      "start": 17.94,
+      "end": 18.04,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "provide",
+      "start": 18.12,
+      "end": 18.4,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "a",
+      "start": 18.46,
+      "end": 18.52,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "comprehensive",
+      "start": 18.58,
+      "end": 19.28,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "dashboard",
+      "start": 19.34,
+      "end": 19.74,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "to",
+      "start": 19.8,
+      "end": 19.88,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "manage",
+      "start": 19.94,
+      "end": 20.22,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "your",
+      "start": 20.24,
+      "end": 20.34,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "applications",
+      "start": 20.4,
+      "end": 21.08,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "from",
+      "start": 21.12,
+      "end": 21.28,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "discovery",
+      "start": 21.34,
+      "end": 21.84,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "to",
+      "start": 21.9,
+      "end": 21.98,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "offer.",
+      "start": 22.04,
+      "end": 22.36,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Check",
+      "start": 22.74,
+      "end": 23,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "one,",
+      "start": 23.08,
+      "end": 23.22,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "two,",
+      "start": 23.3,
+      "end": 23.4,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "three.",
+      "start": 23.5,
+      "end": 23.68,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Hello.",
+      "start": 23.76,
+      "end": 24,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Hi,",
+      "start": 24.12,
+      "end": 24.28,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "how",
+      "start": 24.38,
+      "end": 24.5,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "are",
+      "start": 24.52,
+      "end": 24.64,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "you?",
+      "start": 24.68,
+      "end": 24.74,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Enhanced,",
+      "start": 24.82,
+      "end": 25.3,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "assisted",
+      "start": 25.66,
+      "end": 26.18,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "apply.",
+      "start": 26.24,
+      "end": 26.56,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Wow.",
+      "start": 26.7,
+      "end": 27.1,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Yeah.",
+      "start": 27.34,
+      "end": 27.74,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "Feature",
+      "start": 28.14,
+      "end": 28.44,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "with",
+      "start": 28.48,
+      "end": 28.64,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "beta",
+      "start": 28.68,
+      "end": 28.96,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "notice",
+      "start": 29.02,
+      "end": 29.3,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "test",
+      "start": 29.38,
+      "end": 29.6,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "fix",
+      "start": 29.68,
+      "end": 29.9,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "handle",
+      "start": 29.94,
+      "end": 30.22,
+      "speaker": "speaker_0"
+    },
+    {
+      "text": "case.",
+      "start": 30.32,
+      "end": 30.62,
+      "speaker": "speaker_0"
+    }
+  ]
+}

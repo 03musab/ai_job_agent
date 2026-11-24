@@ -658,13 +658,18 @@ class AIJobAgentTestCase(unittest.TestCase):
         """Users with own scraped jobs do not see user 15 demo jobs; brand-new users get demo fallback."""
         db = TestJobDatabase()
         demo_id = db.add_user('demo_owner', 'hashed_pw', email='demo@example.com')
-        # Force a row with user_id = 15 to simulate production demo seed jobs
+        # Seed a public demo job (user_id IS NULL) and a private user_id=15 job (must NOT leak)
         from database import connect_database
         conn = connect_database(self.test_db_path)
         conn.execute(
             """INSERT INTO jobs (job_hash, title, company, location, link, source, user_id, status)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            ('demo-hash-15', 'Demo Shared Role', 'DemoCo', 'Remote', 'https://example.com/demo15', 'Demo', 15, 'new'),
+            ('demo-hash-public', 'Demo Shared Role', 'DemoCo', 'Remote', 'https://example.com/demo-public', 'Demo', None, 'new'),
+        )
+        conn.execute(
+            """INSERT INTO jobs (job_hash, title, company, location, link, source, user_id, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            ('private-hash-15', 'Private User 15 Role', 'PrivateCo', 'Remote', 'https://example.com/private15', 'LinkedIn', 15, 'new'),
         )
         conn.commit()
         conn.close()
@@ -673,7 +678,7 @@ class AIJobAgentTestCase(unittest.TestCase):
         user_a = db.add_user('seeker_a', 'hashed_pw', email='seekera@example.com')
         user_b = db.add_user('seeker_b', 'hashed_pw', email='seekerb@example.com')
 
-        # Brand-new user with 0 own jobs receives demo seed fallback
+        # Brand-new user with 0 own jobs receives public demo seed fallback, never user_id=15's private job
         fallback_jobs, fallback_total = db.get_jobs_for_user(user_a)
         self.assertEqual(fallback_total, 1)
         self.assertEqual(fallback_jobs[0]['title'], 'Demo Shared Role')
@@ -1595,6 +1600,31 @@ class AIJobAgentTestCase(unittest.TestCase):
             self.assertEqual(res['readiness_score'], 72)
             self.assertNotIn('error', res)
             mocked_ai.assert_called_once()
+
+    def test_email_signup_without_username_defers_handle_to_onboarding(self):
+        with patch('app._send_email_verification_email') as send_verification:
+            resp = self.client.post('/register', data={
+                'email': 'nohandle.user@example.com',
+                'password': 'password123',
+            })
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn(b'Check your email', resp.data)
+            token = send_verification.call_args.args[1]
+
+        created = User.get_by_email('nohandle.user@example.com')
+        self.assertIsNotNone(created)
+        self.assertTrue(bool(created.username))
+        self.assertEqual(created.account_status, 'pending')
+
+        verified = self.client.get(f'/confirm-email/{token}')
+        self.assertEqual(verified.status_code, 200)
+
+        logged_in = self.client.post('/login', data={
+            'username': 'nohandle.user@example.com',
+            'password': 'password123',
+        }, follow_redirects=True)
+        self.assertEqual(logged_in.status_code, 200)
+        self.assertIn(b'Step 1 of 5', logged_in.data)
 
 if __name__ == '__main__':
     unittest.main()

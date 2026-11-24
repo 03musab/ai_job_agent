@@ -40,12 +40,15 @@ def require_admin(f):
 
 def require_company_owner(f):
     """
-    Decorator for company routes that require the authenticated recruiter
-    to own the resource. Must be used together with @login_required and
-    @require_role('recruiter'). The route must accept a recruiter_id parameter.
+    Decorator for company routes that require an authenticated recruiter
+    who owns the requested recruiter_id resource.
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return jsonify({'success': False, 'message': 'Authentication required.'}), 401
+        if getattr(current_user, 'role', None) != 'recruiter':
+            return jsonify({'success': False, 'message': 'Recruiter role required.'}), 403
         recruiter_id = kwargs.get('recruiter_id')
         if recruiter_id is None:
             return jsonify({'success': False, 'message': 'Invalid request.'}), 400

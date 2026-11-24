@@ -91,8 +91,8 @@ class ResumeParsingService:
     def _extract_structured_data(self, text: str, fast_mode: bool = False) -> Dict[str, Any]:
         """
         Uses AI to extract skills and work experience.
-        When fast_mode=True (onboarding), uses the fastest lightweight model (Cerebras llama3.1-8b
-        or Gemini Flash-Lite) with zero retries and a tight timeout so onboarding feels instant.
+        When fast_mode=True (onboarding), uses the fastest model (Cerebras gpt-oss-120b /
+        qwen-3.8-27b or Gemini 3.5 Flash-Lite) with zero retries and a tight timeout so onboarding feels instant.
         Falls back to keyword matching for skills if AI fails.
         """
         # 1. Keyword Matching (Baseline)
@@ -114,13 +114,13 @@ class ResumeParsingService:
                     data = safe_ai_request(
                         system_prompt,
                         user_prompt,
-                        model="gemini-2.0-flash-lite",
+                        model="gemini-3.5-flash-lite",
                         retries=0,
                         timeout=6,
                         prefer_fast=True,
                     )
                 else:
-                    data = safe_ai_request(system_prompt, user_prompt, model="gemini-2.5-flash")
+                    data = safe_ai_request(system_prompt, user_prompt, model="gemini-3.5-flash-lite")
                 
                 if isinstance(data, dict):
                     ai_skills = [str(s).lower().strip() for s in (data.get('skills') or []) if str(s).strip()]
