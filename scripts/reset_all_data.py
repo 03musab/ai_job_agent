@@ -267,9 +267,9 @@ def wipe_postgres(execute: bool, keep_global_contacts: bool):
 
             if target_existing:
                 quoted = ", ".join(f'"{t}"' for t in target_existing)
-                cur.execute(f"TRUNCATE TABLE {quoted} RESTART IDENTITY CASCADE")
+                cur.execute(f"TRUNCATE TABLE {quoted} CASCADE")
                 conn.commit()
-                print(f"  [OK] Truncated {len(target_existing)} PostgreSQL tables (RESTART IDENTITY CASCADE).")
+                print(f"  [OK] Truncated {len(target_existing)} PostgreSQL tables (CASCADE; sequences preserved to prevent user ID reuse).")
 
             # Verify 0 rows across all truncated tables
             remaining = {}
