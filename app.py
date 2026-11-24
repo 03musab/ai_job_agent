@@ -11825,18 +11825,28 @@ def api_add_application():
         if not job_id:
             return jsonify({'error': 'Job ID is required'}), 400
         job_id = int(job_id)
+        if job_id <= 0:
+            return jsonify({'error': 'Invalid job ID'}), 400
         db = JobDatabase()
+        if db.has_user_applied_to_job(job_id, current_user.id):
+            return jsonify({'error': 'You have already applied to this job.'}), 409
         user_details = db.get_user_details(current_user.id)
-        applicant_name = data.get('applicant_name') or (user_details.get('full_name') if user_details else '') or current_user.username
-        applicant_email = data.get('applicant_email') or (user_details.get('email') if user_details else '') or getattr(current_user, 'email', '')
-        ai_match_score = data.get('ai_match_score')
-        notes = data.get('notes', '')
+        applicant_name = str(data.get('applicant_name') or (user_details.get('full_name') if user_details else '') or current_user.username).strip()[:160]
+        applicant_email = str(data.get('applicant_email') or (user_details.get('email') if user_details else '') or getattr(current_user, 'email', '')).strip()[:200]
+        raw_score = data.get('ai_match_score')
+        clamped_score = None
+        if raw_score is not None and raw_score != '':
+            try:
+                clamped_score = max(0.0, min(100.0, float(raw_score)))
+            except (TypeError, ValueError):
+                clamped_score = None
+        notes = str(data.get('notes') or '').strip()[:2000]
         app_id = db.add_application(
             job_id=job_id,
             applicant_name=applicant_name,
             applicant_email=applicant_email,
             applicant_user_id=current_user.id,
-            ai_match_score=float(ai_match_score) if ai_match_score else None
+            ai_match_score=clamped_score
         )
         if app_id:
             if notes:
@@ -11868,9 +11878,9 @@ def api_update_application_status(application_id):
         valid_statuses = ['applied', 'reviewed', 'shortlisted', 'interview', 'offer', 'hired', 'rejected']
         if status not in valid_statuses:
             return jsonify({'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'}), 400
-        notes = data.get('notes')
+        notes = str(data.get('notes'))[:2000] if data.get('notes') is not None else None
         db = JobDatabase()
-        success = db.update_application_status(application_id, status, notes)
+        success = db.update_application_status(application_id, status, notes, recruiter_id=current_user.id)
         if success:
             return jsonify({'message': 'Application status updated'})
         return jsonify({'error': 'Application not found'}), 404
@@ -12590,11 +12600,14 @@ Make it practical, detailed, and beginner-friendly."""
             html_content = ''.join(html_content)
         
         # Clean up escaped newlines and extra whitespace
+        import html as _html
+        safe_title_html = _html.escape(project_title)
         html_content = html_content.replace('\\n', '\n').replace('\n\n\n', '\n\n')
+        html_content = re.sub(r'<\s*script[^>]*>.*?<\s*/\s*script\s*>', '', html_content, flags=re.I | re.S)
         
         # Create full HTML document for PDF
         html_doc = f"""<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>{project_title} - Project Guide</title>
+<html><head><meta charset="UTF-8"><title>{safe_title_html} - Project Guide</title>
 <style>
 @page {{ size: A4; margin: 2cm; }}
 body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; }}
