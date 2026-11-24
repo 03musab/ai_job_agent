@@ -841,6 +841,129 @@
         margin-top: 2px;
     }
 
+    /* Snapy Quick Bug Reporter */
+    .snap-bug-trigger-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        border-radius: 8px;
+        border: 1px solid rgba(251, 113, 133, 0.45);
+        background: rgba(244, 63, 94, 0.14);
+        color: #fda4af;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+        white-space: nowrap;
+    }
+    .snap-bug-trigger-btn:hover,
+    .snap-bug-trigger-btn.is-active {
+        background: rgba(244, 63, 94, 0.28);
+        border-color: rgba(251, 113, 133, 0.8);
+        color: #fff1f2;
+    }
+    #snapBugView {
+        display: none;
+        flex: 1;
+        flex-direction: column;
+        gap: 10px;
+        padding: 13px 14px;
+        overflow-y: auto;
+    }
+    #snapChatPanel.is-bug-mode #snapChatMessages,
+    #snapChatPanel.is-bug-mode #snapChatStarters,
+    #snapChatPanel.is-bug-mode #snapChatForm {
+        display: none !important;
+    }
+    #snapChatPanel.is-bug-mode #snapBugView {
+        display: flex;
+    }
+    .snap-bug-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .snap-bug-chip {
+        padding: 4px 9px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        background: rgba(30, 41, 59, 0.72);
+        color: #cbd5e1;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 140ms ease;
+    }
+    .snap-bug-chip:hover {
+        border-color: rgba(251, 113, 133, 0.6);
+        color: #f8fafc;
+    }
+    .snap-bug-chip.is-selected {
+        background: rgba(244, 63, 94, 0.22);
+        border-color: #fb7185;
+        color: #ffe4e6;
+    }
+    .snap-bug-textarea,
+    .snap-bug-input {
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        background: rgba(15, 23, 42, 0.88);
+        color: #f8fafc;
+        font-size: 12.5px;
+        padding: 9px 11px;
+        outline: none;
+        font-family: inherit;
+        transition: border-color 150ms ease;
+    }
+    .snap-bug-textarea:focus,
+    .snap-bug-input:focus {
+        border-color: #fb7185;
+    }
+    .snap-bug-textarea {
+        min-height: 92px;
+        resize: vertical;
+        line-height: 1.45;
+    }
+    .snap-bug-submit {
+        width: 100%;
+        padding: 9px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(251, 113, 133, 0.65);
+        background: #e11d48;
+        color: #ffffff;
+        font-size: 12.5px;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: background 150ms ease, opacity 150ms ease;
+    }
+    .snap-bug-submit:hover {
+        background: #be123c;
+    }
+    .snap-bug-submit:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    .snap-bug-meta {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: #94a3b8;
+        background: rgba(30, 41, 59, 0.55);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 8px;
+        padding: 6px 9px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
     .snap-chat-close {
         width: 28px;
         height: 28px;
@@ -1206,7 +1329,13 @@
                     <div class="snap-chat-sub">Ask me anything about AI JobSnap</div>
                 </div>
             </div>
-            <button type="button" id="snapChatCloseBtn" class="snap-chat-close" aria-label="Close Snapy chat">×</button>
+            <div style="display: flex; align-items: center; gap: 6px; shrink: 0;">
+                <button type="button" id="snapBugToggleBtn" class="snap-bug-trigger-btn" title="Report a beta bug in 10 seconds">
+                    <span class="material-symbols-outlined" style="font-size: 13px;">bug_report</span>
+                    <span id="snapBugToggleLabel">Report Bug</span>
+                </button>
+                <button type="button" id="snapChatCloseBtn" class="snap-chat-close" aria-label="Close Snapy chat">×</button>
+            </div>
         </div>
 
         <div id="snapChatMessages"></div>
@@ -1221,6 +1350,37 @@
                 maxlength="500"
             />
             <button type="submit" id="snapChatSendBtn">Ask</button>
+        </form>
+
+        <!-- Fast 1-Step Beta Bug Reporter -->
+        <form id="snapBugView" novalidate>
+            <div style="font-size: 12px; color: #e2e8f0; line-height: 1.4;">
+                Spotted something broken in beta? Drop a quick note — Snapy automatically attaches your current page & sends it straight to the founder.
+            </div>
+            <div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px;">Area</div>
+                <div class="snap-bug-chips" id="snapBugChips">
+                    <button type="button" class="snap-bug-chip is-selected" data-cat="Broken Button">Broken Button</button>
+                    <button type="button" class="snap-bug-chip" data-cat="Scraper">Scraper</button>
+                    <button type="button" class="snap-bug-chip" data-cat="UI / Layout">UI / Layout</button>
+                    <button type="button" class="snap-bug-chip" data-cat="Login / Auth">Login / Auth</button>
+                    <button type="button" class="snap-bug-chip" data-cat="Other">Other</button>
+                </div>
+            </div>
+            <div>
+                <label for="snapBugDesc" style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 5px;">What happened? *</label>
+                <textarea id="snapBugDesc" class="snap-bug-textarea" placeholder="e.g. Clicked Play on my saved preset and nothing happened..." maxlength="2000" required></textarea>
+            </div>
+            <div>
+                <label for="snapBugSteps" style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 5px;">Extra details (optional)</label>
+                <input id="snapBugSteps" type="text" class="snap-bug-input" placeholder="e.g. Happened on mobile Chrome" maxlength="500" autocomplete="off" />
+            </div>
+            <div id="snapBugMeta" class="snap-bug-meta">Page: /dashboard</div>
+            <div id="snapBugError" style="display: none; font-size: 11px; color: #fda4af; font-weight: 600;"></div>
+            <button type="submit" id="snapBugSubmitBtn" class="snap-bug-submit">
+                <span class="material-symbols-outlined" style="font-size: 15px;">send</span>
+                <span>Send Bug Report</span>
+            </button>
         </form>
     </div>
 
@@ -2642,7 +2802,134 @@
                 chip.onclick = () => sendSnapMessage(q);
                 chatStartersEl.appendChild(chip);
             });
+            const bugChip = document.createElement('button');
+            bugChip.type = 'button';
+            bugChip.className = 'snap-starter-chip';
+            bugChip.style.borderColor = 'rgba(251, 113, 133, 0.45)';
+            bugChip.style.color = '#fda4af';
+            bugChip.textContent = 'Report a bug';
+            bugChip.onclick = () => setSnapBugMode(true);
+            chatStartersEl.appendChild(bugChip);
         }
+    }
+
+    const bugToggleBtn = document.getElementById('snapBugToggleBtn');
+    const bugToggleLabel = document.getElementById('snapBugToggleLabel');
+    const bugForm = document.getElementById('snapBugView');
+    const bugChipsEl = document.getElementById('snapBugChips');
+    const bugDescEl = document.getElementById('snapBugDesc');
+    const bugStepsEl = document.getElementById('snapBugSteps');
+    const bugMetaEl = document.getElementById('snapBugMeta');
+    const bugErrEl = document.getElementById('snapBugError');
+    const bugSubmitBtn = document.getElementById('snapBugSubmitBtn');
+    let selectedBugCategory = 'Broken Button';
+    let bugSubmitting = false;
+
+    function setSnapBugMode(enabled) {
+        if (!chatPanel) return;
+        const on = Boolean(enabled);
+        chatPanel.classList.toggle('is-bug-mode', on);
+        if (bugToggleBtn) bugToggleBtn.classList.toggle('is-active', on);
+        if (bugToggleLabel) bugToggleLabel.textContent = on ? 'Back to Chat' : 'Report Bug';
+        if (on) {
+            if (bugMetaEl) {
+                bugMetaEl.textContent = `Page: ${window.location.pathname}${window.location.search} · ${window.innerWidth}×${window.innerHeight}`;
+            }
+            if (bugErrEl) bugErrEl.style.display = 'none';
+            setTimeout(() => bugDescEl?.focus(), 40);
+        } else {
+            setTimeout(() => chatInput?.focus(), 40);
+        }
+    }
+
+    window.openSnapyBugReport = function () {
+        toggleSnapChat(true);
+        setSnapBugMode(true);
+    };
+
+    if (bugToggleBtn) {
+        bugToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isCurrentlyBug = chatPanel && chatPanel.classList.contains('is-bug-mode');
+            setSnapBugMode(!isCurrentlyBug);
+        });
+    }
+
+    if (bugChipsEl) {
+        bugChipsEl.addEventListener('click', (e) => {
+            const chip = e.target.closest('.snap-bug-chip');
+            if (!chip) return;
+            bugChipsEl.querySelectorAll('.snap-bug-chip').forEach((c) => c.classList.remove('is-selected'));
+            chip.classList.add('is-selected');
+            selectedBugCategory = chip.dataset.cat || 'Other';
+        });
+    }
+
+    if (bugForm) {
+        bugForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (bugSubmitting) return;
+            const desc = (bugDescEl?.value || '').trim();
+            if (desc.length < 4) {
+                if (bugErrEl) {
+                    bugErrEl.textContent = 'Please add a short note about what went wrong.';
+                    bugErrEl.style.display = 'block';
+                }
+                bugDescEl?.focus();
+                return;
+            }
+            if (bugErrEl) bugErrEl.style.display = 'none';
+            bugSubmitting = true;
+            if (bugSubmitBtn) {
+                bugSubmitBtn.disabled = true;
+                bugSubmitBtn.innerHTML = '<span>Sending...</span>';
+            }
+            try {
+                const resp = await fetch('/api/snapy/bug-report', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        category: selectedBugCategory,
+                        description: desc,
+                        steps: (bugStepsEl?.value || '').trim(),
+                        page_url: window.location.href,
+                        viewport: `${window.innerWidth}x${window.innerHeight}`
+                    })
+                });
+                const data = await resp.json().catch(() => ({}));
+                if (resp.ok && data.success) {
+                    if (bugDescEl) bugDescEl.value = '';
+                    if (bugStepsEl) bugStepsEl.value = '';
+                    setSnapBugMode(false);
+                    initSnapChatUI();
+                    appendSnapMessage('bot', `Got it! Bug report #${data.report_id} has been sent to the team. Thank you for helping make JobSnap better!`);
+                    if (window.snapyToast) {
+                        window.snapyToast(data.message || 'Bug report sent!', { mood: 'happy', title: 'Bug Reported' });
+                    }
+                    playCoachChime(659.25, 880);
+                } else {
+                    if (bugErrEl) {
+                        bugErrEl.textContent = data.error || 'Could not send bug report. Please try again.';
+                        bugErrEl.style.display = 'block';
+                    }
+                }
+            } catch (_) {
+                if (bugErrEl) {
+                    bugErrEl.textContent = 'Network error. Please try again.';
+                    bugErrEl.style.display = 'block';
+                }
+            } finally {
+                bugSubmitting = false;
+                if (bugSubmitBtn) {
+                    bugSubmitBtn.disabled = false;
+                    bugSubmitBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 15px;">send</span><span>Send Bug Report</span>';
+                }
+            }
+        });
     }
 
     function toggleSnapChat(forceState) {

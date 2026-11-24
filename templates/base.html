@@ -380,6 +380,10 @@
                                 <span class="material-symbols-outlined text-[17px] text-teal-400">explore</span>
                                 <span>Interactive Tour</span>
                             </button>
+                            <button type="button" @click="open = false; if (window.openSnapyBugReport) window.openSnapyBugReport();" class="w-full flex items-center gap-2.5 px-3 py-2 text-on-surface hover:bg-rose-500/10 hover:text-rose-500 rounded-lg transition-colors font-medium cursor-pointer text-left">
+                                <span class="material-symbols-outlined text-[17px] text-rose-500">bug_report</span>
+                                <span>Report a Bug</span>
+                            </button>
                             {% if current_user.role != 'recruiter' %}
                             <a href="{{ url_for('message_vault') }}" class="flex items-center gap-2.5 px-3 py-2 text-on-surface hover:bg-primary/10 hover:text-primary rounded-lg transition-colors font-medium">
                                 <span class="material-symbols-outlined text-[17px] text-secondary">drafts</span>

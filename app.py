@@ -1744,6 +1744,25 @@ class JobDatabase:
             )
         ''')
 
+        # --- Beta Bug Reports Table (Snapy Quick Bug Reporter) ---
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS bug_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                username TEXT DEFAULT '',
+                user_email TEXT DEFAULT '',
+                category TEXT DEFAULT 'Other',
+                description TEXT NOT NULL,
+                steps TEXT DEFAULT '',
+                page_url TEXT DEFAULT '',
+                user_agent TEXT DEFAULT '',
+                viewport TEXT DEFAULT '',
+                email_sent INTEGER DEFAULT 0,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        ''')
+
         conn.commit()
         conn.close()
         logger.debug("Database schema check/update complete.")
@@ -2024,6 +2043,80 @@ class JobDatabase:
                     conn.commit()
             finally:
                 conn.close()
+
+    def create_bug_report(
+        self,
+        user_id: Optional[int],
+        username: str,
+        user_email: str,
+        category: str,
+        description: str,
+        steps: str = '',
+        page_url: str = '',
+        user_agent: str = '',
+        viewport: str = '',
+    ) -> int:
+        now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        conn = connect_database(self.db_path, timeout=10)
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO bug_reports
+                    (user_id, username, user_email, category, description, steps, page_url, user_agent, viewport, email_sent, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+                """,
+                (
+                    user_id,
+                    (username or '')[:120],
+                    (user_email or '')[:200],
+                    (category or 'Other')[:60],
+                    (description or '')[:2000],
+                    (steps or '')[:1500],
+                    (page_url or '')[:500],
+                    (user_agent or '')[:300],
+                    (viewport or '')[:60],
+                    now_iso,
+                ),
+            )
+            conn.commit()
+            return int(cursor.lastrowid or 0)
+        finally:
+            conn.close()
+
+    def mark_bug_report_emailed(self, report_id: int) -> None:
+        if not report_id:
+            return
+        conn = connect_database(self.db_path, timeout=10)
+        try:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE bug_reports SET email_sent = 1 WHERE id = ?", (report_id,))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def list_bug_reports(self, limit: int = 100) -> List[Dict[str, Any]]:
+        safe_limit = max(1, min(500, int(limit or 100)))
+        conn = connect_database(self.db_path, timeout=10)
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT id, user_id, username, user_email, category, description, steps, page_url, user_agent, viewport, email_sent, created_at
+                FROM bug_reports
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (safe_limit,),
+            )
+            cols = [
+                'id', 'user_id', 'username', 'user_email', 'category',
+                'description', 'steps', 'page_url', 'user_agent', 'viewport',
+                'email_sent', 'created_at',
+            ]
+            return [dict(zip(cols, r)) for r in cursor.fetchall()]
+        finally:
+            conn.close()
 
     def add_user(self, username: str, password_hash: str, role: str = 'seeker',
                  email: Optional[str] = None, is_pro: bool = False,
@@ -12012,6 +12105,177 @@ def api_scrape_cooldown():
     except Exception as e:
         logger.error(f"Failed to read scrape cooldown status for user {current_user.id}: {e}")
         return jsonify({'error': 'Failed to check cooldown status'}), 500
+
+
+def _deliver_bug_report_email(report: Dict[str, Any]) -> bool:
+    """Send beta bug report email using existing MAIL_* / ADMIN_ALERT_EMAIL vars (or Gmail API fallback)."""
+    mail_server = (os.environ.get('MAIL_SERVER') or '').strip()
+    mail_port = int(os.environ.get('MAIL_PORT') or '587')
+    mail_use_tls = str(os.environ.get('MAIL_USE_TLS', 'true')).strip().lower() in ('1', 'true', 'yes')
+    mail_username = (os.environ.get('MAIL_USERNAME') or '').strip()
+    mail_password = (os.environ.get('MAIL_PASSWORD') or '').strip()
+    mail_from = (os.environ.get('MAIL_FROM') or mail_username).strip()
+
+    recipient = (
+        os.environ.get('ADMIN_ALERT_EMAIL')
+        or ADMIN_ALERT_EMAIL
+        or mail_username
+        or mail_from
+        or ''
+    ).strip()
+    if '<' in recipient and '>' in recipient:
+        recipient = recipient.split('<', 1)[1].split('>', 1)[0].strip()
+
+    if not recipient:
+        logger.warning(f"[BugReport #{report.get('id')}] Saved to DB, but ADMIN_ALERT_EMAIL / MAIL_USERNAME is not set.")
+        return False
+
+    rid = report.get('id', '')
+    category = report.get('category') or 'Other'
+    username = report.get('username') or 'anonymous'
+    user_email = report.get('user_email') or 'N/A'
+    page_url = report.get('page_url') or 'N/A'
+    viewport = report.get('viewport') or 'N/A'
+    user_agent = report.get('user_agent') or 'N/A'
+    description = report.get('description') or ''
+    steps = report.get('steps') or ''
+
+    subject = f"[JobSnap Beta Bug #{rid}] {category} — reported by {username}"
+    html_body = (
+        "<div style='font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif; max-width: 600px; padding: 20px; color: #0f172a;'>"
+        f"<h2 style='margin: 0 0 12px 0; color: #e11d48;'>Bug Report #{html.escape(str(rid))} · {html.escape(category)}</h2>"
+        "<div style='background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 14px;'>"
+        f"<p style='margin: 0 0 8px 0; white-space: pre-wrap; font-size: 14px;'><strong>What happened:</strong><br>{html.escape(description)}</p>"
+        + (f"<p style='margin: 8px 0 0 0; white-space: pre-wrap; font-size: 13px; color: #334155;'><strong>Steps / Extra context:</strong><br>{html.escape(steps)}</p>" if steps else "")
+        + "</div>"
+        "<table style='width: 100%; border-collapse: collapse; font-size: 12.5px; color: #475569;'>"
+        f"<tr><td style='padding: 4px 0;'><strong>User:</strong></td><td>{html.escape(username)} ({html.escape(user_email)})</td></tr>"
+        f"<tr><td style='padding: 4px 0;'><strong>Page:</strong></td><td>{html.escape(page_url)}</td></tr>"
+        f"<tr><td style='padding: 4px 0;'><strong>Viewport:</strong></td><td>{html.escape(viewport)}</td></tr>"
+        f"<tr><td style='padding: 4px 0;'><strong>Browser:</strong></td><td>{html.escape(user_agent)}</td></tr>"
+        "</table></div>"
+    )
+
+    # 1. Existing SMTP vars (MAIL_SERVER, MAIL_PORT, MAIL_USE_TLS, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM)
+    if mail_server and mail_username and mail_password:
+        try:
+            sender = mail_from or mail_username
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = subject
+            msg['From'] = sender
+            msg['To'] = recipient
+            if user_email and '@' in user_email:
+                msg['Reply-To'] = user_email
+            msg.attach(MIMEText(html_body, 'html', 'utf-8'))
+            if mail_port == 465:
+                with smtplib.SMTP_SSL(mail_server, mail_port, timeout=12) as server:
+                    server.login(mail_username, mail_password)
+                    server.sendmail(sender, [recipient], msg.as_string())
+            else:
+                with smtplib.SMTP(mail_server, mail_port, timeout=12) as server:
+                    if mail_use_tls:
+                        server.starttls()
+                    server.login(mail_username, mail_password)
+                    server.sendmail(sender, [recipient], msg.as_string())
+            logger.info(f"[BugReport #{rid}] Email sent via MAIL_SERVER to {recipient}.")
+            return True
+        except Exception as smtp_err:
+            logger.warning(f"[BugReport #{rid}] MAIL_SERVER SMTP send failed: {smtp_err}")
+
+    # 2. Fallback to existing Gmail API token (SmartEmailer) if token.pickle exists
+    if os.path.exists('token.pickle'):
+        try:
+            emailer = SmartEmailer()
+            if emailer.gmail_service:
+                emailer.send_email(subject, html_body, recipients=[recipient])
+                logger.info(f"[BugReport #{rid}] Email sent via Gmail API to {recipient}.")
+                return True
+        except Exception as gmail_err:
+            logger.warning(f"[BugReport #{rid}] Gmail API send failed: {gmail_err}")
+
+    logger.warning(f"[BugReport #{rid}] Saved to database; MAIL_SERVER/MAIL_USERNAME/MAIL_PASSWORD or token.pickle not configured.")
+    return False
+
+
+@app.route('/api/snapy/bug-report', methods=['POST'])
+@login_required
+def api_snapy_bug_report():
+    """Accept a quick beta bug report from Snapy, save to DB, and email the founder."""
+    data = request.get_json(silent=True) if request.is_json else request.form
+    data = data or {}
+
+    description = str(data.get('description') or '').strip()
+    if len(description) < 4:
+        return jsonify({'success': False, 'error': 'Please describe what happened (at least a few words).'}), 400
+    if len(description) > 2000:
+        description = description[:2000]
+
+    allowed_categories = {'Broken Button', 'Scraper', 'UI / Layout', 'Login / Auth', 'Performance', 'Other'}
+    category = str(data.get('category') or 'Other').strip()
+    if category not in allowed_categories:
+        category = 'Other'
+
+    steps = str(data.get('steps') or '').strip()[:1500]
+    page_url = str(data.get('page_url') or request.referrer or '').strip()[:500]
+    viewport = str(data.get('viewport') or '').strip()[:60]
+    user_agent = str(request.headers.get('User-Agent') or '')[:300]
+
+    user_email = getattr(current_user, 'email', '') or ''
+    db = JobDatabase()
+    report_id = db.create_bug_report(
+        user_id=current_user.id,
+        username=getattr(current_user, 'username', '') or '',
+        user_email=user_email,
+        category=category,
+        description=description,
+        steps=steps,
+        page_url=page_url,
+        user_agent=user_agent,
+        viewport=viewport,
+    )
+
+    report_payload = {
+        'id': report_id,
+        'user_id': current_user.id,
+        'username': getattr(current_user, 'username', '') or '',
+        'user_email': user_email,
+        'category': category,
+        'description': description,
+        'steps': steps,
+        'page_url': page_url,
+        'user_agent': user_agent,
+        'viewport': viewport,
+    }
+
+    if app.config.get('TESTING'):
+        emailed = False
+    else:
+        def _send_bg():
+            try:
+                if _deliver_bug_report_email(report_payload):
+                    JobDatabase().mark_bug_report_emailed(report_id)
+            except Exception as bg_err:
+                logger.warning(f"[BugReport #{report_id}] Background email error: {bg_err}")
+
+        threading.Thread(target=_send_bg, daemon=True).start()
+        emailed = True
+
+    return jsonify({
+        'success': True,
+        'report_id': report_id,
+        'email_queued': emailed,
+        'message': f'Bug report #{report_id} sent! Thank you for helping stabilize beta.',
+    }), 201
+
+
+@app.route('/api/admin/bug-reports', methods=['GET'])
+@login_required
+@require_admin
+def api_admin_bug_reports():
+    """Return recent beta bug reports for admins."""
+    limit = request.args.get('limit', 100, type=int)
+    reports = JobDatabase().list_bug_reports(limit=limit)
+    return jsonify({'success': True, 'count': len(reports), 'reports': reports})
 
 
 @app.route('/start_scrape', methods=['POST'])
