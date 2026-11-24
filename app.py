@@ -246,6 +246,10 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-i
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production'
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
+app.config['REMEMBER_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production'
+app.config['REMEMBER_COOKIE_DURATION'] = datetime.timedelta(days=14)
 
 # Database Configuration for Learning Paths (SQLite for now, switch to Postgres later)
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///learning_paths.db')
@@ -454,6 +458,13 @@ def _add_security_headers(response):
     response.headers.setdefault('X-Content-Type-Options', 'nosniff')
     response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
     response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    if request.endpoint != 'static':
+        response.headers['Cache-Control'] = 'private, no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        vary = response.headers.get('Vary', '')
+        if 'cookie' not in vary.lower():
+            response.headers['Vary'] = f"{vary}, Cookie".strip(', ') if vary else 'Cookie'
     return response
 
 # Use new style Celery config keys (lowercase without CELERY_ prefix), with fallback to old env vars and REDIS_URL
@@ -1156,7 +1167,7 @@ class Company:
 class User(UserMixin):
     def __init__(self, id, username, password_hash, role='seeker', email_recipients='',
                  send_excel_attachment=True, email=None, is_pro=False, account_status='active',
-                 onboarding_completed=True, avatar_url=None, google_sub=None):
+                 onboarding_completed=True, avatar_url=None, google_sub=None, session_token=None):
         self.id = id
         self.username = username
         self.password_hash = password_hash
@@ -1169,6 +1180,12 @@ class User(UserMixin):
         self.onboarding_completed = bool(onboarding_completed)
         self.avatar_url = avatar_url
         self.google_sub = google_sub
+        self.session_token = session_token or ''
+
+    def get_id(self):
+        # Bind session/remember cookies to a cryptographic per-user session_token so
+        # recycled user IDs (e.g. after a DB wipe) can NEVER match another user's cookie.
+        return f"{self.id}:{self.session_token}"
 
     @property
     def is_admin(self):
@@ -1183,35 +1200,39 @@ class User(UserMixin):
     def get(user_id):
         db = JobDatabase()
         conn = connect_database(db.db_path, timeout=10)
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT id, username, password_hash, role, email_recipients,
-                   send_excel_attachment, email, is_pro, account_status,
-                   onboarding_completed, avatar_url, google_sub
-            FROM users WHERE id = ?
-        """, (user_id,))
-        user_data = cursor.fetchone()
-        conn.close()
-        if user_data:
-            return User(*user_data)
-        return None
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, username, password_hash, role, email_recipients,
+                       send_excel_attachment, email, is_pro, account_status,
+                       onboarding_completed, avatar_url, google_sub, session_token
+                FROM users WHERE id = ?
+            """, (user_id,))
+            user_data = cursor.fetchone()
+            if user_data:
+                return User(*user_data)
+            return None
+        finally:
+            conn.close()
 
     @staticmethod
     def get_by_username(username):
         db = JobDatabase()
         conn = connect_database(db.db_path, timeout=10)
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT id, username, password_hash, role, email_recipients,
-                   send_excel_attachment, email, is_pro, account_status,
-                   onboarding_completed, avatar_url, google_sub
-            FROM users WHERE LOWER(username) = LOWER(?)
-        """, (username.strip(),))
-        user_data = cursor.fetchone()
-        conn.close()
-        if user_data:
-            return User(*user_data)
-        return None
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, username, password_hash, role, email_recipients,
+                       send_excel_attachment, email, is_pro, account_status,
+                       onboarding_completed, avatar_url, google_sub, session_token
+                FROM users WHERE LOWER(username) = LOWER(?)
+            """, (username.strip(),))
+            user_data = cursor.fetchone()
+            if user_data:
+                return User(*user_data)
+            return None
+        finally:
+            conn.close()
 
     @staticmethod
     def get_by_email(email):
@@ -1225,7 +1246,7 @@ class User(UserMixin):
             cursor.execute("""
                 SELECT id, username, password_hash, role, email_recipients,
                        send_excel_attachment, email, is_pro, account_status,
-                       onboarding_completed, avatar_url, google_sub
+                       onboarding_completed, avatar_url, google_sub, session_token
                 FROM users WHERE LOWER(TRIM(email)) = LOWER(?)
                 LIMIT 1
             """, (clean_email,))
@@ -1234,7 +1255,7 @@ class User(UserMixin):
                 cursor.execute("""
                     SELECT u.id, u.username, u.password_hash, u.role, u.email_recipients,
                            u.send_excel_attachment, u.email, u.is_pro, u.account_status,
-                           u.onboarding_completed, u.avatar_url, u.google_sub
+                           u.onboarding_completed, u.avatar_url, u.google_sub, u.session_token
                     FROM users u
                     JOIN user_details d ON d.user_id = u.id
                     WHERE (u.email IS NULL OR TRIM(u.email) = '')
@@ -1262,7 +1283,7 @@ class User(UserMixin):
             cursor.execute("""
                 SELECT id, username, password_hash, role, email_recipients,
                        send_excel_attachment, email, is_pro, account_status,
-                       onboarding_completed, avatar_url, google_sub
+                       onboarding_completed, avatar_url, google_sub, session_token
                 FROM users WHERE google_sub = ?
                 LIMIT 1
             """, (clean_sub,))
@@ -1274,8 +1295,22 @@ class User(UserMixin):
             conn.close()
 
 @login_manager.user_loader
-def load_user(user_id):
-    return User.get(user_id)
+def load_user(user_token):
+    if not user_token or ':' not in str(user_token):
+        # Reject legacy bare-integer cookies (e.g. "1") so stale cookies from
+        # before a database reset can NEVER authenticate as a newly created user.
+        return None
+    raw_id, raw_tok = str(user_token).split(':', 1)
+    if not raw_id.isdigit() or not raw_tok:
+        return None
+    user = User.get(int(raw_id))
+    if not user or not user.session_token:
+        return None
+    if not hmac.compare_digest(str(user.session_token), raw_tok):
+        return None
+    if getattr(user, 'account_status', 'active') != 'active':
+        return None
+    return user
 
 
 class JobDatabase:
@@ -1304,7 +1339,8 @@ class JobDatabase:
                 account_status TEXT NOT NULL DEFAULT 'active',
                 onboarding_completed BOOLEAN NOT NULL DEFAULT TRUE,
                 google_sub TEXT,
-                avatar_url TEXT
+                avatar_url TEXT,
+                session_token TEXT
             )
         ''')
         # Perform ALTER TABLE for new user columns if they don't exist
@@ -1337,6 +1373,21 @@ class JobDatabase:
         if 'avatar_url' not in user_columns:
             cursor.execute("ALTER TABLE users ADD COLUMN avatar_url TEXT")
             conn.commit()
+        if 'session_token' not in user_columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN session_token TEXT")
+            conn.commit()
+        try:
+            cursor.execute("SELECT id FROM users WHERE session_token IS NULL OR TRIM(session_token) = ''")
+            missing_tok_rows = cursor.fetchall()
+            if missing_tok_rows:
+                for row in missing_tok_rows:
+                    cursor.execute(
+                        "UPDATE users SET session_token = ? WHERE id = ?",
+                        (secrets.token_hex(24), row[0]),
+                    )
+                conn.commit()
+        except Exception as tok_err:
+            logger.warning(f"Could not backfill users.session_token: {tok_err}")
         cursor.execute("""
             CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_normalized
             ON users (LOWER(email))
@@ -1679,11 +1730,12 @@ class JobDatabase:
         conn = connect_database(self.db_path, timeout=10)
         cursor = conn.cursor()
         try:
+            new_session_token = secrets.token_hex(24)
             cursor.execute("""
                 INSERT INTO users
-                    (username, password_hash, role, email, is_pro, account_status, onboarding_completed, google_sub, avatar_url)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (clean_username, password_hash, role, clean_email, bool(is_pro), account_status, bool(onboarding_completed), clean_google_sub, clean_avatar_url))
+                    (username, password_hash, role, email, is_pro, account_status, onboarding_completed, google_sub, avatar_url, session_token)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (clean_username, password_hash, role, clean_email, bool(is_pro), account_status, bool(onboarding_completed), clean_google_sub, clean_avatar_url, new_session_token))
             conn.commit()
             logger.info(f"Created user: {clean_username} with role: {role}")
             return cursor.lastrowid
@@ -7406,9 +7458,9 @@ def _invite_pro_user(email_address: str, name: str) -> str:
             initial_password = generate_password_hash(secrets.token_urlsafe(32))
             cursor.execute("""
                 INSERT INTO users
-                    (username, password_hash, role, email, is_pro, account_status, onboarding_completed)
-                VALUES (?, ?, 'seeker', ?, TRUE, 'pending', FALSE)
-            """, (username, initial_password, email_address))
+                    (username, password_hash, role, email, is_pro, account_status, onboarding_completed, session_token)
+                VALUES (?, ?, 'seeker', ?, TRUE, 'pending', FALSE, ?)
+            """, (username, initial_password, email_address, secrets.token_hex(24)))
             user_id = cursor.lastrowid
             if user_id is None:
                 raise RuntimeError('Could not create the invited account.')
@@ -7599,8 +7651,8 @@ def set_password(token):
                 conn.close()
                 abort(404)
             cursor.execute(
-                "UPDATE users SET password_hash = ?, account_status = 'active' WHERE id = ? AND account_status = 'pending'",
-                (generate_password_hash(password), invitation[1]),
+                "UPDATE users SET password_hash = ?, account_status = 'active', session_token = ? WHERE id = ? AND account_status = 'pending'",
+                (generate_password_hash(password), secrets.token_hex(24), invitation[1]),
             )
             if cursor.rowcount != 1:
                 conn.rollback()
@@ -8368,10 +8420,9 @@ def google_auth_callback():
         flash('This account is not active. Please contact support.', 'danger')
         return redirect(url_for('login'))
 
+    session.clear()
     if picture_url:
         session['google_avatar_url'] = picture_url
-    else:
-        session.pop('google_avatar_url', None)
 
     login_user(db_user, remember=True)
     if not getattr(db_user, 'onboarding_completed', True):
@@ -8470,6 +8521,7 @@ def login():
                         email=db_user.email,
                     )
             elif db_user.account_status == 'active':
+                session.clear()
                 login_user(db_user, remember=bool(request.form.get('remember')))
                 if admin_login_mode and not db_user.is_admin:
                     logout_user()
@@ -8492,7 +8544,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    session.pop('google_avatar_url', None)
+    session.clear()
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
@@ -8502,8 +8554,7 @@ def logout():
 def switch_account():
     """Sign out of the current account and jump straight to the account chooser."""
     logout_user()
-    for key in ('google_avatar_url', 'google_oauth_state', 'google_oauth_mode', 'google_oauth_role', 'google_oauth_code_verifier'):
-        session.pop(key, None)
+    session.clear()
     client_id, client_secret = _get_google_oauth_credentials()
     if request.args.get('to') != 'login' and client_id and client_secret:
         return redirect(url_for('google_auth_start', mode='login'))

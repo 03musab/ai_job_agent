@@ -320,6 +320,49 @@ class SecurityChecklistTestCase(unittest.TestCase):
         # Users table still intact
         self.assertIsNotNone(User.get_by_username("sqli_tester"))
 
+    # Check 15: Recycled user ID after DB wipe cannot hijack a new user's account, and auth pages are never cached
+    def test_15_recycled_user_id_cookie_cannot_hijack_new_user(self):
+        import sqlite3
+        from flask import g
+        from app import load_user
+
+        # Device A signs in as User A (id=1) with remember-me enabled
+        uid_a = self._create_and_login("original_owner", "owner@example.com", role="seeker")
+        self.assertEqual(uid_a, 1)
+        dash_a = self.client.get("/dashboard")
+        self.assertEqual(dash_a.status_code, 200)
+        self.assertIn("no-store", dash_a.headers.get("Cache-Control", "").lower())
+        self.assertIn("cookie", dash_a.headers.get("Vary", "").lower())
+
+        # Simulate a fresh DB wipe + sequence reset where a different person (friend) gets id=1
+        conn = sqlite3.connect(self.test_db_path)
+        conn.execute("DELETE FROM users")
+        conn.execute("DELETE FROM sqlite_sequence WHERE name='users'")
+        conn.commit()
+        conn.close()
+
+        uid_friend = SecurityTestDatabase().add_user(
+            "friend_account",
+            generate_password_hash("password123"),
+            role="seeker",
+            email="friend@example.com",
+            account_status="active",
+            onboarding_completed=True,
+        )
+        self.assertEqual(uid_friend, 1)
+
+        # Legacy bare-integer cookie ("1") must always be rejected
+        self.assertIsNone(load_user("1"))
+
+        # Clear cached g._login_user from setUp's long-lived test app_context so the next
+        # request reloads the user from cookies just like a real HTTP request does.
+        g.pop("_login_user", None)
+
+        # Device A (still holding User A's old cookies for id=1) MUST be logged out, NEVER into friend_account
+        stale_resp = self.client.get("/dashboard", follow_redirects=False)
+        self.assertEqual(stale_resp.status_code, 302)
+        self.assertIn("/login", stale_resp.headers.get("Location", ""))
+
 
 if __name__ == "__main__":
     unittest.main()
