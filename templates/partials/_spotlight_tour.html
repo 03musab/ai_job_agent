@@ -715,7 +715,9 @@
         box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
         backdrop-filter: blur(14px);
         -webkit-backdrop-filter: blur(14px);
-        white-space: nowrap;
+        max-width: min(320px, calc(100vw - 108px));
+        white-space: normal;
+        line-height: 1.35;
         animation: snapDockGreetIn 0.34s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
 
@@ -868,8 +870,8 @@
         display: none;
         flex: 1;
         flex-direction: column;
-        gap: 10px;
-        padding: 13px 14px;
+        gap: 8px;
+        padding: 10px 14px 12px;
         overflow-y: auto;
     }
     #snapChatPanel.is-bug-mode #snapChatMessages,
@@ -914,7 +916,7 @@
         background: rgba(15, 23, 42, 0.88);
         color: #f8fafc;
         font-size: 12.5px;
-        padding: 9px 11px;
+        padding: 8px 10px;
         outline: none;
         font-family: inherit;
         transition: border-color 150ms ease;
@@ -924,12 +926,13 @@
         border-color: #fb7185;
     }
     .snap-bug-textarea {
-        min-height: 92px;
+        min-height: 74px;
         resize: vertical;
-        line-height: 1.45;
+        line-height: 1.4;
     }
     .snap-bug-submit {
         width: 100%;
+        flex-shrink: 0;
         padding: 9px 14px;
         border-radius: 10px;
         border: 1px solid rgba(251, 113, 133, 0.65);
@@ -952,8 +955,10 @@
         cursor: not-allowed;
     }
     .snap-bug-meta {
+        flex-shrink: 0;
         font-family: 'JetBrains Mono', monospace;
         font-size: 10px;
+        line-height: 1.35;
         color: #94a3b8;
         background: rgba(30, 41, 59, 0.55);
         border: 1px solid rgba(148, 163, 184, 0.16);
@@ -1385,9 +1390,12 @@
     </div>
 
     <div class="snap-dock-launcher-row">
-        <div id="snapDockGreeting" role="status">
-            <span>Hey, I’m Snapy! Ping me up if you have any doubt!</span>
-            <button type="button" id="snapDockGreetClose" aria-label="Dismiss greeting">×</button>
+        <div id="snapDockGreeting" role="status" style="cursor: pointer;" title="Click to report any bug or problem">
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span class="material-symbols-outlined" style="font-size: 15px; color: #fda4af;">bug_report</span>
+                <span id="snapDockGreetText">Spotted any problem or bug? Click here to report it to me!</span>
+            </span>
+            <button type="button" id="snapDockGreetClose" aria-label="Dismiss notification">×</button>
         </div>
 
         <button type="button" id="snapDockButton" aria-label="Open Snapy chat" title="Chat with Snapy">
@@ -1774,7 +1782,9 @@
         }, 250);
     }
 
-    function showDockGreeting() {
+    const BUG_NUDGE_SESSION_KEY = `jobsnap_beta_bug_nudge_seen_${userId}`;
+
+    function showDockGreeting(durationMs = 9500) {
         if (!dockGreeting || (chatPanel && chatPanel.classList.contains('is-open'))) return;
         if (dockGreetTimerId) {
             clearTimeout(dockGreetTimerId);
@@ -1784,7 +1794,7 @@
         dockGreeting.style.display = 'inline-flex';
         dockGreetTimerId = setTimeout(() => {
             hideDockGreeting(false);
-        }, 6500);
+        }, durationMs);
     }
 
     function setSnapDockVisible(show, withLanding = false) {
@@ -1807,8 +1817,17 @@
             dockButton.classList.remove('is-landing');
             void dockButton.offsetWidth;
             dockButton.classList.add('is-landing');
-            showDockGreeting();
+            showDockGreeting(9500);
+            try { sessionStorage.setItem(BUG_NUDGE_SESSION_KEY, '1'); } catch (_) {}
+            return;
         }
+        // Proactively notify beta users once per session so they know they can report any bug to Snapy
+        try {
+            if (!sessionStorage.getItem(BUG_NUDGE_SESSION_KEY)) {
+                sessionStorage.setItem(BUG_NUDGE_SESSION_KEY, '1');
+                setTimeout(() => showDockGreeting(9500), 1100);
+            }
+        } catch (_) {}
     }
 
     function hideSnapFinaleNow() {
@@ -2785,8 +2804,8 @@
         appendSnapMessage(
             'bot',
             userRole === 'recruiter'
-                ? 'Hey! I’m Snapy. Ping me up if you have any doubt about candidate matching, posting jobs, or Outreach Studio.'
-                : 'Hey! I’m Snapy. Ping me up if you have any doubt about Job Matches, AI Resume Match, Roadmaps, or Outreach Studio.'
+                ? 'Hey! I’m Snapy. Ping me for help — and if you spot any problem or bug during beta, click Report Bug above to send it straight to me!'
+                : 'Hey! I’m Snapy. Ping me for help — and if you spot any problem or bug during beta, click Report Bug above to send it straight to me!'
         );
 
         if (chatStartersEl) {
@@ -3034,6 +3053,13 @@
         dockButton.addEventListener('click', (e) => {
             e.stopPropagation();
             toggleSnapChat();
+        });
+    }
+    if (dockGreeting) {
+        dockGreeting.addEventListener('click', (e) => {
+            if (e.target.closest('#snapDockGreetClose')) return;
+            e.stopPropagation();
+            window.openSnapyBugReport();
         });
     }
     if (dockGreetClose) {
