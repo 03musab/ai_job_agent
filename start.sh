@@ -26,12 +26,15 @@ python -c "from app import initialize_database; initialize_database()"
 # 1. Use Celery's in-process pool to avoid forking another memory-heavy app process.
 if [ "${RUN_CELERY_IN_WEB:-true}" = "true" ]; then
     echo "[start.sh] Starting Celery worker (pool=solo)..."
-    celery -A app.celery worker --loglevel=info --pool=solo --concurrency=1 &
+    celery -A app.celery worker --loglevel=info --pool=solo --concurrency=1 --without-gossip --without-mingle --without-heartbeat &
     CELERY_PID=$!
     echo "[start.sh] Celery worker running (PID: $CELERY_PID)"
 fi
 
-# 2. Start Gunicorn with 1 worker and 4 threads (handles concurrent requests within memory limits)
+# 2. Start Gunicorn with 1 worker and configurable threads (handles concurrent requests within memory limits)
 PORT="${PORT:-5000}"
-echo "[start.sh] Starting Gunicorn on 0.0.0.0:$PORT (1 worker, 4 threads)..."
-exec gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120 app:app
+THREADS="${GUNICORN_THREADS:-4}"
+MAX_REQUESTS="${GUNICORN_MAX_REQUESTS:-500}"
+MAX_REQUESTS_JITTER="${GUNICORN_MAX_REQUESTS_JITTER:-50}"
+echo "[start.sh] Starting Gunicorn on 0.0.0.0:$PORT (1 worker, $THREADS threads)..."
+exec gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads "$THREADS" --max-requests "$MAX_REQUESTS" --max-requests-jitter "$MAX_REQUESTS_JITTER" --timeout 120 app:app

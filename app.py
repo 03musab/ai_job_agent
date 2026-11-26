@@ -262,10 +262,14 @@ if database_url and database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+_engine_options = {
     'pool_pre_ping': True,
     'pool_recycle': 300,
 }
+if database_url.startswith('postgresql://'):
+    _engine_options['pool_size'] = int(os.environ.get('DB_POOL_SIZE', '3'))
+    _engine_options['max_overflow'] = int(os.environ.get('DB_MAX_OVERFLOW', '2'))
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = _engine_options
 db.init_app(app)
 
 
@@ -454,6 +458,41 @@ def _is_reserved_admin_username(candidate: Optional[str], current_username: Opti
     return cand_fold in _configured_admin_usernames()
 
 
+def _is_maintenance_mode() -> bool:
+    return os.environ.get('MAINTENANCE_MODE', '').strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+@app.before_request
+def _enforce_maintenance_mode():
+    if not _is_maintenance_mode():
+        return None
+    if request.path in ('/healthz', '/ping') or request.endpoint == 'static' or request.path.startswith('/static/'):
+        return None
+
+    message = (
+        os.environ.get('MAINTENANCE_MESSAGE', '').strip()
+        or "AI JobSnap is migrating to faster, always-on servers. Your account, resumes, and saved jobs are safe — we'll be back online shortly."
+    )
+    eta = os.environ.get('MAINTENANCE_ETA', '').strip()
+
+    accept_header = request.headers.get('Accept', '')
+    wants_json = request.path.startswith('/api/') or (
+        request.accept_mimetypes.best == 'application/json' and 'text/html' not in accept_header
+    )
+    if wants_json:
+        resp = jsonify({'error': message, 'maintenance': True, 'eta': eta or None})
+        resp.status_code = 503
+        resp.headers['Retry-After'] = '300'
+        return resp
+
+    resp = app.make_response(
+        render_template('maintenance.html', maintenance_message=message, maintenance_eta=eta)
+    )
+    resp.status_code = 503
+    resp.headers['Retry-After'] = '300'
+    return resp
+
+
 @app.after_request
 def _add_security_headers(response):
     response.headers.setdefault('X-Content-Type-Options', 'nosniff')
@@ -468,12 +507,25 @@ def _add_security_headers(response):
             response.headers['Vary'] = f"{vary}, Cookie".strip(', ') if vary else 'Cookie'
     return response
 
+def _redis_ssl_cert_reqs():
+    setting = os.environ.get('REDIS_SSL_CERT_REQS', 'none').strip().lower()
+    if setting == 'required':
+        return ssl.CERT_REQUIRED
+    if setting == 'optional':
+        return ssl.CERT_OPTIONAL
+    return ssl.CERT_NONE
+
+
 # Use new style Celery config keys (lowercase without CELERY_ prefix), with fallback to old env vars and REDIS_URL
 redis_fallback = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
 broker_url = os.environ.get('broker_url') or os.environ.get('CELERY_BROKER_URL') or redis_fallback
 result_backend = os.environ.get('result_backend') or os.environ.get('CELERY_RESULT_BACKEND') or redis_fallback
 app.config['broker_url'] = broker_url
 app.config['result_backend'] = result_backend
+if broker_url.startswith('rediss://'):
+    app.config['broker_use_ssl'] = {'ssl_cert_reqs': _redis_ssl_cert_reqs()}
+if result_backend.startswith('rediss://'):
+    app.config['redis_backend_use_ssl'] = {'ssl_cert_reqs': _redis_ssl_cert_reqs()}
 # Enforce secure SECRET_KEY usage
 if os.environ.get('FLASK_ENV') == 'production' and app.config['SECRET_KEY'] == 'dev-secret-key-change-in-production':
     logger.critical("SECRET_KEY is using an insecure default in production. Set SECRET_KEY env.")

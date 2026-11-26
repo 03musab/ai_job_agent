@@ -1,0 +1,55 @@
+{
+  "name": "AI JobSnap",
+  "description": "Smart Career Copilot with multi-source job scraping, resume-aware matching, outreach, and learning roadmaps.",
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:essential-0"
+    }
+  ],
+  "env": {
+    "FLASK_ENV": {
+      "value": "production"
+    },
+    "DEBUG": {
+      "value": "false"
+    },
+    "SECRET_KEY": {
+      "generator": "secret"
+    },
+    "MALLOC_ARENA_MAX": {
+      "value": "2"
+    },
+    "REQUIRE_POSTGRES": {
+      "value": "true"
+    },
+    "DATABASE_MIGRATION_COMPLETE": {
+      "value": "true"
+    },
+    "RUN_CELERY_IN_WEB": {
+      "description": "Set to false to run background jobs in lightweight threads inside Gunicorn and save memory on 512MB dynos.",
+      "value": "false"
+    },
+    "FORCE_LOCAL_THREAD_TASKS": {
+      "description": "Set to true when no Redis broker is attached so tasks run in local background threads.",
+      "value": "true"
+    },
+    "SCRAPE_MAX_WORKERS": {
+      "value": "2"
+    },
+    "MAINTENANCE_MODE": {
+      "description": "Set to true to return HTTP 503 with the maintenance page.",
+      "value": "false"
+    }
+  }
+}
