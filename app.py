@@ -259,14 +259,16 @@ if os.environ.get('REQUIRE_POSTGRES', '').strip().lower() == 'true' and not data
 ):
     raise RuntimeError("REQUIRE_POSTGRES is enabled but DATABASE_URL is not a PostgreSQL URL.")
 if database_url and database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
+    database_url = database_url.replace("postgres://", "postgresql+psycopg2://", 1)
+elif database_url and database_url.startswith("postgresql://"):
+    database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 _engine_options = {
     'pool_pre_ping': True,
     'pool_recycle': 300,
 }
-if database_url.startswith('postgresql://'):
+if database_url.startswith(('postgresql://', 'postgresql+psycopg2://', 'postgresql+psycopg://')):
     _engine_options['pool_size'] = int(os.environ.get('DB_POOL_SIZE', '3'))
     _engine_options['max_overflow'] = int(os.environ.get('DB_MAX_OVERFLOW', '2'))
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = _engine_options
