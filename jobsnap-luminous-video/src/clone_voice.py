@@ -17,15 +17,15 @@ import argparse, os, pathlib, subprocess, sys, urllib.request, json
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SAMPLE = ROOT / "work" / "My_voice.mp3"
 SCRIPT = (
-    "Turn your resume into interviews — for any role, instantly. "
+    "Turn your resume into interviews -for any role, instantly. "
     "Just drop it into JobSnap. "
-    "Jobs, match scores, and one-click applications — all in one platform. "
+    "Jobs, match scores, and one-click applications -all in one platform. "
     "Our AI scans live roles and scores your fit in seconds. "
     "Done. "
-    "Every matched role across LinkedIn, Naukri, and direct portals — ranked in one clean dashboard. "
+    "Every matched role across LinkedIn, Naukri, and direct portals -ranked in one clean dashboard. "
     "Pick your top match, hit one-click ATS fill, and you're applied. "
     "Match. Fill. Land. "
-    "JobSnap — at jobsnap dot me."
+    "JobSnap -at jobsnap dot me."
 )
 
 

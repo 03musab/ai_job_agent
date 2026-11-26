@@ -1,5 +1,5 @@
-/* Shot 3 (4.35s – 10.75s) — Locked to real narration:
-   4.35s "Just drop it into JobSnap." -> 6.0s "Jobs, match scores, and one-click applications — all in one platform." */
+/* Shot 3 (4.35s – 10.75s) -Locked to real narration:
+   4.35s "Just drop it into JobSnap." -> 6.0s "Jobs, match scores, and one-click applications -all in one platform." */
 {
   const s3 = scene("s3", 4.35, 10.78);
 

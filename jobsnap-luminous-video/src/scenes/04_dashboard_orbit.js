@@ -1,5 +1,5 @@
-/* Shot 6 (15.80s – 21.42s) — Locked to real narration:
-   15.8s "Every matched role across LinkedIn, Naukri, and direct portals — ranked in one clean dashboard." */
+/* Shot 6 (15.80s – 21.42s) -Locked to real narration:
+   15.8s "Every matched role across LinkedIn, Naukri, and direct portals -ranked in one clean dashboard." */
 {
   const s6 = scene("s6", 15.80, 21.45);
 

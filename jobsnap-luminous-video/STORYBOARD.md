@@ -1,4 +1,4 @@
-# JobSnap Luminous Glass — 32s Shot-by-Shot Storyboard
+# JobSnap Luminous Glass -32s Shot-by-Shot Storyboard
 
 Faithful motion grammar from the uploaded 32s reference video, mapped to **JobSnap (`jobsnap.me`)**:
 

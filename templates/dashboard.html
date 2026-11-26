@@ -1013,7 +1013,7 @@
                 next_cooldown_seconds: 30
             });
 
-            updateProgressUI(100, `Complete! Next scan in ${cdSec}s — refreshing...`);
+            updateProgressUI(100, `Complete! Next scan in ${cdSec}s -refreshing...`);
             if (window.snapyToast) {
                 const summary = (payload && payload.message) || 'Job scan complete!';
                 window.snapyToast(`${summary} Cooldown: ${cdSec}s.`, { mood: 'happy', title: 'Scan Complete' });
@@ -1205,7 +1205,7 @@
                 }
                 if (rem > 0) {
                     if (window.snapyToast) {
-                        window.snapyToast(`Scraper is on cooldown — saved presets unlock in ${rem}s.`, { mood: 'warning', title: 'Preset Paused (Cooldown)' });
+                        window.snapyToast(`Scraper is on cooldown -saved presets unlock in ${rem}s.`, { mood: 'warning', title: 'Preset Paused (Cooldown)' });
                     }
                     if (cooldownBanner) cooldownBanner.classList.remove('hidden');
                     return;

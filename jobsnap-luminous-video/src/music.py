@@ -35,14 +35,14 @@ raw = subprocess.run(
 x = np.frombuffer(raw, dtype=np.float32).reshape(-1, 2).copy()
 total = len(x) / SR
 if DUR > total + 0.05:
-    print(f"!! Note: film is {DUR}s but {SRC.name} is {total:.1f}s — pick a track >= 33s for best results.")
+    print(f"!! Note: film is {DUR}s but {SRC.name} is {total:.1f}s -pick a track >= 33s for best results.")
 
 N = min(int(DUR * SR), len(x))
 y = x[:N]
 tt = np.arange(N) / SR
 
 # Smooth studio envelope: gentle fade-in (0->0.8s), tucked cleanly under narration (-13dB),
-# warm lift on final "JobSnap — at jobsnap.me" logo hold (28.8->30.9s), silky fade-out to 32.0s
+# warm lift on final "JobSnap -at jobsnap.me" logo hold (28.8->30.9s), silky fade-out to 32.0s
 pts = [
     (0.0, 0.0),
     (0.7, BED),

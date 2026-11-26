@@ -1,6 +1,6 @@
 <template>
   <style>
-    /* JOBSNAP LUMINOUS GLASS ENGINE (Zelios / LangEase Style — 1920x1080, 32.5s)
+    /* JOBSNAP LUMINOUS GLASS ENGINE (Zelios / LangEase Style -1920x1080, 32.5s)
        Pure luminous cool-white canvas (#F8FAFF), weight 400–500 geometric sans,
        blur-slide typography, frosted 3D glass folder, 4-phone radial surround,
        luminous ribbon-to-progress bar, glass checkmark + confetti, 3D dashboard fly-over,
@@ -43,7 +43,7 @@
       perspective: 1600px;
     }
 
-    /* Typography — airy regular/medium weight like reference */
+    /* Typography -airy regular/medium weight like reference */
     .lt {
       position: absolute;
       font-weight: 500;
@@ -225,30 +225,30 @@
         }
 
         /* 11 Rich, Film-Grained Editorial Color-Field Backgrounds (Zero Grids!)
-           Inspired directly by the user's mesh-gradient reference board — transitioning every 2–4s */
+           Inspired directly by the user's mesh-gradient reference board -transitioning every 2–4s */
         const bgRoot = $("#bg");
         const BG_THEMES = [
-          /* 0: 0.0–2.45s — Swirling Warm Peach-Coral & Soft Lilac-Cream ("Turn your resume into interviews") */
+          /* 0: 0.0–2.45s -Swirling Warm Peach-Coral & Soft Lilac-Cream ("Turn your resume into interviews") */
           { at: 0.0,  dur: 0.01, css: "background: radial-gradient(ellipse 68% 64% at 18% 22%, #FB923C 0%, rgba(251,146,60,0.45) 38%, transparent 70%), radial-gradient(ellipse 65% 65% at 86% 78%, #FDBA74 0%, rgba(253,186,116,0.5) 40%, transparent 70%), radial-gradient(ellipse 60% 58% at 54% 48%, #EDE9FE 0%, #DDD6FE 48%, #F5F3FF 100%);" },
-          /* 1: 2.38–4.30s — Burnt Tangerine melting into Cool Silver-Pearl ("for any role, instantly") */
+          /* 1: 2.38–4.30s -Burnt Tangerine melting into Cool Silver-Pearl ("for any role, instantly") */
           { at: 2.38, dur: 0.45, css: "background: radial-gradient(ellipse 74% 110% at 14% 52%, #EA580C 0%, #F97316 42%, rgba(251,146,60,0.22) 66%, transparent 78%), linear-gradient(100deg, #F97316 0%, #FB923C 28%, #E2E8F0 64%, #CBD5E1 100%);" },
-          /* 2: 4.28–6.00s — Editorial Noir with Sculptural Silver Light-Beam ("Just drop it into JobSnap") */
+          /* 2: 4.28–6.00s -Editorial Noir with Sculptural Silver Light-Beam ("Just drop it into JobSnap") */
           { at: 4.28, dur: 0.45, css: "background: radial-gradient(ellipse 46% 62% at 32% 48%, #F8FAFC 0%, #CBD5E1 26%, rgba(148,163,184,0.38) 50%, transparent 72%), radial-gradient(ellipse 55% 42% at 12% 28%, rgba(255,255,255,0.85) 0%, transparent 60%), radial-gradient(circle at 75% 55%, #050507 0%, #090A0F 100%); background-color:#050507;" },
-          /* 3: 6.00–10.65s — Electric Magenta, Warm Gold, Deep Teal & Violet Aurora ("Jobs, match scores... all in one platform") */
+          /* 3: 6.00–10.65s -Electric Magenta, Warm Gold, Deep Teal & Violet Aurora ("Jobs, match scores... all in one platform") */
           { at: 6.00, dur: 0.52, css: "background: radial-gradient(ellipse 62% 72% at 15% 45%, #EC4899 0%, rgba(236,72,153,0.65) 42%, transparent 72%), radial-gradient(ellipse 44% 78% at 38% 36%, #F59E0B 0%, rgba(251,191,36,0.5) 36%, transparent 66%), radial-gradient(ellipse 56% 74% at 62% 68%, #0F766E 0%, rgba(13,148,136,0.75) 45%, transparent 74%), radial-gradient(ellipse 64% 76% at 88% 72%, #7C3AED 0%, #4C1D95 55%, #1E1B4B 100%); background-color:#130F26;" },
-          /* 4: 10.65–14.65s — Deep Cobalt-Sapphire & Luminous Cyan-Emerald Ocean ("Our AI scans live roles and scores your fit in seconds") */
+          /* 4: 10.65–14.65s -Deep Cobalt-Sapphire & Luminous Cyan-Emerald Ocean ("Our AI scans live roles and scores your fit in seconds") */
           { at: 10.65, dur: 0.48, css: "background: radial-gradient(ellipse 62% 68% at 20% 42%, #2563EB 0%, rgba(37,99,235,0.45) 44%, transparent 74%), radial-gradient(ellipse 60% 66% at 84% 58%, #059669 0%, rgba(16,185,129,0.42) 42%, transparent 72%), radial-gradient(ellipse 55% 55% at 54% 18%, rgba(56,189,248,0.34) 0%, transparent 68%), #070B19;" },
-          /* 5: 14.65–15.80s — Radiant Mint, Soft Sky & Warm Apricot Silk ("Done.") */
+          /* 5: 14.65–15.80s -Radiant Mint, Soft Sky & Warm Apricot Silk ("Done.") */
           { at: 14.65, dur: 0.36, css: "background: radial-gradient(ellipse 64% 64% at 22% 24%, #6EE7B7 0%, rgba(110,231,183,0.4) 44%, transparent 74%), radial-gradient(ellipse 64% 64% at 82% 76%, #FDBA74 0%, rgba(253,186,116,0.42) 44%, transparent 74%), radial-gradient(ellipse 70% 70% at 50% 50%, #F0F9FF 0%, #E0F2FE 65%, #ECFEFF 100%);" },
-          /* 6: 15.80–18.55s — Luminous Periwinkle-Violet & Aqua Cloud Wash ("Every matched role across LinkedIn, Naukri, and direct portals") */
+          /* 6: 15.80–18.55s -Luminous Periwinkle-Violet & Aqua Cloud Wash ("Every matched role across LinkedIn, Naukri, and direct portals") */
           { at: 15.80, dur: 0.45, css: "background: radial-gradient(ellipse 68% 68% at 16% 20%, #A5B4FC 0%, rgba(165,180,252,0.45) 42%, transparent 72%), radial-gradient(ellipse 62% 64% at 86% 80%, #99F6E4 0%, rgba(153,246,228,0.48) 42%, transparent 72%), linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 52%, #F0FDFA 100%);" },
-          /* 7: 18.55–21.35s — Warm Coral-Blush & Powder Sky Swirl ("ranked in one clean dashboard" / Multiple Sources) */
+          /* 7: 18.55–21.35s -Warm Coral-Blush & Powder Sky Swirl ("ranked in one clean dashboard" / Multiple Sources) */
           { at: 18.55, dur: 0.48, css: "background: radial-gradient(ellipse 64% 66% at 18% 76%, #FDA4AF 0%, rgba(253,164,175,0.48) 42%, transparent 72%), radial-gradient(ellipse 64% 66% at 82% 22%, #FDBA74 0%, rgba(253,186,116,0.48) 42%, transparent 72%), radial-gradient(ellipse 65% 65% at 50% 50%, #EFF6FF 0%, #DBEAFE 70%, #F5F3FF 100%);" },
-          /* 8: 21.35–25.15s — Midnight Obsidian with Glowing Emerald & Indigo Horizon ("Pick your top match, hit one-click ATS fill, and you're applied") */
+          /* 8: 21.35–25.15s -Midnight Obsidian with Glowing Emerald & Indigo Horizon ("Pick your top match, hit one-click ATS fill, and you're applied") */
           { at: 21.35, dur: 0.48, css: "background: radial-gradient(ellipse 66% 58% at 78% 28%, rgba(16,185,129,0.52) 0%, rgba(16,185,129,0.16) 46%, transparent 74%), radial-gradient(ellipse 68% 62% at 22% 76%, rgba(99,102,241,0.56) 0%, rgba(79,70,229,0.18) 48%, transparent 74%), #070A13;" },
-          /* 9: 25.15–27.45s — Sculptural Noir Spotlight & Electric Sky Glow ("Match. Fill. Land.") */
+          /* 9: 25.15–27.45s -Sculptural Noir Spotlight & Electric Sky Glow ("Match. Fill. Land.") */
           { at: 25.15, dur: 0.42, css: "background: radial-gradient(ellipse 52% 64% at 52% 48%, rgba(56,189,248,0.34) 0%, rgba(59,130,246,0.14) 42%, transparent 72%), radial-gradient(ellipse 46% 54% at 24% 34%, rgba(226,232,240,0.42) 0%, transparent 62%), #05060A;" },
-          /* 10: 27.45–32.00s — Velvety Editorial Warm Pearl, Soft Peach & Mint Halo Finale ("JobSnap — at jobsnap.me") */
+          /* 10: 27.45–32.00s -Velvety Editorial Warm Pearl, Soft Peach & Mint Halo Finale ("JobSnap -at jobsnap.me") */
           { at: 27.45, dur: 0.55, css: "background: radial-gradient(ellipse 58% 60% at 14% 20%, rgba(253,186,116,0.55) 0%, transparent 68%), radial-gradient(ellipse 58% 60% at 88% 82%, rgba(110,231,183,0.52) 0%, transparent 68%), radial-gradient(ellipse 64% 64% at 82% 18%, rgba(196,181,253,0.42) 0%, transparent 68%), #FAF8FF;" }
         ];
         const bgEls = BG_THEMES.map((b, idx) => {
@@ -358,7 +358,7 @@
           </svg>`;
         };
 
-        /* Shot 1 & 2 (0.0s – 4.35s) — Locked to real narration:
+        /* Shot 1 & 2 (0.0s – 4.35s) -Locked to real narration:
    0:00 "Turn your resume" -> 0:01 "into interviews" -> 0:02 "for any role, instantly." */
 {
   const s1 = scene("s1", 0.0, 4.42);
@@ -458,8 +458,8 @@
   tl.to(glassPlane, { opacity: 0, rotateX: 0, scale: 1.24, filter: "blur(14px)", duration: 0.34, ease: "power2.in" }, 4.08);
 }
 
-/* Shot 3 (4.35s – 10.75s) — Locked to real narration:
-   4.35s "Just drop it into JobSnap." -> 6.0s "Jobs, match scores, and one-click applications — all in one platform." */
+/* Shot 3 (4.35s – 10.75s) -Locked to real narration:
+   4.35s "Just drop it into JobSnap." -> 6.0s "Jobs, match scores, and one-click applications -all in one platform." */
 {
   const s3 = scene("s3", 4.35, 10.78);
 
@@ -573,12 +573,12 @@
   tl.set(s3, { display: "none" }, 10.72);
 }
 
-/* Shot 4 & 5 (10.70s – 15.88s) — Locked to real narration:
+/* Shot 4 & 5 (10.70s – 15.88s) -Locked to real narration:
    10.7s "Our AI scans live roles and scores your fit in seconds." -> 14.8s "Done." */
 {
   const s4 = scene("s4", 10.70, 15.88);
 
-  /* 9.94–10.65s: Curved Luminous Ribbon shooting OUT from behind the left iPhone bezel (exact reference 00:10 shot — zero exposed left edge!) */
+  /* 9.94–10.65s: Curved Luminous Ribbon shooting OUT from behind the left iPhone bezel (exact reference 00:10 shot -zero exposed left edge!) */
   const rib = svgEl(
     s4,
     0,
@@ -665,8 +665,8 @@
   tl.to(sphere, { scale: 2.2, opacity: 0, duration: 0.24, ease: "power2.in" }, 15.65);
 }
 
-/* Shot 6 (15.80s – 21.42s) — Locked to real narration:
-   15.8s "Every matched role across LinkedIn, Naukri, and direct portals — ranked in one clean dashboard." */
+/* Shot 6 (15.80s – 21.42s) -Locked to real narration:
+   15.8s "Every matched role across LinkedIn, Naukri, and direct portals -ranked in one clean dashboard." */
 {
   const s6 = scene("s6", 15.80, 21.45);
 
@@ -793,7 +793,7 @@
   blurOut(multTxt, 21.05, 0.32, { scale: 1.06, blur: 12 });
 }
 
-/* Shot 7 (21.38s – 25.25s) — Locked to real narration:
+/* Shot 7 (21.38s – 25.25s) -Locked to real narration:
    21.4s "Pick your top match," -> 23.4s "hit one-click ATS fill," -> 24.1s "and you're applied." */
 {
   const s7 = scene("s7", 21.38, 25.28);
@@ -869,8 +869,8 @@
   tl.to(cta, { scale: 0.15, opacity: 0, filter: "blur(12px)", duration: 0.34, ease: "power3.in" }, 24.85);
 }
 
-/* Shot 8 (25.18s – 32.0s) — Locked to real narration:
-   25.5s "Match. Fill. Land." -> 27.6s "JobSnap — at jobsnap.me." */
+/* Shot 8 (25.18s – 32.0s) -Locked to real narration:
+   25.5s "Match. Fill. Land." -> 27.6s "JobSnap -at jobsnap.me." */
 {
   const s8 = scene("s8", 25.18, null);
 

@@ -36,7 +36,7 @@ if len(sys.argv) < 2:
 RAW = ROOT / "work" / sys.argv[1]
 SPEED = float(sys.argv[2]) if len(sys.argv) > 2 else 1.0
 if not RAW.exists():
-    sys.exit(f"no take found at {RAW} — save your recording in jobsnap-luminous-video/work/ first")
+    sys.exit(f"no take found at {RAW} -save your recording in jobsnap-luminous-video/work/ first")
 
 x = dec(RAW, ("-af", f"highpass=f=75,acompressor=threshold=-20dB:ratio=2.5:attack=8:release=120:makeup=2,loudnorm=I={LUFS}:TP=-1.5:LRA=9"))
 mono = np.abs(x).max(axis=1)

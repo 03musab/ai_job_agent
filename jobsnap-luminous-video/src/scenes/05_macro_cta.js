@@ -1,4 +1,4 @@
-/* Shot 7 (21.38s – 25.25s) — Locked to real narration:
+/* Shot 7 (21.38s – 25.25s) -Locked to real narration:
    21.4s "Pick your top match," -> 23.4s "hit one-click ATS fill," -> 24.1s "and you're applied." */
 {
   const s7 = scene("s7", 21.38, 25.28);

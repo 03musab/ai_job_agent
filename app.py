@@ -473,7 +473,7 @@ def _enforce_maintenance_mode():
 
     message = (
         os.environ.get('MAINTENANCE_MESSAGE', '').strip()
-        or "AI JobSnap is migrating to faster, always-on servers. Your account, resumes, and saved jobs are safe — we'll be back online shortly."
+        or "AI JobSnap is migrating to faster, always-on servers. Your account, resumes, and saved jobs are safe -we'll be back online shortly."
     )
     eta = os.environ.get('MAINTENANCE_ETA', '').strip()
 
@@ -12194,7 +12194,7 @@ def _deliver_bug_report_email(report: Dict[str, Any]) -> bool:
     description = report.get('description') or ''
     steps = report.get('steps') or ''
 
-    subject = f"[JobSnap Beta Bug #{rid}] {category} — reported by {username}"
+    subject = f"[JobSnap Beta Bug #{rid}] {category} -reported by {username}"
     html_body = (
         "<div style='font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif; max-width: 600px; padding: 20px; color: #0f172a;'>"
         f"<h2 style='margin: 0 0 12px 0; color: #e11d48;'>Bug Report #{html.escape(str(rid))} · {html.escape(category)}</h2>"

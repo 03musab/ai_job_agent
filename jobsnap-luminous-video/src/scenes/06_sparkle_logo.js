@@ -1,5 +1,5 @@
-/* Shot 8 (25.18s – 32.0s) — Locked to real narration:
-   25.5s "Match. Fill. Land." -> 27.6s "JobSnap — at jobsnap.me." */
+/* Shot 8 (25.18s – 32.0s) -Locked to real narration:
+   25.5s "Match. Fill. Land." -> 27.6s "JobSnap -at jobsnap.me." */
 {
   const s8 = scene("s8", 25.18, null);
 

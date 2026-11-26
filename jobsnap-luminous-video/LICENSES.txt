@@ -1,12 +1,12 @@
 Music
-- (Pending user selection — crisp upbeat modern SaaS electronic bed, ~122 BPM. Drop WAV at work/music-edit.wav)
+- (Pending user selection -crisp upbeat modern SaaS electronic bed, ~122 BPM. Drop WAV at work/music-edit.wav)
 
 Sound effects
-- (Pending user selection — subtle glass clicks, soft air swooshes, confetti pop, sparkle chime)
+- (Pending user selection -subtle glass clicks, soft air swooshes, confetti pop, sparkle chime)
 
 Voice
-- (Draft timings active — visual-first 32.5s SaaS launch spot, optional VO)
+- (Draft timings active -visual-first 32.5s SaaS launch spot, optional VO)
 
 Assets & Fonts
-- JobSnap SVG Logo — Authentic workspace asset (static/assets/jobsnap-logo.svg)
+- JobSnap SVG Logo -Authentic workspace asset (static/assets/jobsnap-logo.svg)
 - Plus Jakarta Sans & JetBrains Mono (SIL Open Font License 1.1, Google Fonts)

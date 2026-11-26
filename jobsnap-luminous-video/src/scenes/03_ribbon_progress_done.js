@@ -1,9 +1,9 @@
-/* Shot 4 & 5 (10.70s – 15.88s) — Locked to real narration:
+/* Shot 4 & 5 (10.70s – 15.88s) -Locked to real narration:
    10.7s "Our AI scans live roles and scores your fit in seconds." -> 14.8s "Done." */
 {
   const s4 = scene("s4", 10.70, 15.88);
 
-  /* 9.94–10.65s: Curved Luminous Ribbon shooting OUT from behind the left iPhone bezel (exact reference 00:10 shot — zero exposed left edge!) */
+  /* 9.94–10.65s: Curved Luminous Ribbon shooting OUT from behind the left iPhone bezel (exact reference 00:10 shot -zero exposed left edge!) */
   const rib = svgEl(
     s4,
     0,

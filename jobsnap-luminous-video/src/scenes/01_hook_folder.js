@@ -1,4 +1,4 @@
-/* Shot 1 & 2 (0.0s – 4.35s) — Locked to real narration:
+/* Shot 1 & 2 (0.0s – 4.35s) -Locked to real narration:
    0:00 "Turn your resume" -> 0:01 "into interviews" -> 0:02 "for any role, instantly." */
 {
   const s1 = scene("s1", 0.0, 4.42);

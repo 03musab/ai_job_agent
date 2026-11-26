@@ -6,7 +6,7 @@ Design principles (aligned with claude-motion Soft/Luminous audio spec):
   1. Only 13 curated, purposeful interaction sounds across the entire 32s film (opening hook stays pure & clean).
   2. Pure linear acoustics (NO tanh waveshaping distortion):
      - Apple Magic Trackpad / Taptic micro-tap (10ms damped warm polycarbonate tap + soft 46ms release)
-     - Low-passed "Velvet Air" breeze (<720 Hz ONLY — physically zero high-frequency hiss/static!)
+     - Low-passed "Velvet Air" breeze (<720 Hz ONLY -physically zero high-frequency hiss/static!)
      - Soft iOS Picker-Wheel felt micro-ticks on the 0->100/100 bar
      - Warm Rhodes / Celesta fifths in C Major / A Minor (261-784 Hz, matching the marimba music key,
        soft 10ms felt-mallet attack, stereo chorus warmth, placed in speech pauses so VO is never masked)
@@ -58,7 +58,7 @@ def load_audio_to_numpy(path: pathlib.Path) -> np.ndarray:
 
 
 def smooth_band_noise(dur: float, f_lo: float, f_hi: float) -> tuple[np.ndarray, np.ndarray]:
-    """Silky cosine-tapered band-limited noise (strictly 0.0 outside [f_lo, f_hi] — zero harsh hiss!)."""
+    """Silky cosine-tapered band-limited noise (strictly 0.0 outside [f_lo, f_hi] -zero harsh hiss!)."""
     m = max(64, int(round(dur * SR)))
     freqs = np.fft.rfftfreq(m, 1.0 / SR)
     mask = np.zeros_like(freqs)
@@ -131,7 +131,7 @@ def add_trackpad_tap(t: float, level: float = 0.24, with_release: bool = True):
 
 
 def add_velvet_breeze(t: float, dur: float = 0.52, level: float = 0.085, pan_dir: float = 1.0):
-    """Low-passed 'Velvet Air' camera glide (<680 Hz ONLY — zero static, zero white-noise hiss!)."""
+    """Low-passed 'Velvet Air' camera glide (<680 Hz ONLY -zero static, zero white-noise hiss!)."""
     m = int(round(dur * SR))
     u = np.linspace(0.0, 1.0, m)
     # Silky bell-shaped envelope (zero sharp attack or cutoff)
@@ -273,7 +273,7 @@ add_warm_rhodes_chime(30.05, (261.63, 392.00, 659.25), level=0.140, spread=0.090
 sfx_wav = ROOT / "assets" / "audio" / "sfx.wav"
 write_wav_native(sfx_wav, sfx)
 sfx_pk_db = 20.0 * np.log10(max(float(np.max(np.abs(sfx))), 1e-6))
-print(f"  Saved {sfx_wav.relative_to(WS)} (gentle studio peak = {sfx_pk_db:.1f} dBFS — zero clipping, zero static)")
+print(f"  Saved {sfx_wav.relative_to(WS)} (gentle studio peak = {sfx_pk_db:.1f} dBFS -zero clipping, zero static)")
 
 # =====================================================================
 # STEP 3: TRANSPARENT LINEAR MIX (VOICE HERO + SOOTHING MUSIC + SUBTLE FOLEY)
@@ -326,7 +326,7 @@ try:
         out_mp4.unlink()
 except PermissionError:
     out_mp4 = renders / "JobSnap_FINAL_SOOTHING_1080p.mp4"
-    print(f"  (Note: previous MP4 is open in player — saving to {out_mp4.name} instead!)")
+    print(f"  (Note: previous MP4 is open in player -saving to {out_mp4.name} instead!)")
 
 out_social = renders / (out_mp4.stem + "_Social.mp4")
 
