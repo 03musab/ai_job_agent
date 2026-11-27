@@ -614,7 +614,11 @@ class _SafeCeleryTaskContext:
 
 def _dispatch_background_task(celery_task, *args, **kwargs):
     """Enqueue on Celery/Redis when reachable; fall back to an in-process daemon thread."""
-    if os.environ.get('FORCE_LOCAL_THREAD_TASKS', '').lower() not in ('1', 'true'):
+    has_broker_env = bool(
+        os.environ.get('REDIS_URL') or os.environ.get('CELERY_BROKER_URL') or os.environ.get('broker_url')
+    )
+    force_local = os.environ.get('FORCE_LOCAL_THREAD_TASKS', '').lower() in ('1', 'true')
+    if not force_local and not (os.environ.get('DYNO') and not has_broker_env):
         try:
             return celery_task.delay(*args, **kwargs)
         except Exception as broker_err:

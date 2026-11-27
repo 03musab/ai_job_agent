@@ -61,3 +61,41 @@ def test_maintenance_mode_disabled_allows_normal_requests(monkeypatch):
     assert client.get("/healthz").status_code == 200
     login_resp = client.get("/login")
     assert login_resp.status_code != 503
+
+
+def test_postgres_cursor_uses_user_id_returning_for_cooldowns():
+    from database import _PostgresCursor
+
+    executed_sql = []
+
+    class _FakeRawCursor:
+        description = None
+        rowcount = 1
+
+        def execute(self, sql, params=None):
+            executed_sql.append(sql)
+
+        def fetchone(self):
+            return (7,)
+
+    class _FakeConnection:
+        def __init__(self):
+            self._raw = self
+
+        def cursor(self, **kwargs):
+            return _FakeRawCursor()
+
+        def _next_savepoint(self):
+            return "sp_1"
+
+        def _execute_control(self, stmt):
+            pass
+
+    cur = _PostgresCursor(_FakeConnection())
+    cur.execute(
+        "INSERT INTO user_scrape_cooldowns (user_id, completed_count) VALUES (?, ?)",
+        (7, 0),
+    )
+    assert executed_sql[-1].endswith("RETURNING user_id")
+    assert cur.lastrowid == 7
+

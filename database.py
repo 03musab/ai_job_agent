@@ -102,6 +102,9 @@ def _translate_statement(statement: str) -> str:
     return _replace_placeholders(statement)
 
 
+_USER_ID_PK_TABLES = {"user_details", "user_scrape_cooldowns"}
+
+
 class _PostgresCursor:
     def __init__(self, connection: "_PostgresConnection"):
         self._raw = connection._raw.cursor(cursor_factory=DictCursor)
@@ -112,7 +115,8 @@ class _PostgresCursor:
         translated = _translate_statement(statement)
         insert_match = re.match(r"\s*INSERT\s+INTO\s+([a-z_][a-z0-9_]*)\b", translated, re.I)
         is_insert = insert_match is not None
-        returning_column = "user_id" if insert_match and insert_match.group(1).lower() == "user_details" else "id"
+        table_name = insert_match.group(1).lower() if insert_match else ""
+        returning_column = "user_id" if table_name in _USER_ID_PK_TABLES else "id"
         if is_insert and not re.search(r"\bRETURNING\b", translated, re.I):
             translated = translated.rstrip().rstrip(";") + f" RETURNING {returning_column}"
 
